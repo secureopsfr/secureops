@@ -80,6 +80,9 @@ jobs:
       - name: JS Lint & Prettier
         run: docker compose -f docker-compose.ci.yml exec -T frontend npm run lint
 
+      - name: JS Tests (Jest)
+        run: docker compose -f docker-compose.ci.yml exec -T frontend npm run test
+
       # Teardown : nettoyage des conteneurs
       - name: Teardown full stack
         if: always()
