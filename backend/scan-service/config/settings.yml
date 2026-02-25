@@ -62,3 +62,9 @@ ssrf:
     - "::1/128"
     - "fe80::/10"
     - "fc00::/7"
+
+# Timeouts scan (roadmap §2.3) : connexion, lecture, durée max du scan.
+timeouts:
+  connection: 3    # secondes pour établir la connexion
+  read: 10         # secondes pour lire la réponse
+  scan_global: 60  # secondes max pour l'ensemble du scan (ex: 60–120)

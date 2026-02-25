@@ -81,6 +81,37 @@ def get_url_validation_settings() -> UrlValidationSettings:
     )
 
 
+@dataclass(frozen=True)
+class ScanTimeoutsSettings:
+    """Timeouts pour le scan HTTP (roadmap §2.3)."""
+
+    connection: float
+    read: float
+    scan_global: float
+
+
+_DEFAULT_CONNECTION_TIMEOUT = 3.0
+_DEFAULT_READ_TIMEOUT = 10.0
+_DEFAULT_SCAN_GLOBAL_TIMEOUT = 60.0
+
+
+@lru_cache(maxsize=1)
+def get_scan_timeouts() -> ScanTimeoutsSettings:
+    """Charge la section timeouts depuis config/settings.yml (mis en cache).
+
+    Returns:
+        ScanTimeoutsSettings: timeouts connexion, lecture et global.
+    """
+    root = Path(__file__).resolve().parents[1]
+    data = load_yaml(root / "config" / "settings.yml")
+    t = data.get("timeouts") or {}
+    return ScanTimeoutsSettings(
+        connection=float(t.get("connection", _DEFAULT_CONNECTION_TIMEOUT)),
+        read=float(t.get("read", _DEFAULT_READ_TIMEOUT)),
+        scan_global=float(t.get("scan_global", _DEFAULT_SCAN_GLOBAL_TIMEOUT)),
+    )
+
+
 __all__ = [
     "settings",
     "AppSettings",
@@ -90,4 +121,6 @@ __all__ = [
     "get_ssrf_settings",
     "UrlValidationSettings",
     "get_url_validation_settings",
+    "ScanTimeoutsSettings",
+    "get_scan_timeouts",
 ]

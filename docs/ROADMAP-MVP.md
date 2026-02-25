@@ -58,10 +58,12 @@ Objectif : livrer un **scanner de posture sécurité web** (non-intrusif) destin
 
 > **Fait :** Module `app/utils/ssrf.py` : hostnames interdits (localhost, 127.0.0.1, ::1, 0.0.0.0), résolution DNS avec timeout (5 s), blocage si une IP résolue est en plage privée/loopback/link-local. Intégré dans `POST /api/scan`. Tests unitaires (is_hostname_blocked, is_ip_blocked, check_ssrf) + tests route (refus localhost / 127.0.0.1).
 
-### 2.3 Timeouts
-- [ ] Timeout connexion (ex: 3s)
-- [ ] Timeout lecture (ex: 10s)
-- [ ] Timeout global scan (ex: 60–120s)
+### 2.3 Timeouts ✅
+- [x] Timeout connexion (ex: 3s) ✅
+- [x] Timeout lecture (ex: 10s) ✅
+- [x] Timeout global scan (ex: 60–120s) ✅
+
+> **Fait :** Section `timeouts` dans config/settings.yml (`connection: 3`, `read: 10`, `scan_global: 60`). `ScanTimeoutsSettings` et `get_scan_timeouts()` dans le config_loader. À utiliser par le client HTTP du scan (connexion + lecture) et pour borner la durée totale du scan.
 
 ---
 
