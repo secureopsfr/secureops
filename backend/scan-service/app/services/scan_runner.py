@@ -14,3 +14,15 @@ async def run_scan(url: str) -> None:
     """
     get_scan_timeouts()
     # Stub : pas encore de requête HTTP ; url et timeouts seront utilisés plus tard.
+
+
+async def run_tls_checks(url: str) -> None:
+    """Vérifications TLS/HTTPS (roadmap §3.1). Stub : ne fait rien pour l'instant.
+
+    À implémenter : HTTPS activé, redirection HTTP→HTTPS, certificat (valide/expiré/auto-signé),
+    version TLS, résumé posture TLS.
+
+    Args:
+        url: URL normalisée et validée (SSRF ok).
+    """
+    pass

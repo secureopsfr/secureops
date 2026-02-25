@@ -4,7 +4,7 @@ import json
 from collections.abc import AsyncGenerator
 
 from app.config_loader import get_ssrf_settings
-from app.services.scan_runner import run_scan
+from app.services.scan_runner import run_scan, run_tls_checks
 from app.utils.ssrf import check_ssrf
 from app.utils.url_validator import URLValidationError, validate_and_normalize_url
 
@@ -43,6 +43,10 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
         yield _sse_message("step", {"step": "scan_run", "message": "Exécution du scan…"})
         await run_scan(normalized_url)
         yield _sse_message("step", {"step": "scan_done", "message": "Scan terminé."})
+
+        yield _sse_message("step", {"step": "tls_check", "message": "Vérification TLS/HTTPS…"})
+        await run_tls_checks(normalized_url)
+        yield _sse_message("step", {"step": "tls_done", "message": "TLS/HTTPS vérifié."})
 
         yield _sse_message("result", {"valid": True, "url": normalized_url})
     except URLValidationError as e:
