@@ -7,8 +7,10 @@ from common.logging_config import get_logger, setup_logging
 from common.middleware import CorrelationIdMiddleware
 from fastapi import FastAPI
 
+from app import load_env  # noqa: F401
 from app.config_loader import settings
 from app.routers.health import router as health_router
+from app.routers.scan import router as scan_router
 
 setup_logging(service_name="scan-service")
 
@@ -38,6 +40,7 @@ def create_app() -> FastAPI:
     app.add_middleware(CorrelationIdMiddleware)
 
     app.include_router(health_router)
+    app.include_router(scan_router)
     register_exception_handlers(app)
 
     return app
