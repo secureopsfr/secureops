@@ -1,0 +1,24 @@
+import type { MetadataRoute } from "next";
+import { SITE_URL } from "../i18n/config";
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: [
+          "/*/mon-compte/",
+          "/*/my-account/",
+          "/*/connexion/",
+          "/*/login/",
+          "/*/mot-de-passe-oublie/",
+          "/*/forgot-password/",
+          "/*/confirmation/",
+          "/api/",
+        ],
+      },
+    ],
+    sitemap: `${SITE_URL}/sitemap.xml`,
+  };
+}

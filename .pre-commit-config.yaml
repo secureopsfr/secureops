@@ -1,0 +1,155 @@
+repos:
+  # ──────────────────────────────────────────────────────────────────────────────
+  # Hooks généraux (trailing whitespace, fin de fichier, YAML/JSON valide…)
+  # ──────────────────────────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # Black (Python) — un hook par service, pour prendre la config locale
+  # ──────────────────────────────────────────────────────────────────────────────
+  - repo: https://github.com/psf/black
+    rev: 26.1.0
+    hooks:
+      - id: black
+        name: Black Gateway
+        language_version: python3
+        files: ^backend/gateway/.*\.py$
+        args:
+          - --config=backend/gateway/pyproject.toml
+      - id: black
+        name: Black admin-service
+        language_version: python3
+        files: ^backend/admin-service/.*\.py$
+        args:
+          - --config=backend/admin-service/pyproject.toml
+      - id: black
+        name: Black user-service
+        language_version: python3
+        files: ^backend/user-service/.*\.py$
+        args:
+          - --config=backend/user-service/pyproject.toml
+      - id: black
+        name: Black metier-a-service
+        language_version: python3
+        files: ^backend/metier-a-service/.*\.py$
+        args:
+          - --config=backend/metier-a-service/pyproject.toml
+      - id: black
+        name: Black metier-b-service
+        language_version: python3
+        files: ^backend/metier-b-service/.*\.py$
+        args:
+          - --config=backend/metier-b-service/pyproject.toml
+      - id: black
+        name: Black metier-c-service
+        language_version: python3
+        files: ^backend/metier-c-service/.*\.py$
+        args:
+          - --config=backend/metier-c-service/pyproject.toml
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # isort (Python) — un hook par service, pour prendre la config locale
+  # ──────────────────────────────────────────────────────────────────────────────
+  - repo: https://github.com/PyCQA/isort
+    rev: 7.0.0
+    hooks:
+      - id: isort
+        name: isort Gateway
+        files: ^backend/gateway/.*\.py$
+        args:
+          - --profile=black
+      - id: isort
+        name: isort admin-service
+        files: ^backend/admin-service/.*\.py$
+        args:
+          - --profile=black
+      - id: isort
+        name: isort user-service
+        files: ^backend/user-service/.*\.py$
+        args:
+          - --profile=black
+      - id: isort
+        name: isort metier-a-service
+        files: ^backend/metier-a-service/.*\.py$
+        args:
+          - --profile=black
+      - id: isort
+        name: isort metier-b-service
+        files: ^backend/metier-b-service/.*\.py$
+        args:
+          - --profile=black
+      - id: isort
+        name: isort metier-c-service
+        files: ^backend/metier-c-service/.*\.py$
+        args:
+          - --profile=black
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # Flake8 (Python) — un hook par service, pour prendre la config locale
+  # ──────────────────────────────────────────────────────────────────────────────
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        name: Flake8 Gateway
+        files: ^backend/gateway/.*\.py$
+        args:
+          - --config=backend/gateway/.flake8
+      - id: flake8
+        name: Flake8 admin-service
+        files: ^backend/admin-service/.*\.py$
+        args:
+          - --config=backend/admin-service/.flake8
+      - id: flake8
+        name: Flake8 user-service
+        files: ^backend/user-service/.*\.py$
+        args:
+          - --config=backend/user-service/.flake8
+      - id: flake8
+        name: Flake8 metier-a-service
+        files: ^backend/metier-a-service/.*\.py$
+        args:
+          - --config=backend/metier-a-service/.flake8
+      - id: flake8
+        name: Flake8 metier-b-service
+        files: ^backend/metier-b-service/.*\.py$
+        args:
+          - --config=backend/metier-b-service/.flake8
+      - id: flake8
+        name: Flake8 metier-c-service
+        files: ^backend/metier-c-service/.*\.py$
+        args:
+          - --config=backend/metier-c-service/.flake8
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # ESLint (TypeScript/React) pour frontend Next.js
+  # ──────────────────────────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v10.0.0-rc.1
+    hooks:
+      - id: eslint
+        name: Frontend Next.js ESLint
+        language: node
+        entry: bash -c "cd frontend && npm run lint"
+        files: ^frontend/.*\.(js|jsx|ts|tsx)$
+        pass_filenames: false
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # Prettier (TypeScript/JS/CSS/MD/JSON) pour frontend Next.js
+  # ──────────────────────────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        name: Prettier Frontend Next.js
+        language: node
+        entry: bash -c "cd frontend && npm run format"
+        files: ^frontend/.*\.(js|jsx|ts|tsx|css|json|md)$
+        pass_filenames: false
+

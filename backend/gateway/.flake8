@@ -1,0 +1,33 @@
+[flake8]
+max-line-length = 150
+
+exclude =
+    .git,
+    __pycache__,
+    frontend/node_modules,
+    venv,
+    build,
+    dist
+
+# ignore D401: First line should be in imperative mood
+# ignore W503: line break before binary operator (en conflit avec W504)
+# ignore W504: line break after binary operator (en conflit avec W503)
+ignore = D401, W503, W504
+
+# Plugins activés : docstrings, naming, quotes, bugbear, simplify, comprehensions, pytest
+select =
+    D,     # flake8-docstrings
+    E, F, W,  # pycodestyle + pyflakes
+    C,        # mccabe (complexité cyclomatique)
+    Q,        # flake8-quotes
+    B,        # flake8-bugbear
+    SIM,      # flake8-simplify
+    C4,       # flake8-comprehensions
+    PT        # flake8-pytest-style
+
+max-complexity = 10
+
+# flake8-quotes config
+inline-quotes = "
+multiline-quotes = """
+docstring-quotes = """

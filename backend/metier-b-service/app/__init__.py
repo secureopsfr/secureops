@@ -1,0 +1,1 @@
+"""Package Metier B Service."""

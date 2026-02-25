@@ -1,0 +1,1 @@
+"""Configuration du admin-service."""

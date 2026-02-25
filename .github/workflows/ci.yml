@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Build - Lint & Formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # Vérifier que les Dockerfiles requis existent (contexte = répertoire du workflow)
+      - name: Verify Dockerfiles exist
+        run: |
+          echo "Working directory: $(pwd)"
+          test -f frontend/Dockerfile || { echo "Missing frontend/Dockerfile"; exit 1; }
+          test -f backend/metier-c-service/Dockerfile || { echo "Missing backend/metier-c-service/Dockerfile"; exit 1; }
+          (test -f backend/gateway/Dockerfile && test -f backend/admin-service/Dockerfile) || true
+
+      # Build & démarrage de la stack
+      - name: Start full stack
+        shell: bash
+        run: |
+          docker compose -f docker-compose.ci.yml up -d --build
+          # Attente de la disponibilité de Postgres
+          until docker compose -f docker-compose.ci.yml exec -T postgres pg_isready -U user -d postgres; do
+            echo "Waiting for Postgres…"; sleep 2
+          done
+          # Attente admin-service (migrations + health)
+          echo "Waiting for admin-service..."
+          for i in $(seq 1 30); do
+            cid=$(docker compose -f docker-compose.ci.yml ps -q admin-service 2>/dev/null)
+            status=$([ -n "$cid" ] && docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || echo "missing")
+            if [ "$status" = "missing" ]; then
+              echo "admin-service container not found (build may have failed)."
+              docker compose -f docker-compose.ci.yml logs admin-service 2>/dev/null || true
+              exit 1
+            fi
+            if [ "$status" = "exited" ]; then
+              echo "admin-service has exited. Logs:"
+              docker compose -f docker-compose.ci.yml logs admin-service || true
+              exit 1
+            fi
+            if docker compose -f docker-compose.ci.yml exec -T admin-service python -c "import urllib.request; urllib.request.urlopen('http://localhost:8010/api/health')" 2>/dev/null; then
+              echo "admin-service is up"; break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "admin-service did not become ready. Logs:"
+              docker compose -f docker-compose.ci.yml logs admin-service || true
+              exit 1
+            fi
+            sleep 2
+          done
+
+      # Lint Python + JS
+      - name: Python Lint & Formatting
+        run: |
+          for svc in gateway admin-service user-service metier-a-service metier-b-service metier-c-service; do
+            docker compose -f docker-compose.ci.yml exec -T $svc black --check .
+            docker compose -f docker-compose.ci.yml exec -T $svc isort --check-only .
+            docker compose -f docker-compose.ci.yml exec -T $svc flake8 .
+          done
+
+      - name: JS Lint & Prettier
+        run: docker compose -f docker-compose.ci.yml exec -T frontend npm run lint
+
+      # Teardown : nettoyage des conteneurs
+      - name: Teardown full stack
+        if: always()
+        run: docker compose -f docker-compose.ci.yml down --volumes
+

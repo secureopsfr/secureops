@@ -1,0 +1,74 @@
+# Configuration pour l'API Gateway
+# Ce fichier contient tous les paramètres de configuration du service
+
+# Configuration générale
+general:
+  project_name: "API Gateway"
+  debug: false  # true pour le développement, false pour la production
+  is_docker: false  # Sera défini par la variable d'environnement IS_DOCKER
+
+# Configuration CORS
+cors:
+  allow_origins: ["*"]
+  allow_methods: ["*"]
+  allow_headers: ["*"]
+  allow_credentials: true
+
+# Configuration des services
+services:
+  # Configuration pour l'environnement Docker
+  docker:
+    admin:
+      prefix: "admin"
+      url: "http://admin-service:8010"
+    user:
+      prefix: "user"
+      url: "http://user-service:8011"
+    metier_a:
+      prefix: "metier-a"
+      url: "http://metier-a-service:8008"
+    metier_b:
+      prefix: "metier-b"
+      url: "http://metier-b-service:8009"
+    metier_c:
+      prefix: "metier-c"
+      url: "http://metier-c-service:8012"
+
+  # Configuration pour l'environnement local
+  local:
+    admin:
+      prefix: "admin"
+      url: "http://localhost:8010"
+    user:
+      prefix: "user"
+      url: "http://localhost:8011"
+    metier_a:
+      prefix: "metier-a"
+      url: "http://localhost:8008"
+    metier_b:
+      prefix: "metier-b"
+      url: "http://localhost:8009"
+    metier_c:
+      prefix: "metier-c"
+      url: "http://localhost:8012"
+
+# Configuration des timeouts
+timeouts:
+  request_timeout: 20.0  # Timeout en secondes pour les requêtes HTTP (augmenté pour autocomplétion)
+
+# Configuration des headers
+headers:
+  # Headers « hop-by-hop » à ne pas proxyer
+  hop_by_hop:
+    - "connection"
+    - "keep-alive"
+    - "proxy-authenticate"
+    - "proxy-authorization"
+    - "te"
+    - "trailers"
+    - "transfer-encoding"
+    - "upgrade"
+
+# Configuration des types de contenu
+content_types:
+  vector_tile: "application/vnd.mapbox-vector-tile"

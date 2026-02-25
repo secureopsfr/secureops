@@ -1,0 +1,53 @@
+general:
+  service_name: "admin-service"
+  environment: "development"
+  cors_allow_origins:
+    - "*"
+  # URL de connexion à la base PostgreSQL : utiliser la variable d'environnement DATABASE_URL.
+  # Ne jamais mettre de credentials ici — cf. .env.example pour le format attendu.
+
+server:
+  host: "0.0.0.0"
+  port: 8010
+
+logging:
+  level: "INFO"
+
+# Configuration de la base de données
+database:
+  pool_size: 20
+  max_overflow: 30
+  pool_timeout: 30
+  pool_recycle: 3600
+  pool_pre_ping: true
+  echo: false
+  connect_args:
+    server_settings:
+      application_name: "admin-service"
+  ssl_mode: "prefer"
+  pool_logging: false
+
+metrics:
+  # api_key: Ne pas mettre de valeur par défaut ici pour des raisons de sécurité.
+  # La clé doit venir uniquement de la variable d'environnement ADMIN_METRICS_API_KEY
+  # ou être définie dans docker-compose.yml / launch_dev.sh pour le développement.
+  queries:
+    window_minutes:
+      default: 10080
+      ge: 1
+      description: "Fenêtre temporelle en minutes utilisée pour agréger les données (optionnel, si non fourni calcule sur toutes les données)"
+    limit:
+      default: 50
+      ge: 1
+      le: 200
+      description: "Nombre maximal d'entrées agrégées à retourner"
+
+routers:
+  kpis:
+    prefix: "/api/metrics"
+    tags:
+      - "metrics"
+  health:
+    prefix: "/api"
+    tags:
+      - "health"

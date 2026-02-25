@@ -1,0 +1,7 @@
+[tool.black]
+line-length = 150
+target-version = ['py38']   # ou la version de Python que tu utilises
+
+[tool.isort]
+profile = "black"
+line_length = 150

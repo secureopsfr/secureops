@@ -1,0 +1,47 @@
+{
+  "name": "SecureOps – Cybersécurité SaaS",
+  "short_name": "SecureOps",
+  "description": "Plateforme SaaS de cybersécurité : détection de vulnérabilités, monitoring et protection en temps réel.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1e3a8a",
+  "orientation": "portrait-primary",
+  "lang": "fr-FR",
+  "dir": "ltr",
+
+  "icons": [
+    {
+      "src": "/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+
+  "categories": ["security", "business", "productivity"],
+
+  "shortcuts": [
+    {
+      "name": "Tarifs",
+      "short_name": "Tarifs",
+      "url": "/fr/tarifs",
+      "icons": [{ "src": "/logo.png", "sizes": "512x512", "type": "image/png" }]
+    },
+    {
+      "name": "Contact",
+      "short_name": "Contact",
+      "url": "/fr/contact",
+      "icons": [{ "src": "/logo.png", "sizes": "512x512", "type": "image/png" }]
+    }
+  ],
+
+  "prefer_related_applications": false,
+  "display_override": ["standalone", "minimal-ui", "browser"]
+}

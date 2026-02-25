@@ -1,0 +1,19 @@
+# Environnements virtuels Python (très volumineux, inutiles dans le build Docker)
+**/venv/
+**/__pycache__/
+**/*.pyc
+
+# Fichiers de test et config dev
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+
+# Logs
+**/logs/
+
+# Données locales
+**/data/images/uploads/
+
+# Git
+**/.git
+

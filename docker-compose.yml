@@ -1,0 +1,188 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NEXT_PUBLIC_GATEWAY_URL=http://gateway:8000
+      - NEXT_PUBLIC_IS_BETA_TEST=true
+      - NEXT_PUBLIC_IS_PROD=false
+    networks:
+      - app-network
+    depends_on:
+      gateway:
+        condition: service_healthy
+
+  gateway:
+    build:
+      context: ./backend
+      dockerfile: gateway/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Indiquer que nous sommes en mode Docker
+      - IS_DOCKER=true
+      - ADMIN_METRICS_API_KEY=${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      admin-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      metier-a-service:
+        condition: service_healthy
+      metier-b-service:
+        condition: service_healthy
+      metier-c-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  admin-service:
+    build:
+      context: ./backend
+      dockerfile: admin-service/Dockerfile
+    ports:
+      - "8010:8010"
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - ADMIN_METRICS_API_KEY=${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8010/api/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  user-service:
+    build:
+      context: ./backend
+      dockerfile: user-service/Dockerfile
+    ports:
+      - "8011:8011"
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8011/api/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  metier-a-service:
+    build:
+      context: ./backend
+      dockerfile: metier-a-service/Dockerfile
+    ports:
+      - "8008:8008"
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8008/api/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  metier-b-service:
+    build:
+      context: ./backend
+      dockerfile: metier-b-service/Dockerfile
+    ports:
+      - "8009:8009"
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8009/api/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  metier-c-service:
+    build:
+      context: ./backend
+      dockerfile: metier-c-service/Dockerfile
+    ports:
+      - "8012:8012"
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8012/api/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgis/postgis:15-3.3
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-template_db}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/initdb.d:/docker-entrypoint-initdb.d:ro
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+    external: true

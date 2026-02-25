@@ -1,0 +1,151 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: builder
+      args:
+        - NEXT_PUBLIC_AWS_REGION=${NEXT_PUBLIC_AWS_REGION:-eu-west-3}
+        - NEXT_PUBLIC_AWS_USER_POOL_ID=${NEXT_PUBLIC_AWS_USER_POOL_ID:-eu-west-3_CIPlaceholder}
+        - NEXT_PUBLIC_AWS_CLIENT_ID=${NEXT_PUBLIC_AWS_CLIENT_ID:-cipalaceholder}
+        - NEXT_PUBLIC_AWS_COGNITO_DOMAIN=${NEXT_PUBLIC_AWS_COGNITO_DOMAIN:-placeholder.auth.eu-west-3.amazoncognito.com}
+    environment:
+      - NEXT_PUBLIC_IS_BETA_TEST=true
+      - NEXT_PUBLIC_IS_PROD=false
+      - NEXT_PUBLIC_GATEWAY_URL=http://gateway:8000
+    command: ["sh", "-c", "sleep infinity"]
+    networks: [app-network]
+    depends_on: [gateway]
+
+  cypress:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: builder
+      args:
+        - NEXT_PUBLIC_AWS_REGION=${NEXT_PUBLIC_AWS_REGION:-eu-west-3}
+        - NEXT_PUBLIC_AWS_USER_POOL_ID=${NEXT_PUBLIC_AWS_USER_POOL_ID:-eu-west-3_CIPlaceholder}
+        - NEXT_PUBLIC_AWS_CLIENT_ID=${NEXT_PUBLIC_AWS_CLIENT_ID:-cipalaceholder}
+        - NEXT_PUBLIC_AWS_COGNITO_DOMAIN=${NEXT_PUBLIC_AWS_COGNITO_DOMAIN:-placeholder.auth.eu-west-3.amazoncognito.com}
+    working_dir: /app
+    environment:
+      - NEXT_PUBLIC_GATEWAY_URL=http://gateway:8000
+    entrypoint: >
+      sh -c "npm run build &&
+             npm run start &
+             echo 'Waiting for Next.js server…' &&
+             sleep 10 &&
+             xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24' \
+               npx cypress run --config baseUrl=http://localhost:3000"
+    depends_on:
+      - gateway
+      - admin-service
+      - user-service
+      - metier-a-service
+      - metier-b-service
+      - metier-c-service
+      - postgres
+    networks: [app-network]
+
+  gateway:
+    build:
+      context: ./backend
+      dockerfile: gateway/Dockerfile
+    environment:
+      - IS_DOCKER=true
+      - ADMIN_METRICS_API_KEY=${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}
+      - COGNITO_REGION=${COGNITO_REGION:-eu-west-3}
+      - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID:-test-user-pool-id}
+    networks: [app-network]
+    depends_on: [admin-service, user-service, metier-a-service, metier-b-service, metier-c-service, postgres]
+
+  admin-service:
+    build:
+      context: ./backend
+      dockerfile: admin-service/Dockerfile
+    environment:
+      - IS_DOCKER=true
+      - ADMIN_METRICS_API_KEY=${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+    networks: [app-network]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8010/api/health')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  user-service:
+    build:
+      context: ./backend
+      dockerfile: user-service/Dockerfile
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+    networks: [app-network]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  metier-a-service:
+    build:
+      context: ./backend
+      dockerfile: metier-a-service/Dockerfile
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+    networks: [app-network]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  metier-b-service:
+    build:
+      context: ./backend
+      dockerfile: metier-b-service/Dockerfile
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+    networks: [app-network]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  metier-c-service:
+    build:
+      context: ./backend
+      dockerfile: metier-c-service/Dockerfile
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+    networks: [app-network]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgis/postgis:15-3.3
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-template_db}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    volumes:
+      - ./docker/initdb.d:/docker-entrypoint-initdb.d:ro
+    networks: [app-network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
+
+networks:
+  app-network:
+    driver: bridge
+

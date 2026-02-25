@@ -1,0 +1,118 @@
+# Architecture du template
+
+Ce document décrit l’architecture des services, le flux d’authentification et l’usage des bases de données.
+
+## Vue d’ensemble
+
+Le template est organisé en **microservices** derrière un **API Gateway** unique. Le frontend (Next.js) ne parle qu’au gateway ; le gateway authentifie les requêtes (JWT Cognito) et proxy vers les services backend.
+
+```
+                    ┌─────────────────────────────────────────────────────────┐
+                    │                    Frontend (Next.js)                    │
+                    │  Port 3000 • Cognito (Auth) • i18n fr/en • Tailwind     │
+                    └───────────────────────────┬─────────────────────────────┘
+                                                │
+                                                │ HTTP (Bearer JWT pour API)
+                                                ▼
+                    ┌─────────────────────────────────────────────────────────┐
+                    │                     API Gateway                         │
+                    │  Port 8000 • Auth middleware • CORS • Proxy             │
+                    │  Routes : /health, /admin/*, /user/*, /metier-*/*        │
+                    └───┬─────────┬─────────┬─────────┬─────────┬────────────┘
+                        │         │         │         │         │
+          ┌─────────────┘         │         │         │         └─────────────┐
+          ▼                       ▼         ▼         ▼                      ▼
+   ┌───────────────┐     ┌───────────────┐ ┌───────────────┐     ┌───────────────┐
+   │ admin-service │     │ user-service  │ │ metier-a-svc  │ ... │ metier-c-svc  │
+   │ Port 8010     │     │ Port 8011    │ │ Port 8008     │     │ Port 8012     │
+   │ PostgreSQL    │     │ PostgreSQL   │ │ (stub)        │     │ (stub)        │
+   │ Alembic       │     │ Alembic      │ │               │     │               │
+   └───────┬───────┘     └──────┬───────┘ └───────────────┘     └───────────────┘
+           │                    │
+           └────────┬───────────┘
+                    ▼
+           ┌────────────────────┐
+           │     PostgreSQL     │
+           │  (PostGIS 15/17)   │
+           │  template_db       │
+           │  Port 5433 (host)  │
+           └────────────────────┘
+```
+
+## Rôle des services
+
+| Service | Port | Rôle | Base de données |
+|--------|------|------|------------------|
+| **gateway** | 8000 | Authentification JWT (Cognito), CORS, proxy vers les services. Ne stocke pas de données. | — |
+| **admin-service** | 8010 | Administration : contacts, newsletter, emails, analytics, KPIs, alerting, gestion utilisateurs, upload d’images. | PostgreSQL (async), Alembic |
+| **user-service** | 8011 | Utilisateurs : profil, préférences, abonnements, favoris, sécurité, confidentialité. | PostgreSQL, Alembic |
+| **metier-a-service** | 8008 | Stub métier A (health + config). À remplacer ou étendre selon le projet. | — |
+| **metier-b-service** | 8009 | Stub métier B. | — |
+| **metier-c-service** | 8012 | Stub métier C. | — |
+
+Les **metier-*-service** n’ont qu’un endpoint `/api/health` et une configuration ; ils sont là pour illustrer le pattern. On peut y ajouter des routes et une base en s’inspirant de `user-service` ou `admin-service`.
+
+## Routes du gateway
+
+Le gateway expose :
+
+- **`/health`** — Health check (public).
+- **`/admin/*`** — Proxifié vers admin-service. Requiert **JWT + groupe Cognito `admin`** (sauf routes explicitement publiques).
+- **`/user/*`** — Proxifié vers user-service. Requiert **JWT** (utilisateur authentifié).
+- **`/metier-a/*`**, **`/metier-b/*`**, **`/metier-c/*`** — Proxifiés vers les services métier. Requiert **JWT**.
+
+Routes **publiques** (sans auth) :
+
+- `GET /health`
+- `GET /images/*`, `GET /admin/images/*` (accès aux images)
+- `POST /api/contact` (formulaire de contact, protégé côté front par Turnstile)
+- `POST /admin/api/analytics/ingest` (ingestion analytics depuis le front)
+- `POST /user/api/user/init` (création/initialisation du compte utilisateur après première connexion)
+
+La configuration des URLs des services (Docker vs local) est dans `backend/gateway/config/settings.yml` (clés `services.docker` et `services.local`). Le mode est choisi via la variable d’environnement `IS_DOCKER`.
+
+## Flux d’authentification
+
+1. **Frontend** : l’utilisateur se connecte via **AWS Cognito** (Amplify UI : email/mot de passe ou Google OAuth).
+2. **Frontend** : après connexion, le client récupère le **JWT** (idToken) via `fetchAuthSession()` et envoie les requêtes API avec l’en-tête `Authorization: Bearer <token>`.
+3. **Gateway** : le middleware d’auth lit `Authorization`, appelle **common.common.jwt_verifier.verify_cognito_jwt(token)** (vérification JWKS Cognito, RS256, expiration, issuer, audience). Si la route est sous `/admin/*`, il vérifie en plus la présence du groupe Cognito `admin`.
+4. **Gateway** : il transmet la requête au service backend concerné en repassant les headers (dont `Authorization`). Les services comme **user-service** peuvent à leur tour résoudre l’utilisateur (email depuis le JWT, puis `get_or_create_user` en base).
+
+Les variables Cognito (User Pool ID, Client ID, région, domaine) sont configurées côté backend (gateway, user-service, admin-service) via les variables d’environnement décrites dans [VARIABLES-ENVIRONNEMENT.md](VARIABLES-ENVIRONNEMENT.md).
+
+## Bases de données
+
+- **Une instance PostgreSQL** (image `postgis/postgis`) héberge la base **template_db**.
+- **admin-service** et **user-service** utilisent cette même base avec des **schémas / tables distincts** (chaque service a son propre jeu de tables et ses migrations Alembic).
+- Les **metier-*-service** du template n’utilisent pas de base ; ils peuvent être étendus pour utiliser la même instance ou une autre.
+
+Migrations :
+
+- **admin-service** : `backend/admin-service/alembic/`, table de version `admin_alembic_version`.
+- **user-service** : `backend/user-service/alembic/`, table de version `user_alembic_version`.
+
+Au démarrage, chaque service applique ses migrations (voir [DEPLOIEMENT.md](DEPLOIEMENT.md)).
+
+## Package commun (backend)
+
+Le répertoire **backend/common** est un package Python installé en mode éditable (`pip install -e ../common`) par chaque service. Il fournit notamment :
+
+- **config_base** : chargement de la config (YAML + env).
+- **jwt_verifier** : vérification des JWT Cognito (JWKS, RS256).
+- **cognito** : constantes Cognito (CLIENT_ID, ISSUER, JWKS_URL).
+- **async_database** : connexion async SQLAlchemy (AsyncDatabase).
+- **logging_config** : configuration des logs.
+- **middleware** : CorrelationIdMiddleware (traçabilité).
+- **error_handlers** : handlers d’exceptions HTTP communs (enregistrés dans chaque `main.py`).
+- **health** : helpers pour les endpoints de health.
+- **crud**, **schemas**, **datetime_utils** : utilitaires partagés.
+
+## Frontend
+
+- **Next.js 16** avec App Router, **i18n** (fr/en) et slugs localisés (ex. `/en/pricing` → route interne `/tarifs`).
+- **AWS Amplify** (Cognito) pour l’auth ; formulaire de contact protégé par **Cloudflare Turnstile**.
+- **Tailwind CSS** avec thème clair/sombre et variables CSS (design system).
+- Appels API via un client qui envoie le Bearer token (refresh sur 401).
+- Pages : accueil, tarifs, contact, connexion, inscription, mot de passe oublié, confirmation, mon compte, admin (réservé aux utilisateurs du groupe `admin`), politique de confidentialité.
+
+Pour plus de détails sur les pages et la config Amplify, voir [frontend/README.md](../frontend/README.md).
