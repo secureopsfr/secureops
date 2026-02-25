@@ -10,7 +10,7 @@ const DEFAULT_GATEWAY = "http://localhost:8000";
 const getApiBaseUrl = (): string => {
   const raw =
     typeof window === "undefined"
-      ? process.env.GATEWAY_URL ?? process.env.NEXT_PUBLIC_GATEWAY_URL
+      ? (process.env.GATEWAY_URL ?? process.env.NEXT_PUBLIC_GATEWAY_URL)
       : process.env.NEXT_PUBLIC_GATEWAY_URL;
   return (raw && raw.trim()) || DEFAULT_GATEWAY;
 };

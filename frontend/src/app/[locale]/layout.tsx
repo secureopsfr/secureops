@@ -27,7 +27,9 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = getTranslation(locale as Locale);
 
-  const baseUrl = SITE_URL.startsWith("http") ? SITE_URL : `https://${SITE_URL}`;
+  const baseUrl = SITE_URL.startsWith("http")
+    ? SITE_URL
+    : `https://${SITE_URL}`;
   return {
     metadataBase: new URL(baseUrl),
     title: {
