@@ -40,12 +40,14 @@ Objectif : livrer un **scanner de posture sécurité web** (non-intrusif) destin
 
 ## 2) Backend Foundation (sécurité obligatoire dès le début)
 
-### 2.1 Validation stricte URL (anti-abus)
-- [ ] Autoriser uniquement `http/https`
-- [ ] Refuser `user:pass@host`
-- [ ] Refuser ports non autorisés (MVP: 80/443, option: liste blanche)
-- [ ] Limiter longueur URL
-- [ ] Normaliser l’URL
+### 2.1 Validation stricte URL (anti-abus) ✅
+- [x] Autoriser uniquement `http/https` ✅
+- [x] Refuser `user:pass@host` ✅
+- [x] Refuser ports non autorisés (MVP: 80/443, option: liste blanche) ✅
+- [x] Limiter longueur URL ✅
+- [x] Normaliser l’URL ✅
+
+> **Fait :** Implémenté dans le scan-service (`app/utils/url_validator.py`). Endpoint `POST /api/scan` valide l’URL et retourne l’URL normalisée (schéma/netloc en minuscules, fragment supprimé). Tests unitaires (validateur + route) + chargement du `.env` pour pytest.
 
 ### 2.2 Protection SSRF (critique)
 - [ ] Bloquer `localhost`, `127.0.0.1`, `::1`
@@ -142,18 +144,11 @@ Objectif : livrer un **scanner de posture sécurité web** (non-intrusif) destin
 
 ## 6) API backend (MVP)
 
-- [ ] `POST /scan` : lance scan et retourne résultat
-- [ ] Validation entrée + protections SSRF + timeouts
-- [ ] Gestion erreurs :
-  - URL invalide
-  - site inaccessible
-  - timeout
-  - TLS error
-- [ ] Logging structuré :
-  - request_id
-  - durée
-  - nb findings
-  - status
+- [x] `POST /scan` : lance scan et retourne résultat ✅ (étape actuelle : validation URL uniquement, pas encore le scan métier)
+- [x] Validation entrée ✅ (dans scan-service ; SSRF + timeouts à faire en §2.2 et §2.3)
+- [x] Gestion erreurs : URL invalide ✅ (400 + message détaillé via common error_handlers)
+- [ ] Gestion erreurs : site inaccessible, timeout, TLS error
+- [ ] Logging structuré : request_id, durée, nb findings, status
 
 > MVP : synchrone possible (scan rapide).
 > Si scan long → passer asynchrone en V2.
