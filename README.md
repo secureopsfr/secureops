@@ -39,6 +39,8 @@ Voir [docs/VARIABLES-ENVIRONNEMENT.md](docs/VARIABLES-ENVIRONNEMENT.md) pour la 
 
 Les logs sont dans `logs/`. Arrêt : `Ctrl+C` ou `pkill -f uvicorn; pkill -f npm`.
 
+> **Si admin-service ou user-service affichent « Impossible de se connecter à la base »** : PostgreSQL n’est pas démarré. Soit relancez `./launch_dev.sh` (il démarre Postgres puis attend qu’il soit prêt), soit démarrez uniquement la base : `docker start postgres` (après un premier `./launch_dev.sh` ou `docker volume create pgdata && docker run -d --name postgres -p 5433:5432 -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -e POSTGRES_DB=template_db -v pgdata:/var/lib/postgresql/data postgis/postgis:17-3.4`).
+
 **Option B — Tout en Docker**
 
 ```bash
@@ -56,7 +58,7 @@ Arrêt : `docker compose down`. Données Postgres conservées dans le volume `pg
 
 **Option C — Windows**
 
-Le script `launch_dev.sh` affiche les commandes à lancer manuellement dans plusieurs terminaux (Postgres, gateway, admin-service, user-service, metier-*-service, frontend). Voir les messages à l’écran après exécution de `launch_dev.sh`.
+Le script `launch_dev.sh` affiche les commandes à lancer manuellement dans plusieurs terminaux (Postgres, gateway, admin-service, user-service, scan-service, frontend). Voir les messages à l’écran après exécution de `launch_dev.sh`.
 
 ## Structure du projet
 

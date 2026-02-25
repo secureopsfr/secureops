@@ -53,17 +53,28 @@ fi
 # Créer un répertoire pour les logs
 mkdir -p "$SCRIPT_DIR/logs"
 
+# Charger le fichier .env tôt pour que Postgres et les services utilisent les mêmes valeurs
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    echo -e "${BLUE}Chargement des variables depuis .env...${NC}"
+    set -a
+    source "$SCRIPT_DIR/.env"
+    set +a
+fi
+
 # Lancer PostgreSQL avec Docker
 echo -e "${GREEN}Lancement de PostgreSQL...${NC}"
-if [ "$(docker ps -q -f name=postgres)" ]; then
+POSTGRES_RUNNING=$(docker ps -q -f name=^/postgres$ 2>/dev/null)
+POSTGRES_EXISTS=$(docker ps -aq -f name=^/postgres$ 2>/dev/null)
+if [ -n "$POSTGRES_RUNNING" ]; then
     echo -e "${BLUE}PostgreSQL est déjà en cours d'exécution${NC}"
+elif [ -n "$POSTGRES_EXISTS" ]; then
+    # Conteneur existant mais arrêté : le redémarrer
+    echo -e "${YELLOW}Redémarrage du conteneur PostgreSQL existant...${NC}"
+    docker start postgres
+    echo -e "${BLUE}PostgreSQL démarré${NC}"
 else
-    if [ "$(docker ps -aq -f name=postgres)" ]; then
-        # Supprimer le conteneur existant
-        docker rm -f postgres
-    fi
-
-    # Créer le volume s'il n'existe pas
+        # Pas de conteneur : créer le volume, le réseau et lancer une nouvelle instance
+        # Créer le volume s'il n'existe pas
     if ! docker volume inspect pgdata &>/dev/null; then
         echo -e "${YELLOW}Création du volume Docker 'pgdata'...${NC}"
         docker volume create pgdata
@@ -87,20 +98,32 @@ else
 
 
     echo -e "${BLUE}PostgreSQL démarré${NC}"
-    # Attendre que PostgreSQL soit prêt
-    echo -e "${YELLOW}Attente du démarrage de PostgreSQL...${NC}"
-    sleep 5
 fi
+
+# Secours : si le conteneur postgres existe mais est arrêté, le démarrer (au cas où le bloc ci-dessus ne l'aurait pas fait)
+if [ -n "$(docker ps -aq -f name=postgres 2>/dev/null)" ] && [ -z "$(docker ps -q -f name=postgres 2>/dev/null)" ]; then
+    echo -e "${YELLOW}Conteneur PostgreSQL arrêté détecté, démarrage...${NC}"
+    docker start postgres
+    sleep 2
+fi
+
+# Attendre que PostgreSQL accepte les connexions (démarrage frais ou conteneur déjà en route)
+echo -e "${YELLOW}Vérification que PostgreSQL est prêt...${NC}"
+POSTGRES_USER="${POSTGRES_USER:-user}"
+POSTGRES_DB="${POSTGRES_DB:-template_db}"
+for i in $(seq 1 30); do
+    if docker exec postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" 2>/dev/null; then
+        echo -e "${GREEN}PostgreSQL est prêt.${NC}"
+        break
+    fi
+    if [ "$i" -eq 30 ]; then
+        echo -e "${RED}PostgreSQL ne répond pas après 30 s. Vérifiez le conteneur : docker logs postgres${NC}"
+        exit 1
+    fi
+    sleep 1
+done
 
 # La base template_db est créée automatiquement par PostgreSQL
-
-# Charger le fichier .env s'il existe (permet de surcharger les valeurs par défaut)
-if [ -f "$SCRIPT_DIR/.env" ]; then
-    echo -e "${BLUE}Chargement des variables depuis .env...${NC}"
-    set -a
-    source "$SCRIPT_DIR/.env"
-    set +a
-fi
 
 # Variables d'environnement communes (valeurs par défaut pour le dev local)
 export IS_DOCKER=false
