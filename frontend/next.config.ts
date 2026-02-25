@@ -10,13 +10,21 @@ const nextConfig: NextConfig = {
   async headers() {
     // CSP : limite les sources de scripts/styles/connexions pour atténuer XSS et injection.
     // À affiner selon les domaines réels (Cognito, gateway, analytics). Voir docs/SEO-AUDIT.md.
+    const isDev = process.env.NODE_ENV === "development";
+    const connectSrc = [
+      "'self'",
+      "https://challenges.cloudflare.com",
+      "https://*.amazoncognito.com",
+      "https:",
+      ...(isDev ? ["http://localhost:8000", "http://127.0.0.1:8000"] : []),
+    ].join(" ");
     const csp = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self'",
-      "connect-src 'self' https://challenges.cloudflare.com https://*.amazoncognito.com https:",
+      `connect-src ${connectSrc}`,
       "frame-src 'self' https://challenges.cloudflare.com https://*.amazoncognito.com",
       "base-uri 'self'",
       "form-action 'self'",

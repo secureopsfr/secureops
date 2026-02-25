@@ -41,9 +41,7 @@ services:
       - gateway
       - admin-service
       - user-service
-      - metier-a-service
-      - metier-b-service
-      - metier-c-service
+      - scan-service
       - postgres
     networks: [app-network]
 
@@ -57,7 +55,7 @@ services:
       - COGNITO_REGION=${COGNITO_REGION:-eu-west-3}
       - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID:-test-user-pool-id}
     networks: [app-network]
-    depends_on: [admin-service, user-service, metier-a-service, metier-b-service, metier-c-service, postgres]
+    depends_on: [admin-service, user-service, scan-service, postgres]
 
   admin-service:
     build:
@@ -90,34 +88,10 @@ services:
       postgres:
         condition: service_healthy
 
-  metier-a-service:
+  scan-service:
     build:
       context: ./backend
-      dockerfile: metier-a-service/Dockerfile
-    environment:
-      - IS_DOCKER=true
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
-    networks: [app-network]
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  metier-b-service:
-    build:
-      context: ./backend
-      dockerfile: metier-b-service/Dockerfile
-    environment:
-      - IS_DOCKER=true
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
-    networks: [app-network]
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  metier-c-service:
-    build:
-      context: ./backend
-      dockerfile: metier-c-service/Dockerfile
+      dockerfile: scan-service/Dockerfile
     environment:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
@@ -148,4 +122,3 @@ services:
 networks:
   app-network:
     driver: bridge
-

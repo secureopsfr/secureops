@@ -8,8 +8,11 @@ general:
   is_docker: false  # Sera défini par la variable d'environnement IS_DOCKER
 
 # Configuration CORS
+# Avec allow_credentials: true, le navigateur refuse "*" ; il faut des origines explicites.
 cors:
-  allow_origins: ["*"]
+  allow_origins:
+    - "http://localhost:3000"
+    - "http://127.0.0.1:3000"
   allow_methods: ["*"]
   allow_headers: ["*"]
   allow_credentials: true
@@ -24,15 +27,9 @@ services:
     user:
       prefix: "user"
       url: "http://user-service:8011"
-    metier_a:
-      prefix: "metier-a"
-      url: "http://metier-a-service:8008"
-    metier_b:
-      prefix: "metier-b"
-      url: "http://metier-b-service:8009"
-    metier_c:
-      prefix: "metier-c"
-      url: "http://metier-c-service:8012"
+    scan:
+      prefix: "scan"
+      url: "http://scan-service:8012"
 
   # Configuration pour l'environnement local
   local:
@@ -42,14 +39,8 @@ services:
     user:
       prefix: "user"
       url: "http://localhost:8011"
-    metier_a:
-      prefix: "metier-a"
-      url: "http://localhost:8008"
-    metier_b:
-      prefix: "metier-b"
-      url: "http://localhost:8009"
-    metier_c:
-      prefix: "metier-c"
+    scan:
+      prefix: "scan"
       url: "http://localhost:8012"
 
 # Configuration des timeouts
