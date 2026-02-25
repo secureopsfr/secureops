@@ -70,6 +70,13 @@ jobs:
             docker compose -f docker-compose.ci.yml exec -T $svc flake8 .
           done
 
+      - name: Python Tests (pytest)
+        run: |
+          for svc in gateway admin-service user-service scan-service; do
+            echo "Running pytest in $svc..."
+            docker compose -f docker-compose.ci.yml exec -T $svc pytest
+          done
+
       - name: JS Lint & Prettier
         run: docker compose -f docker-compose.ci.yml exec -T frontend npm run lint
 
