@@ -8,13 +8,13 @@ Analyse détaillée des manques et améliorations recommandées, **par ordre de 
 
 ### 1.1 Tests absents
 
-- **Backend**  
-  - `pytest.ini` à la racine définit `testpaths = tests/unit, tests/integration, tests/e2e` mais **aucun répertoire `tests/`** n’existe (ni à la racine ni dans les services).  
-  - Aucun fichier `test_*.py` ou `*_test.py` dans le backend.  
+- **Backend**
+  - `pytest.ini` à la racine définit `testpaths = tests/unit, tests/integration, tests/e2e` mais **aucun répertoire `tests/`** n’existe (ni à la racine ni dans les services).
+  - Aucun fichier `test_*.py` ou `*_test.py` dans le backend.
   - **Action :** Créer une arborescence `tests/` (unit / integration / e2e) par service ou partagée, ajouter des tests unitaires sur les routes critiques (auth, user, admin), des tests d’intégration sur la base et le gateway, et exécuter `pytest` dans la CI.
 
-- **Frontend**  
-  - Aucun runner de tests (Jest, Vitest) dans `package.json`, pas de script `test`, pas de dépendances de test.  
+- **Frontend**
+  - Aucun runner de tests (Jest, Vitest) dans `package.json`, pas de script `test`, pas de dépendances de test.
   - **Action :** Introduire Vitest (ou Jest) + React Testing Library, ajouter un script `npm run test`, couvrir au minimum les composants critiques (auth, formulaires, appels API) et les faire tourner en CI.
 
 ### 1.2 Rate limiting non implémenté
@@ -83,10 +83,10 @@ Analyse détaillée des manques et améliorations recommandées, **par ordre de 
 - La page **`app/not-found.tsx`** propose un lien « Retour à l’accueil » codé en dur vers **`/fr`**. En environnement multilingue, il serait préférable de renvoyer vers la locale courante ou la page d’accueil par défaut.
 - **Action :** Utiliser la locale détectée (middleware, cookie ou en-tête) pour générer le lien d’accueil (ex. `/${locale}`) ou rediriger vers la home sans forcer `fr`.
 
-### 3.4 Services métier (metier-a, metier-b, metier-c) sans logique métier
+### 3.4 Service scan (scan-service)
 
-- Les trois services **metier-a**, **metier-b**, **metier-c** n’ont qu’un health check et une config ; ils n’exposent pas de modèles ni de logique métier. C’est cohérent pour un template à compléter, mais peut prêter à confusion.
-- **Action :** Dans `docs/ARCHITECTURE.md`, préciser que ces services sont des **stubs** destinés à être remplacés ou étendus selon le projet, et indiquer comment y ajouter des routes et une base de données (en s’inspirant de user-service ou admin-service).
+- Le service **scan-service** expose un health check et une config ; la logique de scan (posture sécurité) est à implémenter selon la roadmap MVP.
+- **Action :** Étendre le service avec les endpoints et la logique décrits dans `docs/ROADMAP-MVP.md`.
 
 ---
 

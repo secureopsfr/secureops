@@ -1,4 +1,4 @@
-"""Point d'entrée principal du Metier A Service."""
+"""Point d'entrée principal du Scan Service."""
 
 from contextlib import asynccontextmanager
 
@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from app.config_loader import settings
 from app.routers.health import router as health_router
 
-setup_logging(service_name="metier-a-service")
+setup_logging(service_name="scan-service")
 
 config = settings()
 logger = get_logger(__name__)
@@ -20,10 +20,10 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Gère le cycle de vie de l'application (startup/shutdown)."""
     # Startup
-    logger.info("Démarrage du Metier A Service")
+    logger.info("Démarrage du Scan Service")
     yield
     # Shutdown
-    logger.info("Arrêt du Metier A Service")
+    logger.info("Arrêt du Scan Service")
 
 
 def create_app() -> FastAPI:

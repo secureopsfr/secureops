@@ -41,7 +41,7 @@ pre-commit run --all-files
 
 ### Outils par service
 
-Chaque service (gateway, admin-service, user-service, metier-a/b/c-service) a sa propre config :
+Chaque service (gateway, admin-service, user-service, scan-service) a sa propre config :
 
 - **Black** : `backend/<service>/pyproject.toml`
 - **isort** : profil `black`

@@ -1,5 +1,5 @@
 general:
-  service_name: "metier-b-service"
+  service_name: "scan-service"
   environment: "development"
   cors_allow_origins:
     - "*"
@@ -7,7 +7,7 @@ general:
 
 server:
   host: "0.0.0.0"
-  port: 8009
+  port: 8012
 
 logging:
   level: "INFO"
@@ -21,7 +21,7 @@ database:
   echo: false
   connect_args:
     server_settings:
-      application_name: "metier-b-service"
+      application_name: "scan-service"
   ssl_mode: "prefer"
   pool_logging: false
 
@@ -30,4 +30,3 @@ routers:
     prefix: "/api"
     tags:
       - "health"
-

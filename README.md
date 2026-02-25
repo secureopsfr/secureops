@@ -48,9 +48,9 @@ docker volume create pgdata
 docker compose up -d --build
 ```
 
-- Frontend : http://localhost:3000  
-- Gateway API : http://localhost:8000  
-- Health gateway : http://localhost:8000/health  
+- Frontend : http://localhost:3000
+- Gateway API : http://localhost:8000
+- Health gateway : http://localhost:8000/health
 
 Arrêt : `docker compose down`. Données Postgres conservées dans le volume `pgdata`.
 
@@ -67,9 +67,7 @@ template/
 │   ├── gateway/                # API Gateway (auth, proxy vers les services)
 │   ├── admin-service/          # Service admin (contacts, analytics, emails, KPIs, etc.)
 │   ├── user-service/           # Utilisateurs, profil, abonnements, favoris
-│   ├── metier-a-service/       # Service métier A (stub)
-│   ├── metier-b-service/       # Service métier B (stub)
-│   └── metier-c-service/       # Service métier C (stub)
+│   └── scan-service/            # Service de scan (posture sécurité)
 ├── frontend/                   # Next.js 16 (App Router), i18n fr/en, Cognito, Tailwind
 ├── docs/                       # Documentation (architecture, déploiement, variables)
 ├── .github/workflows/          # CI (lint Python + JS)

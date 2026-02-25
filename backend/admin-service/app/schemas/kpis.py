@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class PerformanceMetricCreate(BaseModel):
     """Requête de création d'une métrique de performance."""
 
-    service_prefix: str = Field(..., description="Préfixe du service (ex: admin, user, metier-a)")
+    service_prefix: str = Field(..., description="Préfixe du service (ex: admin, user, scan)")
     endpoint: str = Field(..., description="Chemin complet de l'endpoint côté gateway")
     route: Optional[str] = Field(None, description="Route de base sans paramètres ni valeurs numériques (ex: /analytics-query/dvf/bbox-sales)")
     method: str = Field(..., description="Méthode HTTP utilisée")

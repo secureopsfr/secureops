@@ -1,4 +1,4 @@
-"""Route de santé pour le Metier B Service."""
+"""Route de santé pour le Scan Service."""
 
 from common.health import create_health_router
 

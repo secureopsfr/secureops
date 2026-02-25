@@ -21,7 +21,7 @@ class HttpRequest(Base):
 
     Attributes:
         id (UUID): identifiant unique de la mesure.
-        service_prefix (str): préfixe du service (ex: "admin", "user", "metier-a").
+        service_prefix (str): préfixe du service (ex: "admin", "user", "scan").
         endpoint (str): chemin complet de l'endpoint avec paramètres (ex: "/analytics-query/dvf/bbox-sales/40.21/-10.82").
         route (str | None): route de base sans paramètres ni valeurs numériques (ex: "/analytics-query/dvf/bbox-sales") (optionnel).
         method (str): méthode HTTP utilisée (GET, POST, PUT, DELETE, etc.).

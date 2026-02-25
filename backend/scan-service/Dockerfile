@@ -1,3 +1,4 @@
+# Image pour scan-service (port 8012). Contexte de build attendu : backend/ (depuis la racine du repo).
 FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -18,11 +19,11 @@ RUN pip install --upgrade pip setuptools wheel \
  && pip install /tmp/common
 
 # Installer dépendances du service
-COPY metier-b-service/requirements.txt .
+COPY scan-service/requirements.txt .
 RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
 
 # Copier l'appli et passer en non-root
-COPY --chown=appuser:appuser metier-b-service/ .
+COPY --chown=appuser:appuser scan-service/ .
 USER appuser
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8009"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8012"]
