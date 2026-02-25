@@ -78,6 +78,8 @@ Objectif : livrer un **scanner de posture sécurité web** (non-intrusif) destin
 - [ ] Version TLS (au minimum détecter 1.0/1.1)
 - [ ] Résumé “TLS posture”
 
+Pour les explications détaillées (failles, exemples, matrices de risque, conseils), voir [Vérifications TLS/HTTPS](verifications/tls-https.md).
+
 ### 3.2 Security Headers
 - [ ] Vérifier présence :
   - `Content-Security-Policy`
