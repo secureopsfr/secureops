@@ -30,3 +30,35 @@ routers:
     prefix: "/api"
     tags:
       - "health"
+
+# Validation d'URL (roadmap §2.1) : schémas, ports, longueur max.
+url_validation:
+  max_url_length: 2048
+  allowed_schemes:
+    - "http"
+    - "https"
+  allowed_ports:
+    - 80
+    - 443
+
+# Protection SSRF (roadmap §2.2) : hostnames et plages IP interdits.
+ssrf:
+  dns_timeout: 5.0  # secondes pour la résolution DNS
+  blocked_hostnames:
+    - "localhost"
+    - "localhost."
+    - "127.0.0.1"
+    - "::1"
+    - "[::1]"
+    - "0.0.0.0"
+  blocked_ipv4_networks:
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+    - "169.254.0.0/16"
+    - "127.0.0.0/8"
+    - "0.0.0.0/8"
+  blocked_ipv6_networks:
+    - "::1/128"
+    - "fe80::/10"
+    - "fc00::/7"

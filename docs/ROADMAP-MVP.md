@@ -49,12 +49,14 @@ Objectif : livrer un **scanner de posture sécurité web** (non-intrusif) destin
 
 > **Fait :** Implémenté dans le scan-service (`app/utils/url_validator.py`). Endpoint `POST /api/scan` valide l’URL et retourne l’URL normalisée (schéma/netloc en minuscules, fragment supprimé). Tests unitaires (validateur + route) + chargement du `.env` pour pytest.
 
-### 2.2 Protection SSRF (critique)
-- [ ] Bloquer `localhost`, `127.0.0.1`, `::1`
-- [ ] Résoudre DNS (A/AAAA) et **bloquer IP privées** :
+### 2.2 Protection SSRF (critique) ✅
+- [x] Bloquer `localhost`, `127.0.0.1`, `::1` ✅
+- [x] Résoudre DNS (A/AAAA) et **bloquer IP privées** ✅ :
   - IPv4: `10/8`, `172.16/12`, `192.168/16`, `169.254/16`, `127/8`, etc.
   - IPv6: `fc00::/7`, `fe80::/10`, `::1`
-- [ ] Bloquer redirections vers IP privées (redirect safety)
+- [ ] Bloquer redirections vers IP privées (redirect safety) — à appliquer lors du suivi des redirections (client HTTP à venir)
+
+> **Fait :** Module `app/utils/ssrf.py` : hostnames interdits (localhost, 127.0.0.1, ::1, 0.0.0.0), résolution DNS avec timeout (5 s), blocage si une IP résolue est en plage privée/loopback/link-local. Intégré dans `POST /api/scan`. Tests unitaires (is_hostname_blocked, is_ip_blocked, check_ssrf) + tests route (refus localhost / 127.0.0.1).
 
 ### 2.3 Timeouts
 - [ ] Timeout connexion (ex: 3s)

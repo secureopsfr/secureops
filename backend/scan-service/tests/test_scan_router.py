@@ -42,3 +42,19 @@ def test_post_scan_refuse_port_8080() -> None:
     response = client.post("/api/scan", json={"url": "http://example.com:8080"})
     assert response.status_code == 400
     assert "port" in _error_message(response).lower()
+
+
+def test_post_scan_refuse_localhost_ssrf() -> None:
+    """POST /api/scan refuse localhost (protection SSRF)."""
+    response = client.post("/api/scan", json={"url": "http://localhost/"})
+    assert response.status_code == 400
+    msg = _error_message(response).lower()
+    assert "localhost" in msg or "127.0.0.1" in msg or "autorisées" in msg
+
+
+def test_post_scan_refuse_127_0_0_1_ssrf() -> None:
+    """POST /api/scan refuse 127.0.0.1 (protection SSRF)."""
+    response = client.post("/api/scan", json={"url": "http://127.0.0.1/"})
+    assert response.status_code == 400
+    msg = _error_message(response).lower()
+    assert "localhost" in msg or "127" in msg or "autorisées" in msg
