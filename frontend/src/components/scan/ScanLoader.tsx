@@ -1,39 +1,49 @@
 "use client";
 
 import { useLanguage } from "../LanguageProvider";
+import { LoadingSpinner } from "../LoadingScreen";
+import Card from "../cards/Card";
 import { Check } from "lucide-react";
+import type { ScanStepDisplay } from "../../services/scanService";
 
 interface ScanLoaderProps {
-  steps: { step: string; message: string; done?: boolean }[];
+  steps: ScanStepDisplay[];
 }
 
 export default function ScanLoader({ steps }: ScanLoaderProps) {
   const { t } = useLanguage();
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--color-surface-input)] p-6">
-      <p className="mb-4 text-sm font-medium text-[var(--text)]">
+    <Card disableHover className="p-6">
+      <h3 className="section-title !text-left -mt-2 mb-4">
         {t("scanner.loading")}
-      </p>
-      <ul className="space-y-2">
-        {steps.map((s, i) => (
-          <li
-            key={`${s.step}-${i}`}
-            className="flex items-center gap-3 text-sm text-[var(--muted)]"
-          >
-            {s.done ? (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500/20 text-green-600 dark:text-green-400">
-                <Check className="h-3 w-3" strokeWidth={3} />
+      </h3>
+      {steps.length === 0 ? (
+        <div className="flex items-center gap-3 text-sm text-muted-theme">
+          <LoadingSpinner size="sm" />
+          <span>{t("scanner.loading")}</span>
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {steps.map((s, i) => (
+            <li
+              key={`${s.step}-${i}`}
+              className="flex items-center gap-3 text-sm"
+            >
+              {s.done ? (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(var(--success),0.2)] text-[rgb(var(--success))]">
+                  <Check className="h-3 w-3" strokeWidth={3} />
+                </span>
+              ) : (
+                <LoadingSpinner size="sm" />
+              )}
+              <span className={s.done ? "" : "text-muted-theme"}>
+                {s.message}
               </span>
-            ) : (
-              <span className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
-            )}
-            <span className={s.done ? "text-[var(--text)]" : ""}>
-              {s.message}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }

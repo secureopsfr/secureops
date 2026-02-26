@@ -10,6 +10,9 @@ export interface ScanStep {
   message: string;
 }
 
+/** Étape affichée dans le loader (done dérivé de step.endsWith("_done")). */
+export type ScanStepDisplay = ScanStep & { done?: boolean };
+
 export interface ScanFinding {
   id: string;
   category: string;
@@ -70,14 +73,26 @@ export async function runScan(
   const baseUrl = getApiBaseUrl();
   const endpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan`;
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "text/event-stream",
-    },
-    body: JSON.stringify({ url }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+      },
+      body: JSON.stringify({ url }),
+    });
+  } catch (err) {
+    onEvent({
+      type: "error",
+      data: {
+        message: err instanceof Error ? err.message : "Erreur réseau",
+        status_code: 0,
+      },
+    });
+    return;
+  }
 
   if (!response.ok) {
     onEvent({
@@ -133,6 +148,17 @@ export async function runScan(
         }
       }
     }
+  } catch (err) {
+    onEvent({
+      type: "error",
+      data: {
+        message:
+          err instanceof Error
+            ? err.message
+            : "Erreur lors de la lecture du flux",
+        status_code: 500,
+      },
+    });
   } finally {
     reader.releaseLock();
   }

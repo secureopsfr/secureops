@@ -1,15 +1,19 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { AlertTriangle } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { GenericButton } from "../buttons";
 import AnimateInView from "../AnimateInView";
+import Card from "../cards/Card";
+import Modal from "../Modal";
 import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
 import {
   runScan,
   type ScanResult,
   type ScanError,
+  type ScanStepDisplay,
 } from "../../services/scanService";
 
 type ScanState = "idle" | "loading" | "success" | "error";
@@ -18,9 +22,7 @@ export default function ScannerContent() {
   const { t } = useLanguage();
   const [url, setUrl] = useState("");
   const [state, setState] = useState<ScanState>("idle");
-  const [steps, setSteps] = useState<
-    { step: string; message: string; done?: boolean }[]
-  >([]);
+  const [steps, setSteps] = useState<ScanStepDisplay[]>([]);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState<ScanError | null>(null);
 
@@ -34,26 +36,35 @@ export default function ScannerContent() {
       setResult(null);
       setError(null);
 
-      runScan(trimmed, (ev) => {
-        if (ev.type === "step") {
-          setSteps((prev) => [
-            ...prev,
-            {
-              step: ev.data.step,
-              message: ev.data.message,
-              done: ev.data.step.endsWith("_done"),
-            },
-          ]);
-        } else if (ev.type === "result") {
-          setResult(ev.data);
-          setState("success");
-        } else if (ev.type === "error") {
-          setError(ev.data);
-          setState("error");
-        }
-      });
+      try {
+        await runScan(trimmed, (ev) => {
+          if (ev.type === "step") {
+            setSteps((prev) => [
+              ...prev,
+              {
+                step: ev.data.step,
+                message: ev.data.message,
+                done: ev.data.step.endsWith("_done"),
+              },
+            ]);
+          } else if (ev.type === "result") {
+            setResult(ev.data);
+            setState("success");
+          } else if (ev.type === "error") {
+            setError(ev.data);
+            setState("error");
+          }
+        });
+      } catch (err) {
+        setError({
+          message:
+            err instanceof Error ? err.message : t("scanner.errorGeneric"),
+          status_code: 500,
+        });
+        setState("error");
+      }
     },
-    [url],
+    [url, t],
   );
 
   const handleNewScan = useCallback(() => {
@@ -87,51 +98,69 @@ export default function ScannerContent() {
       >
         <div className="scanner-content">
           {(state === "idle" || state === "error") && (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="scan-url"
-                  className="mb-2 block text-sm font-medium text-[var(--text)]"
-                >
+            <div className="form-container">
+              <Card disableHover>
+                <h2 className="section-title !text-left -mt-2">
                   {t("scanner.urlLabel")}
-                </label>
-                <input
-                  id="scan-url"
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder={t("scanner.urlPlaceholder")}
-                  required
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] px-4 py-3 text-[var(--text)] placeholder:text-[var(--muted)] focus:border-[rgb(var(--primary))] focus:outline-none focus:ring-1 focus:ring-[rgb(var(--primary))]"
-                />
-              </div>
-              <p className="text-xs text-[var(--muted)]">
-                {t("scanner.disclaimer")}
-              </p>
-              <GenericButton
-                type="submit"
-                label={t("scanner.cta")}
-                variant="primary"
-                disabled={!url.trim()}
-              />
-            </form>
+                </h2>
+                <form
+                  onSubmit={handleSubmit}
+                  aria-label="Scan form"
+                  className="space-y-4"
+                >
+                  <div>
+                    <label htmlFor="scan-url" className="label-form">
+                      {t("scanner.urlLabel")}
+                    </label>
+                    <input
+                      id="scan-url"
+                      type="url"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder={t("scanner.urlPlaceholder")}
+                      required
+                      className="auth-input w-full"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-theme">
+                    {t("scanner.disclaimer")}
+                  </p>
+                  <GenericButton
+                    type="submit"
+                    label={t("scanner.cta")}
+                    variant="primary"
+                    disabled={!url.trim()}
+                  />
+                </form>
+              </Card>
+            </div>
           )}
 
-          {state === "loading" && steps.length > 0 && (
-            <ScanLoader steps={steps} />
-          )}
+          {state === "loading" && <ScanLoader steps={steps} />}
 
           {state === "success" && result && (
             <ScanResults result={result} onNewScan={handleNewScan} />
           )}
 
           {state === "error" && error && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
-              <h3 className="mb-2 font-semibold text-red-600 dark:text-red-400">
-                {t("scanner.errorTitle")}
-              </h3>
-              <p className="text-sm text-[var(--text)]">{error.message}</p>
-            </div>
+            <Modal
+              isOpen
+              onClose={() => {
+                setState("idle");
+                setError(null);
+              }}
+              title={
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-6 h-6 text-[rgb(var(--danger))]" />
+                  <span>{t("scanner.errorTitle")}</span>
+                </div>
+              }
+              maxWidth="500px"
+            >
+              <p className="text-[var(--text)] leading-relaxed">
+                {error.message}
+              </p>
+            </Modal>
           )}
         </div>
       </AnimateInView>
