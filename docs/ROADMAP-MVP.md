@@ -72,9 +72,9 @@ Objectif : livrer un **scanner de posture sécurité web** (non-intrusif) destin
 > Objectif : tests à forte valeur, faible risque juridique, résultats lisibles.
 
 ### 3.1 TLS / HTTPS
-- [ ] HTTPS activé ?
-- [ ] Redirection HTTP→HTTPS ?
-- [ ] Certificat valide / expiré / auto-signé ?
+- [x] HTTPS activé ? ✅
+- [x] Redirection HTTP→HTTPS ? ✅
+- [x] Certificat valide / expiré / auto-signé ? ✅
 - [ ] Version TLS (au minimum détecter 1.0/1.1)
 - [ ] Résumé “TLS posture”
 
