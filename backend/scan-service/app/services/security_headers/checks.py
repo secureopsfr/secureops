@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import httpx
 
 from app.config_loader import get_security_headers_settings
+from app.constants import MSG_HEADERS_UNAVAILABLE
 from app.utils.headers import get_header_insensitive
 
 
@@ -56,7 +57,7 @@ def check_security_headers_from_response(response: httpx.Response | None) -> Sec
     headers_config = get_security_headers_settings()
 
     if response is None:
-        findings.append("Impossible de récupérer les en-têtes (connexion refusée ou timeout).")
+        findings.append(MSG_HEADERS_UNAVAILABLE)
         return SecurityHeadersCheckResult(
             headers_present=(),
             headers_missing=tuple(h.name for h in headers_config),

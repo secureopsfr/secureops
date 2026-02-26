@@ -1,0 +1,191 @@
+{
+  "tls-https-disabled": {
+    "recommendation": "Activer HTTPS et rediriger tout le trafic HTTP vers HTTPS.",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/09-Testing_for_Weak_Cryptography/01-Testing_for_Weak_Transport_Layer_Security"
+    ]
+  },
+  "tls-no-redirect": {
+    "recommendation": "Configurer une redirection HTTP 301/302 vers HTTPS pour tout le trafic.",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections"
+    ]
+  },
+  "tls-cert-expired": {
+    "recommendation": "Renouveler le certificat TLS avant expiration. Utiliser Let's Encrypt ou un CA reconnu.",
+    "references": ["https://letsencrypt.org/"]
+  },
+  "tls-cert-self-signed": {
+    "recommendation": "Remplacer le certificat auto-signé par un certificat émis par une CA reconnue (Let's Encrypt, etc.).",
+    "references": ["https://letsencrypt.org/"]
+  },
+  "tls-cert-not-yet-valid": {
+    "recommendation": "Vérifier la date et l'heure du serveur. Le certificat n'est pas encore valide (notBefore dans le futur).",
+    "references": []
+  },
+  "tls-versions-obsolete": {
+    "recommendation": "Désactiver TLS 1.0 et TLS 1.1. Utiliser uniquement TLS 1.2 ou 1.3.",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/09-Testing_for_Weak_Cryptography/01-Testing_for_Weak_Transport_Layer_Security"
+    ]
+  },
+  "tls-connection-failed": {
+    "recommendation": "Vérifier que le serveur HTTPS est accessible et que le certificat est correctement configuré.",
+    "references": []
+  },
+  "headers-csp-absent": {
+    "recommendation": "Ajouter l'en-tête Content-Security-Policy pour limiter les sources de scripts et réduire le risque XSS.",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP",
+      "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/12-Test_for_Content_Security_Policy"
+    ]
+  },
+  "headers-hsts-absent": {
+    "recommendation": "Ajouter Strict-Transport-Security (HSTS) pour forcer les navigateurs à utiliser HTTPS.",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security"
+    ]
+  },
+  "headers-xfo-absent": {
+    "recommendation": "Ajouter X-Frame-Options: DENY ou SAMEORIGIN pour empêcher le clickjacking.",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options"
+    ]
+  },
+  "headers-xcto-absent": {
+    "recommendation": "Ajouter X-Content-Type-Options: nosniff pour éviter le MIME sniffing.",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options"
+    ]
+  },
+  "headers-xcto-wrong-value": {
+    "recommendation": "Configurer X-Content-Type-Options avec la valeur 'nosniff'.",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options"
+    ]
+  },
+  "headers-referrer-absent": {
+    "recommendation": "Ajouter Referrer-Policy pour contrôler les informations envoyées dans l'en-tête Referer.",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy"
+    ]
+  },
+  "headers-permissions-absent": {
+    "recommendation": "Ajouter Permissions-Policy pour restreindre l'accès aux APIs navigateur (géoloc, caméra, etc.).",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy"
+    ]
+  },
+  "headers-connection-failed": {
+    "recommendation": "Vérifier la connectivité au serveur. Impossible de récupérer les en-têtes.",
+    "references": []
+  },
+  "headers-unknown-absent": {
+    "recommendation": "Ajouter l'en-tête de sécurité manquant. Consulter la documentation pour les bonnes pratiques.",
+    "references": []
+  },
+  "cookies-connection-failed": {
+    "recommendation": "Vérifier la connectivité au serveur. Impossible d'analyser les cookies.",
+    "references": []
+  },
+  "cookies-no-secure": {
+    "recommendation": "Ajouter le flag Secure aux cookies sur site HTTPS pour éviter l'interception en clair.",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/Secure"
+    ]
+  },
+  "cookies-no-httponly": {
+    "recommendation": "Ajouter le flag HttpOnly pour empêcher l'accès aux cookies via JavaScript (réduction risque XSS).",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/HttpOnly"
+    ]
+  },
+  "cookies-no-samesite": {
+    "recommendation": "Configurer SameSite=Strict ou Lax pour limiter les requêtes cross-site avec cookies.",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite"
+    ]
+  },
+  "cookies-samesite-none-requires-secure": {
+    "recommendation": "SameSite=None requiert le flag Secure. Ajouter Secure au cookie.",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite"
+    ]
+  },
+  "exposed_files-env": {
+    "recommendation": "Bloquer l'accès à /.env (deny dans nginx/apache, ou déplacer hors de la racine web).",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/04-Review_File_Extensions_Handled_by_Web_Server"
+    ]
+  },
+  "exposed_files-git-config": {
+    "recommendation": "Bloquer l'accès au répertoire .git. Ne jamais exposer le dépôt Git en production.",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/04-Review_File_Extensions_Handled_by_Web_Server"
+    ]
+  },
+  "exposed_files-backup-zip": {
+    "recommendation": "Supprimer ou déplacer les archives de sauvegarde hors de la racine web.",
+    "references": []
+  },
+  "exposed_files-phpinfo": {
+    "recommendation": "Désactiver ou supprimer phpinfo.php en production. Expose la configuration PHP.",
+    "references": []
+  },
+  "exposed_files-phpinfo-php": {
+    "recommendation": "Désactiver ou supprimer phpinfo.php en production. Expose la configuration PHP.",
+    "references": []
+  },
+  "exposed_files-admin": {
+    "recommendation": "Protéger /admin/ par authentification et HTTPS. Limiter l'accès par IP si possible.",
+    "references": []
+  },
+  "exposed_files-ds-store": {
+    "recommendation": "Bloquer l'accès aux fichiers .DS_Store ou les exclure du déploiement.",
+    "references": []
+  },
+  "directory_listing-uploads": {
+    "recommendation": "Désactiver le directory listing sur /uploads/. Configurer Options -Indexes (Apache) ou autoindex off (Nginx).",
+    "references": [
+      "https://httpd.apache.org/docs/2.4/mod/core.html#options"
+    ]
+  },
+  "directory_listing-assets": {
+    "recommendation": "Désactiver le directory listing sur /assets/ si la structure ne doit pas être exposée.",
+    "references": []
+  },
+  "directory_listing-static": {
+    "recommendation": "Désactiver le directory listing sur /static/ si la structure ne doit pas être exposée.",
+    "references": []
+  },
+  "robots_txt-connection-failed": {
+    "recommendation": "Vérifier la connectivité. Impossible de récupérer robots.txt.",
+    "references": []
+  },
+  "robots_txt-sensitive-route": {
+    "recommendation": "Vérifier que les routes Disallow signalées sont protégées (auth, IP whitelist, etc.).",
+    "references": [
+      "https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt"
+    ]
+  },
+  "tech_fingerprinting-connection-failed": {
+    "recommendation": "Vérifier la connectivité. Impossible d'analyser les en-têtes.",
+    "references": []
+  },
+  "tech_fingerprinting-server-detected": {
+    "recommendation": "Information : l'en-tête Server révèle le logiciel. Optionnel : masquer ou modifier pour réduire la surface d'attaque.",
+    "references": []
+  },
+  "tech_fingerprinting-runtime-detected": {
+    "recommendation": "Information : X-Powered-By révèle le runtime. Optionnel : masquer pour réduire la surface d'attaque.",
+    "references": []
+  },
+  "tech_fingerprinting-framework-detected": {
+    "recommendation": "Information : framework/CMS détecté. Vérifier les mises à jour de sécurité.",
+    "references": []
+  },
+  "tech_fingerprinting-stack-unknown": {
+    "recommendation": "Information : stack non identifiée ou masquée. Pas d'action requise.",
+    "references": []
+  }
+}

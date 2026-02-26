@@ -11,6 +11,7 @@ Placer les motifs plus spécifiques avant les génériques si besoin. Exception 
 from dataclasses import dataclass
 
 from app.config_loader import get_robots_txt_settings
+from app.constants import MSG_ROBOTS_TXT_UNAVAILABLE
 from app.utils.http_fetch import get_with_client
 from app.utils.url_helpers import build_url_with_path
 
@@ -127,7 +128,7 @@ async def run_robots_txt_checks(
         return RobotsTxtCheckResult(
             disallow_paths=(),
             sensitive_routes=(),
-            findings=("Impossible de récupérer robots.txt (connexion refusée ou timeout).",),
+            findings=(MSG_ROBOTS_TXT_UNAVAILABLE,),
             fetch_ok=False,
         )
 
