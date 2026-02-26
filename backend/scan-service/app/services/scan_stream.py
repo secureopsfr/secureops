@@ -9,10 +9,13 @@ Exceptions :
 """
 
 import asyncio
+import logging
 import time
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+
+from common.logging_config import correlation_id_ctx
 
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
 from app.errors.fetch_errors import (
@@ -36,6 +39,32 @@ from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
 from app.utils.url_helpers import build_https_url
 from app.utils.url_validator import URLValidationError, validate_and_normalize_url
+
+logger = logging.getLogger(__name__)
+
+
+def _log_scan_complete(
+    duration_seconds: float,
+    nb_findings: int,
+    status: str,
+) -> None:
+    """Log structuré à la fin du scan (roadmap §6).
+
+    Args:
+        duration_seconds: Durée du scan en secondes.
+        nb_findings: Nombre de findings (0 en cas d'erreur).
+        status: Statut final (success, error_400, error_408, error_500, error_502, error_503, error_504).
+    """
+    request_id = correlation_id_ctx.get() or "unknown"
+    logger.info(
+        "Scan terminé",
+        extra={
+            "request_id": request_id,
+            "duration_seconds": round(duration_seconds, 3),
+            "nb_findings": nb_findings,
+            "status": status,
+        },
+    )
 
 
 @dataclass
@@ -179,6 +208,8 @@ async def _run_checks_with_client(
 
     # Détection précoce : site inaccessible, timeout ou erreur TLS → événement error
     if not fetch_result.success:
+        duration = time.monotonic() - start_time
+        _log_scan_complete(duration, 0, f"error_{fetch_result.status_code}")
         yield sse_message("error", build_sse_error_payload(fetch_result))
         return
 
@@ -196,10 +227,15 @@ async def _run_checks_with_client(
         for c in chunks:
             yield c
         if over_global():
+            duration = time.monotonic() - start_time
+            _log_scan_complete(duration, 0, "error_408")
             yield _timeout_error_message()
             return
 
     payload = _build_result_payload(normalized_url, ctx.results, start_time)
+    nb_findings = len(payload["findings"])
+    duration = payload["duration"]
+    _log_scan_complete(duration, nb_findings, "success")
     yield sse_message("result", payload)
 
 
@@ -216,6 +252,7 @@ async def _run_pipeline_steps(url: str) -> AsyncGenerator[str, None]:
     yield sse_message("step", {"step": "url_validated", "message": "URL validée et normalisée."})
 
     if _over_global():
+        _log_scan_complete(time.monotonic() - start, 0, "error_408")
         yield _timeout_error_message()
         return
     yield sse_message("step", {"step": "ssrf_check", "message": "Vérification SSRF (résolution DNS)…"})
@@ -223,6 +260,7 @@ async def _run_pipeline_steps(url: str) -> AsyncGenerator[str, None]:
     yield sse_message("step", {"step": "ssrf_ok", "message": "Vérification SSRF OK."})
 
     if _over_global():
+        _log_scan_complete(time.monotonic() - start, 0, "error_408")
         yield _timeout_error_message()
         return
     yield sse_message("step", {"step": "fetch_https", "message": "Récupération de la page HTTPS…"})
@@ -249,10 +287,13 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
         error 408 pour timeout global, error 500 pour exception inattendue). Les erreurs réseau
         dans les steps sont gérées en interne (résultats avec fetch_ok=False).
     """
+    start = time.monotonic()
     try:
         async for chunk in _run_pipeline_steps(url):
             yield chunk
     except URLValidationError as e:
+        _log_scan_complete(time.monotonic() - start, 0, "error_400")
         yield sse_message("error", build_validation_error_payload(str(e)))
     except Exception as e:
+        _log_scan_complete(time.monotonic() - start, 0, "error_500")
         yield sse_message("error", build_unexpected_error_payload(str(e)))
