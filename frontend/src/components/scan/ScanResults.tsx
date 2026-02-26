@@ -68,10 +68,18 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
   const { t } = useLanguage();
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [faviconError, setFaviconError] = useState(false);
+  const [gaugeScore, setGaugeScore] = useState(0);
 
   useEffect(() => {
     setFaviconError(false);
   }, [result.url]);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      setGaugeScore(result.score);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [result.score]);
   const [exportButtonBottom, setExportButtonBottom] = useState(
     EXPORT_BUTTON_BOTTOM_DEFAULT,
   );
@@ -195,9 +203,10 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
                     strokeWidth="8"
                     strokeLinecap="round"
                     strokeDasharray={2 * Math.PI * 42}
-                    strokeDashoffset={
-                      2 * Math.PI * 42 * (1 - result.score / 100)
-                    }
+                    strokeDashoffset={2 * Math.PI * 42 * (1 - gaugeScore / 100)}
+                    style={{
+                      transition: "stroke-dashoffset 0.8s ease-out",
+                    }}
                   />
                 </svg>
                 <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-[var(--text)] sm:text-3xl">
