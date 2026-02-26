@@ -1,23 +1,59 @@
 "use client";
 
+import { useCallback, useState } from "react";
+import { createPortal } from "react-dom";
+import { Download, FileSpreadsheet, FileJson, FileText } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { GenericButton } from "../buttons";
 import AnimateInView from "../AnimateInView";
 import Card from "../cards/Card";
 import Badge from "../Badge";
+import Modal from "../Modal";
 import FindingCard from "./FindingCard";
 import type { ScanResult } from "../../services/scanService";
 import { getScoreBadge, getCategoryKey, severitySort } from "./scanConstants";
+import { exportScanResult, type ExportFormat } from "../../utils/exportScan";
 
 interface ScanResultsProps {
   result: ScanResult;
   onNewScan: () => void;
 }
 
+const EXPORT_FORMATS: {
+  value: ExportFormat;
+  labelKey: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    value: "csv",
+    labelKey: "scanner.exportCsv",
+    icon: <FileText className="w-5 h-5" />,
+  },
+  {
+    value: "json",
+    labelKey: "scanner.exportJson",
+    icon: <FileJson className="w-5 h-5" />,
+  },
+  {
+    value: "xlsx",
+    labelKey: "scanner.exportXlsx",
+    icon: <FileSpreadsheet className="w-5 h-5" />,
+  },
+];
+
 export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
   const { t } = useLanguage();
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const badge = getScoreBadge(result.score);
   const sortedFindings = [...result.findings].sort(severitySort);
+
+  const handleExport = useCallback(
+    (format: ExportFormat) => {
+      exportScanResult(result, format);
+      setExportModalOpen(false);
+    },
+    [result],
+  );
 
   const byCategory = sortedFindings.reduce<Record<string, number>>((acc, f) => {
     acc[f.category] = (acc[f.category] ?? 0) + 1;
@@ -106,6 +142,48 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
           )}
         </Card>
       </AnimateInView>
+
+      {typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed bottom-6 right-6 z-[9998] shadow-lg"
+            style={{ position: "fixed" }}
+            aria-label={t("scanner.export")}
+          >
+            <GenericButton
+              label={t("scanner.export")}
+              variant="primary"
+              icon={<Download className="w-4 h-4" />}
+              iconPosition="left"
+              onClick={() => setExportModalOpen(true)}
+            />
+          </div>,
+          document.body,
+        )}
+
+      <Modal
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        title={t("scanner.export")}
+        maxWidth="420px"
+      >
+        <p className="text-sm text-muted-theme mb-4">
+          {t("scanner.exportDesc")}
+        </p>
+        <div className="flex flex-col gap-2">
+          {EXPORT_FORMATS.map(({ value, labelKey, icon }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => handleExport(value)}
+              className="flex items-center gap-3 w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[var(--color-surface-hover)] transition-colors text-left"
+            >
+              {icon}
+              <span className="font-medium">{t(labelKey)}</span>
+            </button>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 }
