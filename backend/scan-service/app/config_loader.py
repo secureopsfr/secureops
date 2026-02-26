@@ -147,12 +147,60 @@ def get_security_headers_settings() -> tuple[SecurityHeaderConfig, ...]:
 
 
 @dataclass(frozen=True)
-class ExposedFileConfig:
-    """Configuration d'un chemin sensible à tester (roadmap §3.4)."""
+class PathCheckConfig:
+    """Configuration commune pour une vérification par chemin (path, severity, message).
+
+    Utilisé par exposed_files et directory_listing (roadmap §3.4, §3.5).
+
+    Attributes:
+        path (str): Chemin à tester (ex. /.env, /uploads/).
+        severity (str): Niveau de sévérité (critical, high, medium, low).
+        message (str): Message du finding.
+    """
 
     path: str
     severity: str
     message: str
+
+
+def _get_path_check_settings(section: str, defaults: tuple[tuple[str, str, str], ...]) -> tuple[PathCheckConfig, ...]:
+    """Charge une section YAML de type path check (paths avec path, severity, message).
+
+    Args:
+        section: Clé de section (ex. "exposed_files", "directory_listing").
+        defaults: Liste de tuples (path, severity, message) si paths vide ou absent.
+
+    Returns:
+        tuple[PathCheckConfig, ...]: Liste des configs pour cette section.
+    """
+    data = _load_settings_yml()
+    block = data.get(section) or {}
+    paths_raw = block.get("paths") or []
+    if not paths_raw:
+        return tuple(PathCheckConfig(p[0], p[1], p[2]) for p in defaults)
+    result: list[PathCheckConfig] = []
+    for item in paths_raw:
+        if isinstance(item, dict):
+            path = str(item.get("path", ""))
+            severity = str(item.get("severity", "medium"))
+            message = str(item.get("message", ""))
+            result.append(PathCheckConfig(path=path, severity=severity, message=message))
+    return tuple(result)
+
+
+def _get_path_check_max_body(section: str, default: int) -> int:
+    """Retourne la limite de lecture du corps (octets) pour une section path check.
+
+    Args:
+        section: Clé de section (ex. "exposed_files", "directory_listing").
+        default: Valeur par défaut si max_body_bytes absent.
+
+    Returns:
+        int: Limite en octets.
+    """
+    data = _load_settings_yml()
+    block = data.get(section) or {}
+    return int(block.get("max_body_bytes", default))
 
 
 _DEFAULT_EXPOSED_PATHS: tuple[tuple[str, str, str], ...] = (
@@ -165,80 +213,47 @@ _DEFAULT_EXPOSED_PATHS: tuple[tuple[str, str, str], ...] = (
 )
 
 
-@lru_cache(maxsize=1)
-def get_exposed_files_settings() -> tuple[ExposedFileConfig, ...]:
-    """Charge la section exposed_files depuis config/settings.yml (mis en cache).
-
-    Returns:
-        tuple[ExposedFileConfig, ...]: Liste des chemins à tester.
-    """
-    data = _load_settings_yml()
-    ef = data.get("exposed_files") or {}
-    paths_raw = ef.get("paths") or []
-    if not paths_raw:
-        return tuple(ExposedFileConfig(p[0], p[1], p[2]) for p in _DEFAULT_EXPOSED_PATHS)
-    result: list[ExposedFileConfig] = []
-    for item in paths_raw:
-        if isinstance(item, dict):
-            path = str(item.get("path", ""))
-            severity = str(item.get("severity", "medium"))
-            message = str(item.get("message", ""))
-            result.append(ExposedFileConfig(path=path, severity=severity, message=message))
-    return tuple(result)
-
-
-@lru_cache(maxsize=1)
-def get_exposed_files_max_body() -> int:
-    """Retourne la limite de lecture du corps (octets) pour la détection."""
-    data = _load_settings_yml()
-    ef = data.get("exposed_files") or {}
-    return int(ef.get("max_body_bytes", 8192))
-
-
-@dataclass(frozen=True)
-class DirectoryListingConfig:
-    """Configuration d'un répertoire à tester pour le listing (roadmap §3.5)."""
-
-    path: str
-    severity: str
-    message: str
-
-
 _DEFAULT_DIRECTORY_LISTING_PATHS: tuple[tuple[str, str, str], ...] = (
     ("/uploads/", "high", "Directory listing activé sur /uploads/ : fichiers utilisateurs énumérables."),
     ("/assets/", "medium", "Directory listing activé sur /assets/ : structure révélée."),
     ("/static/", "medium", "Directory listing activé sur /static/ : structure révélée."),
 )
 
+# Alias pour rétrocompatibilité et sémantique par domaine.
+ExposedFileConfig = PathCheckConfig
+DirectoryListingConfig = PathCheckConfig
+
 
 @lru_cache(maxsize=1)
-def get_directory_listing_settings() -> tuple[DirectoryListingConfig, ...]:
+def get_exposed_files_settings() -> tuple[PathCheckConfig, ...]:
+    """Charge la section exposed_files depuis config/settings.yml (mis en cache).
+
+    Returns:
+        tuple[PathCheckConfig, ...]: Liste des chemins à tester.
+    """
+    return _get_path_check_settings("exposed_files", _DEFAULT_EXPOSED_PATHS)
+
+
+@lru_cache(maxsize=1)
+def get_exposed_files_max_body() -> int:
+    """Retourne la limite de lecture du corps (octets) pour la détection."""
+    return _get_path_check_max_body("exposed_files", 8192)
+
+
+@lru_cache(maxsize=1)
+def get_directory_listing_settings() -> tuple[PathCheckConfig, ...]:
     """Charge la section directory_listing depuis config/settings.yml (mis en cache).
 
     Returns:
-        tuple[DirectoryListingConfig, ...]: Liste des répertoires à tester.
+        tuple[PathCheckConfig, ...]: Liste des répertoires à tester.
     """
-    data = _load_settings_yml()
-    dl = data.get("directory_listing") or {}
-    paths_raw = dl.get("paths") or []
-    if not paths_raw:
-        return tuple(DirectoryListingConfig(p[0], p[1], p[2]) for p in _DEFAULT_DIRECTORY_LISTING_PATHS)
-    result: list[DirectoryListingConfig] = []
-    for item in paths_raw:
-        if isinstance(item, dict):
-            path = str(item.get("path", ""))
-            severity = str(item.get("severity", "medium"))
-            message = str(item.get("message", ""))
-            result.append(DirectoryListingConfig(path=path, severity=severity, message=message))
-    return tuple(result)
+    return _get_path_check_settings("directory_listing", _DEFAULT_DIRECTORY_LISTING_PATHS)
 
 
 @lru_cache(maxsize=1)
 def get_directory_listing_max_body() -> int:
     """Retourne la limite de lecture du corps (octets) pour la détection du listing."""
-    data = _load_settings_yml()
-    dl = data.get("directory_listing") or {}
-    return int(dl.get("max_body_bytes", 8192))
+    return _get_path_check_max_body("directory_listing", 8192)
 
 
 # Defaults utilisés quand robots_txt.patterns est vide. YAML fait foi pour les surcharges.
@@ -319,23 +334,24 @@ def get_scan_timeouts() -> ScanTimeoutsSettings:
 
 
 __all__ = [
-    "settings",
     "AppSettings",
     "DirectoryListingConfig",
     "ExposedFileConfig",
-    "get_robots_txt_settings",
     "GeneralSettings",
+    "PathCheckConfig",
     "RoutersSettings",
+    "ScanTimeoutsSettings",
     "SecurityHeaderConfig",
     "SsrfSettings",
+    "UrlValidationSettings",
     "get_directory_listing_max_body",
     "get_directory_listing_settings",
     "get_exposed_files_max_body",
     "get_exposed_files_settings",
+    "get_robots_txt_settings",
+    "get_scan_timeouts",
     "get_security_headers_settings",
     "get_ssrf_settings",
-    "UrlValidationSettings",
     "get_url_validation_settings",
-    "ScanTimeoutsSettings",
-    "get_scan_timeouts",
+    "settings",
 ]

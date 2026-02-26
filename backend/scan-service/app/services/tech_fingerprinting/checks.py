@@ -8,6 +8,8 @@ indicative sans sur-promettre.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from app.utils.headers import get_header_insensitive
+
 if TYPE_CHECKING:
     import httpx
 
@@ -41,22 +43,14 @@ class TechFingerprintingCheckResult:
         }
 
 
-def _get_header(response: "httpx.Response", name: str) -> str | None:
-    """Retourne la valeur d'un en-tête (insensible casse) ou None."""
-    for k, v in response.headers.items():
-        if k.lower() == name.lower():
-            return v
-    return None
-
-
 def _detect_framework_cms(response: "httpx.Response") -> str | None:
     """Détecte framework ou CMS via heuristiques sur les en-têtes.
 
     Retourne un libellé indicatif (WordPress, Drupal, Express, etc.) ou None.
     """
-    x_generator = _get_header(response, "X-Generator")
-    x_drupal_cache = _get_header(response, "X-Drupal-Cache")
-    x_powered_by = _get_header(response, "X-Powered-By") or ""
+    x_generator = get_header_insensitive(response, "X-Generator")
+    x_drupal_cache = get_header_insensitive(response, "X-Drupal-Cache")
+    x_powered_by = get_header_insensitive(response, "X-Powered-By") or ""
 
     if x_drupal_cache is not None:
         return "Drupal"
@@ -94,8 +88,8 @@ def check_tech_fingerprinting_from_response(response: "httpx.Response | None") -
             fetch_ok=False,
         )
 
-    server = _get_header(response, "Server")
-    x_powered_by = _get_header(response, "X-Powered-By")
+    server = get_header_insensitive(response, "Server")
+    x_powered_by = get_header_insensitive(response, "X-Powered-By")
     framework_cms = _detect_framework_cms(response)
 
     findings: list[str] = []

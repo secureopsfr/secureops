@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import httpx
 
 from app.config_loader import get_security_headers_settings
+from app.utils.headers import get_header_insensitive
 
 
 @dataclass
@@ -63,17 +64,14 @@ def check_security_headers_from_response(response: httpx.Response | None) -> Sec
             fetch_ok=False,
         )
 
-    headers_lower = {k.lower(): k for k in response.headers}
-
     for cfg in headers_config:
         header_name = cfg.name
         msg_absent = cfg.message_absent
         expected_value = cfg.expected_value
-        header_lower = header_name.lower()
-        if header_lower in headers_lower:
+        actual_value = get_header_insensitive(response, header_name)
+        if actual_value is not None:
             if expected_value:
-                actual = response.headers.get(header_name, "").strip().lower()
-                if actual != expected_value.lower():
+                if actual_value.strip().lower() != expected_value.lower():
                     findings.append(f"{header_name} présent mais valeur incorrecte (attendu : {expected_value}).")
             present.append(header_name)
         else:

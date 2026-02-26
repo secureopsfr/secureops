@@ -1,4 +1,11 @@
-"""Pipeline de scan en streaming SSE : étapes et format des événements."""
+"""Pipeline de scan en streaming SSE : étapes et format des événements.
+
+Exceptions :
+  - Remontées vers l'appelant (émises en événement error) : URLValidationError (400).
+  - Gérées en interne (pas de remontée) : dépassement du délai global (événement error 408),
+    échecs réseau dans les étapes (fetch, path checks, etc.) : les steps retournent None
+    ou un résultat avec fetch_ok=False ; aucune exception n'est levée.
+"""
 
 import asyncio
 import time
@@ -210,6 +217,11 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
 
     Yields:
         str: Blocs SSE (event + data).
+
+    Raises:
+        Aucune. Les erreurs sont émises en événements SSE (error 400 pour URLValidationError,
+        error 408 pour timeout global, error 500 pour exception inattendue). Les erreurs réseau
+        dans les steps sont gérées en interne (résultats avec fetch_ok=False).
     """
     try:
         async for chunk in _run_pipeline_steps(url):
