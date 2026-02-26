@@ -57,9 +57,20 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
             yield _sse_message("error", {"message": "Délai global du scan dépassé.", "status_code": 408})
             return
         yield _sse_message("step", {"step": "tls_check", "message": "Vérification TLS/HTTPS…"})
-        await run_tls_checks(normalized_url)
+        tls_result = await run_tls_checks(normalized_url)
         yield _sse_message("step", {"step": "tls_done", "message": "TLS/HTTPS vérifié."})
 
-        yield _sse_message("result", {"valid": True, "url": normalized_url})
+        valid = tls_result.https_enabled
+        yield _sse_message(
+            "result",
+            {
+                "valid": valid,
+                "url": normalized_url,
+                "tls": {
+                    "https_enabled": tls_result.https_enabled,
+                    "findings": list(tls_result.findings),
+                },
+            },
+        )
     except URLValidationError as e:
         yield _sse_message("error", {"message": str(e), "status_code": 400})

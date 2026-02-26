@@ -35,6 +35,9 @@ def test_post_scan_accepte_url_valide() -> None:
     assert len(result_events) == 1
     assert result_events[0][1]["valid"] is True
     assert result_events[0][1]["url"] == "https://example.com/"
+    assert "tls" in result_events[0][1]
+    assert result_events[0][1]["tls"]["https_enabled"] is True
+    assert result_events[0][1]["tls"]["findings"] == []
 
 
 def test_post_scan_refuse_url_avec_credentials() -> None:
