@@ -43,7 +43,7 @@ const EXPORT_FORMATS: {
 
 const EXPORT_BUTTON_BOTTOM_DEFAULT = 24;
 /** Hauteur fixe au-dessus du footer quand il est visible (footer ~200px + marge). */
-const EXPORT_BUTTON_BOTTOM_ABOVE_FOOTER = 240;
+const EXPORT_BUTTON_BOTTOM_ABOVE_FOOTER = 220;
 
 export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
   const { t } = useLanguage();

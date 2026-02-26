@@ -25,6 +25,7 @@ export default function ScannerContent() {
   const [steps, setSteps] = useState<ScanStepDisplay[]>([]);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState<ScanError | null>(null);
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -35,6 +36,7 @@ export default function ScannerContent() {
       setSteps([]);
       setResult(null);
       setError(null);
+      setErrorModalOpen(false);
 
       try {
         await runScan(trimmed, (ev) => {
@@ -53,6 +55,7 @@ export default function ScannerContent() {
           } else if (ev.type === "error") {
             setError(ev.data);
             setState("error");
+            setErrorModalOpen(true);
           }
         });
       } catch (err) {
@@ -62,6 +65,7 @@ export default function ScannerContent() {
           status_code: 500,
         });
         setState("error");
+        setErrorModalOpen(true);
       }
     },
     [url, t],
@@ -144,8 +148,9 @@ export default function ScannerContent() {
 
           {state === "error" && error && (
             <Modal
-              isOpen
-              onClose={() => {
+              isOpen={errorModalOpen}
+              onClose={() => setErrorModalOpen(false)}
+              onExited={() => {
                 setState("idle");
                 setError(null);
               }}
