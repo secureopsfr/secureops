@@ -47,12 +47,7 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
         tls_result = await run_tls_checks(normalized_url)
         yield sse_message("step", {"step": "tls_done", "message": "TLS/HTTPS vérifié."})
 
-        valid = (
-            tls_result.https_enabled
-            and (tls_result.http_redirects_to_https is None or tls_result.http_redirects_to_https)  # noqa: W503
-            and (tls_result.certificate_status is None or tls_result.certificate_status == "valid")  # noqa: W503
-            and len(tls_result.tls_versions_obsolete) == 0  # noqa: W503
-        )
+        valid = tls_result.is_posture_valid()
         yield sse_message(
             "result",
             {
@@ -69,3 +64,8 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
         )
     except URLValidationError as e:
         yield sse_message("error", {"message": str(e), "status_code": 400})
+    except Exception as e:
+        yield sse_message(
+            "error",
+            {"message": f"Erreur inattendue lors du scan : {e!s}", "status_code": 500},
+        )

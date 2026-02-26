@@ -1,4 +1,4 @@
-"""Tests unitaires pour les vérifications TLS/HTTPS (app.services.tls)."""
+"""Tests unitaires pour les vérifications TLS/HTTPS (app.services.tls.checks)."""
 
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
@@ -11,11 +11,12 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 from app.services.tls import run_tls_checks
-from app.services.tls.checks import (
-    _build_http_url,
-    _build_https_url,
-    _get_https_port_from_url,
-    _location_redirects_to_https,
+from app.services.tls.checks import TlsCheckResult
+from app.utils.url_helpers import (
+    build_http_url,
+    build_https_url,
+    get_https_port_from_url,
+    location_redirects_to_https,
 )
 
 
@@ -83,41 +84,53 @@ def _make_self_signed_cert_der() -> bytes:
 
 
 def test_build_https_url_from_http() -> None:
-    """_build_https_url transforme http://host en https://host/."""
-    assert _build_https_url("http://example.com") == "https://example.com/"
-    assert _build_https_url("http://example.com/") == "https://example.com/"
-    assert _build_https_url("http://example.com:80/path") == "https://example.com/"
+    """build_https_url transforme http://host en https://host/."""
+    assert build_https_url("http://example.com") == "https://example.com/"
+    assert build_https_url("http://example.com/") == "https://example.com/"
+    assert build_https_url("http://example.com:80/path") == "https://example.com/"
 
 
 def test_build_https_url_from_https() -> None:
-    """_build_https_url transforme https://host en https://host/."""
-    assert _build_https_url("https://example.com") == "https://example.com/"
-    assert _build_https_url("https://example.com:443/") == "https://example.com/"
+    """build_https_url transforme https://host en https://host/."""
+    assert build_https_url("https://example.com") == "https://example.com/"
+    assert build_https_url("https://example.com:443/") == "https://example.com/"
     # Préserve le port non standard (ex. badssl.com TLS 1.0)
-    assert _build_https_url("https://tls-v1-0.badssl.com:1010") == "https://tls-v1-0.badssl.com:1010/"
+    assert build_https_url("https://tls-v1-0.badssl.com:1010") == "https://tls-v1-0.badssl.com:1010/"
 
 
 def test_get_https_port_from_url() -> None:
-    """_get_https_port_from_url extrait le port ou 443 par défaut."""
-    assert _get_https_port_from_url("https://example.com") == 443
-    assert _get_https_port_from_url("https://example.com:443/") == 443
-    assert _get_https_port_from_url("https://tls-v1-0.badssl.com:1010") == 1010
-    assert _get_https_port_from_url("http://example.com:80") == 443
+    """get_https_port_from_url extrait le port ou 443 par défaut."""
+    assert get_https_port_from_url("https://example.com") == 443
+    assert get_https_port_from_url("https://example.com:443/") == 443
+    assert get_https_port_from_url("https://tls-v1-0.badssl.com:1010") == 1010
+    assert get_https_port_from_url("http://example.com:80") == 443
 
 
 def test_build_http_url() -> None:
-    """_build_http_url construit http://host/."""
-    assert _build_http_url("https://example.com") == "http://example.com/"
-    assert _build_http_url("http://example.com:80/path") == "http://example.com/"
+    """build_http_url construit http://host/."""
+    assert build_http_url("https://example.com") == "http://example.com/"
+    assert build_http_url("http://example.com:80/path") == "http://example.com/"
 
 
 def test_location_redirects_to_https() -> None:
-    """_location_redirects_to_https détecte les URLs https."""
-    assert _location_redirects_to_https("https://example.com/") is True
-    assert _location_redirects_to_https("HTTPS://example.com") is True
-    assert _location_redirects_to_https("http://example.com") is False
-    assert _location_redirects_to_https("") is False
-    assert _location_redirects_to_https(None) is False
+    """location_redirects_to_https détecte les URLs https."""
+    assert location_redirects_to_https("https://example.com/") is True
+    assert location_redirects_to_https("HTTPS://example.com") is True
+    assert location_redirects_to_https("http://example.com") is False
+    assert location_redirects_to_https("") is False
+    assert location_redirects_to_https(None) is False
+
+
+def test_tls_check_result_is_posture_valid() -> None:
+    """is_posture_valid retourne True uniquement si tous les critères sont OK."""
+    assert TlsCheckResult(True, True, "valid", (), ()).is_posture_valid() is True
+    assert TlsCheckResult(True, None, "valid", (), ()).is_posture_valid() is True
+    assert TlsCheckResult(True, True, None, (), ()).is_posture_valid() is True
+    assert TlsCheckResult(False, None, None, (), ()).is_posture_valid() is False
+    assert TlsCheckResult(True, False, "valid", (), ()).is_posture_valid() is False
+    assert TlsCheckResult(True, True, "expired", (), ()).is_posture_valid() is False
+    assert TlsCheckResult(True, True, "self_signed", (), ()).is_posture_valid() is False
+    assert TlsCheckResult(True, True, "valid", ("1.0",), ()).is_posture_valid() is False
 
 
 @pytest.mark.asyncio()
@@ -136,8 +149,8 @@ async def test_run_tls_checks_https_ok_et_redirect_ok() -> None:
 
     with (
         patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
-        patch("app.services.tls.checks._fetch_certificate_der", return_value=valid_cert),
-        patch("app.services.tls.checks._check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.tls.checks.fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -214,8 +227,8 @@ async def test_run_tls_checks_pas_redirection_http() -> None:
 
     with (
         patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
-        patch("app.services.tls.checks._fetch_certificate_der", return_value=valid_cert),
-        patch("app.services.tls.checks._check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.tls.checks.fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -248,8 +261,8 @@ async def test_run_tls_checks_certificat_expire() -> None:
 
     with (
         patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
-        patch("app.services.tls.checks._fetch_certificate_der", return_value=expired_cert),
-        patch("app.services.tls.checks._check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.tls.checks.fetch_certificate_der", return_value=expired_cert),
+        patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -280,8 +293,8 @@ async def test_run_tls_checks_certificat_auto_signe() -> None:
 
     with (
         patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
-        patch("app.services.tls.checks._fetch_certificate_der", return_value=self_signed_cert),
-        patch("app.services.tls.checks._check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.tls.checks.fetch_certificate_der", return_value=self_signed_cert),
+        patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -312,9 +325,9 @@ async def test_run_tls_checks_tls_versions_obsoletes() -> None:
 
     with (
         patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
-        patch("app.services.tls.checks._fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.tls.checks.fetch_certificate_der", return_value=valid_cert),
         patch(
-            "app.services.tls.checks._check_tls_versions_obsolete",
+            "app.services.tls.checks.check_tls_versions_obsolete",
             return_value=(["1.0", "1.1"], ["TLS 1.0 et 1.1 encore accepté(s). Versions obsolètes à désactiver."]),
         ),
     ):

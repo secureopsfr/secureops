@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, Field
 
+from app.config_loader import get_url_validation_settings
+
 
 class ScanRequest(BaseModel):
     """Corps de requête pour lancer un scan.
@@ -10,16 +12,9 @@ class ScanRequest(BaseModel):
         url: URL à scanner (http ou https).
     """
 
-    url: str = Field(..., description="URL à scanner (http ou https)", min_length=1, max_length=2048)
-
-
-class ScanValidationResponse(BaseModel):
-    """Réponse après validation d'URL (étape actuelle : validation uniquement).
-
-    Attributes:
-        valid: Indique que l'URL a passé la validation.
-        url: URL normalisée (schéma/netloc en minuscules, fragment supprimé).
-    """
-
-    valid: bool = Field(True, description="URL valide pour un scan")
-    url: str = Field(..., description="URL normalisée")
+    url: str = Field(
+        ...,
+        description="URL à scanner (http ou https)",
+        min_length=1,
+        max_length=get_url_validation_settings().max_url_length,
+    )
