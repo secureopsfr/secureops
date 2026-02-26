@@ -86,14 +86,16 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 - **Port non standard** : le scan utilise le port explicite de l’URL pour les vérifications TLS (certificat, versions obsolètes). Ex. `https://tls-v1-0.badssl.com:1010` est testé sur le port 1010, pas 443.
 - **OpenSSL 3.x** : TLS 1.0 et 1.1 sont désactivés par défaut dans OpenSSL 3.x. Les serveurs qui n’acceptent que TLS 1.0/1.1 (ex. `tls-v1-0.badssl.com:1010`) ne sont pas joignables depuis un environnement avec OpenSSL 3.x. Le scan affiche alors un message explicite : *« Le serveur n'accepte peut-être que TLS 1.0/1.1, désactivés par défaut dans OpenSSL 3.x (limitation de l'environnement de scan) »*. Pour tester la détection TLS 1.0/1.1, utiliser un environnement avec TLS 1.0 activé (ex. conteneur avec ancienne OpenSSL) ou un site qui propose TLS 1.0 en plus de TLS 1.2+ sur le port 443.
 
-### 3.2 Security Headers
-- [ ] Vérifier présence :
+### 3.2 Security Headers ✅
+- [x] Vérifier présence :
   - `Content-Security-Policy`
   - `Strict-Transport-Security`
   - `X-Frame-Options`
-  - `X-Content-Type-Options`
+  - `X-Content-Type-Options` (valeur attendue : `nosniff`)
   - `Referrer-Policy`
   - `Permissions-Policy`
+
+> **Fait :** Module `app/services/security_headers/` (checks.py). Intégré dans le flux SSE après TLS (`headers_check` → `headers_done`). Résultat exposé dans l’événement `result.headers`. Tests unitaires dans `tests/test_security_headers_checks.py`.
 
 ### 3.3 Cookies
 - [ ] Vérifier flags :
