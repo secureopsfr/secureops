@@ -1,31 +1,51 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
+import { useAuthUser } from "../../hooks/useAuthUser";
 import { GenericButton } from "../buttons";
 import AnimateInView from "../AnimateInView";
 import Card from "../cards/Card";
 import Modal from "../Modal";
 import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
+import ScanResultsGate from "./ScanResultsGate";
+import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
 import {
   runScan,
   type ScanResult,
   type ScanError,
   type ScanStepDisplay,
 } from "../../services/scanService";
+import {
+  savePendingScanResult,
+  consumePendingScanResult,
+} from "../../utils/scanStorage";
 
 type ScanState = "idle" | "loading" | "success" | "error";
 
 export default function ScannerContent() {
-  const { t } = useLanguage();
+  const { t, lp } = useLanguage();
+  const { isAuthenticated, isLoading: authLoading } = useAuthUser({
+    listenToAuthEvents: true,
+  });
   const [url, setUrl] = useState("");
   const [state, setState] = useState<ScanState>("idle");
   const [steps, setSteps] = useState<ScanStepDisplay[]>([]);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState<ScanError | null>(null);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      const pending = consumePendingScanResult();
+      if (pending) {
+        setResult(pending);
+        setState("success");
+      }
+    }
+  }, [authLoading, isAuthenticated]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -50,8 +70,14 @@ export default function ScannerContent() {
               },
             ]);
           } else if (ev.type === "result") {
-            setResult(ev.data);
-            setState("success");
+            if (isAuthenticated) {
+              setResult(ev.data);
+              setState("success");
+            } else {
+              savePendingScanResult(ev.data);
+              setResult(ev.data);
+              setState("success");
+            }
           } else if (ev.type === "error") {
             setError(ev.data);
             setState("error");
@@ -68,7 +94,7 @@ export default function ScannerContent() {
         setErrorModalOpen(true);
       }
     },
-    [url, t],
+    [url, t, isAuthenticated],
   );
 
   const handleNewScan = useCallback(() => {
@@ -142,9 +168,28 @@ export default function ScannerContent() {
 
           {state === "loading" && <ScanLoader steps={steps} />}
 
-          {state === "success" && result && (
-            <ScanResults result={result} onNewScan={handleNewScan} />
-          )}
+          {state === "success" &&
+            result &&
+            !authLoading &&
+            (isAuthenticated ? (
+              <ScanResults result={result} onNewScan={handleNewScan} />
+            ) : (
+              <>
+                <FakeScanResultsBlurred />
+                <Modal
+                  isOpen
+                  onClose={() => {}}
+                  title={t("scanner.gateTitle")}
+                  maxWidth="420px"
+                  showCloseButton={false}
+                  closeOnBackdropClick={false}
+                >
+                  <ScanResultsGate
+                    signInHref={`${lp("/connexion")}?returnTo=${encodeURIComponent(lp("/scanner"))}`}
+                  />
+                </Modal>
+              </>
+            ))}
 
           {state === "error" && error && (
             <Modal
