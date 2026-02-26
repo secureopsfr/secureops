@@ -9,3 +9,8 @@ line_length = 150
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q -ra"
+filterwarnings = [
+    "ignore:The 'app' shortcut is now deprecated:DeprecationWarning",
+    "ignore:ssl.TLSVersion.TLSv1 is deprecated:DeprecationWarning",
+    "ignore:ssl.TLSVersion.TLSv1_1 is deprecated:DeprecationWarning",
+]
