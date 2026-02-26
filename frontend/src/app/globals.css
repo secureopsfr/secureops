@@ -1490,7 +1490,8 @@
 /* Page (pricing, contact) : en-tête puis contenu */
 .landing-reveal-page .page-header,
 .landing-reveal-page .page-container > *:nth-child(2),
-.landing-reveal-page .form-container {
+.landing-reveal-page .form-container,
+.landing-reveal-page .scanner-content {
   opacity: 0;
   transform: translateY(24px);
   transition:
@@ -1505,10 +1506,41 @@
 }
 
 .landing-reveal-page.is-visible .page-container > *:nth-child(2),
-.landing-reveal-page.is-visible .form-container {
+.landing-reveal-page.is-visible .form-container,
+.landing-reveal-page.is-visible .scanner-content {
   opacity: 1;
   transform: translateY(0);
   transition-delay: 0.2s;
+}
+
+/* Scanner : contenu et blocs au scroll */
+.landing-reveal-scanner .scanner-content,
+.landing-reveal-scanner .scanner-block {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.5s ease-out;
+}
+
+.landing-reveal-scanner.is-visible .scanner-content,
+.landing-reveal-scanner.is-visible .scanner-block {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Findings : chaque carte anime au scroll */
+.landing-reveal-finding {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.4s ease-out,
+    transform 0.4s ease-out;
+}
+
+.landing-reveal-finding.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* Footer : colonnes puis copyright au scroll */

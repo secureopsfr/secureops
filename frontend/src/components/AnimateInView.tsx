@@ -15,7 +15,7 @@ export interface AnimateInViewProps extends Omit<
   /** Classe(s) additionnelle(s). */
   className?: string;
   /** Élément HTML utilisé. */
-  as?: "div" | "section" | "article" | "footer";
+  as?: "div" | "section" | "article" | "footer" | "li";
 }
 
 /**
@@ -31,7 +31,11 @@ export default function AnimateInView({
   as: Tag = "div",
   ...rest
 }: AnimateInViewProps) {
-  const [ref, isInView] = useInView({ threshold: 0.08, once: true });
+  const [ref, isInView] = useInView({
+    threshold: 0.05,
+    rootMargin: "0px 0px 60px 0px",
+    once: true,
+  });
   const [initialVisible, setInitialVisible] = useState(false);
 
   useEffect(() => {
