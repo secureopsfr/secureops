@@ -11,6 +11,9 @@ from app.services.tls.certificate import analyze_certificate, fetch_certificate_
 from app.services.tls.versions import check_tls_versions_obsolete
 from app.utils.url_helpers import build_http_url, build_https_url, get_host_from_url, get_https_port_from_url, location_redirects_to_https
 
+# Sentinel pour distinguer "paramètre non fourni" de "fetch a échoué (None)"
+_UNSET = object()
+
 
 def _ssl_context_for_scan() -> ssl.SSLContext:
     """Contexte SSL permissif pour le scan : TLS 1.0+ accepté, pas de vérif. certificat.
@@ -105,7 +108,49 @@ async def _check_certificate(host: str, port: int, timeouts: ScanTimeoutsSetting
         return None
 
 
-async def run_tls_checks(url: str) -> TlsCheckResult:
+async def _fetch_https_when_unset(https_url: str, timeouts: ScanTimeoutsSettings, findings: list[str]) -> httpx.Response | None:
+    """Effectue le GET HTTPS si la réponse n'a pas été fournie. Retourne None en cas d'erreur."""
+    async with httpx.AsyncClient(
+        verify=_ssl_context_for_scan(),
+        follow_redirects=False,
+        timeout=httpx.Timeout(timeouts.connection, read=timeouts.read),
+    ) as client:
+        try:
+            return await client.get(https_url)
+        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout) as e:
+            err_msg = _format_https_connection_error(e) or "HTTPS non activé (connexion refusée ou timeout). Risque d'interception."
+            findings.append(err_msg)
+            return None
+        except Exception as e:
+            err_msg = _format_https_connection_error(e) or f"HTTPS non activé : {e!s}"
+            findings.append(err_msg)
+            return None
+
+
+async def _check_http_redirect(http_url: str, timeouts: ScanTimeoutsSettings, findings: list[str]) -> bool | None:
+    """Vérification 2 : redirection HTTP→HTTPS. Retourne True/False/None."""
+    try:
+        async with httpx.AsyncClient(
+            verify=_ssl_context_for_scan(),
+            follow_redirects=False,
+            timeout=httpx.Timeout(timeouts.connection, read=timeouts.read),
+        ) as client:
+            response = await client.get(http_url)
+            if response.status_code in (301, 302, 307, 308):
+                location = response.headers.get("location")
+                ok = location_redirects_to_https(location)
+                if not ok:
+                    findings.append("Pas de redirection HTTP→HTTPS : la redirection ne pointe pas vers https://.")
+                return ok
+            findings.append("Pas de redirection HTTP→HTTPS (réponse 200 ou autre sans redirection). Le trafic peut rester en clair.")
+            return False
+    except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout):
+        return None
+    except Exception:
+        return None
+
+
+async def run_tls_checks(url: str, https_response: httpx.Response | None = _UNSET) -> TlsCheckResult:
     """Vérifications TLS/HTTPS (roadmap §3.1).
 
     Vérification 1 : HTTPS activé ? Une requête GET vers https://<host>/ doit aboutir
@@ -114,6 +159,8 @@ async def run_tls_checks(url: str) -> TlsCheckResult:
 
     Args:
         url: URL normalisée à scanner (sera utilisée pour extraire le host).
+        https_response: Réponse HTTPS pré-fetchée (évite un GET dupliqué). Si None explicitement
+            passé, considère que le fetch a échoué. Si omis, effectue le GET.
 
     Returns:
         TlsCheckResult: https_enabled et liste des findings.
@@ -123,28 +170,21 @@ async def run_tls_checks(url: str) -> TlsCheckResult:
     http_url = build_http_url(url)
     findings: list[str] = []
 
-    async with httpx.AsyncClient(
-        verify=_ssl_context_for_scan(),
-        follow_redirects=False,
-        timeout=httpx.Timeout(timeouts.connection, read=timeouts.read),
-    ) as client:
-        try:
-            response = await client.get(https_url)
-            # Toute réponse (200, 301, 404, etc.) indique que HTTPS répond
-            _ = response.status_code
-        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout) as e:
-            err_msg = _format_https_connection_error(e) or "HTTPS non activé (connexion refusée ou timeout). Risque d'interception."
-            findings.append(err_msg)
-            return TlsCheckResult(
-                https_enabled=False,
-                http_redirects_to_https=None,
-                certificate_status=None,
-                tls_versions_obsolete=(),
-                findings=tuple(findings),
-            )
-        except Exception as e:
-            err_msg = _format_https_connection_error(e) or f"HTTPS non activé : {e!s}"
-            findings.append(err_msg)
+    # Cas : fetch préalable a échoué (None passé explicitement)
+    if https_response is None:
+        findings.append("HTTPS non activé (connexion refusée ou timeout). Risque d'interception.")
+        return TlsCheckResult(
+            https_enabled=False,
+            http_redirects_to_https=None,
+            certificate_status=None,
+            tls_versions_obsolete=(),
+            findings=tuple(findings),
+        )
+
+    # Cas : pas de réponse fournie, on fait le GET nous-mêmes
+    if https_response is _UNSET:
+        https_response = await _fetch_https_when_unset(https_url, timeouts, findings)
+        if https_response is None:
             return TlsCheckResult(
                 https_enabled=False,
                 http_redirects_to_https=None,
@@ -153,23 +193,9 @@ async def run_tls_checks(url: str) -> TlsCheckResult:
                 findings=tuple(findings),
             )
 
-        # Vérification 2 : Redirection HTTP→HTTPS (uniquement si HTTPS activé)
-        http_redirects_to_https: bool | None = None
-        try:
-            response = await client.get(http_url)
-            if response.status_code in (301, 302, 307, 308):
-                location = response.headers.get("location")
-                http_redirects_to_https = location_redirects_to_https(location)
-                if not http_redirects_to_https:
-                    findings.append("Pas de redirection HTTP→HTTPS : la redirection ne pointe pas vers https://.")
-            else:
-                http_redirects_to_https = False
-                findings.append("Pas de redirection HTTP→HTTPS (réponse 200 ou autre sans redirection). " "Le trafic peut rester en clair.")
-        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout):
-            http_redirects_to_https = None
-            # HTTP inaccessible : non vérifiable (site peut être HTTPS-only)
-        except Exception:
-            http_redirects_to_https = None
+    # On a une réponse HTTPS (fournie ou venant de notre GET)
+    # Vérification 2 : Redirection HTTP→HTTPS (uniquement si HTTPS activé)
+    http_redirects_to_https = await _check_http_redirect(http_url, timeouts, findings)
 
     # Vérification 3 et 4 : certificat et versions TLS (utiliser le port de l'URL)
     host = get_host_from_url(url)

@@ -305,6 +305,56 @@ async def test_run_tls_checks_certificat_auto_signe() -> None:
 
 
 @pytest.mark.asyncio()
+async def test_run_tls_checks_avec_https_response_pre_fetchee() -> None:
+    """run_tls_checks avec https_response fournie évite le GET HTTPS (fetch partagé)."""
+    mock_https_resp = AsyncMock()
+    mock_https_resp.status_code = 200
+    mock_http_resp = AsyncMock()
+    mock_http_resp.status_code = 301
+    mock_http_resp.headers = {"location": "https://example.com/"}
+
+    mock_client_instance = AsyncMock()
+    # Un seul appel : GET HTTP (pas de GET HTTPS car réponse fournie)
+    mock_client_instance.get = AsyncMock(return_value=mock_http_resp)
+
+    valid_cert = _make_valid_cert_der()
+
+    with (
+        patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.tls.checks.fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
+    ):
+        mock_context = AsyncMock()
+        mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
+        mock_context.__aexit__ = AsyncMock(return_value=None)
+        mock_client.return_value = mock_context
+
+        result = await run_tls_checks("https://example.com", https_response=mock_https_resp)
+
+    assert result.https_enabled is True
+    assert result.http_redirects_to_https is True
+    assert result.certificate_status == "valid"
+    # Vérifie qu'un seul GET a été fait (HTTP pour redirect)
+    assert mock_client_instance.get.call_count == 1
+
+
+@pytest.mark.asyncio()
+async def test_run_tls_checks_https_response_none_fetch_echoue() -> None:
+    """run_tls_checks avec https_response=None retourne immédiatement sans fetch."""
+    with patch("app.services.tls.checks.httpx.AsyncClient") as mock_client:
+        result = await run_tls_checks("https://example.com", https_response=None)
+
+    assert result.https_enabled is False
+    assert result.http_redirects_to_https is None
+    assert result.certificate_status is None
+    assert result.tls_versions_obsolete == ()
+    assert len(result.findings) == 1
+    assert "HTTPS non activé" in result.findings[0]
+    # Aucun client HTTP n'a été utilisé
+    mock_client.assert_not_called()
+
+
+@pytest.mark.asyncio()
 async def test_run_tls_checks_tls_versions_obsoletes() -> None:
     """run_tls_checks détecte TLS 1.0/1.1 si le serveur les accepte."""
     mock_https_resp = AsyncMock()
