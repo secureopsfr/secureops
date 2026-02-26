@@ -1,11 +1,66 @@
 """Fixtures partagées pour les tests du scan-service."""
 
 import json
+from contextlib import asynccontextmanager, contextmanager
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.directory_listing import DirectoryListingCheckResult
+from app.services.exposed_files import ExposedFilesCheckResult
+from app.services.robots_txt import RobotsTxtCheckResult
+from app.services.tls.checks import TlsCheckResult
+
+
+@contextmanager
+def patch_scan_checks(**overrides):
+    """Mocke tous les checks du scan avec des résultats par défaut.
+
+    Surcharge possible via overrides (ex. run_exposed_files_checks=custom_result).
+    Utilisé pour les tests du routeur sans requêtes réseau.
+    """
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.headers = {}
+    mock_response.content = b""
+
+    tls_result = overrides.pop("tls_result", None) or TlsCheckResult(
+        https_enabled=True,
+        http_redirects_to_https=True,
+        certificate_status="valid",
+        tls_versions_obsolete=(),
+        findings=(),
+    )
+    exposed_result = overrides.pop("exposed_result", None) or ExposedFilesCheckResult(exposed=(), findings=(), fetch_ok=True)
+    directory_listing_result = overrides.pop("directory_listing_result", None) or DirectoryListingCheckResult(exposed=(), findings=(), fetch_ok=True)
+    robots_txt_result = overrides.pop("robots_txt_result", None) or RobotsTxtCheckResult(
+        disallow_paths=(), sensitive_routes=(), findings=(), fetch_ok=True
+    )
+
+    @asynccontextmanager
+    async def _fake_scan_client():
+        yield MagicMock()
+
+    with (
+        patch("app.services.scan_stream.check_ssrf", new_callable=AsyncMock),
+        patch("app.services.scan_stream.scan_client", _fake_scan_client),
+        patch("app.services.scan_stream.get_with_client", new_callable=AsyncMock, return_value=mock_response),
+        patch("app.services.scan_stream.run_tls_checks", new_callable=AsyncMock, return_value=tls_result),
+        patch("app.services.scan_stream.run_exposed_files_checks", new_callable=AsyncMock, return_value=exposed_result),
+        patch(
+            "app.services.scan_stream.run_directory_listing_checks",
+            new_callable=AsyncMock,
+            return_value=directory_listing_result,
+        ),
+        patch(
+            "app.services.scan_stream.run_robots_txt_checks",
+            new_callable=AsyncMock,
+            return_value=robots_txt_result,
+        ),
+    ):
+        yield
 
 
 def parse_sse_events(response) -> list[tuple[str, dict]]:

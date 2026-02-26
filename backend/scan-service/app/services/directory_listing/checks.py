@@ -6,7 +6,6 @@ si le serveur renvoie une page de listing (signatures Apache/Nginx).
 
 from app.config_loader import get_directory_listing_max_body, get_directory_listing_settings
 from app.services.path_checks import PathCheckResult, run_path_checks
-from app.utils.url_helpers import build_https_url
 
 
 def _is_listing_body(body: bytes, _path: str) -> bool:
@@ -49,13 +48,12 @@ async def run_directory_listing_checks(
     Si client est fourni, réutilise la connexion TCP (keep-alive).
 
     Args:
-        base_url: URL de base (ex. https://example.com/).
+        base_url: URL de base HTTPS (ex. https://example.com/). L'appelant fournit déjà ctx.https_url.
         client: Client httpx optionnel (issu de scan_client()) pour réutilisation.
 
     Returns:
         PathCheckResult: Répertoires exposés et findings.
     """
-    https_base = build_https_url(base_url)
     configs = get_directory_listing_settings()
     max_body = get_directory_listing_max_body()
-    return await run_path_checks(https_base, configs, _is_listing_body, max_body, client=client)
+    return await run_path_checks(base_url, configs, _is_listing_body, max_body, client=client)

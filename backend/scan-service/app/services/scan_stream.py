@@ -10,6 +10,7 @@ from app.models.check_results import CheckResultProtocol
 from app.services.cookies import check_cookies_from_response
 from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
+from app.services.robots_txt import run_robots_txt_checks
 from app.services.security_headers import check_security_headers_from_response
 from app.services.tls import run_tls_checks
 from app.utils.http_fetch import get_with_client, scan_client
@@ -74,7 +75,7 @@ def _build_result_payload(
     Args:
         valid: Posture TLS valide (is_posture_valid).
         url: URL normalisée scannée.
-        results: Dict clé → résultat (tls, headers, cookies, exposed_files, directory_listing).
+        results: Dict clé → résultat (tls, headers, cookies, exposed_files, directory_listing, robots_txt).
 
     Returns:
         dict: Payload sérialisable pour {event: result, data: {...}}.
@@ -123,6 +124,12 @@ _SCAN_STEPS: list[tuple[str, str, str, Callable]] = [
         "Vérification directory listing…",
         "Directory listing vérifié.",
         lambda ctx: run_directory_listing_checks(ctx.https_url, client=ctx.client),
+    ),
+    (
+        "robots_txt",
+        "Vérification robots.txt…",
+        "robots.txt vérifié.",
+        lambda ctx: run_robots_txt_checks(ctx.https_url, client=ctx.client),
     ),
 ]
 

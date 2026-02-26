@@ -120,6 +120,11 @@ directory_listing:
       severity: medium
       message: "Directory listing activé sur /static/ : structure révélée."
 
+# robots.txt (roadmap §3.6) : motifs de routes sensibles à signaler dans Disallow.
+# Par défaut : _DEFAULT_ROBOTS_TXT_PATTERNS dans config_loader. Surcharger ici si besoin.
+robots_txt:
+  patterns: []  # Vide = utiliser les defaults du code
+
 # Timeouts scan (roadmap §2.3) : connexion, lecture, durée max du scan.
 timeouts:
   connection: 3    # secondes pour établir la connexion
