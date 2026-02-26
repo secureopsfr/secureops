@@ -1,61 +1,16 @@
 """Tests du routeur de scan (POST /api/scan, réponse SSE)."""
 
-from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 
-from app.services.directory_listing import DirectoryListingCheckResult
-from app.services.exposed_files import ExposedFilesCheckResult
-from app.services.robots_txt import RobotsTxtCheckResult
-from app.services.tls.checks import TlsCheckResult
-from tests.conftest import parse_sse_events
-
-
-@asynccontextmanager
-async def _fake_scan_client():
-    """Fake scan_client pour tests (évite requêtes réseau)."""
-    yield MagicMock()
+from tests.conftest import parse_sse_events, patch_scan_checks
 
 
 def test_post_scan_accepte_url_valide(client) -> None:
     """POST /api/scan avec URL valide retourne 200 et stream avec result.
 
-    Mock des appels réseau (scan_client, get_with_client, run_tls_checks, run_exposed_files_checks,
-    check_ssrf) pour fiabilité en CI.
+    Mock des appels réseau via patch_scan_checks pour fiabilité en CI.
     """
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.headers = {}
-    mock_response.content = b""
-    tls_result = TlsCheckResult(
-        https_enabled=True,
-        http_redirects_to_https=True,
-        certificate_status="valid",
-        tls_versions_obsolete=(),
-        findings=(),
-    )
-    exposed_result = ExposedFilesCheckResult(exposed=(), findings=(), fetch_ok=True)
-    directory_listing_result = DirectoryListingCheckResult(exposed=(), findings=(), fetch_ok=True)
-    robots_txt_result = RobotsTxtCheckResult(disallow_paths=(), sensitive_routes=(), findings=(), fetch_ok=True)
-
-    with (
-        patch("app.services.scan_stream.check_ssrf", new_callable=AsyncMock),
-        patch("app.services.scan_stream.scan_client", _fake_scan_client),
-        patch("app.services.scan_stream.get_with_client", new_callable=AsyncMock, return_value=mock_response),
-        patch("app.services.scan_stream.run_tls_checks", new_callable=AsyncMock, return_value=tls_result),
-        patch("app.services.scan_stream.run_exposed_files_checks", new_callable=AsyncMock, return_value=exposed_result),
-        patch(
-            "app.services.scan_stream.run_directory_listing_checks",
-            new_callable=AsyncMock,
-            return_value=directory_listing_result,
-        ),
-        patch(
-            "app.services.scan_stream.run_robots_txt_checks",
-            new_callable=AsyncMock,
-            return_value=robots_txt_result,
-        ),
-    ):
+    with patch_scan_checks():
         response = client.post("/api/scan", json={"url": "https://github.com"})
 
     assert response.status_code == 200

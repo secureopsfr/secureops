@@ -75,7 +75,7 @@ def _build_result_payload(
     Args:
         valid: Posture TLS valide (is_posture_valid).
         url: URL normalisée scannée.
-        results: Dict clé → résultat (tls, headers, cookies, exposed_files, directory_listing).
+        results: Dict clé → résultat (tls, headers, cookies, exposed_files, directory_listing, robots_txt).
 
     Returns:
         dict: Payload sérialisable pour {event: result, data: {...}}.

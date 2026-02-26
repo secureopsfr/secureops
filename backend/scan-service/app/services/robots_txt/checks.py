@@ -2,6 +2,10 @@
 
 Lit /robots.txt, extrait les directives Disallow et signale les routes
 potentiellement sensibles (admin, api, backup, etc.).
+
+Ordre des patterns : le premier motif qui matche est utilisé (sous-chaîne insensible casse).
+Placer les motifs plus spécifiques avant les génériques si besoin. Exception codée en dur :
+/api/public/ n'est pas signalé (pattern "api" ignoré si "public" dans le chemin).
 """
 
 from dataclasses import dataclass
@@ -81,6 +85,9 @@ def _extract_disallow_paths(content: str) -> list[str]:
 
 def _path_matches_sensitive(path: str, patterns: tuple[tuple[str, str], ...]) -> SensitiveRoute | None:
     """Vérifie si le chemin correspond à un motif sensible.
+
+    Parcourt les patterns dans l'ordre ; le premier match est retenu. Exception : le pattern
+    "api" est ignoré si le chemin contient "public" (ex. /api/public/ non signalé).
 
     Args:
         path: Chemin extrait (ex. /admin/).

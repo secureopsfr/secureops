@@ -8,7 +8,6 @@ import re
 
 from app.config_loader import get_exposed_files_max_body, get_exposed_files_settings
 from app.services.path_checks import PathCheckResult, run_path_checks
-from app.utils.url_helpers import build_https_url
 
 
 def _content_matches_env(body: bytes, _path: str) -> bool:
@@ -90,13 +89,12 @@ async def run_exposed_files_checks(
     réutilise la connexion TCP (keep-alive).
 
     Args:
-        base_url: URL de base (ex. https://example.com/).
+        base_url: URL de base HTTPS (ex. https://example.com/). L'appelant fournit déjà ctx.https_url.
         client: Client httpx optionnel (issu de scan_client()) pour réutilisation.
 
     Returns:
         PathCheckResult: Chemins exposés et findings.
     """
-    https_base = build_https_url(base_url)
     configs = get_exposed_files_settings()
     max_body = get_exposed_files_max_body()
-    return await run_path_checks(https_base, configs, _body_checker, max_body, client=client)
+    return await run_path_checks(base_url, configs, _body_checker, max_body, client=client)

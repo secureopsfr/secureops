@@ -121,70 +121,9 @@ directory_listing:
       message: "Directory listing activé sur /static/ : structure révélée."
 
 # robots.txt (roadmap §3.6) : motifs de routes sensibles à signaler dans Disallow.
+# Par défaut : _DEFAULT_ROBOTS_TXT_PATTERNS dans config_loader. Surcharger ici si besoin.
 robots_txt:
-  patterns:
-    - pattern: admin
-      severity: high
-    - pattern: administrator
-      severity: high
-    - pattern: backend
-      severity: high
-    - pattern: manage
-      severity: high
-    - pattern: api
-      severity: medium
-    - pattern: config
-      severity: high
-    - pattern: configs
-      severity: high
-    - pattern: configuration
-      severity: high
-    - pattern: backup
-      severity: high
-    - pattern: backups
-      severity: high
-    - pattern: dump
-      severity: high
-    - pattern: private
-      severity: high
-    - pattern: internal
-      severity: high
-    - pattern: secret
-      severity: high
-    - pattern: cgi-bin
-      severity: medium
-    - pattern: /bin/
-      severity: medium
-    - pattern: upload
-      severity: medium
-    - pattern: uploads
-      severity: medium
-    - pattern: media
-      severity: medium
-    - pattern: files
-      severity: medium
-    - pattern: tmp
-      severity: medium
-    - pattern: temp
-      severity: medium
-    - pattern: cache
-      severity: medium
-    - pattern: /db/
-      severity: high
-    - pattern: database
-      severity: high
-    - pattern: sql
-      severity: high
-    - pattern: .git
-      severity: critical
-    - pattern: .env
-      severity: critical
-    - pattern: login
-      severity: medium
-    - pattern: auth
-      severity: medium
-    - pattern: signin
-      severity: medium
+  patterns: []  # Vide = utiliser les defaults du code
 
 # Timeouts scan (roadmap §2.3) : connexion, lecture, durée max du scan.
 timeouts:
