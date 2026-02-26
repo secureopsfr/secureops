@@ -14,7 +14,7 @@ async def test_run_exposed_files_checks_aucune_exposition() -> None:
     mock_resp.status_code = 404
     mock_resp.content = b""
 
-    with patch("app.services.exposed_files.checks.fetch_url", new_callable=AsyncMock) as mock_fetch:
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.return_value = mock_resp
 
         result = await run_exposed_files_checks("https://example.com")
@@ -40,7 +40,7 @@ async def test_run_exposed_files_checks_env_expose() -> None:
         resp_404.content = b""
         return resp_404
 
-    with patch("app.services.exposed_files.checks.fetch_url", new_callable=AsyncMock) as mock_fetch:
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.side_effect = _fetch_side_effect
 
         result = await run_exposed_files_checks("https://example.com")
@@ -68,7 +68,7 @@ async def test_run_exposed_files_checks_git_config_expose() -> None:
         resp_404.content = b""
         return resp_404
 
-    with patch("app.services.exposed_files.checks.fetch_url", new_callable=AsyncMock) as mock_fetch:
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.side_effect = _fetch_side_effect
 
         result = await run_exposed_files_checks("https://example.com")
@@ -93,7 +93,7 @@ async def test_run_exposed_files_checks_zip_expose() -> None:
         resp_404.content = b""
         return resp_404
 
-    with patch("app.services.exposed_files.checks.fetch_url", new_callable=AsyncMock) as mock_fetch:
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.side_effect = _fetch_side_effect
 
         result = await run_exposed_files_checks("https://example.com")
@@ -110,7 +110,7 @@ async def test_run_exposed_files_checks_200_corps_vide_non_expose() -> None:
     mock_resp.status_code = 200
     mock_resp.content = b""
 
-    with patch("app.services.exposed_files.checks.fetch_url", new_callable=AsyncMock) as mock_fetch:
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.return_value = mock_resp
 
         result = await run_exposed_files_checks("https://example.com")
@@ -122,7 +122,7 @@ async def test_run_exposed_files_checks_200_corps_vide_non_expose() -> None:
 @pytest.mark.asyncio()
 async def test_run_exposed_files_checks_fetch_ok_false_si_toutes_echouent() -> None:
     """Si toutes les requêtes échouent (None), fetch_ok doit être False."""
-    with patch("app.services.exposed_files.checks.fetch_url", new_callable=AsyncMock) as mock_fetch:
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.return_value = None
 
         result = await run_exposed_files_checks("https://example.com")

@@ -3,10 +3,12 @@
 import asyncio
 import time
 from collections.abc import AsyncGenerator, Callable
+from dataclasses import dataclass, field
 
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
 from app.models.check_results import CheckResultProtocol
 from app.services.cookies import check_cookies_from_response
+from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
 from app.services.security_headers import check_security_headers_from_response
 from app.services.tls import run_tls_checks
@@ -17,24 +19,42 @@ from app.utils.url_helpers import build_https_url
 from app.utils.url_validator import URLValidationError, validate_and_normalize_url
 
 
-async def _emit_step_and_run(step_name: str, msg_check: str, msg_done: str, check_fn, *args, **kwargs) -> tuple[list[str], object]:
+@dataclass
+class ScanContext:
+    """Contexte partagé entre les étapes de la pipeline.
+
+    Attributes:
+        normalized_url: URL normalisée scannée.
+        https_url: URL HTTPS de base (pour path checks).
+        client: Client httpx partagé.
+        https_response: Réponse de la requête HTTPS initiale.
+        results: Résultats des étapes (rempli au fur et à mesure).
+    """
+
+    normalized_url: str
+    https_url: str
+    client: object
+    https_response: object
+    results: dict[str, object] = field(default_factory=dict)
+
+
+async def _emit_step_and_run(step_name: str, msg_check: str, msg_done: str, step_fn: Callable, ctx: ScanContext) -> tuple[list[str], object]:
     """Émet step_check, exécute la vérification, émet step_done. Retourne (chunks, result).
 
     Args:
         step_name: Nom de l'étape (ex. "tls", "headers").
         msg_check: Message pour l'événement step_check.
         msg_done: Message pour l'événement step_done.
-        check_fn: Fonction sync ou async à appeler.
-        *args, **kwargs: Arguments passés à check_fn.
+        step_fn: Fonction sync ou async à appeler avec ctx.
+        ctx: Contexte de scan.
 
     Returns:
-        tuple[list[str], object]: (messages SSE à yield, résultat de check_fn).
+        tuple[list[str], object]: (messages SSE à yield, résultat de step_fn).
     """
     chunks = [sse_message("step", {"step": f"{step_name}_check", "message": msg_check})]
-    if asyncio.iscoroutinefunction(check_fn):
-        result = await check_fn(*args, **kwargs)
-    else:
-        result = check_fn(*args, **kwargs)
+    result = step_fn(ctx)
+    if asyncio.iscoroutine(result):
+        result = await result
     chunks.append(sse_message("step", {"step": f"{step_name}_done", "message": msg_done}))
     return chunks, result
 
@@ -54,7 +74,7 @@ def _build_result_payload(
     Args:
         valid: Posture TLS valide (is_posture_valid).
         url: URL normalisée scannée.
-        results: Dict clé → résultat (tls, headers, cookies, exposed_files).
+        results: Dict clé → résultat (tls, headers, cookies, exposed_files, directory_listing).
 
     Returns:
         dict: Payload sérialisable pour {event: result, data: {...}}.
@@ -65,76 +85,74 @@ def _build_result_payload(
     return payload
 
 
-async def _run_checks_with_client(
-    normalized_url: str,
-    client,
-    over_global: Callable[[], bool],
-) -> AsyncGenerator[str, None]:
-    """Exécute TLS, headers, cookies, exposed_files avec le client partagé."""
-    https_url = build_https_url(normalized_url)
-    https_response = await get_with_client(client, https_url, follow_redirects=True)
-
-    chunks, tls_result = await _emit_step_and_run(
+# Étapes de la pipeline : (step_name, msg_check, msg_done, step_fn)
+_SCAN_STEPS: list[tuple[str, str, str, Callable]] = [
+    (
         "tls",
         "Vérification TLS/HTTPS…",
         "TLS/HTTPS vérifié.",
-        run_tls_checks,
-        normalized_url,
-        https_response=https_response,
-        client=client,
-    )
-    for c in chunks:
-        yield c
-    if over_global():
-        yield _timeout_error_message()
-        return
-
-    chunks, headers_result = await _emit_step_and_run(
+        lambda ctx: run_tls_checks(
+            ctx.normalized_url,
+            https_response=ctx.https_response,
+            client=ctx.client,
+        ),
+    ),
+    (
         "headers",
         "Vérification Security Headers…",
         "Security Headers vérifiés.",
-        check_security_headers_from_response,
-        https_response,
-    )
-    for c in chunks:
-        yield c
-    if over_global():
-        yield _timeout_error_message()
-        return
-
-    chunks, cookies_result = await _emit_step_and_run(
+        lambda ctx: check_security_headers_from_response(ctx.https_response),
+    ),
+    (
         "cookies",
         "Vérification Cookies…",
         "Cookies vérifiés.",
-        check_cookies_from_response,
-        https_response,
-        is_https=tls_result.https_enabled,
-    )
-    for c in chunks:
-        yield c
-    if over_global():
-        yield _timeout_error_message()
-        return
-
-    base_https = build_https_url(normalized_url)
-    chunks, exposed_files_result = await _emit_step_and_run(
+        lambda ctx: check_cookies_from_response(
+            ctx.https_response,
+            is_https=ctx.results["tls"].https_enabled,
+        ),
+    ),
+    (
         "exposed_files",
         "Vérification fichiers sensibles exposés…",
         "Fichiers sensibles vérifiés.",
-        run_exposed_files_checks,
-        base_https,
-        client=client,
-    )
-    for c in chunks:
-        yield c
+        lambda ctx: run_exposed_files_checks(ctx.https_url, client=ctx.client),
+    ),
+    (
+        "directory_listing",
+        "Vérification directory listing…",
+        "Directory listing vérifié.",
+        lambda ctx: run_directory_listing_checks(ctx.https_url, client=ctx.client),
+    ),
+]
 
-    results: dict[str, CheckResultProtocol] = {
-        "tls": tls_result,
-        "headers": headers_result,
-        "cookies": cookies_result,
-        "exposed_files": exposed_files_result,
-    }
-    payload = _build_result_payload(tls_result.is_posture_valid(), normalized_url, results)
+
+async def _run_checks_with_client(
+    normalized_url: str,
+    client: object,
+    over_global: Callable[[], bool],
+) -> AsyncGenerator[str, None]:
+    """Exécute les étapes de vérification avec le client partagé."""
+    https_url = build_https_url(normalized_url)
+    https_response = await get_with_client(client, https_url, follow_redirects=True)
+    ctx = ScanContext(
+        normalized_url=normalized_url,
+        https_url=https_url,
+        client=client,
+        https_response=https_response,
+    )
+
+    for step_name, msg_check, msg_done, step_fn in _SCAN_STEPS:
+        chunks, result = await _emit_step_and_run(step_name, msg_check, msg_done, step_fn, ctx)
+        ctx.results[step_name] = result
+        for c in chunks:
+            yield c
+        if over_global():
+            yield _timeout_error_message()
+            return
+
+    tls_result = ctx.results["tls"]
+    payload = _build_result_payload(tls_result.is_posture_valid(), normalized_url, ctx.results)
     yield sse_message("result", payload)
 
 

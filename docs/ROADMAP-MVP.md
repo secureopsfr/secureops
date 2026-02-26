@@ -118,12 +118,14 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 
 > **Fait :** Module `app/services/exposed_files/` (checks.py). Requêtes GET en parallèle via `fetch_url`, signatures par chemin (KEY=value pour .env, [core] pour .git/config, PK pour ZIP, etc.). Intégré dans le flux SSE après cookies (`exposed_files_check` → `exposed_files_done`). Résultat dans `result.exposed_files`. Config `exposed_files` dans settings.yml. Tests dans `tests/test_exposed_files_checks.py`.
 
-### 3.5 Directory listing
-- [ ] Tester quelques répertoires usuels :
+### 3.5 Directory listing ✅
+- [x] Tester quelques répertoires usuels :
   - `/uploads/`
   - `/assets/`
   - `/static/`
-- [ ] Détecter signatures d’index Apache/Nginx (listing)
+- [x] Détecter signatures d'index Apache/Nginx (listing)
+
+> **Fait :** Module `app/services/directory_listing/` (checks.py). Requêtes GET en parallèle via `run_path_checks`, signatures Apache/Nginx (Index of, Parent Directory, [DIR], mod_autoindex, nginx, `<a href=`). Intégré dans le flux SSE après exposed_files (`directory_listing_check` → `directory_listing_done`). Résultat dans `result.directory_listing`. Config `directory_listing` dans settings.yml. Tests dans `tests/test_directory_listing_checks.py`.
 
 ### 3.6 robots.txt
 - [ ] Lire `/robots.txt`
