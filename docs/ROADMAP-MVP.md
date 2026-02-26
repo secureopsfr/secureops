@@ -190,21 +190,23 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 ## 7) Frontend MVP (simple et pro)
 
 ### 7.1 Landing
-- [ ] Hero + promesse claire
-- [ ] Champ URL + CTA “Scan”
-- [ ] Disclaimer usage autorisé
+- [x] Hero + promesse claire
+- [x] Champ URL + CTA “Scan”
+- [x] Disclaimer usage autorisé
 
 ### 7.2 Page résultats
-- [ ] Score global + badge (🟢/🟡/🔴)
-- [ ] Résumé par catégorie
-- [ ] Liste des findings (triés par sévérité)
-- [ ] Bloc “How to fix” (recommandations pédagogiques)
-- [ ] Erreurs affichées proprement
+- [x] Score global + badge (🟢/🟡/🔴)
+- [x] Résumé par catégorie
+- [x] Liste des findings (triés par sévérité)
+- [x] Bloc “How to fix” (recommandations pédagogiques)
+- [x] Erreurs affichées proprement
 
 ### 7.3 UX
-- [ ] Loader pendant scan
-- [ ] États : idle / loading / success / error
-- [ ] Responsive mobile
+- [x] Loader pendant scan
+- [x] États : idle / loading / success / error
+- [x] Responsive mobile
+
+> **Fait :** Page `/scanner` (fr/en), service SSE `scanService.ts`, composants ScanLoader/ScanResults/ScannerContent. Gateway : `POST /scan/api/scan` rendu public. Lien "Scanner" dans le Header.
 
 ---
 
