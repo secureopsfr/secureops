@@ -69,10 +69,9 @@ def check_security_headers_from_response(response: httpx.Response | None) -> Sec
         msg_absent = cfg.message_absent
         expected_value = cfg.expected_value
         actual_value = get_header_insensitive(response, header_name)
+        if actual_value is not None and expected_value and actual_value.strip().lower() != expected_value.lower():
+            findings.append(f"{header_name} présent mais valeur incorrecte (attendu : {expected_value}).")
         if actual_value is not None:
-            if expected_value:
-                if actual_value.strip().lower() != expected_value.lower():
-                    findings.append(f"{header_name} présent mais valeur incorrecte (attendu : {expected_value}).")
             present.append(header_name)
         else:
             missing.append(header_name)
