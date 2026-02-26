@@ -221,7 +221,7 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
               <span className="text-2xl font-bold text-[var(--text)] sm:text-3xl">
                 {sortedFindings.length}
               </span>
-              <p className="text-base font-medium text-[var(--muted)]">
+              <p className="text-center text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
                 {t("scanner.findings")}
               </p>
             </div>
@@ -243,7 +243,7 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
         as="div"
       >
         <Card disableHover className="scanner-block p-4">
-          <h3 className="section-title !text-left mb-3">
+          <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wider text-[var(--text)]">
             {t("scanner.findings")}
           </h3>
           {sortedFindings.length === 0 ? (

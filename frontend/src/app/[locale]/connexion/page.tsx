@@ -28,6 +28,12 @@ export default function LoginPage() {
   const { t, lp, setLanguage } = useLanguage();
   const returnTo = searchParams.get("returnTo");
   const redirectAfterLogin = isSafeReturnTo(returnTo) ? returnTo! : lp("/");
+
+  useEffect(() => {
+    if (returnTo && isSafeReturnTo(returnTo)) {
+      sessionStorage.setItem("auth:returnTo", returnTo);
+    }
+  }, [returnTo]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -45,7 +51,7 @@ export default function LoginPage() {
       try {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
-        router.push(redirectAfterLogin);
+        window.location.href = redirectAfterLogin;
       } catch (err: unknown) {
         const errMsg = err instanceof Error ? err.message : String(err || "");
         debug("No user signed in:", errMsg);
@@ -177,7 +183,7 @@ export default function LoginPage() {
         }, 100);
 
         showSuccessToast(t("auth.login.successToast"));
-        router.push(redirectAfterLogin);
+        window.location.href = redirectAfterLogin;
       } else {
         showErrorToast(t("auth.login.errorToast"));
       }
@@ -244,7 +250,7 @@ export default function LoginPage() {
       localStorage.setItem("auth:signIn", Date.now().toString());
       localStorage.removeItem("auth:signIn");
       showSuccessToast(t("auth.login.passwordChangedSuccess"));
-      router.push(redirectAfterLogin);
+      window.location.href = redirectAfterLogin;
     } catch (err: unknown) {
       showErrorToast(
         translateAuthError(err, t) || t("auth.login.passwordChangeError"),

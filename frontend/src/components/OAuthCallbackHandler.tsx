@@ -51,6 +51,16 @@ export default function OAuthCallbackHandler() {
         localStorage.setItem("auth:signIn", Date.now().toString());
         localStorage.removeItem("auth:signIn");
         logger.debug("[OAuth] SUCCESS - auth:signIn dispatched");
+
+        const returnTo = sessionStorage.getItem("auth:returnTo");
+        if (
+          returnTo &&
+          returnTo.startsWith("/") &&
+          !returnTo.startsWith("//")
+        ) {
+          sessionStorage.removeItem("auth:returnTo");
+          window.location.href = returnTo;
+        }
       }
 
       if (payload.event === "signInWithRedirect_failure") {
