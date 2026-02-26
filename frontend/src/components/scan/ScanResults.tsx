@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Download, FileSpreadsheet, FileJson, FileText } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
@@ -41,10 +41,47 @@ const EXPORT_FORMATS: {
   },
 ];
 
+const EXPORT_BUTTON_BOTTOM_DEFAULT = 24;
+/** Hauteur fixe au-dessus du footer quand il est visible (footer ~200px + marge). */
+const EXPORT_BUTTON_BOTTOM_ABOVE_FOOTER = 240;
+
 export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
   const { t } = useLanguage();
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportButtonBottom, setExportButtonBottom] = useState(
+    EXPORT_BUTTON_BOTTOM_DEFAULT,
+  );
   const badge = getScoreBadge(result.score);
+
+  useEffect(() => {
+    const footer = document.getElementById("site-footer");
+    if (!footer) return;
+    const updateBottom = (): void => {
+      const rect = footer.getBoundingClientRect();
+      const footerVisible = rect.top < window.innerHeight;
+      setExportButtonBottom(
+        footerVisible
+          ? EXPORT_BUTTON_BOTTOM_ABOVE_FOOTER
+          : EXPORT_BUTTON_BOTTOM_DEFAULT,
+      );
+    };
+    const observer = new IntersectionObserver(updateBottom, {
+      threshold: 0,
+      rootMargin: "0px",
+    });
+    observer.observe(footer);
+    const throttledUpdate = (): void => {
+      requestAnimationFrame(updateBottom);
+    };
+    window.addEventListener("scroll", throttledUpdate, { passive: true });
+    window.addEventListener("resize", throttledUpdate);
+    updateBottom();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", throttledUpdate);
+      window.removeEventListener("resize", throttledUpdate);
+    };
+  }, []);
   const sortedFindings = [...result.findings].sort(severitySort);
 
   const handleExport = useCallback(
@@ -146,8 +183,8 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
       {typeof document !== "undefined" &&
         createPortal(
           <div
-            className="fixed bottom-6 right-6 z-[9998] shadow-lg"
-            style={{ position: "fixed" }}
+            className="fixed right-6 z-[9998] shadow-lg transition-all duration-200"
+            style={{ position: "fixed", bottom: exportButtonBottom }}
             aria-label={t("scanner.export")}
           >
             <GenericButton
