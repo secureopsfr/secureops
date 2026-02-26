@@ -106,15 +106,17 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 
 > **Fait :** Module `app/services/cookies/` (checks.py). Parse les en-têtes Set-Cookie, vérifie Secure/HttpOnly/SameSite. Détecte cookies sans Secure sur site HTTPS. Intégré dans le flux SSE après headers (`cookies_check` → `cookies_done`). Réutilise la réponse HTTPS (pas de requête supplémentaire). Tests dans `tests/test_cookies_checks.py`.
 
-### 3.4 Exposition fichiers / endpoints sensibles (liste fixe MVP)
-- [ ] Tester GET sur une petite liste :
+### 3.4 Exposition fichiers / endpoints sensibles (liste fixe MVP) ✅
+- [x] Tester GET sur une petite liste :
   - `/.env`
   - `/.git/config`
   - `/backup.zip`
   - `/phpinfo.php`
   - `/admin/`
   - `/.DS_Store`
-- [ ] Si status 200 + contenu suspect → finding
+- [x] Si status 200 + contenu suspect → finding
+
+> **Fait :** Module `app/services/exposed_files/` (checks.py). Requêtes GET en parallèle via `fetch_url`, signatures par chemin (KEY=value pour .env, [core] pour .git/config, PK pour ZIP, etc.). Intégré dans le flux SSE après cookies (`exposed_files_check` → `exposed_files_done`). Résultat dans `result.exposed_files`. Config `exposed_files` dans settings.yml. Tests dans `tests/test_exposed_files_checks.py`.
 
 ### 3.5 Directory listing
 - [ ] Tester quelques répertoires usuels :
