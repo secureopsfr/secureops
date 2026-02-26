@@ -175,8 +175,12 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 - [x] `POST /scan` : lance scan et retourne résultat ✅ (étape actuelle : validation URL uniquement, pas encore le scan métier)
 - [x] Validation entrée ✅ (dans scan-service ; SSRF + timeouts à faire en §2.2 et §2.3)
 - [x] Gestion erreurs : URL invalide ✅ (400 + message détaillé via common error_handlers)
-- [ ] Gestion erreurs : site inaccessible, timeout, TLS error
-- [ ] Logging structuré : request_id, durée, nb findings, status
+- [x] Gestion erreurs : site inaccessible, timeout, TLS error ✅
+- [x] Logging structuré : request_id, durée, nb findings, status ✅
+
+> **Fait (logging) :** À la fin de chaque scan (succès ou erreur), log structuré via `logger.info("Scan terminé", extra={...})` avec request_id (correlation_id), duration_seconds, nb_findings, status (success, error_400, error_408, error_503, etc.). Utilise `correlation_id_ctx` du common.
+
+> **Fait (gestion erreurs) :** Module `app/errors/fetch_errors.py` : classification des exceptions (connection_failed, timeout, tls_error). `get_with_client_or_error` dans http_fetch retourne `FetchResult`. Détection précoce dans scan_stream : si fetch HTTPS échoue → événement `error` avec message, status_code (503/504/502), error_type. Pas de result partiel. Tests dans `tests/test_fetch_errors.py` et `tests/test_scan_router.py`.
 
 > MVP : synchrone possible (scan rapide).
 > Si scan long → passer asynchrone en V2.
