@@ -172,13 +172,38 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
               {t("scanner.duration")} {result.duration.toFixed(1)}
               {t("scanner.seconds")}
             </p>
-            <div className="mt-6 flex flex-col items-center gap-1">
-              <span className="text-4xl" aria-hidden>
-                {badge.emoji}
-              </span>
-              <p className="text-3xl sm:text-4xl font-bold text-[var(--text)]">
-                {result.score}/100
-              </p>
+            <div className="mt-6 flex flex-col items-center gap-2">
+              <div
+                className="relative flex h-20 w-20 flex-shrink-0 sm:h-24 sm:w-24"
+                aria-hidden
+              >
+                <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    fill="none"
+                    stroke="var(--color-surface-hover)"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    fill="none"
+                    stroke={badge.ringColor}
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 42}
+                    strokeDashoffset={
+                      2 * Math.PI * 42 * (1 - result.score / 100)
+                    }
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-[var(--text)] sm:text-3xl">
+                  {result.score}
+                </span>
+              </div>
               <p className="text-base font-medium text-[var(--muted)]">
                 {t(badge.labelKey)}
               </p>

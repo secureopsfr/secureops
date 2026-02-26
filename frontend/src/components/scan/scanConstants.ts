@@ -39,12 +39,17 @@ export function getSeverityKey(severity: string): string {
 }
 
 export function getScoreBadge(score: number): {
-  emoji: string;
   labelKey: string;
+  ringColor: string;
 } {
-  if (score >= 80) return { emoji: "🟢", labelKey: "scanner.scoreGood" };
-  if (score >= 50) return { emoji: "🟡", labelKey: "scanner.scoreMedium" };
-  return { emoji: "🔴", labelKey: "scanner.scoreLow" };
+  if (score >= 80)
+    return { labelKey: "scanner.scoreGood", ringColor: "rgb(var(--success))" };
+  if (score >= 50)
+    return {
+      labelKey: "scanner.scoreMedium",
+      ringColor: "rgb(var(--warning))",
+    };
+  return { labelKey: "scanner.scoreLow", ringColor: "rgb(var(--danger))" };
 }
 
 export function severitySort(a: ScanFinding, b: ScanFinding): number {
