@@ -41,6 +41,25 @@ const EXPORT_FORMATS: {
   },
 ];
 
+/** Icône globe SVG vectorielle pour fallback favicon (évite la pixellisation). */
+const DefaultFavicon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-8 w-8 text-[var(--muted)]"
+    aria-hidden
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    <path d="M2 12h20" />
+  </svg>
+);
+
 const EXPORT_BUTTON_BOTTOM_DEFAULT = 20;
 /** Hauteur fixe au-dessus du footer quand il est visible (footer ~200px + marge). */
 const EXPORT_BUTTON_BOTTOM_ABOVE_FOOTER = 220;
@@ -48,6 +67,11 @@ const EXPORT_BUTTON_BOTTOM_ABOVE_FOOTER = 220;
 export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
   const { t } = useLanguage();
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [faviconError, setFaviconError] = useState(false);
+
+  useEffect(() => {
+    setFaviconError(false);
+  }, [result.url]);
   const [exportButtonBottom, setExportButtonBottom] = useState(
     EXPORT_BUTTON_BOTTOM_DEFAULT,
   );
@@ -100,6 +124,16 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
   const displayUrl =
     result.url.replace(/^https?:\/\//, "").replace(/\/$/, "") || result.url;
 
+  const domain = (() => {
+    try {
+      return new URL(result.url).hostname;
+    } catch {
+      return displayUrl.split("/")[0] || displayUrl;
+    }
+  })();
+
+  const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+
   return (
     <div className="space-y-6">
       <AnimateInView
@@ -110,7 +144,24 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
           disableHover
           className="scanner-block overflow-hidden border-2 border-[var(--color-border)]"
         >
-          <div className="bg-gradient-to-br from-[var(--color-surface-hover)]/50 to-transparent p-6 sm:p-8 text-center">
+          <div className="p-6 sm:p-8 text-center">
+            <div className="mb-4 flex justify-center">
+              {faviconError ? (
+                <div
+                  className="flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--color-surface-hover)]"
+                  aria-hidden
+                >
+                  <DefaultFavicon />
+                </div>
+              ) : (
+                <img
+                  src={faviconUrl}
+                  alt=""
+                  className="h-14 w-14 rounded-xl object-cover"
+                  onError={() => setFaviconError(true)}
+                />
+              )}
+            </div>
             <h2
               className="text-xl sm:text-2xl lg:text-3xl font-bold text-[var(--text)] break-all"
               title={result.url}
