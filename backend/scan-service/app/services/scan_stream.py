@@ -60,7 +60,7 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
         tls_result = await run_tls_checks(normalized_url)
         yield _sse_message("step", {"step": "tls_done", "message": "TLS/HTTPS vérifié."})
 
-        valid = tls_result.https_enabled
+        valid = tls_result.https_enabled and (tls_result.http_redirects_to_https is None or tls_result.http_redirects_to_https)
         yield _sse_message(
             "result",
             {
@@ -68,6 +68,7 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
                 "url": normalized_url,
                 "tls": {
                     "https_enabled": tls_result.https_enabled,
+                    "http_redirects_to_https": tls_result.http_redirects_to_https,
                     "findings": list(tls_result.findings),
                 },
             },

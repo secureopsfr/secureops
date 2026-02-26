@@ -27,16 +27,18 @@ def _parse_sse_events(response) -> list[tuple[str, dict]]:
 
 def test_post_scan_accepte_url_valide() -> None:
     """POST /api/scan avec URL valide retourne 200 et stream avec result."""
-    response = client.post("/api/scan", json={"url": "https://example.com"})
+    # github.com redirige HTTP→HTTPS et répond en HTTPS
+    response = client.post("/api/scan", json={"url": "https://github.com"})
     assert response.status_code == 200
     assert "text/event-stream" in response.headers.get("content-type", "")
     events = _parse_sse_events(response)
     result_events = [e for e in events if e[0] == "result"]
     assert len(result_events) == 1
     assert result_events[0][1]["valid"] is True
-    assert result_events[0][1]["url"] == "https://example.com/"
+    assert "github.com" in result_events[0][1]["url"]
     assert "tls" in result_events[0][1]
     assert result_events[0][1]["tls"]["https_enabled"] is True
+    assert result_events[0][1]["tls"]["http_redirects_to_https"] is True
     assert result_events[0][1]["tls"]["findings"] == []
 
 
