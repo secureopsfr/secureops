@@ -4,6 +4,7 @@ import time
 from collections.abc import AsyncGenerator
 
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
+from app.services.cookies import check_cookies_from_response
 from app.services.security_headers import check_security_headers_from_response
 from app.services.tls import run_tls_checks
 from app.utils.http_fetch import fetch_https
@@ -58,7 +59,15 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
         headers_result = check_security_headers_from_response(https_response)
         yield sse_message("step", {"step": "headers_done", "message": "Security Headers vérifiés."})
 
+        if _over_global():
+            yield sse_message("error", {"message": "Délai global du scan dépassé.", "status_code": 408})
+            return
+        yield sse_message("step", {"step": "cookies_check", "message": "Vérification Cookies…"})
+        cookies_result = check_cookies_from_response(https_response, is_https=tls_result.https_enabled)
+        yield sse_message("step", {"step": "cookies_done", "message": "Cookies vérifiés."})
+
         valid = tls_result.is_posture_valid()
+        cookies_serialized = [{"name": c.name, "secure": c.secure, "httponly": c.httponly, "samesite": c.samesite} for c in cookies_result.cookies]
         yield sse_message(
             "result",
             {
@@ -76,6 +85,11 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
                     "headers_missing": list(headers_result.headers_missing),
                     "findings": list(headers_result.findings),
                     "fetch_ok": headers_result.fetch_ok,
+                },
+                "cookies": {
+                    "cookies": cookies_serialized,
+                    "findings": list(cookies_result.findings),
+                    "fetch_ok": cookies_result.fetch_ok,
                 },
             },
         )
