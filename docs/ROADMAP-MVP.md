@@ -142,27 +142,31 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 
 ---
 
-## 4) Normalisation des résultats (format interne)
+## 4) Normalisation des résultats (format interne) ✅
 
-- [ ] Définir un schéma `Finding` :
+- [x] Définir un schéma `Finding` :
   - `id`, `category`, `title`, `severity`, `evidence`, `recommendation`, `references`
-- [ ] Définir `ScanResult` :
+- [x] Définir `ScanResult` :
   - `url`, `timestamp`, `duration`, `score`, `findings[]`
+
+> **Fait :** Modèles `app/models/finding.py` et `app/models/scan_result.py`. Catalogue `app/catalogue/recommendations.py`. Normaliseurs `app/services/normalization/`. Payload SSE remplacé par format normalisé (url, timestamp, duration, score, findings).
 
 ---
 
-## 5) Système de scoring (simple mais cohérent)
+## 5) Système de scoring (simple mais cohérent) ✅
 
-- [ ] Score /100
-- [ ] Pondération par catégories (exemple) :
+- [x] Score /100
+- [x] Pondération par catégories (exemple) :
   - TLS/HTTPS : 25
   - Headers : 25
   - Cookies : 20
   - Exposure : 20
   - Fingerprinting/robots : 10
-- [ ] Mapping sévérité :
-  - `Critical`, `High`, `Medium`, `Low`, `Info`
-- [ ] Ajouter règles de downgrade/upgrade (ex : `.git/config` exposé = Critical)
+- [x] Mapping sévérité :
+  - `critical`, `high`, `medium`, `low`, `info` (minuscules)
+- [x] Ajouter règles de downgrade/upgrade (ex : `.git/config` exposé = Critical)
+
+> **Fait :** Module `app/services/scoring.py`. Pénalités par sévérité. Upgrade .git/config et .env → critical.
 
 ---
 
