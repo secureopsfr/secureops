@@ -8,6 +8,7 @@ indicative sans sur-promettre.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from app.constants import MSG_HEADERS_ANALYSIS_UNAVAILABLE
 from app.utils.headers import get_header_insensitive
 
 if TYPE_CHECKING:
@@ -84,7 +85,7 @@ def check_tech_fingerprinting_from_response(response: "httpx.Response | None") -
             server=None,
             runtime=None,
             framework_cms=None,
-            findings=("Impossible d'analyser les en-têtes (connexion refusée ou timeout).",),
+            findings=(MSG_HEADERS_ANALYSIS_UNAVAILABLE,),
             fetch_ok=False,
         )
 

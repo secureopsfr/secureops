@@ -8,6 +8,8 @@ from dataclasses import dataclass
 
 import httpx
 
+from app.constants import MSG_COOKIES_UNAVAILABLE
+
 
 @dataclass
 class CookieInfo:
@@ -117,7 +119,7 @@ def check_cookies_from_response(response: httpx.Response | None, *, is_https: bo
     cookies: list[CookieInfo] = []
 
     if response is None:
-        findings.append("Impossible d'analyser les cookies (connexion refusée ou timeout).")
+        findings.append(MSG_COOKIES_UNAVAILABLE)
         return CookieCheckResult(cookies=(), findings=tuple(findings), fetch_ok=False)
 
     set_cookie_values: list[str] = []

@@ -86,6 +86,9 @@ security_headers:
 # Exposed files / sensitive endpoints (roadmap §3.4) : chemins à tester.
 exposed_files:
   max_body_bytes: 8192  # Limite de lecture pour détection (éviter gros fichiers)
+  severity_upgrade:  # Chemins forcés en critical (ignorer severity du path)
+    - /.git/config
+    - /.env
   paths:
     - path: /.env
       severity: critical
@@ -130,3 +133,20 @@ timeouts:
   connection: 3    # secondes pour établir la connexion
   read: 10         # secondes pour lire la réponse
   scan_global: 60  # secondes max pour l'ensemble du scan (ex: 60–120)
+
+# Scoring (roadmap §5) : pondération par catégorie et pénalités par sévérité.
+scoring:
+  category_weights:
+    tls: 25
+    headers: 25
+    cookies: 20
+    exposed_files: 10
+    directory_listing: 10
+    robots_txt: 5
+    tech_fingerprinting: 5
+  severity_penalties:
+    critical: 100
+    high: 50
+    medium: 25
+    low: 10
+    info: 0

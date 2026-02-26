@@ -4,7 +4,17 @@ Chaque fonction prend un résultat brut et retourne une liste de Finding normali
 Sévérité en minuscules. Règles d'upgrade : .git/config, .env exposés = critical.
 """
 
+from typing import Callable, TypedDict
+
 from app.catalogue.recommendations import get_recommendation, get_references
+from app.config_loader import get_exposed_files_severity_upgrade, get_security_headers_settings
+from app.constants import (
+    MSG_COOKIES_UNAVAILABLE,
+    MSG_HEADERS_ANALYSIS_UNAVAILABLE,
+    MSG_HEADERS_UNAVAILABLE,
+    MSG_HTTPS_UNAVAILABLE,
+    MSG_ROBOTS_TXT_UNAVAILABLE,
+)
 from app.models.finding import Finding
 from app.services.cookies.checks import CookieCheckResult
 from app.services.path_checks.core import PathCheckResult
@@ -38,12 +48,12 @@ def _normalize_tls(result: TlsCheckResult) -> list[Finding]:
                 "tls",
                 "Connexion HTTPS impossible",
                 "high",
-                "HTTPS non activé (connexion refusée ou timeout).",
+                MSG_HTTPS_UNAVAILABLE,
             )
         )
         return findings
     if not result.https_enabled:
-        findings.append(_finding("tls-https-disabled", "tls", "HTTPS non activé", "critical", "Connexion refusée ou timeout."))
+        findings.append(_finding("tls-https-disabled", "tls", "HTTPS non activé", "critical", MSG_HTTPS_UNAVAILABLE))
         return findings
     for msg in result.findings:
         if "redirection" in msg.lower() or "redirect" in msg.lower():
@@ -73,18 +83,11 @@ def _normalize_headers(result: SecurityHeadersCheckResult) -> list[Finding]:
                 "headers",
                 "En-têtes inaccessibles",
                 "high",
-                "Impossible de récupérer les en-têtes (connexion refusée ou timeout).",
+                MSG_HEADERS_UNAVAILABLE,
             )
         )
         return findings
-    header_to_slug: dict[str, str] = {
-        "Content-Security-Policy": "headers-csp-absent",
-        "Strict-Transport-Security": "headers-hsts-absent",
-        "X-Frame-Options": "headers-xfo-absent",
-        "X-Content-Type-Options": "headers-xcto-absent",
-        "Referrer-Policy": "headers-referrer-absent",
-        "Permissions-Policy": "headers-permissions-absent",
-    }
+    header_to_slug = {cfg.name: cfg.slug for cfg in get_security_headers_settings()}
     for msg in result.findings:
         if "valeur incorrecte" in msg.lower() or "incorrecte" in msg.lower():
             findings.append(
@@ -117,7 +120,7 @@ def _normalize_cookies(result: CookieCheckResult) -> list[Finding]:
                 "cookies",
                 "Cookies inaccessibles",
                 "high",
-                "Impossible d'analyser les cookies (connexion refusée ou timeout).",
+                MSG_COOKIES_UNAVAILABLE,
             )
         )
         return findings
@@ -142,12 +145,12 @@ def _path_to_slug(path: str, category: str) -> str:
 
 
 def _path_severity(path: str, config_severity: str) -> str:
-    """Applique upgrade : .git/config et .env = critical."""
-    path_lower = path.lower()
-    if "/.git/config" in path_lower or path_lower.endswith(".git/config"):
-        return "critical"
-    if "/.env" in path_lower or path_lower.endswith(".env"):
-        return "critical"
+    """Applique upgrade : chemins dans severity_upgrade (settings.yml) = critical."""
+    path_norm = path.rstrip("/") or "/"
+    for up in get_exposed_files_severity_upgrade():
+        up_norm = up.rstrip("/") or "/"
+        if path_norm == up_norm or path_norm.endswith("/" + up_norm.lstrip("/")):
+            return "critical"
     return config_severity.lower()
 
 
@@ -180,7 +183,7 @@ def _normalize_robots_txt(result: RobotsTxtCheckResult) -> list[Finding]:
                 "robots_txt",
                 "robots.txt inaccessible",
                 "high",
-                "Impossible de récupérer robots.txt (connexion refusée ou timeout).",
+                MSG_ROBOTS_TXT_UNAVAILABLE,
             )
         )
         return findings
@@ -200,7 +203,7 @@ def _normalize_tech_fingerprinting(result: TechFingerprintingCheckResult) -> lis
                 "tech_fingerprinting",
                 "En-têtes inaccessibles",
                 "info",
-                "Impossible d'analyser les en-têtes (connexion refusée ou timeout).",
+                MSG_HEADERS_ANALYSIS_UNAVAILABLE,
             )
         )
         return findings
@@ -218,7 +221,30 @@ def _normalize_tech_fingerprinting(result: TechFingerprintingCheckResult) -> lis
     return findings
 
 
-def normalize_results(results: dict[str, object]) -> list[Finding]:
+class ScanResultsDict(TypedDict, total=False):
+    """Structure des résultats de checks passés à normalize_results."""
+
+    tls: TlsCheckResult
+    headers: SecurityHeadersCheckResult
+    cookies: CookieCheckResult
+    exposed_files: PathCheckResult
+    directory_listing: PathCheckResult
+    robots_txt: RobotsTxtCheckResult
+    tech_fingerprinting: TechFingerprintingCheckResult
+
+
+_NORMALIZERS: list[tuple[str, Callable[[object], list[Finding]]]] = [
+    ("tls", _normalize_tls),
+    ("headers", _normalize_headers),
+    ("cookies", _normalize_cookies),
+    ("exposed_files", _normalize_exposed_files),
+    ("directory_listing", _normalize_directory_listing),
+    ("robots_txt", _normalize_robots_txt),
+    ("tech_fingerprinting", _normalize_tech_fingerprinting),
+]
+
+
+def normalize_results(results: ScanResultsDict | dict[str, object]) -> list[Finding]:
     """Convertit tous les résultats de checks en liste de Finding normalisés.
 
     Args:
@@ -228,18 +254,7 @@ def normalize_results(results: dict[str, object]) -> list[Finding]:
         list[Finding]: Liste de tous les findings normalisés.
     """
     all_findings: list[Finding] = []
-    if "tls" in results and results["tls"] is not None:
-        all_findings.extend(_normalize_tls(results["tls"]))
-    if "headers" in results and results["headers"] is not None:
-        all_findings.extend(_normalize_headers(results["headers"]))
-    if "cookies" in results and results["cookies"] is not None:
-        all_findings.extend(_normalize_cookies(results["cookies"]))
-    if "exposed_files" in results and results["exposed_files"] is not None:
-        all_findings.extend(_normalize_exposed_files(results["exposed_files"]))
-    if "directory_listing" in results and results["directory_listing"] is not None:
-        all_findings.extend(_normalize_directory_listing(results["directory_listing"]))
-    if "robots_txt" in results and results["robots_txt"] is not None:
-        all_findings.extend(_normalize_robots_txt(results["robots_txt"]))
-    if "tech_fingerprinting" in results and results["tech_fingerprinting"] is not None:
-        all_findings.extend(_normalize_tech_fingerprinting(results["tech_fingerprinting"]))
+    for key, normalizer_fn in _NORMALIZERS:
+        if key in results and results[key] is not None:
+            all_findings.extend(normalizer_fn(results[key]))
     return all_findings

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import httpx
 
 from app.config_loader import ScanTimeoutsSettings, get_scan_timeouts
+from app.constants import MSG_HTTPS_UNAVAILABLE
 from app.services.tls.certificate import analyze_certificate, fetch_certificate_der
 from app.services.tls.versions import check_tls_versions_obsolete
 from app.utils.http_fetch import get_with_client
@@ -31,7 +32,7 @@ class TlsCheckResult:
         certificate_status (str | None): "valid", "expired" ou "self_signed". None si non vérifiable.
         tls_versions_obsolete (tuple[str, ...]): Versions TLS obsolètes supportées (ex. ("1.0", "1.1")).
         findings (tuple[str, ...]): Liste des findings.
-        fetch_ok (bool): True si la requête HTTPS a abouti (conforme CheckResultProtocol).
+        fetch_ok (bool): True si la requête HTTPS a abouti.
     """
 
     https_enabled: bool
@@ -85,7 +86,7 @@ def _format_https_connection_error(exc: BaseException) -> str | None:
             "désactivés par défaut dans OpenSSL 3.x (limitation de l'environnement de scan)."
         )
     if "connection refused" in err_str or "timeout" in err_str:
-        return "HTTPS non activé (connexion refusée ou timeout). Risque d'interception."
+        return MSG_HTTPS_UNAVAILABLE
     return None
 
 
@@ -121,7 +122,7 @@ async def _fetch_https_when_unset(https_url: str, timeouts: ScanTimeoutsSettings
         try:
             return await client.get(https_url)
         except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout) as e:
-            err_msg = _format_https_connection_error(e) or "HTTPS non activé (connexion refusée ou timeout). Risque d'interception."
+            err_msg = _format_https_connection_error(e) or MSG_HTTPS_UNAVAILABLE
             findings.append(err_msg)
             return None
         except Exception as e:
@@ -193,7 +194,7 @@ async def run_tls_checks(
 
     # Cas : fetch préalable a échoué (None passé explicitement)
     if https_response is None:
-        findings.append("HTTPS non activé (connexion refusée ou timeout). Risque d'interception.")
+        findings.append(MSG_HTTPS_UNAVAILABLE)
         return TlsCheckResult(
             https_enabled=False,
             http_redirects_to_https=None,

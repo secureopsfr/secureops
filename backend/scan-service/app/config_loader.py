@@ -1,5 +1,6 @@
 """Chargement de configuration pour Scan Service."""
 
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -106,20 +107,56 @@ _DEFAULT_SCAN_GLOBAL_TIMEOUT = 60.0
 
 @dataclass(frozen=True)
 class SecurityHeaderConfig:
-    """Configuration d'un en-tête de sécurité à vérifier."""
+    """Configuration d'un en-tête de sécurité à vérifier.
+
+    Attributes:
+        name (str): Nom de l'en-tête HTTP.
+        message_absent (str): Message si l'en-tête est absent.
+        expected_value (str | None): Valeur attendue (ex. nosniff) ou None.
+        slug (str): Slug pour le finding (ex. headers-csp-absent). Dérivé du nom si absent en YAML.
+    """
 
     name: str
     message_absent: str
     expected_value: str | None
+    slug: str
 
 
-_DEFAULT_SECURITY_HEADERS: tuple[tuple[str, str, str | None], ...] = (
-    ("Content-Security-Policy", "Content-Security-Policy absent : risque XSS accru.", None),
-    ("Strict-Transport-Security", "Strict-Transport-Security absent : risque de downgrade HTTPS→HTTP.", None),
-    ("X-Frame-Options", "X-Frame-Options absent : risque de clickjacking.", None),
-    ("X-Content-Type-Options", "X-Content-Type-Options absent : risque de MIME sniffing.", "nosniff"),
-    ("Referrer-Policy", "Referrer-Policy absent : risque de fuite d'URLs sensibles.", None),
-    ("Permissions-Policy", "Permissions-Policy absent : APIs navigateur accessibles par défaut.", None),
+# Slug connu pour chaque en-tête par défaut (utilisé quand YAML n'a pas de slug).
+_KNOWN_HEADER_SLUGS: dict[str, str] = {
+    "Content-Security-Policy": "headers-csp-absent",
+    "Strict-Transport-Security": "headers-hsts-absent",
+    "X-Frame-Options": "headers-xfo-absent",
+    "X-Content-Type-Options": "headers-xcto-absent",
+    "Referrer-Policy": "headers-referrer-absent",
+    "Permissions-Policy": "headers-permissions-absent",
+}
+
+
+def _derive_header_slug(name: str) -> str:
+    """Dérive un slug à partir du nom d'en-tête (pour headers ajoutés en YAML sans slug).
+
+    Utilise _KNOWN_HEADER_SLUGS si le nom est connu, sinon slugify le nom.
+
+    Args:
+        name: Nom de l'en-tête (ex. Content-Security-Policy).
+
+    Returns:
+        str: Slug (ex. headers-csp-absent ou headers-content-security-policy-absent).
+    """
+    if name in _KNOWN_HEADER_SLUGS:
+        return _KNOWN_HEADER_SLUGS[name]
+    normalized = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return f"headers-{normalized}-absent" if normalized else "headers-unknown-absent"
+
+
+_DEFAULT_SECURITY_HEADERS: tuple[tuple[str, str, str | None, str], ...] = (
+    ("Content-Security-Policy", "Content-Security-Policy absent : risque XSS accru.", None, "headers-csp-absent"),
+    ("Strict-Transport-Security", "Strict-Transport-Security absent : risque de downgrade HTTPS→HTTP.", None, "headers-hsts-absent"),
+    ("X-Frame-Options", "X-Frame-Options absent : risque de clickjacking.", None, "headers-xfo-absent"),
+    ("X-Content-Type-Options", "X-Content-Type-Options absent : risque de MIME sniffing.", "nosniff", "headers-xcto-absent"),
+    ("Referrer-Policy", "Referrer-Policy absent : risque de fuite d'URLs sensibles.", None, "headers-referrer-absent"),
+    ("Permissions-Policy", "Permissions-Policy absent : APIs navigateur accessibles par défaut.", None, "headers-permissions-absent"),
 )
 
 
@@ -134,7 +171,7 @@ def get_security_headers_settings() -> tuple[SecurityHeaderConfig, ...]:
     sh = data.get("security_headers") or {}
     headers_raw = sh.get("headers") or []
     if not headers_raw:
-        return tuple(SecurityHeaderConfig(h[0], h[1], h[2]) for h in _DEFAULT_SECURITY_HEADERS)
+        return tuple(SecurityHeaderConfig(h[0], h[1], h[2], h[3]) for h in _DEFAULT_SECURITY_HEADERS)
     result: list[SecurityHeaderConfig] = []
     for item in headers_raw:
         if isinstance(item, dict):
@@ -142,7 +179,8 @@ def get_security_headers_settings() -> tuple[SecurityHeaderConfig, ...]:
             msg = str(item.get("message_absent", ""))
             exp = item.get("expected_value")
             exp_val = str(exp) if exp is not None else None
-            result.append(SecurityHeaderConfig(name=name, message_absent=msg, expected_value=exp_val))
+            slug = str(item.get("slug", "")) if item.get("slug") else _derive_header_slug(name)
+            result.append(SecurityHeaderConfig(name=name, message_absent=msg, expected_value=exp_val, slug=slug))
     return tuple(result)
 
 
@@ -333,6 +371,63 @@ def get_scan_timeouts() -> ScanTimeoutsSettings:
     )
 
 
+@dataclass(frozen=True)
+class ScoringSettings:
+    """Configuration du scoring : pondération par catégorie et pénalités par sévérité."""
+
+    category_weights: dict[str, int]
+    severity_penalties: dict[str, int]
+
+
+_DEFAULT_CATEGORY_WEIGHTS: dict[str, int] = {
+    "tls": 25,
+    "headers": 25,
+    "cookies": 20,
+    "exposed_files": 10,
+    "directory_listing": 10,
+    "robots_txt": 5,
+    "tech_fingerprinting": 5,
+}
+_DEFAULT_SEVERITY_PENALTIES: dict[str, int] = {
+    "critical": 100,
+    "high": 50,
+    "medium": 25,
+    "low": 10,
+    "info": 0,
+}
+_DEFAULT_SEVERITY_UPGRADE_PATHS: tuple[str, ...] = ("/.git/config", "/.env")
+
+
+@lru_cache(maxsize=1)
+def get_scoring_settings() -> ScoringSettings:
+    """Charge la section scoring depuis config/settings.yml (mis en cache).
+
+    Returns:
+        ScoringSettings: Pondération par catégorie et pénalités par sévérité.
+    """
+    data = _load_settings_yml()
+    s = data.get("scoring") or {}
+    cw = s.get("category_weights") or _DEFAULT_CATEGORY_WEIGHTS
+    sp = s.get("severity_penalties") or _DEFAULT_SEVERITY_PENALTIES
+    return ScoringSettings(
+        category_weights=dict((k, int(v)) for k, v in cw.items()),
+        severity_penalties=dict((k, int(v)) for k, v in sp.items()),
+    )
+
+
+@lru_cache(maxsize=1)
+def get_exposed_files_severity_upgrade() -> tuple[str, ...]:
+    """Charge les chemins à upgrader en critical (exposed_files.severity_upgrade).
+
+    Returns:
+        tuple[str, ...]: Chemins forcés en critical (ex. /.git/config, /.env).
+    """
+    data = _load_settings_yml()
+    ef = data.get("exposed_files") or {}
+    paths = ef.get("severity_upgrade") or list(_DEFAULT_SEVERITY_UPGRADE_PATHS)
+    return tuple(str(p) for p in paths)
+
+
 __all__ = [
     "AppSettings",
     "DirectoryListingConfig",
@@ -341,6 +436,7 @@ __all__ = [
     "PathCheckConfig",
     "RoutersSettings",
     "ScanTimeoutsSettings",
+    "ScoringSettings",
     "SecurityHeaderConfig",
     "SsrfSettings",
     "UrlValidationSettings",
@@ -348,7 +444,9 @@ __all__ = [
     "get_directory_listing_settings",
     "get_exposed_files_max_body",
     "get_exposed_files_settings",
+    "get_exposed_files_severity_upgrade",
     "get_robots_txt_settings",
+    "get_scoring_settings",
     "get_scan_timeouts",
     "get_security_headers_settings",
     "get_ssrf_settings",

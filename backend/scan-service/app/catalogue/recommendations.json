@@ -80,6 +80,10 @@
     "recommendation": "Vérifier la connectivité au serveur. Impossible de récupérer les en-têtes.",
     "references": []
   },
+  "headers-unknown-absent": {
+    "recommendation": "Ajouter l'en-tête de sécurité manquant. Consulter la documentation pour les bonnes pratiques.",
+    "references": []
+  },
   "cookies-connection-failed": {
     "recommendation": "Vérifier la connectivité au serveur. Impossible d'analyser les cookies.",
     "references": []
