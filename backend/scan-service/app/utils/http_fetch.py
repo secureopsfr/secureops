@@ -12,6 +12,7 @@ from typing import AsyncIterator
 import httpx
 
 from app.config_loader import get_scan_timeouts
+from app.errors.fetch_errors import FetchResult, classify_fetch_exception
 from app.utils.ssl_scan import ssl_context_for_scan
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,42 @@ async def get_with_client(
     except Exception as e:
         logger.warning("Erreur HTTP inattendue lors du GET %s : %s", url, e, exc_info=True)
         return None
+
+
+async def get_with_client_or_error(
+    client: httpx.AsyncClient,
+    url: str,
+    *,
+    follow_redirects: bool = True,
+) -> FetchResult:
+    """Effectue un GET et retourne un FetchResult avec classification d'erreur.
+
+    Utilisé pour le fetch HTTPS principal du scan : en cas d'échec, le résultat
+    contient error_type, message et status_code pour l'événement SSE error.
+
+    Args:
+        client: Client httpx (ex. issu de scan_client()).
+        url: URL complète à récupérer.
+        follow_redirects: Si True, suit les redirections.
+
+    Returns:
+        FetchResult: Succès (response) ou échec (error_type, message, status_code).
+    """
+    try:
+        response = await client.get(url, follow_redirects=follow_redirects)
+        return FetchResult(
+            success=True,
+            response=response,
+            error_type="",
+            message="",
+            status_code=response.status_code,
+            details=None,
+        )
+    except Exception as e:
+        if isinstance(e, _NETWORK_EXCEPTIONS):
+            return classify_fetch_exception(e)
+        logger.warning("Erreur HTTP inattendue lors du GET %s : %s", url, e, exc_info=True)
+        return classify_fetch_exception(e)
 
 
 async def fetch_url(full_url: str, *, follow_redirects: bool = False) -> httpx.Response | None:

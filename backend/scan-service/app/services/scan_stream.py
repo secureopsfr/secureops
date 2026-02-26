@@ -2,9 +2,10 @@
 
 Exceptions :
   - Remontées vers l'appelant (émises en événement error) : URLValidationError (400).
-  - Gérées en interne (pas de remontée) : dépassement du délai global (événement error 408),
-    échecs réseau dans les étapes (fetch, path checks, etc.) : les steps retournent None
-    ou un résultat avec fetch_ok=False ; aucune exception n'est levée.
+  - Gérées en interne (événement error) : dépassement du délai global (408), site inaccessible
+    / timeout / erreur TLS sur le fetch HTTPS principal (503/504/502).
+  - Path checks (exposed_files, directory_listing, robots.txt) : retournent fetch_ok=False
+    si requête échouée ; aucune exception levée.
 """
 
 import asyncio
@@ -14,6 +15,12 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
+from app.errors.fetch_errors import (
+    build_sse_error_payload,
+    build_timeout_global_error_payload,
+    build_unexpected_error_payload,
+    build_validation_error_payload,
+)
 from app.models.scan_result import ScanResult
 from app.services.cookies import check_cookies_from_response
 from app.services.directory_listing import run_directory_listing_checks
@@ -24,7 +31,7 @@ from app.services.scoring import compute_score
 from app.services.security_headers import check_security_headers_from_response
 from app.services.tech_fingerprinting import check_tech_fingerprinting_from_response
 from app.services.tls import run_tls_checks
-from app.utils.http_fetch import get_with_client, scan_client
+from app.utils.http_fetch import get_with_client_or_error, scan_client
 from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
 from app.utils.url_helpers import build_https_url
@@ -73,7 +80,7 @@ async def _emit_step_and_run(step_name: str, msg_check: str, msg_done: str, step
 
 def _timeout_error_message() -> str:
     """Message SSE d'erreur pour dépassement du délai global."""
-    return sse_message("error", {"message": "Délai global du scan dépassé.", "status_code": 408})
+    return sse_message("error", build_timeout_global_error_payload())
 
 
 def _build_result_payload(
@@ -168,7 +175,14 @@ async def _run_checks_with_client(
 ) -> AsyncGenerator[str, None]:
     """Exécute les étapes de vérification avec le client partagé."""
     https_url = build_https_url(normalized_url)
-    https_response = await get_with_client(client, https_url, follow_redirects=True)
+    fetch_result = await get_with_client_or_error(client, https_url, follow_redirects=True)
+
+    # Détection précoce : site inaccessible, timeout ou erreur TLS → événement error
+    if not fetch_result.success:
+        yield sse_message("error", build_sse_error_payload(fetch_result))
+        return
+
+    https_response = fetch_result.response
     ctx = ScanContext(
         normalized_url=normalized_url,
         https_url=https_url,
@@ -239,9 +253,6 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
         async for chunk in _run_pipeline_steps(url):
             yield chunk
     except URLValidationError as e:
-        yield sse_message("error", {"message": str(e), "status_code": 400})
+        yield sse_message("error", build_validation_error_payload(str(e)))
     except Exception as e:
-        yield sse_message(
-            "error",
-            {"message": f"Erreur inattendue lors du scan : {e!s}", "status_code": 500},
-        )
+        yield sse_message("error", build_unexpected_error_payload(str(e)))

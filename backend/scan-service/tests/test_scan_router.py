@@ -1,7 +1,11 @@
 """Tests du routeur de scan (POST /api/scan, réponse SSE)."""
 
+from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
+from app.errors.fetch_errors import FetchResult
 from tests.conftest import parse_sse_events, patch_scan_checks
 
 
@@ -80,6 +84,39 @@ def test_post_scan_refuse_127_0_0_1_ssrf(client) -> None:
     assert len(error_events) == 1
     msg = error_events[0][1].get("message", "").lower()
     assert "localhost" in msg or "127" in msg or "autorisées" in msg
+
+
+def test_post_scan_site_inaccessible_emits_error(client) -> None:
+    """Fetch HTTPS échoue (site inaccessible) → événement error, pas de result."""
+    fetch_result_fail = FetchResult(
+        success=False,
+        response=None,
+        error_type="connection_failed",
+        message="Le site est inaccessible (connexion refusée ou DNS).",
+        status_code=503,
+        details=None,
+    )
+
+    @asynccontextmanager
+    async def _fake_scan_client():
+        yield MagicMock()
+
+    with (
+        patch("app.services.scan_stream.check_ssrf", new_callable=AsyncMock),
+        patch("app.services.scan_stream.scan_client", _fake_scan_client),
+        patch("app.services.scan_stream.get_with_client_or_error", new_callable=AsyncMock, return_value=fetch_result_fail),
+    ):
+        response = client.post("/api/scan", json={"url": "https://example.invalid"})
+
+    assert response.status_code == 200
+    events = parse_sse_events(response)
+    error_events = [e for e in events if e[0] == "error"]
+    result_events = [e for e in events if e[0] == "result"]
+    assert len(error_events) == 1
+    assert len(result_events) == 0
+    assert error_events[0][1]["message"] == "Le site est inaccessible (connexion refusée ou DNS)."
+    assert error_events[0][1]["status_code"] == 503
+    assert error_events[0][1]["error_type"] == "connection_failed"
 
 
 @pytest.mark.integration()

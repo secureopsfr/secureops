@@ -410,8 +410,8 @@ def get_scoring_settings() -> ScoringSettings:
     cw = s.get("category_weights") or _DEFAULT_CATEGORY_WEIGHTS
     sp = s.get("severity_penalties") or _DEFAULT_SEVERITY_PENALTIES
     return ScoringSettings(
-        category_weights=dict((k, int(v)) for k, v in cw.items()),
-        severity_penalties=dict((k, int(v)) for k, v in sp.items()),
+        category_weights={k: int(v) for k, v in cw.items()},
+        severity_penalties={k: int(v) for k, v in sp.items()},
     )
 
 

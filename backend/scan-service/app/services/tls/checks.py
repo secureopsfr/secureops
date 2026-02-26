@@ -8,6 +8,7 @@ import httpx
 
 from app.config_loader import ScanTimeoutsSettings, get_scan_timeouts
 from app.constants import MSG_HTTPS_UNAVAILABLE
+from app.errors.fetch_errors import classify_fetch_exception
 from app.services.tls.certificate import analyze_certificate, fetch_certificate_der
 from app.services.tls.versions import check_tls_versions_obsolete
 from app.utils.http_fetch import get_with_client
@@ -65,29 +66,18 @@ class TlsCheckResult:
         }
 
 
-def _format_https_connection_error(exc: BaseException) -> str | None:
-    """Formate une erreur de connexion HTTPS avec message explicatif si pertinent.
+def _format_https_connection_error(exc: BaseException) -> str:
+    """Formate une erreur de connexion HTTPS via le module centralisé.
 
-    Détecte les erreurs SSL (ex. TLS 1.0 désactivé dans OpenSSL 3.x).
+    Délègue à classify_fetch_exception pour cohérence avec le flux principal.
 
     Args:
         exc: Exception capturée.
 
     Returns:
-        str | None: Message formaté ou None pour utiliser le message par défaut.
+        str: Message utilisateur pour le finding.
     """
-    err_str = str(exc).lower()
-    cause = getattr(exc, "__cause__", None)
-    if cause:
-        err_str += " " + str(cause).lower()
-    if "no_protocols_available" in err_str or "unsupported protocol" in err_str:
-        return (
-            "Impossible de se connecter en HTTPS. Le serveur n'accepte peut-être que TLS 1.0/1.1, "
-            "désactivés par défaut dans OpenSSL 3.x (limitation de l'environnement de scan)."
-        )
-    if "connection refused" in err_str or "timeout" in err_str:
-        return MSG_HTTPS_UNAVAILABLE
-    return None
+    return classify_fetch_exception(exc).message
 
 
 async def _check_tls_versions(host: str, port: int, timeouts: ScanTimeoutsSettings, findings: list[str]) -> tuple[str, ...]:
@@ -122,12 +112,10 @@ async def _fetch_https_when_unset(https_url: str, timeouts: ScanTimeoutsSettings
         try:
             return await client.get(https_url)
         except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout) as e:
-            err_msg = _format_https_connection_error(e) or MSG_HTTPS_UNAVAILABLE
-            findings.append(err_msg)
+            findings.append(_format_https_connection_error(e))
             return None
         except Exception as e:
-            err_msg = _format_https_connection_error(e) or f"HTTPS non activé : {e!s}"
-            findings.append(err_msg)
+            findings.append(_format_https_connection_error(e))
             return None
 
 

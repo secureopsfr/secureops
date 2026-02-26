@@ -1,0 +1,9 @@
+{
+  "site_inaccessible": "Le site est inaccessible (connexion refusée ou DNS). Vérifiez l'URL et que le serveur est en ligne.",
+  "timeout": "Le serveur n'a pas répondu dans le délai imparti. Le site peut être lent ou surchargé.",
+  "tls_error": "Impossible d'établir une connexion TLS sécurisée. Vérifiez le certificat et les versions TLS supportées.",
+  "tls_openssl_legacy": "Impossible de se connecter en HTTPS. Le serveur n'accepte peut-être que TLS 1.0/1.1, désactivés par défaut dans OpenSSL 3.x (limitation de l'environnement de scan).",
+  "unknown": "Erreur inattendue lors de la connexion au site.",
+  "timeout_global": "Délai global du scan dépassé.",
+  "unexpected_scan": "Erreur inattendue lors du scan : {detail}"
+}

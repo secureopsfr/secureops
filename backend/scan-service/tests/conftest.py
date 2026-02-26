@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from app.errors.fetch_errors import FetchResult
 from app.main import app
 from app.services.directory_listing import DirectoryListingCheckResult
 from app.services.exposed_files import ExposedFilesCheckResult
@@ -43,10 +44,18 @@ def patch_scan_checks(**overrides):
     async def _fake_scan_client():
         yield MagicMock()
 
+    fetch_result_ok = FetchResult(
+        success=True,
+        response=mock_response,
+        error_type="",
+        message="",
+        status_code=200,
+        details=None,
+    )
     with (
         patch("app.services.scan_stream.check_ssrf", new_callable=AsyncMock),
         patch("app.services.scan_stream.scan_client", _fake_scan_client),
-        patch("app.services.scan_stream.get_with_client", new_callable=AsyncMock, return_value=mock_response),
+        patch("app.services.scan_stream.get_with_client_or_error", new_callable=AsyncMock, return_value=fetch_result_ok),
         patch("app.services.scan_stream.run_tls_checks", new_callable=AsyncMock, return_value=tls_result),
         patch("app.services.scan_stream.run_exposed_files_checks", new_callable=AsyncMock, return_value=exposed_result),
         patch(

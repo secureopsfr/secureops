@@ -180,8 +180,7 @@ async def test_run_tls_checks_https_non_actif_connect_error() -> None:
     assert result.certificate_status is None
     assert result.tls_versions_obsolete == ()
     assert len(result.findings) == 1
-    assert "HTTPS non activé" in result.findings[0]
-    assert "interception" in result.findings[0]
+    assert "inaccessible" in result.findings[0].lower()
 
 
 @pytest.mark.asyncio()
@@ -203,7 +202,7 @@ async def test_run_tls_checks_https_non_actif_timeout() -> None:
     assert result.certificate_status is None
     assert result.tls_versions_obsolete == ()
     assert len(result.findings) == 1
-    assert "HTTPS non activé" in result.findings[0]
+    assert "délai" in result.findings[0].lower() or "serveur" in result.findings[0].lower()
 
 
 @pytest.mark.asyncio()
