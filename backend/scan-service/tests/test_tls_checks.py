@@ -12,12 +12,7 @@ from cryptography.x509.oid import NameOID
 
 from app.services.tls import run_tls_checks
 from app.services.tls.checks import TlsCheckResult
-from app.utils.url_helpers import (
-    build_http_url,
-    build_https_url,
-    get_https_port_from_url,
-    location_redirects_to_https,
-)
+from app.utils.url_helpers import build_http_url, build_https_url, get_https_port_from_url, location_redirects_to_https
 
 
 def _make_valid_cert_der() -> bytes:

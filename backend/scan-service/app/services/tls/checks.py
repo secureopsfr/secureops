@@ -9,13 +9,7 @@ import httpx
 from app.config_loader import ScanTimeoutsSettings, get_scan_timeouts
 from app.services.tls.certificate import analyze_certificate, fetch_certificate_der
 from app.services.tls.versions import check_tls_versions_obsolete
-from app.utils.url_helpers import (
-    build_http_url,
-    build_https_url,
-    get_host_from_url,
-    get_https_port_from_url,
-    location_redirects_to_https,
-)
+from app.utils.url_helpers import build_http_url, build_https_url, get_host_from_url, get_https_port_from_url, location_redirects_to_https
 
 
 def _ssl_context_for_scan() -> ssl.SSLContext:
