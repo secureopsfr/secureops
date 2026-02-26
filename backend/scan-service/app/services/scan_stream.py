@@ -12,6 +12,7 @@ from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
 from app.services.robots_txt import run_robots_txt_checks
 from app.services.security_headers import check_security_headers_from_response
+from app.services.tech_fingerprinting import check_tech_fingerprinting_from_response
 from app.services.tls import run_tls_checks
 from app.utils.http_fetch import get_with_client, scan_client
 from app.utils.sse import sse_message
@@ -75,7 +76,7 @@ def _build_result_payload(
     Args:
         valid: Posture TLS valide (is_posture_valid).
         url: URL normalisée scannée.
-        results: Dict clé → résultat (tls, headers, cookies, exposed_files, directory_listing, robots_txt).
+        results: Dict clé → résultat (tls, headers, cookies, exposed_files, directory_listing, robots_txt, tech_fingerprinting).
 
     Returns:
         dict: Payload sérialisable pour {event: result, data: {...}}.
@@ -130,6 +131,12 @@ _SCAN_STEPS: list[tuple[str, str, str, Callable]] = [
         "Vérification robots.txt…",
         "robots.txt vérifié.",
         lambda ctx: run_robots_txt_checks(ctx.https_url, client=ctx.client),
+    ),
+    (
+        "tech_fingerprinting",
+        "Fingerprinting technologique…",
+        "Tech fingerprinting vérifié.",
+        lambda ctx: check_tech_fingerprinting_from_response(ctx.https_response),
     ),
 ]
 

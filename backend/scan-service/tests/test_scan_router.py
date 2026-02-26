@@ -28,6 +28,7 @@ def test_post_scan_accepte_url_valide(client) -> None:
     assert result_events[0][1]["tls"]["findings"] == []
     assert "directory_listing" in result_events[0][1]
     assert "robots_txt" in result_events[0][1]
+    assert "tech_fingerprinting" in result_events[0][1]
 
 
 def test_post_scan_refuse_url_avec_credentials(client) -> None:
