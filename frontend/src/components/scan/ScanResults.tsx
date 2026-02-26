@@ -97,6 +97,9 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
     return acc;
   }, {});
 
+  const displayUrl =
+    result.url.replace(/^https?:\/\//, "").replace(/\/$/, "") || result.url;
+
   return (
     <div className="space-y-6">
       <AnimateInView
@@ -105,54 +108,45 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
       >
         <Card
           disableHover
-          className="scanner-block p-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+          className="scanner-block overflow-hidden border-2 border-[var(--color-border)]"
         >
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-3xl" aria-hidden>
+          <div className="bg-gradient-to-br from-[var(--color-surface-hover)]/50 to-transparent p-6 sm:p-8 text-center">
+            <h2
+              className="text-xl sm:text-2xl lg:text-3xl font-bold text-[var(--text)] break-all"
+              title={result.url}
+            >
+              {displayUrl}
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-theme mt-2">
+              {t("scanner.duration")} {result.duration.toFixed(1)}
+              {t("scanner.seconds")}
+            </p>
+            <div className="mt-6 flex flex-col items-center gap-1">
+              <span className="text-4xl" aria-hidden>
                 {badge.emoji}
               </span>
-              <div>
-                <p className="text-2xl font-bold text-[var(--text)]">
-                  {result.score}/100
-                </p>
-                <p className="text-sm text-[var(--muted)]">
-                  {t(badge.labelKey)}
-                </p>
+              <p className="text-3xl sm:text-4xl font-bold text-[var(--text)]">
+                {result.score}/100
+              </p>
+              <p className="text-base font-medium text-[var(--muted)]">
+                {t(badge.labelKey)}
+              </p>
+            </div>
+            <p className="mt-4 text-sm text-muted-theme">
+              {t("scanner.findings")} ({sortedFindings.length})
+            </p>
+            {Object.keys(byCategory).length > 0 && (
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {Object.entries(byCategory).map(([cat, count]) => (
+                  <Badge key={cat} variant="default" className="text-sm">
+                    {t(getCategoryKey(cat))}: {count}
+                  </Badge>
+                ))}
               </div>
-            </div>
-            <div className="text-sm text-muted-theme">
-              {t("scanner.duration")} : {result.duration.toFixed(1)}
-              {t("scanner.seconds")}
-            </div>
+            )}
           </div>
-          <GenericButton
-            label={t("scanner.newScan")}
-            variant="outline"
-            onClick={onNewScan}
-          />
         </Card>
       </AnimateInView>
-
-      {Object.keys(byCategory).length > 0 && (
-        <AnimateInView
-          className="landing-section landing-reveal-scanner"
-          as="div"
-        >
-          <Card disableHover className="scanner-block p-4">
-            <h3 className="section-title !text-left !text-sm mb-3">
-              {t("scanner.findingsByCategory")}
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(byCategory).map(([cat, count]) => (
-                <Badge key={cat} variant="default">
-                  {t(getCategoryKey(cat))}: {count}
-                </Badge>
-              ))}
-            </div>
-          </Card>
-        </AnimateInView>
-      )}
 
       <AnimateInView
         className="landing-section landing-reveal-scanner"
@@ -183,10 +177,15 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
       {typeof document !== "undefined" &&
         createPortal(
           <div
-            className="fixed right-6 z-[9998] shadow-lg transition-all duration-200"
+            className="fixed right-6 z-[9998] flex items-center gap-2 shadow-lg transition-all duration-200"
             style={{ position: "fixed", bottom: exportButtonBottom }}
             aria-label={t("scanner.export")}
           >
+            <GenericButton
+              label={t("scanner.newScan")}
+              variant="outline"
+              onClick={onNewScan}
+            />
             <GenericButton
               label={t("scanner.export")}
               variant="primary"

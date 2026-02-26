@@ -104,22 +104,26 @@ export default function ScannerContent() {
     setError(null);
   }, []);
 
+  const showHeader = state === "idle" || state === "error";
+
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <AnimateInView
-        initialOnly
-        delay={80}
-        className="page-section landing-reveal-page"
-        as="section"
-        aria-label="Scanner header"
-      >
-        <div className="page-container">
-          <div className="page-header text-center">
-            <h1 className="page-title">{t("scanner.title")}</h1>
-            <p className="page-subtitle mt-4">{t("scanner.subtitle")}</p>
+    <div className="mx-auto w-full max-w-[1200px] space-y-8 px-4 sm:px-6 md:px-8">
+      {showHeader && (
+        <AnimateInView
+          initialOnly
+          delay={80}
+          className="page-section landing-reveal-page"
+          as="section"
+          aria-label="Scanner header"
+        >
+          <div className="page-container">
+            <div className="page-header text-center">
+              <h1 className="page-title">{t("scanner.title")}</h1>
+              <p className="page-subtitle mt-4">{t("scanner.subtitle")}</p>
+            </div>
           </div>
-        </div>
-      </AnimateInView>
+        </AnimateInView>
+      )}
 
       <AnimateInView
         className="landing-section landing-reveal-scanner"
