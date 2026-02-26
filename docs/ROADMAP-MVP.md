@@ -128,8 +128,10 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 > **Fait :** Module `app/services/directory_listing/` (checks.py). Requêtes GET en parallèle via `run_path_checks`, signatures Apache/Nginx (Index of, Parent Directory, [DIR], mod_autoindex, nginx, `<a href=`). Intégré dans le flux SSE après exposed_files (`directory_listing_check` → `directory_listing_done`). Résultat dans `result.directory_listing`. Config `directory_listing` dans settings.yml. Tests dans `tests/test_directory_listing_checks.py`.
 
 ### 3.6 robots.txt
-- [ ] Lire `/robots.txt`
-- [ ] Extraire `Disallow` et signaler routes potentiellement sensibles
+- [x] Lire `/robots.txt`
+- [x] Extraire `Disallow` et signaler routes potentiellement sensibles
+
+> **Fait :** Module `app/services/robots_txt/` (checks.py). Requête GET /robots.txt via client partagé, parsing des directives Disallow, détection des routes sensibles (admin, api, backup, etc.) via motifs configurables. Intégré dans le flux SSE après directory_listing (`robots_txt_check` → `robots_txt_done`). Résultat dans `result.robots_txt`. Config `robots_txt.patterns` dans settings.yml. Tests dans `tests/test_robots_txt_checks.py`.
 
 ### 3.7 Tech fingerprinting (léger)
 - [ ] Lire `Server`, `X-Powered-By`
