@@ -4,11 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.robots_txt import (
-    RobotsTxtCheckResult,
-    SensitiveRoute,
-    run_robots_txt_checks,
-)
+from app.services.robots_txt import RobotsTxtCheckResult, SensitiveRoute, run_robots_txt_checks
 
 
 @pytest.mark.asyncio()

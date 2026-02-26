@@ -76,10 +76,9 @@ def _extract_disallow_paths(content: str) -> list[str]:
             continue
         if line.lower().startswith("disallow:"):
             path = line[9:].strip()
-            if path and path != "/":
-                if path not in seen:
-                    seen.add(path)
-                    paths.append(path)
+            if path and path != "/" and path not in seen:
+                seen.add(path)
+                paths.append(path)
     return paths
 
 
@@ -98,10 +97,8 @@ def _path_matches_sensitive(path: str, patterns: tuple[tuple[str, str], ...]) ->
     """
     path_lower = path.lower()
     for pattern, severity in patterns:
-        if pattern not in path_lower:
-            continue
         # Exception : /api/public/ n'est pas considéré sensible (doc robots-txt.md)
-        if pattern == "api" and "public" in path_lower:
+        if pattern not in path_lower or (pattern == "api" and "public" in path_lower):
             continue
         return SensitiveRoute(path=path, pattern=pattern, severity=severity)
     return None
