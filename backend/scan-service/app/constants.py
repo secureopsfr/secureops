@@ -1,10 +1,19 @@
-"""Constantes partagées pour les messages d'erreur de connexion."""
+"""Messages partagés pour les findings (source unique : app/errors/messages.json).
 
-# Message générique pour échec de connexion (réutilisé dans checks et normalizers)
-MSG_CONNECTION_REFUSED_OR_TIMEOUT = "connexion refusée ou timeout"
+Dépréciation de la duplication : tous les messages sont chargés depuis messages.json.
+"""
 
-MSG_HEADERS_UNAVAILABLE = f"Impossible de récupérer les en-têtes ({MSG_CONNECTION_REFUSED_OR_TIMEOUT})."
-MSG_COOKIES_UNAVAILABLE = f"Impossible d'analyser les cookies ({MSG_CONNECTION_REFUSED_OR_TIMEOUT})."
-MSG_ROBOTS_TXT_UNAVAILABLE = f"Impossible de récupérer robots.txt ({MSG_CONNECTION_REFUSED_OR_TIMEOUT})."
-MSG_HEADERS_ANALYSIS_UNAVAILABLE = f"Impossible d'analyser les en-têtes ({MSG_CONNECTION_REFUSED_OR_TIMEOUT})."
-MSG_HTTPS_UNAVAILABLE = f"HTTPS non activé ({MSG_CONNECTION_REFUSED_OR_TIMEOUT}). Risque d'interception."
+import json
+from pathlib import Path
+
+_MESSAGES_PATH = Path(__file__).resolve().parent / "errors" / "messages.json"
+with _MESSAGES_PATH.open(encoding="utf-8") as f:
+    _M = json.load(f)
+
+# Alias pour compatibilité (checks, normalizers)
+MSG_CONNECTION_REFUSED_OR_TIMEOUT = _M["connection_refused_or_timeout"]
+MSG_HEADERS_UNAVAILABLE = _M["headers_unavailable"]
+MSG_COOKIES_UNAVAILABLE = _M["cookies_unavailable"]
+MSG_ROBOTS_TXT_UNAVAILABLE = _M["robots_txt_unavailable"]
+MSG_HEADERS_ANALYSIS_UNAVAILABLE = _M["headers_analysis_unavailable"]
+MSG_HTTPS_UNAVAILABLE = _M["https_unavailable"]

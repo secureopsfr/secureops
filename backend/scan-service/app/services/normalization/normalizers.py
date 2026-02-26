@@ -154,23 +154,47 @@ def _path_severity(path: str, config_severity: str) -> str:
     return config_severity.lower()
 
 
-def _normalize_exposed_files(result: PathCheckResult) -> list[Finding]:
-    """Convertit PathCheckResult (exposed_files) en list[Finding]."""
+def _normalize_path_check_result(
+    result: PathCheckResult,
+    category: str,
+    title_fn: Callable[[object], str],
+    severity_fn: Callable[[object], str],
+) -> list[Finding]:
+    """Convertit PathCheckResult en list[Finding] (exposed_files ou directory_listing).
+
+    Args:
+        result: Résultat du path check.
+        category: Catégorie (exposed_files, directory_listing).
+        title_fn: pf -> titre du finding.
+        severity_fn: pf -> sévérité (lowercase).
+    """
     findings: list[Finding] = []
     for pf in result.exposed:
-        slug = _path_to_slug(pf.path, "exposed_files")
-        severity = _path_severity(pf.path, pf.severity)
-        findings.append(_finding(slug, "exposed_files", f"Fichier exposé : {pf.path}", severity, pf.message))
+        slug = _path_to_slug(pf.path, category)
+        title = title_fn(pf)
+        severity = severity_fn(pf)
+        findings.append(_finding(slug, category, title, severity, pf.message))
     return findings
+
+
+def _normalize_exposed_files(result: PathCheckResult) -> list[Finding]:
+    """Convertit PathCheckResult (exposed_files) en list[Finding]."""
+    return _normalize_path_check_result(
+        result,
+        "exposed_files",
+        title_fn=lambda pf: f"Fichier exposé : {pf.path}",
+        severity_fn=lambda pf: _path_severity(pf.path, pf.severity),
+    )
 
 
 def _normalize_directory_listing(result: PathCheckResult) -> list[Finding]:
     """Convertit PathCheckResult (directory_listing) en list[Finding]."""
-    findings: list[Finding] = []
-    for pf in result.exposed:
-        slug = _path_to_slug(pf.path, "directory_listing")
-        findings.append(_finding(slug, "directory_listing", f"Directory listing : {pf.path}", pf.severity.lower(), pf.message))
-    return findings
+    return _normalize_path_check_result(
+        result,
+        "directory_listing",
+        title_fn=lambda pf: f"Directory listing : {pf.path}",
+        severity_fn=lambda pf: pf.severity.lower(),
+    )
 
 
 def _normalize_robots_txt(result: RobotsTxtCheckResult) -> list[Finding]:

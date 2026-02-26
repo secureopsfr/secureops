@@ -1,4 +1,10 @@
 {
+  "connection_refused_or_timeout": "connexion refusée ou timeout",
+  "headers_unavailable": "Impossible de récupérer les en-têtes (connexion refusée ou timeout).",
+  "cookies_unavailable": "Impossible d'analyser les cookies (connexion refusée ou timeout).",
+  "robots_txt_unavailable": "Impossible de récupérer robots.txt (connexion refusée ou timeout).",
+  "headers_analysis_unavailable": "Impossible d'analyser les en-têtes (connexion refusée ou timeout).",
+  "https_unavailable": "HTTPS non activé (connexion refusée ou timeout). Risque d'interception.",
   "site_inaccessible": "Le site est inaccessible (connexion refusée ou DNS). Vérifiez l'URL et que le serveur est en ligne.",
   "timeout": "Le serveur n'a pas répondu dans le délai imparti. Le site peut être lent ou surchargé.",
   "tls_error": "Impossible d'établir une connexion TLS sécurisée. Vérifiez le certificat et les versions TLS supportées.",
