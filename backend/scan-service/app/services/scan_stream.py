@@ -4,6 +4,7 @@ import time
 from collections.abc import AsyncGenerator
 
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
+from app.services.security_headers import run_security_headers_checks
 from app.services.tls import run_tls_checks
 from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
@@ -47,6 +48,13 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
         tls_result = await run_tls_checks(normalized_url)
         yield sse_message("step", {"step": "tls_done", "message": "TLS/HTTPS vérifié."})
 
+        if _over_global():
+            yield sse_message("error", {"message": "Délai global du scan dépassé.", "status_code": 408})
+            return
+        yield sse_message("step", {"step": "headers_check", "message": "Vérification Security Headers…"})
+        headers_result = await run_security_headers_checks(normalized_url)
+        yield sse_message("step", {"step": "headers_done", "message": "Security Headers vérifiés."})
+
         valid = tls_result.is_posture_valid()
         yield sse_message(
             "result",
@@ -59,6 +67,12 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
                     "certificate_status": tls_result.certificate_status,
                     "tls_versions_obsolete": list(tls_result.tls_versions_obsolete),
                     "findings": list(tls_result.findings),
+                },
+                "headers": {
+                    "headers_present": list(headers_result.headers_present),
+                    "headers_missing": list(headers_result.headers_missing),
+                    "findings": list(headers_result.findings),
+                    "fetch_ok": headers_result.fetch_ok,
                 },
             },
         )
