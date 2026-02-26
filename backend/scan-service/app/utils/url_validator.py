@@ -55,7 +55,8 @@ def validate_and_normalize_url(url: str) -> str:
         raise URLValidationError("Les credentials dans l'URL (user:pass@host) ne sont pas autorisés.")
 
     if parsed.port is not None and parsed.port not in cfg.allowed_ports:
-        raise URLValidationError("Seuls les ports 80 et 443 sont autorisés.")
+        ports_str = ", ".join(str(p) for p in sorted(cfg.allowed_ports))
+        raise URLValidationError(f"Seuls les ports {ports_str} sont autorisés.")
 
     if not parsed.netloc:
         raise URLValidationError("URL sans host (netloc manquant).")

@@ -13,6 +13,21 @@ from cryptography import x509
 from app.config_loader import ScanTimeoutsSettings, get_scan_timeouts
 
 
+def _ssl_context_for_scan() -> ssl.SSLContext:
+    """Contexte SSL permissif pour le scan : TLS 1.0+ accepté, pas de vérif. certificat.
+
+    Permet de se connecter aux serveurs TLS 1.0-only (ex. badssl.com:1010) pour les détecter.
+
+    Returns:
+        ssl.SSLContext: Contexte configuré.
+    """
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    ctx.minimum_version = ssl.TLSVersion.TLSv1
+    return ctx
+
+
 class CertificateStatus:
     """Statut du certificat TLS."""
 
@@ -45,15 +60,21 @@ class TlsCheckResult:
 def _build_https_url(url: str) -> str:
     """Construit l'URL HTTPS à tester à partir de l'URL fournie.
 
+    Préserve le port explicite non standard pour HTTPS (ex. badssl.com:1010 pour tests TLS 1.0).
+    Pour http://host:80, produit https://host/ (port 443 implicite).
+
     Args:
         url: URL normalisée (http ou https).
 
     Returns:
-        str: URL https://host/ (port 443 implicite).
+        str: URL https://host[:port]/ (port 443 implicite si absent ou standard).
     """
     parsed = urlparse(url)
     host = parsed.hostname or parsed.netloc.split(":")[0]
-    return urlunparse(("https", host, "/", "", "", ""))
+    # Port non-443 uniquement si l'URL source est https avec port explicite
+    port = parsed.port if (parsed.scheme or "").lower() == "https" else None
+    netloc = f"{host}:{port}" if port is not None and port != 443 else host
+    return urlunparse(("https", netloc, "/", "", "", ""))
 
 
 def _build_http_url(url: str) -> str:
@@ -153,6 +174,39 @@ def _get_host_from_url(url: str) -> str:
     return parsed.hostname or parsed.netloc.split(":")[0]
 
 
+def _get_https_port_from_url(url: str) -> int:
+    """Extrait le port HTTPS de l'URL (443 par défaut si absent ou si http)."""
+    parsed = urlparse(url)
+    if (parsed.scheme or "").lower() == "https" and parsed.port is not None:
+        return parsed.port
+    return 443
+
+
+def _format_https_connection_error(exc: BaseException) -> str | None:
+    """Formate une erreur de connexion HTTPS avec message explicatif si pertinent.
+
+    Détecte les erreurs SSL (ex. TLS 1.0 désactivé dans OpenSSL 3.x).
+
+    Args:
+        exc: Exception capturée.
+
+    Returns:
+        str | None: Message formaté ou None pour utiliser le message par défaut.
+    """
+    err_str = str(exc).lower()
+    cause = getattr(exc, "__cause__", None)
+    if cause:
+        err_str += " " + str(cause).lower()
+    if "no_protocols_available" in err_str or "unsupported protocol" in err_str:
+        return (
+            "Impossible de se connecter en HTTPS. Le serveur n'accepte peut-être que TLS 1.0/1.1, "
+            "désactivés par défaut dans OpenSSL 3.x (limitation de l'environnement de scan)."
+        )
+    if "connection refused" in err_str or "timeout" in err_str:
+        return "HTTPS non activé (connexion refusée ou timeout). Risque d'interception."
+    return None
+
+
 def _try_tls_version(host: str, port: int, timeout: float, min_ver: ssl.TLSVersion, max_ver: ssl.TLSVersion) -> bool:
     """Tente une connexion TLS avec les versions min/max spécifiées.
 
@@ -179,11 +233,12 @@ def _try_tls_version(host: str, port: int, timeout: float, min_ver: ssl.TLSVersi
         return False
 
 
-def _check_tls_versions_obsolete(host: str, timeout: float) -> tuple[list[str], list[str]]:
+def _check_tls_versions_obsolete(host: str, port: int, timeout: float) -> tuple[list[str], list[str]]:
     """Détecte si le serveur accepte TLS 1.0 ou 1.1 (obsolètes).
 
     Args:
         host: Nom d'hôte.
+        port: Port (ex. 443 ou 1010 pour badssl.com).
         timeout: Timeout en secondes.
 
     Returns:
@@ -191,7 +246,6 @@ def _check_tls_versions_obsolete(host: str, timeout: float) -> tuple[list[str], 
     """
     obsolete: list[str] = []
     findings: list[str] = []
-    port = 443
 
     if _try_tls_version(host, port, timeout, ssl.TLSVersion.TLSv1, ssl.TLSVersion.TLSv1):
         obsolete.append("1.0")
@@ -204,20 +258,20 @@ def _check_tls_versions_obsolete(host: str, timeout: float) -> tuple[list[str], 
     return obsolete, findings
 
 
-async def _check_tls_versions(host: str, timeouts: ScanTimeoutsSettings, findings: list[str]) -> tuple[str, ...]:
+async def _check_tls_versions(host: str, port: int, timeouts: ScanTimeoutsSettings, findings: list[str]) -> tuple[str, ...]:
     """Vérification 4 : détecte TLS 1.0/1.1. Retourne la liste des versions obsolètes."""
     try:
-        obsolete, tls_findings = await asyncio.to_thread(_check_tls_versions_obsolete, host, timeouts.connection)
+        obsolete, tls_findings = await asyncio.to_thread(_check_tls_versions_obsolete, host, port, timeouts.connection)
         findings.extend(tls_findings)
         return tuple(obsolete)
     except Exception:
         return ()
 
 
-async def _check_certificate(host: str, timeouts: ScanTimeoutsSettings, findings: list[str]) -> str | None:
+async def _check_certificate(host: str, port: int, timeouts: ScanTimeoutsSettings, findings: list[str]) -> str | None:
     """Vérification 3 : récupère et analyse le certificat. Retourne le statut ou None."""
     try:
-        cert_der = await asyncio.to_thread(_fetch_certificate_der, host, 443, timeouts.connection)
+        cert_der = await asyncio.to_thread(_fetch_certificate_der, host, port, timeouts.connection)
         status, cert_findings = _analyze_certificate(cert_der, host)
         findings.extend(cert_findings)
         return status
@@ -245,7 +299,7 @@ async def run_tls_checks(url: str) -> TlsCheckResult:
 
     try:
         async with httpx.AsyncClient(
-            verify=False,
+            verify=_ssl_context_for_scan(),
             timeout=httpx.Timeout(
                 timeouts.connection,
                 read=timeouts.read,
@@ -254,8 +308,9 @@ async def run_tls_checks(url: str) -> TlsCheckResult:
             response = await client.get(https_url)
             # Toute réponse (200, 301, 404, etc.) indique que HTTPS répond
             _ = response.status_code
-    except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout):
-        findings.append("HTTPS non activé (connexion refusée ou timeout). Risque d'interception.")
+    except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout) as e:
+        err_msg = _format_https_connection_error(e) or "HTTPS non activé (connexion refusée ou timeout). Risque d'interception."
+        findings.append(err_msg)
         return TlsCheckResult(
             https_enabled=False,
             http_redirects_to_https=None,
@@ -264,7 +319,8 @@ async def run_tls_checks(url: str) -> TlsCheckResult:
             findings=tuple(findings),
         )
     except Exception as e:
-        findings.append(f"HTTPS non activé : {e!s}")
+        err_msg = _format_https_connection_error(e) or f"HTTPS non activé : {e!s}"
+        findings.append(err_msg)
         return TlsCheckResult(
             https_enabled=False,
             http_redirects_to_https=None,
@@ -278,7 +334,7 @@ async def run_tls_checks(url: str) -> TlsCheckResult:
     http_url = _build_http_url(url)
     try:
         async with httpx.AsyncClient(
-            verify=False,
+            verify=_ssl_context_for_scan(),
             follow_redirects=False,
             timeout=httpx.Timeout(timeouts.connection, read=timeouts.read),
         ) as client:
@@ -297,12 +353,13 @@ async def run_tls_checks(url: str) -> TlsCheckResult:
     except Exception:
         http_redirects_to_https = None
 
-    # Vérification 3 : Certificat valide / expiré / auto-signé
+    # Vérification 3 et 4 : certificat et versions TLS (utiliser le port de l'URL)
     host = _get_host_from_url(url)
-    certificate_status = await _check_certificate(host, timeouts, findings)
+    port = _get_https_port_from_url(url)
+    certificate_status = await _check_certificate(host, port, timeouts, findings)
 
     # Vérification 4 : Versions TLS obsolètes (1.0, 1.1)
-    tls_versions_obsolete = await _check_tls_versions(host, timeouts, findings)
+    tls_versions_obsolete = await _check_tls_versions(host, port, timeouts, findings)
 
     return TlsCheckResult(
         https_enabled=True,

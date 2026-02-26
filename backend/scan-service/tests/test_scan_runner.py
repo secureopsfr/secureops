@@ -13,6 +13,7 @@ from cryptography.x509.oid import NameOID
 from app.services.scan_runner import (
     _build_http_url,
     _build_https_url,
+    _get_https_port_from_url,
     _location_redirects_to_https,
     run_tls_checks,
 )
@@ -92,6 +93,16 @@ def test_build_https_url_from_https() -> None:
     """_build_https_url transforme https://host en https://host/."""
     assert _build_https_url("https://example.com") == "https://example.com/"
     assert _build_https_url("https://example.com:443/") == "https://example.com/"
+    # Préserve le port non standard (ex. badssl.com TLS 1.0)
+    assert _build_https_url("https://tls-v1-0.badssl.com:1010") == "https://tls-v1-0.badssl.com:1010/"
+
+
+def test_get_https_port_from_url() -> None:
+    """_get_https_port_from_url extrait le port ou 443 par défaut."""
+    assert _get_https_port_from_url("https://example.com") == 443
+    assert _get_https_port_from_url("https://example.com:443/") == 443
+    assert _get_https_port_from_url("https://tls-v1-0.badssl.com:1010") == 1010
+    assert _get_https_port_from_url("http://example.com:80") == 443
 
 
 def test_build_http_url() -> None:

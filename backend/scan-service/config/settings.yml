@@ -40,6 +40,9 @@ url_validation:
   allowed_ports:
     - 80
     - 443
+    # Ports badssl.com pour tests TLS 1.0/1.1 (tls-v1-0.badssl.com:1010, tls-v1-1.badssl.com:1011)
+    - 1010
+    - 1011
 
 # Protection SSRF (roadmap §2.2) : hostnames et plages IP interdits.
 ssrf:
