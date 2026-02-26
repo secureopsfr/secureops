@@ -217,9 +217,14 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
                 {t(badge.labelKey)}
               </p>
             </div>
-            <p className="mt-4 text-sm text-muted-theme">
-              {t("scanner.findings")} ({sortedFindings.length})
-            </p>
+            <div className="mt-8 flex flex-col items-center gap-2">
+              <span className="text-2xl font-bold text-[var(--text)] sm:text-3xl">
+                {sortedFindings.length}
+              </span>
+              <p className="text-base font-medium text-[var(--muted)]">
+                {t("scanner.findings")}
+              </p>
+            </div>
             {Object.keys(byCategory).length > 0 && (
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {Object.entries(byCategory).map(([cat, count]) => (
@@ -239,7 +244,7 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
       >
         <Card disableHover className="scanner-block p-4">
           <h3 className="section-title !text-left mb-3">
-            {t("scanner.findings")} ({sortedFindings.length})
+            {t("scanner.findings")} : {sortedFindings.length}
           </h3>
           {sortedFindings.length === 0 ? (
             <p className="text-muted-theme">{t("scanner.noFindings")}</p>

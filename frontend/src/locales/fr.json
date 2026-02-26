@@ -143,7 +143,7 @@
     "scoreGood": "Bonne posture",
     "scoreMedium": "À améliorer",
     "scoreLow": "Posture faible",
-    "duration": "Durée",
+    "duration": "Durée du scan",
     "seconds": "s",
     "findings": "Problèmes détectés",
     "findingsByCategory": "Par catégorie",
