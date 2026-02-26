@@ -189,19 +189,19 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 
 ## 7) Frontend MVP (simple et pro)
 
-### 7.1 Landing
+### 7.1 Landing ✅
 - [x] Hero + promesse claire
 - [x] Champ URL + CTA “Scan”
 - [x] Disclaimer usage autorisé
 
-### 7.2 Page résultats
+### 7.2 Page résultats ✅
 - [x] Score global + badge (🟢/🟡/🔴)
 - [x] Résumé par catégorie
 - [x] Liste des findings (triés par sévérité)
 - [x] Bloc “How to fix” (recommandations pédagogiques)
 - [x] Erreurs affichées proprement
 
-### 7.3 UX
+### 7.3 UX ✅
 - [x] Loader pendant scan
 - [x] États : idle / loading / success / error
 - [x] Responsive mobile
