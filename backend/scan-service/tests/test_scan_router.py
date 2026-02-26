@@ -18,17 +18,15 @@ def test_post_scan_accepte_url_valide(client) -> None:
     events = parse_sse_events(response)
     result_events = [e for e in events if e[0] == "result"]
     assert len(result_events) == 1
-    assert result_events[0][1]["valid"] is True
-    assert "github.com" in result_events[0][1]["url"]
-    assert "tls" in result_events[0][1]
-    assert result_events[0][1]["tls"]["https_enabled"] is True
-    assert result_events[0][1]["tls"]["http_redirects_to_https"] is True
-    assert result_events[0][1]["tls"]["certificate_status"] == "valid"
-    assert result_events[0][1]["tls"]["tls_versions_obsolete"] == []
-    assert result_events[0][1]["tls"]["findings"] == []
-    assert "directory_listing" in result_events[0][1]
-    assert "robots_txt" in result_events[0][1]
-    assert "tech_fingerprinting" in result_events[0][1]
+    data = result_events[0][1]
+    assert "github.com" in data["url"]
+    assert "timestamp" in data
+    assert "duration" in data
+    assert "score" in data
+    assert isinstance(data["score"], int)
+    assert 0 <= data["score"] <= 100
+    assert "findings" in data
+    assert isinstance(data["findings"], list)
 
 
 def test_post_scan_refuse_url_avec_credentials(client) -> None:
@@ -98,7 +96,5 @@ def test_post_scan_integration_reel(client) -> None:
     assert len(result_events) == 1
     data = result_events[0][1]
     assert "github.com" in data["url"]
-    assert "tls" in data
-    assert data["tls"]["https_enabled"] is True
-    assert "headers" in data
-    assert "cookies" in data
+    assert "score" in data
+    assert "findings" in data

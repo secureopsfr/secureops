@@ -11,13 +11,16 @@ import asyncio
 import time
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
-from app.models.check_results import CheckResultProtocol
+from app.models.scan_result import ScanResult
 from app.services.cookies import check_cookies_from_response
 from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
+from app.services.normalization import normalize_results
 from app.services.robots_txt import run_robots_txt_checks
+from app.services.scoring import compute_score
 from app.services.security_headers import check_security_headers_from_response
 from app.services.tech_fingerprinting import check_tech_fingerprinting_from_response
 from app.services.tls import run_tls_checks
@@ -74,24 +77,33 @@ def _timeout_error_message() -> str:
 
 
 def _build_result_payload(
-    valid: bool,
     url: str,
-    results: dict[str, CheckResultProtocol],
+    results: dict[str, object],
+    start_time: float,
 ) -> dict:
-    """Construit le payload de l'événement SSE result à partir des résultats.
+    """Construit le payload normalisé (ScanResult) pour l'événement SSE result.
 
     Args:
-        valid: Posture TLS valide (is_posture_valid).
         url: URL normalisée scannée.
         results: Dict clé → résultat (tls, headers, cookies, exposed_files, directory_listing, robots_txt, tech_fingerprinting).
+        start_time: Timestamp monotonic du début du scan.
 
     Returns:
         dict: Payload sérialisable pour {event: result, data: {...}}.
     """
-    payload: dict = {"valid": valid, "url": url}
-    for key, result in results.items():
-        payload[key] = result.to_dict()
-    return payload
+    findings = normalize_results(results)
+    findings_tuple = tuple(findings)
+    score = compute_score(findings_tuple)
+    duration = time.monotonic() - start_time
+    timestamp = datetime.now(timezone.utc).isoformat()
+    scan_result = ScanResult(
+        url=url,
+        timestamp=timestamp,
+        duration=duration,
+        score=score,
+        findings=findings_tuple,
+    )
+    return scan_result.to_dict()
 
 
 # Étapes de la pipeline : (step_name, msg_check, msg_done, step_fn)
@@ -152,6 +164,7 @@ async def _run_checks_with_client(
     normalized_url: str,
     client: object,
     over_global: Callable[[], bool],
+    start_time: float,
 ) -> AsyncGenerator[str, None]:
     """Exécute les étapes de vérification avec le client partagé."""
     https_url = build_https_url(normalized_url)
@@ -172,8 +185,7 @@ async def _run_checks_with_client(
             yield _timeout_error_message()
             return
 
-    tls_result = ctx.results["tls"]
-    payload = _build_result_payload(tls_result.is_posture_valid(), normalized_url, ctx.results)
+    payload = _build_result_payload(normalized_url, ctx.results, start_time)
     yield sse_message("result", payload)
 
 
@@ -202,7 +214,7 @@ async def _run_pipeline_steps(url: str) -> AsyncGenerator[str, None]:
     yield sse_message("step", {"step": "fetch_https", "message": "Récupération de la page HTTPS…"})
 
     async with scan_client() as client:
-        async for chunk in _run_checks_with_client(normalized_url, client, _over_global):
+        async for chunk in _run_checks_with_client(normalized_url, client, _over_global, start):
             yield chunk
 
 
