@@ -18,7 +18,7 @@ async def test_run_directory_listing_checks_aucun_listing() -> None:
     mock_resp.status_code = 404
     mock_resp.content = b""
 
-    with patch("app.services.directory_listing.checks.fetch_url", new_callable=AsyncMock) as mock_fetch:
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.return_value = mock_resp
 
         result = await run_directory_listing_checks("https://example.com")
@@ -44,7 +44,7 @@ async def test_run_directory_listing_checks_apache_listing_uploads() -> None:
         resp_404.content = b""
         return resp_404
 
-    with patch("app.services.directory_listing.checks.fetch_url", new_callable=AsyncMock) as mock_fetch:
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.side_effect = _fetch_side_effect
 
         result = await run_directory_listing_checks("https://example.com")
@@ -72,7 +72,7 @@ async def test_run_directory_listing_checks_nginx_listing_static() -> None:
         resp_404.content = b""
         return resp_404
 
-    with patch("app.services.directory_listing.checks.fetch_url", new_callable=AsyncMock) as mock_fetch:
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.side_effect = _fetch_side_effect
 
         result = await run_directory_listing_checks("https://example.com")
@@ -89,7 +89,7 @@ async def test_run_directory_listing_checks_200_sans_signature_non_listing() -> 
     mock_resp.status_code = 200
     mock_resp.content = b"<html><body>Welcome to our app. Index of products.</body></html>"
 
-    with patch("app.services.directory_listing.checks.fetch_url", new_callable=AsyncMock) as mock_fetch:
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.return_value = mock_resp
 
         result = await run_directory_listing_checks("https://example.com")
@@ -114,7 +114,7 @@ async def test_run_directory_listing_checks_parent_directory_signature() -> None
         resp_404.content = b""
         return resp_404
 
-    with patch("app.services.directory_listing.checks.fetch_url", new_callable=AsyncMock) as mock_fetch:
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.side_effect = _fetch_side_effect
 
         result = await run_directory_listing_checks("https://example.com")
@@ -126,7 +126,7 @@ async def test_run_directory_listing_checks_parent_directory_signature() -> None
 @pytest.mark.asyncio()
 async def test_run_directory_listing_checks_fetch_ok_false_si_toutes_echouent() -> None:
     """Si toutes les requêtes échouent (None), fetch_ok doit être False."""
-    with patch("app.services.directory_listing.checks.fetch_url", new_callable=AsyncMock) as mock_fetch:
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.return_value = None
 
         result = await run_directory_listing_checks("https://example.com")
