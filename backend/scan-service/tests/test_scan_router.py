@@ -7,6 +7,7 @@ import pytest
 
 from app.services.directory_listing import DirectoryListingCheckResult
 from app.services.exposed_files import ExposedFilesCheckResult
+from app.services.robots_txt import RobotsTxtCheckResult
 from app.services.tls.checks import TlsCheckResult
 from tests.conftest import parse_sse_events
 
@@ -36,6 +37,7 @@ def test_post_scan_accepte_url_valide(client) -> None:
     )
     exposed_result = ExposedFilesCheckResult(exposed=(), findings=(), fetch_ok=True)
     directory_listing_result = DirectoryListingCheckResult(exposed=(), findings=(), fetch_ok=True)
+    robots_txt_result = RobotsTxtCheckResult(disallow_paths=(), sensitive_routes=(), findings=(), fetch_ok=True)
 
     with (
         patch("app.services.scan_stream.check_ssrf", new_callable=AsyncMock),
@@ -47,6 +49,11 @@ def test_post_scan_accepte_url_valide(client) -> None:
             "app.services.scan_stream.run_directory_listing_checks",
             new_callable=AsyncMock,
             return_value=directory_listing_result,
+        ),
+        patch(
+            "app.services.scan_stream.run_robots_txt_checks",
+            new_callable=AsyncMock,
+            return_value=robots_txt_result,
         ),
     ):
         response = client.post("/api/scan", json={"url": "https://github.com"})
@@ -65,6 +72,7 @@ def test_post_scan_accepte_url_valide(client) -> None:
     assert result_events[0][1]["tls"]["tls_versions_obsolete"] == []
     assert result_events[0][1]["tls"]["findings"] == []
     assert "directory_listing" in result_events[0][1]
+    assert "robots_txt" in result_events[0][1]
 
 
 def test_post_scan_refuse_url_avec_credentials(client) -> None:

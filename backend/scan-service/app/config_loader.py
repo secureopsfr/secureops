@@ -241,6 +241,52 @@ def get_directory_listing_max_body() -> int:
     return int(dl.get("max_body_bytes", 8192))
 
 
+_DEFAULT_ROBOTS_TXT_PATTERNS: tuple[tuple[str, str], ...] = (
+    ("admin", "high"),
+    ("administrator", "high"),
+    ("backend", "high"),
+    ("manage", "high"),
+    ("api", "medium"),
+    ("config", "high"),
+    ("backup", "high"),
+    ("private", "high"),
+    ("internal", "high"),
+    ("secret", "high"),
+    ("cgi-bin", "medium"),
+    ("upload", "medium"),
+    ("media", "medium"),
+    ("tmp", "medium"),
+    ("cache", "medium"),
+    ("database", "high"),
+    (".git", "critical"),
+    (".env", "critical"),
+    ("login", "medium"),
+    ("auth", "medium"),
+)
+
+
+@lru_cache(maxsize=1)
+def get_robots_txt_settings() -> tuple[tuple[str, str], ...]:
+    """Charge la section robots_txt depuis config/settings.yml (mis en cache).
+
+    Returns:
+        tuple[tuple[str, str], ...]: Liste des (motif, severity) pour routes sensibles.
+    """
+    data = _load_settings_yml()
+    rt = data.get("robots_txt") or {}
+    patterns_raw = rt.get("patterns") or []
+    if not patterns_raw:
+        return _DEFAULT_ROBOTS_TXT_PATTERNS
+    result: list[tuple[str, str]] = []
+    for item in patterns_raw:
+        if isinstance(item, dict):
+            pattern = str(item.get("pattern", ""))
+            severity = str(item.get("severity", "medium"))
+            if pattern:
+                result.append((pattern, severity))
+    return tuple(result) if result else _DEFAULT_ROBOTS_TXT_PATTERNS
+
+
 @lru_cache(maxsize=1)
 def get_scan_timeouts() -> ScanTimeoutsSettings:
     """Charge la section timeouts depuis config/settings.yml (mis en cache).
@@ -262,6 +308,7 @@ __all__ = [
     "AppSettings",
     "DirectoryListingConfig",
     "ExposedFileConfig",
+    "get_robots_txt_settings",
     "GeneralSettings",
     "RoutersSettings",
     "SecurityHeaderConfig",
