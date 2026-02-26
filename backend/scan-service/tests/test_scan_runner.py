@@ -1,4 +1,4 @@
-"""Tests unitaires pour les vérifications TLS/HTTPS (scan_runner)."""
+"""Tests unitaires pour les vérifications TLS/HTTPS (app.services.tls)."""
 
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
@@ -10,12 +10,12 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-from app.services.scan_runner import (
+from app.services.tls import run_tls_checks
+from app.services.tls.checks import (
     _build_http_url,
     _build_https_url,
     _get_https_port_from_url,
     _location_redirects_to_https,
-    run_tls_checks,
 )
 
 
@@ -135,9 +135,9 @@ async def test_run_tls_checks_https_ok_et_redirect_ok() -> None:
     valid_cert = _make_valid_cert_der()
 
     with (
-        patch("app.services.scan_runner.httpx.AsyncClient") as mock_client,
-        patch("app.services.scan_runner._fetch_certificate_der", return_value=valid_cert),
-        patch("app.services.scan_runner._check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.tls.checks._fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.tls.checks._check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -159,7 +159,7 @@ async def test_run_tls_checks_https_non_actif_connect_error() -> None:
     mock_client_instance = AsyncMock()
     mock_client_instance.get = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))
 
-    with patch("app.services.scan_runner.httpx.AsyncClient") as mock_client:
+    with patch("app.services.tls.checks.httpx.AsyncClient") as mock_client:
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_context.__aexit__ = AsyncMock(return_value=None)
@@ -182,7 +182,7 @@ async def test_run_tls_checks_https_non_actif_timeout() -> None:
     mock_client_instance = AsyncMock()
     mock_client_instance.get = AsyncMock(side_effect=httpx.ConnectTimeout("Timeout"))
 
-    with patch("app.services.scan_runner.httpx.AsyncClient") as mock_client:
+    with patch("app.services.tls.checks.httpx.AsyncClient") as mock_client:
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_context.__aexit__ = AsyncMock(return_value=None)
@@ -213,9 +213,9 @@ async def test_run_tls_checks_pas_redirection_http() -> None:
     valid_cert = _make_valid_cert_der()
 
     with (
-        patch("app.services.scan_runner.httpx.AsyncClient") as mock_client,
-        patch("app.services.scan_runner._fetch_certificate_der", return_value=valid_cert),
-        patch("app.services.scan_runner._check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.tls.checks._fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.tls.checks._check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -247,9 +247,9 @@ async def test_run_tls_checks_certificat_expire() -> None:
     expired_cert = _make_expired_cert_der()
 
     with (
-        patch("app.services.scan_runner.httpx.AsyncClient") as mock_client,
-        patch("app.services.scan_runner._fetch_certificate_der", return_value=expired_cert),
-        patch("app.services.scan_runner._check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.tls.checks._fetch_certificate_der", return_value=expired_cert),
+        patch("app.services.tls.checks._check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -279,9 +279,9 @@ async def test_run_tls_checks_certificat_auto_signe() -> None:
     self_signed_cert = _make_self_signed_cert_der()
 
     with (
-        patch("app.services.scan_runner.httpx.AsyncClient") as mock_client,
-        patch("app.services.scan_runner._fetch_certificate_der", return_value=self_signed_cert),
-        patch("app.services.scan_runner._check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.tls.checks._fetch_certificate_der", return_value=self_signed_cert),
+        patch("app.services.tls.checks._check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -311,10 +311,10 @@ async def test_run_tls_checks_tls_versions_obsoletes() -> None:
     valid_cert = _make_valid_cert_der()
 
     with (
-        patch("app.services.scan_runner.httpx.AsyncClient") as mock_client,
-        patch("app.services.scan_runner._fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.tls.checks._fetch_certificate_der", return_value=valid_cert),
         patch(
-            "app.services.scan_runner._check_tls_versions_obsolete",
+            "app.services.tls.checks._check_tls_versions_obsolete",
             return_value=(["1.0", "1.1"], ["TLS 1.0 et 1.1 encore accepté(s). Versions obsolètes à désactiver."]),
         ),
     ):

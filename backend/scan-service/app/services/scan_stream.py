@@ -1,26 +1,13 @@
 """Pipeline de scan en streaming SSE : étapes et format des événements."""
 
-import json
 import time
 from collections.abc import AsyncGenerator
 
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
-from app.services.scan_runner import run_tls_checks
+from app.services.tls import run_tls_checks
+from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
 from app.utils.url_validator import URLValidationError, validate_and_normalize_url
-
-
-def _sse_message(event: str, data: dict) -> str:
-    """Formate un message Server-Sent Events.
-
-    Args:
-        event: Nom de l'événement SSE.
-        data: Données JSON à envoyer.
-
-    Returns:
-        str: Bloc SSE (event + data + double newline).
-    """
-    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
@@ -42,23 +29,23 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
         def _over_global() -> bool:
             return (time.monotonic() - start) > scan_global
 
-        yield _sse_message("step", {"step": "validation_url", "message": "Validation de l'URL…"})
+        yield sse_message("step", {"step": "validation_url", "message": "Validation de l'URL…"})
         normalized_url = validate_and_normalize_url(url)
-        yield _sse_message("step", {"step": "url_validated", "message": "URL validée et normalisée."})
+        yield sse_message("step", {"step": "url_validated", "message": "URL validée et normalisée."})
 
         if _over_global():
-            yield _sse_message("error", {"message": "Délai global du scan dépassé.", "status_code": 408})
+            yield sse_message("error", {"message": "Délai global du scan dépassé.", "status_code": 408})
             return
-        yield _sse_message("step", {"step": "ssrf_check", "message": "Vérification SSRF (résolution DNS)…"})
+        yield sse_message("step", {"step": "ssrf_check", "message": "Vérification SSRF (résolution DNS)…"})
         await check_ssrf(normalized_url, timeout=get_ssrf_settings().dns_timeout)
-        yield _sse_message("step", {"step": "ssrf_ok", "message": "Vérification SSRF OK."})
+        yield sse_message("step", {"step": "ssrf_ok", "message": "Vérification SSRF OK."})
 
         if _over_global():
-            yield _sse_message("error", {"message": "Délai global du scan dépassé.", "status_code": 408})
+            yield sse_message("error", {"message": "Délai global du scan dépassé.", "status_code": 408})
             return
-        yield _sse_message("step", {"step": "tls_check", "message": "Vérification TLS/HTTPS…"})
+        yield sse_message("step", {"step": "tls_check", "message": "Vérification TLS/HTTPS…"})
         tls_result = await run_tls_checks(normalized_url)
-        yield _sse_message("step", {"step": "tls_done", "message": "TLS/HTTPS vérifié."})
+        yield sse_message("step", {"step": "tls_done", "message": "TLS/HTTPS vérifié."})
 
         valid = (
             tls_result.https_enabled
@@ -66,7 +53,7 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
             and (tls_result.certificate_status is None or tls_result.certificate_status == "valid")  # noqa: W503
             and len(tls_result.tls_versions_obsolete) == 0  # noqa: W503
         )
-        yield _sse_message(
+        yield sse_message(
             "result",
             {
                 "valid": valid,
@@ -81,4 +68,4 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
             },
         )
     except URLValidationError as e:
-        yield _sse_message("error", {"message": str(e), "status_code": 400})
+        yield sse_message("error", {"message": str(e), "status_code": 400})

@@ -1,4 +1,4 @@
-"""Exécution du scan : étapes métier (TLS, etc.). Utilise get_scan_timeouts pour le client HTTP."""
+"""Vérifications TLS/HTTPS : HTTPS activé, redirection HTTP→HTTPS, certificat, versions obsolètes."""
 
 import asyncio
 import socket
