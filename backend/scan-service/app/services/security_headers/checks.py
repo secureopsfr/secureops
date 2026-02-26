@@ -40,7 +40,7 @@ def check_security_headers_from_response(response: httpx.Response | None) -> Sec
     """Vérifie la présence des en-têtes de sécurité sur une réponse HTTPS.
 
     Analyse les en-têtes de la réponse (sans effectuer de requête). Utilisé avec
-    la réponse pré-fetchée par fetch_https pour éviter les appels dupliqués.
+    la réponse pré-fetchée par get_with_client (scan_client) pour éviter les appels dupliqués.
 
     Args:
         response: Réponse HTTP (ou None si le fetch a échoué).

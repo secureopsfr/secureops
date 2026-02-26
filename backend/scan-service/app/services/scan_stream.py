@@ -2,15 +2,18 @@
 
 import asyncio
 import time
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
+from app.models.check_results import CheckResultProtocol
 from app.services.cookies import check_cookies_from_response
+from app.services.exposed_files import run_exposed_files_checks
 from app.services.security_headers import check_security_headers_from_response
 from app.services.tls import run_tls_checks
-from app.utils.http_fetch import fetch_https
+from app.utils.http_fetch import get_with_client, scan_client
 from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
+from app.utils.url_helpers import build_https_url
 from app.utils.url_validator import URLValidationError, validate_and_normalize_url
 
 
@@ -41,6 +44,100 @@ def _timeout_error_message() -> str:
     return sse_message("error", {"message": "Délai global du scan dépassé.", "status_code": 408})
 
 
+def _build_result_payload(
+    valid: bool,
+    url: str,
+    results: dict[str, CheckResultProtocol],
+) -> dict:
+    """Construit le payload de l'événement SSE result à partir des résultats.
+
+    Args:
+        valid: Posture TLS valide (is_posture_valid).
+        url: URL normalisée scannée.
+        results: Dict clé → résultat (tls, headers, cookies, exposed_files).
+
+    Returns:
+        dict: Payload sérialisable pour {event: result, data: {...}}.
+    """
+    payload: dict = {"valid": valid, "url": url}
+    for key, result in results.items():
+        payload[key] = result.to_dict()
+    return payload
+
+
+async def _run_checks_with_client(
+    normalized_url: str,
+    client,
+    over_global: Callable[[], bool],
+) -> AsyncGenerator[str, None]:
+    """Exécute TLS, headers, cookies, exposed_files avec le client partagé."""
+    https_url = build_https_url(normalized_url)
+    https_response = await get_with_client(client, https_url, follow_redirects=True)
+
+    chunks, tls_result = await _emit_step_and_run(
+        "tls",
+        "Vérification TLS/HTTPS…",
+        "TLS/HTTPS vérifié.",
+        run_tls_checks,
+        normalized_url,
+        https_response=https_response,
+        client=client,
+    )
+    for c in chunks:
+        yield c
+    if over_global():
+        yield _timeout_error_message()
+        return
+
+    chunks, headers_result = await _emit_step_and_run(
+        "headers",
+        "Vérification Security Headers…",
+        "Security Headers vérifiés.",
+        check_security_headers_from_response,
+        https_response,
+    )
+    for c in chunks:
+        yield c
+    if over_global():
+        yield _timeout_error_message()
+        return
+
+    chunks, cookies_result = await _emit_step_and_run(
+        "cookies",
+        "Vérification Cookies…",
+        "Cookies vérifiés.",
+        check_cookies_from_response,
+        https_response,
+        is_https=tls_result.https_enabled,
+    )
+    for c in chunks:
+        yield c
+    if over_global():
+        yield _timeout_error_message()
+        return
+
+    base_https = build_https_url(normalized_url)
+    chunks, exposed_files_result = await _emit_step_and_run(
+        "exposed_files",
+        "Vérification fichiers sensibles exposés…",
+        "Fichiers sensibles vérifiés.",
+        run_exposed_files_checks,
+        base_https,
+        client=client,
+    )
+    for c in chunks:
+        yield c
+
+    results: dict[str, CheckResultProtocol] = {
+        "tls": tls_result,
+        "headers": headers_result,
+        "cookies": cookies_result,
+        "exposed_files": exposed_files_result,
+    }
+    payload = _build_result_payload(tls_result.is_posture_valid(), normalized_url, results)
+    yield sse_message("result", payload)
+
+
 async def _run_pipeline_steps(url: str) -> AsyncGenerator[str, None]:
     """Exécute les étapes de la pipeline (validation, SSRF, fetch, checks)."""
     start = time.monotonic()
@@ -64,57 +161,10 @@ async def _run_pipeline_steps(url: str) -> AsyncGenerator[str, None]:
         yield _timeout_error_message()
         return
     yield sse_message("step", {"step": "fetch_https", "message": "Récupération de la page HTTPS…"})
-    https_response = await fetch_https(normalized_url)
 
-    chunks, tls_result = await _emit_step_and_run(
-        "tls",
-        "Vérification TLS/HTTPS…",
-        "TLS/HTTPS vérifié.",
-        run_tls_checks,
-        normalized_url,
-        https_response=https_response,
-    )
-    for c in chunks:
-        yield c
-
-    if _over_global():
-        yield _timeout_error_message()
-        return
-    chunks, headers_result = await _emit_step_and_run(
-        "headers",
-        "Vérification Security Headers…",
-        "Security Headers vérifiés.",
-        check_security_headers_from_response,
-        https_response,
-    )
-    for c in chunks:
-        yield c
-
-    if _over_global():
-        yield _timeout_error_message()
-        return
-    chunks, cookies_result = await _emit_step_and_run(
-        "cookies",
-        "Vérification Cookies…",
-        "Cookies vérifiés.",
-        check_cookies_from_response,
-        https_response,
-        is_https=tls_result.https_enabled,
-    )
-    for c in chunks:
-        yield c
-
-    valid = tls_result.is_posture_valid()
-    yield sse_message(
-        "result",
-        {
-            "valid": valid,
-            "url": normalized_url,
-            "tls": tls_result.to_dict(),
-            "headers": headers_result.to_dict(),
-            "cookies": cookies_result.to_dict(),
-        },
-    )
+    async with scan_client() as client:
+        async for chunk in _run_checks_with_client(normalized_url, client, _over_global):
+            yield chunk
 
 
 async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:

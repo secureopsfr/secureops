@@ -83,6 +83,29 @@ security_headers:
     - name: Permissions-Policy
       message_absent: "Permissions-Policy absent : APIs navigateur accessibles par défaut."
 
+# Exposed files / sensitive endpoints (roadmap §3.4) : chemins à tester.
+exposed_files:
+  max_body_bytes: 8192  # Limite de lecture pour détection (éviter gros fichiers)
+  paths:
+    - path: /.env
+      severity: critical
+      message: "Fichier .env exposé : credentials et secrets accessibles."
+    - path: /.git/config
+      severity: critical
+      message: "Fichier .git/config exposé : dépôt Git accessible."
+    - path: /backup.zip
+      severity: high
+      message: "Archive backup.zip exposée : sauvegarde accessible."
+    - path: /phpinfo.php
+      severity: high
+      message: "phpinfo.php exposé : configuration PHP révélée."
+    - path: /admin/
+      severity: medium
+      message: "Interface /admin/ exposée : à protéger par authentification."
+    - path: /.DS_Store
+      severity: low
+      message: "Fichier .DS_Store exposé : structure des répertoires révélée."
+
 # Timeouts scan (roadmap §2.3) : connexion, lecture, durée max du scan.
 timeouts:
   connection: 3    # secondes pour établir la connexion
