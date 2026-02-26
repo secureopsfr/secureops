@@ -97,12 +97,14 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 
 > **Fait :** Module `app/services/security_headers/` (checks.py). Intégré dans le flux SSE après TLS (`headers_check` → `headers_done`). Résultat exposé dans l’événement `result.headers`. Tests unitaires dans `tests/test_security_headers_checks.py`.
 
-### 3.3 Cookies
-- [ ] Vérifier flags :
+### 3.3 Cookies ✅
+- [x] Vérifier flags :
   - `Secure`
   - `HttpOnly`
   - `SameSite`
-- [ ] Détecter cookies sans `Secure` si site HTTPS
+- [x] Détecter cookies sans `Secure` si site HTTPS
+
+> **Fait :** Module `app/services/cookies/` (checks.py). Parse les en-têtes Set-Cookie, vérifie Secure/HttpOnly/SameSite. Détecte cookies sans Secure sur site HTTPS. Intégré dans le flux SSE après headers (`cookies_check` → `cookies_done`). Réutilise la réponse HTTPS (pas de requête supplémentaire). Tests dans `tests/test_cookies_checks.py`.
 
 ### 3.4 Exposition fichiers / endpoints sensibles (liste fixe MVP)
 - [ ] Tester GET sur une petite liste :

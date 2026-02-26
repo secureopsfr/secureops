@@ -9,6 +9,9 @@ line_length = 150
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q -ra"
+markers = [
+    "integration: tests that hit real network (exclude in CI with -m 'not integration')",
+]
 filterwarnings = [
     "ignore:The 'app' shortcut is now deprecated:DeprecationWarning",
     "ignore:ssl.TLSVersion.TLSv1 is deprecated:DeprecationWarning",

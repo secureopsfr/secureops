@@ -4,25 +4,11 @@ Centralise la requête HTTPS (SSL permissif, timeouts) afin d'éviter les appels
 dupliqués entre TLS et Security Headers.
 """
 
-import ssl
-
 import httpx
 
 from app.config_loader import get_scan_timeouts
+from app.utils.ssl_scan import ssl_context_for_scan
 from app.utils.url_helpers import build_https_url
-
-
-def _ssl_context_for_scan() -> ssl.SSLContext:
-    """Contexte SSL permissif pour le scan : TLS 1.0+ accepté, pas de vérif. certificat.
-
-    Returns:
-        ssl.SSLContext: Contexte configuré.
-    """
-    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    ctx.minimum_version = ssl.TLSVersion.TLSv1
-    return ctx
 
 
 async def fetch_https(url: str, *, follow_redirects: bool = True) -> httpx.Response | None:
@@ -43,7 +29,7 @@ async def fetch_https(url: str, *, follow_redirects: bool = True) -> httpx.Respo
 
     try:
         async with httpx.AsyncClient(
-            verify=_ssl_context_for_scan(),
+            verify=ssl_context_for_scan(),
             follow_redirects=follow_redirects,
             timeout=httpx.Timeout(timeouts.connection, read=timeouts.read),
         ) as client:

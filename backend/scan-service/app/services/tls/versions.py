@@ -3,6 +3,8 @@
 import socket
 import ssl
 
+from app.utils.ssl_scan import ssl_context_for_version_test
+
 
 def try_tls_version(host: str, port: int, timeout: float, min_ver: ssl.TLSVersion, max_ver: ssl.TLSVersion) -> bool:
     """Tente une connexion TLS avec les versions min/max spécifiées.
@@ -18,11 +20,7 @@ def try_tls_version(host: str, port: int, timeout: float, min_ver: ssl.TLSVersio
         bool: True si la connexion réussit.
     """
     try:
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
-        context.minimum_version = min_ver
-        context.maximum_version = max_ver
+        context = ssl_context_for_version_test(min_ver, max_ver)
         with socket.create_connection((host, port), timeout=timeout) as sock, context.wrap_socket(sock, server_hostname=host) as ssock:
             _ = ssock.version()
         return True
