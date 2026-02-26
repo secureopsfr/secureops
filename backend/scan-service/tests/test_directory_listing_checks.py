@@ -4,11 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.directory_listing import (
-    DirectoryListingCheckResult,
-    DirectoryListingEntry,
-    run_directory_listing_checks,
-)
+from app.services.directory_listing import DirectoryListingCheckResult, DirectoryListingEntry, run_directory_listing_checks
 
 
 @pytest.mark.asyncio()
