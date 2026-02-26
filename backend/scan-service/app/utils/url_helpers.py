@@ -1,6 +1,6 @@
 """Helpers pour extraction et construction d'URLs (host, port, build http/https)."""
 
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urljoin, urlparse, urlunparse
 
 
 def extract_host_from_url(url: str) -> str:
@@ -74,6 +74,20 @@ def get_https_port_from_url(url: str) -> int:
         if port is not None:
             return port
     return 443
+
+
+def build_url_with_path(base_url: str, path: str) -> str:
+    """Construit une URL complète à partir de la base et d'un chemin.
+
+    Args:
+        base_url: URL de base (ex. https://example.com/).
+        path: Chemin à joindre (ex. .env, .git/config).
+
+    Returns:
+        str: URL complète (ex. https://example.com/.env).
+    """
+    base = base_url.rstrip("/") + "/"
+    return urljoin(base, path.lstrip("/"))
 
 
 def location_redirects_to_https(location: str | None) -> bool:

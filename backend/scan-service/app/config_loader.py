@@ -146,6 +146,55 @@ def get_security_headers_settings() -> tuple[SecurityHeaderConfig, ...]:
     return tuple(result)
 
 
+@dataclass(frozen=True)
+class ExposedFileConfig:
+    """Configuration d'un chemin sensible à tester (roadmap §3.4)."""
+
+    path: str
+    severity: str
+    message: str
+
+
+_DEFAULT_EXPOSED_PATHS: tuple[tuple[str, str, str], ...] = (
+    ("/.env", "critical", "Fichier .env exposé : credentials et secrets accessibles."),
+    ("/.git/config", "critical", "Fichier .git/config exposé : dépôt Git accessible."),
+    ("/backup.zip", "high", "Archive backup.zip exposée : sauvegarde accessible."),
+    ("/phpinfo.php", "high", "phpinfo.php exposé : configuration PHP révélée."),
+    ("/admin/", "medium", "Interface /admin/ exposée : à protéger par authentification."),
+    ("/.DS_Store", "low", "Fichier .DS_Store exposé : structure des répertoires révélée."),
+)
+
+
+@lru_cache(maxsize=1)
+def get_exposed_files_settings() -> tuple[ExposedFileConfig, ...]:
+    """Charge la section exposed_files depuis config/settings.yml (mis en cache).
+
+    Returns:
+        tuple[ExposedFileConfig, ...]: Liste des chemins à tester.
+    """
+    data = _load_settings_yml()
+    ef = data.get("exposed_files") or {}
+    paths_raw = ef.get("paths") or []
+    if not paths_raw:
+        return tuple(ExposedFileConfig(p[0], p[1], p[2]) for p in _DEFAULT_EXPOSED_PATHS)
+    result: list[ExposedFileConfig] = []
+    for item in paths_raw:
+        if isinstance(item, dict):
+            path = str(item.get("path", ""))
+            severity = str(item.get("severity", "medium"))
+            message = str(item.get("message", ""))
+            result.append(ExposedFileConfig(path=path, severity=severity, message=message))
+    return tuple(result)
+
+
+@lru_cache(maxsize=1)
+def get_exposed_files_max_body() -> int:
+    """Retourne la limite de lecture du corps (octets) pour la détection."""
+    data = _load_settings_yml()
+    ef = data.get("exposed_files") or {}
+    return int(ef.get("max_body_bytes", 8192))
+
+
 @lru_cache(maxsize=1)
 def get_scan_timeouts() -> ScanTimeoutsSettings:
     """Charge la section timeouts depuis config/settings.yml (mis en cache).
@@ -165,10 +214,13 @@ def get_scan_timeouts() -> ScanTimeoutsSettings:
 __all__ = [
     "settings",
     "AppSettings",
+    "ExposedFileConfig",
     "GeneralSettings",
     "RoutersSettings",
     "SecurityHeaderConfig",
     "SsrfSettings",
+    "get_exposed_files_max_body",
+    "get_exposed_files_settings",
     "get_security_headers_settings",
     "get_ssrf_settings",
     "UrlValidationSettings",
