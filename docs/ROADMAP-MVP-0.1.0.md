@@ -1,4 +1,4 @@
-# SecureOps — Roadmap MVP (étape par étape)
+# SecureOps — Roadmap MVP 0.1.0 (étape par étape)
 
 Objectif : livrer un **scanner de posture sécurité web** (non-intrusif) destiné aux devs débutants/intermédiaires :
 **URL → scan rapide → score + rapport clair**.
@@ -261,7 +261,9 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 
 ---
 
-# V2 (après MVP) — évolutions naturelles
+# V2 (après MVP) — Roadmap MVP 0.2.0
+
+> Voir [ROADMAP-MVP-0.2.0.md](ROADMAP-MVP-0.2.0.md) pour le détail complet.
 
 - [ ] Mode asynchrone + queue (SQS / Celery)
 - [ ] Auth + dashboard + historique scans
