@@ -244,20 +244,24 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
       >
         <Card disableHover className="scanner-block p-4">
           <h3 className="section-title !text-left mb-3">
-            {t("scanner.findings")} : {sortedFindings.length}
+            {t("scanner.findings")}
           </h3>
           {sortedFindings.length === 0 ? (
             <p className="text-muted-theme">{t("scanner.noFindings")}</p>
           ) : (
-            <ul className="space-y-4">
+            <ul className="divide-y-0">
               {sortedFindings.map((f, i) => (
-                <AnimateInView
-                  key={`${f.id}-${i}`}
-                  className="landing-reveal-finding"
-                  as="li"
-                >
-                  <FindingCard finding={f} />
-                </AnimateInView>
+                <li key={`${f.id}-${i}`}>
+                  <AnimateInView className="landing-reveal-finding" as="div">
+                    <FindingCard finding={f} />
+                    {i < sortedFindings.length - 1 && (
+                      <div
+                        className="my-4 mx-auto w-[90%] border-t border-[var(--color-border)] opacity-50"
+                        aria-hidden
+                      />
+                    )}
+                  </AnimateInView>
+                </li>
               ))}
             </ul>
           )}

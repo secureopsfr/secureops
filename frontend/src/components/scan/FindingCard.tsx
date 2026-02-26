@@ -1,7 +1,6 @@
 "use client";
 
 import { useLanguage } from "../LanguageProvider";
-import Card from "../cards/Card";
 import Badge from "../Badge";
 import { ExternalLink } from "lucide-react";
 import type { ScanFinding } from "../../services/scanService";
@@ -25,16 +24,18 @@ export default function FindingCard({ finding }: FindingCardProps) {
   const severityVariant = SEVERITY_BADGE_VARIANT[finding.severity] ?? "info";
 
   return (
-    <Card disableHover className="p-4">
+    <div className="py-4">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <Badge variant={severityVariant}>
-          {t(getSeverityKey(finding.severity))}
-        </Badge>
-        <span className="text-xs text-muted-theme">
-          {t(getCategoryKey(finding.category))}
-        </span>
+        <h4 className="font-medium">{finding.title}</h4>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={severityVariant}>
+            {t(getSeverityKey(finding.severity))}
+          </Badge>
+          <span className="text-xs text-muted-theme">
+            {t(getCategoryKey(finding.category))}
+          </span>
+        </div>
       </div>
-      <h4 className="mb-2 font-medium">{finding.title}</h4>
       {finding.evidence && (
         <p className="mb-2 text-sm text-muted-theme">
           <span className="font-medium">{t("scanner.evidence")}:</span>{" "}
@@ -64,6 +65,6 @@ export default function FindingCard({ finding }: FindingCardProps) {
           </ul>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

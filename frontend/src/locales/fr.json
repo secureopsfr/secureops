@@ -145,7 +145,7 @@
     "scoreLow": "Posture faible",
     "duration": "Durée du scan",
     "seconds": "s",
-    "findings": "Problèmes détectés",
+    "findings": "Liste des problèmes",
     "findingsByCategory": "Par catégorie",
     "noFindings": "Aucun problème détecté.",
     "howToFix": "Comment corriger",

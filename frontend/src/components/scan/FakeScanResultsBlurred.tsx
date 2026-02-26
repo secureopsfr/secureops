@@ -85,7 +85,7 @@ export default function FakeScanResultsBlurred() {
 
       <Card disableHover className="scanner-block p-4">
         <h3 className="section-title !text-left mb-3">
-          {t("scanner.findings")} : {FAKE_FINDINGS.length}
+          {t("scanner.findings")}
         </h3>
         <ul className="space-y-4">
           {FAKE_FINDINGS.map((f, i) => (

@@ -145,7 +145,7 @@
     "scoreLow": "Weak posture",
     "duration": "Scan duration",
     "seconds": "s",
-    "findings": "Issues detected",
+    "findings": "List of problems",
     "findingsByCategory": "By category",
     "noFindings": "No issues detected.",
     "howToFix": "How to fix",
