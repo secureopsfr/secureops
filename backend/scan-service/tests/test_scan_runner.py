@@ -126,6 +126,7 @@ async def test_run_tls_checks_https_ok_et_redirect_ok() -> None:
     with (
         patch("app.services.scan_runner.httpx.AsyncClient") as mock_client,
         patch("app.services.scan_runner._fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.scan_runner._check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -137,6 +138,7 @@ async def test_run_tls_checks_https_ok_et_redirect_ok() -> None:
     assert result.https_enabled is True
     assert result.http_redirects_to_https is True
     assert result.certificate_status == "valid"
+    assert result.tls_versions_obsolete == ()
     assert len(result.findings) == 0
 
 
@@ -157,6 +159,7 @@ async def test_run_tls_checks_https_non_actif_connect_error() -> None:
     assert result.https_enabled is False
     assert result.http_redirects_to_https is None
     assert result.certificate_status is None
+    assert result.tls_versions_obsolete == ()
     assert len(result.findings) == 1
     assert "HTTPS non activé" in result.findings[0]
     assert "interception" in result.findings[0]
@@ -179,6 +182,7 @@ async def test_run_tls_checks_https_non_actif_timeout() -> None:
     assert result.https_enabled is False
     assert result.http_redirects_to_https is None
     assert result.certificate_status is None
+    assert result.tls_versions_obsolete == ()
     assert len(result.findings) == 1
     assert "HTTPS non activé" in result.findings[0]
 
@@ -200,6 +204,7 @@ async def test_run_tls_checks_pas_redirection_http() -> None:
     with (
         patch("app.services.scan_runner.httpx.AsyncClient") as mock_client,
         patch("app.services.scan_runner._fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.scan_runner._check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -211,6 +216,7 @@ async def test_run_tls_checks_pas_redirection_http() -> None:
     assert result.https_enabled is True
     assert result.http_redirects_to_https is False
     assert result.certificate_status == "valid"
+    assert result.tls_versions_obsolete == ()
     assert len(result.findings) == 1
     assert "Pas de redirection HTTP→HTTPS" in result.findings[0]
 
@@ -232,6 +238,7 @@ async def test_run_tls_checks_certificat_expire() -> None:
     with (
         patch("app.services.scan_runner.httpx.AsyncClient") as mock_client,
         patch("app.services.scan_runner._fetch_certificate_der", return_value=expired_cert),
+        patch("app.services.scan_runner._check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -263,6 +270,7 @@ async def test_run_tls_checks_certificat_auto_signe() -> None:
     with (
         patch("app.services.scan_runner.httpx.AsyncClient") as mock_client,
         patch("app.services.scan_runner._fetch_certificate_der", return_value=self_signed_cert),
+        patch("app.services.scan_runner._check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -275,3 +283,38 @@ async def test_run_tls_checks_certificat_auto_signe() -> None:
     assert result.http_redirects_to_https is True
     assert result.certificate_status == "self_signed"
     assert any("auto-signé" in f for f in result.findings)
+
+
+@pytest.mark.asyncio()
+async def test_run_tls_checks_tls_versions_obsoletes() -> None:
+    """run_tls_checks détecte TLS 1.0/1.1 si le serveur les accepte."""
+    mock_https_resp = AsyncMock()
+    mock_https_resp.status_code = 200
+    mock_http_resp = AsyncMock()
+    mock_http_resp.status_code = 301
+    mock_http_resp.headers = {"location": "https://example.com/"}
+
+    mock_client_instance = AsyncMock()
+    mock_client_instance.get = AsyncMock(side_effect=[mock_https_resp, mock_http_resp])
+
+    valid_cert = _make_valid_cert_der()
+
+    with (
+        patch("app.services.scan_runner.httpx.AsyncClient") as mock_client,
+        patch("app.services.scan_runner._fetch_certificate_der", return_value=valid_cert),
+        patch(
+            "app.services.scan_runner._check_tls_versions_obsolete",
+            return_value=(["1.0", "1.1"], ["TLS 1.0 et 1.1 encore accepté(s). Versions obsolètes à désactiver."]),
+        ),
+    ):
+        mock_context = AsyncMock()
+        mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
+        mock_context.__aexit__ = AsyncMock(return_value=None)
+        mock_client.return_value = mock_context
+
+        result = await run_tls_checks("https://example.com")
+
+    assert result.https_enabled is True
+    assert result.certificate_status == "valid"
+    assert result.tls_versions_obsolete == ("1.0", "1.1")
+    assert any("TLS 1.0" in f for f in result.findings)

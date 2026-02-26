@@ -64,6 +64,7 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
             tls_result.https_enabled
             and (tls_result.http_redirects_to_https is None or tls_result.http_redirects_to_https)  # noqa: W503
             and (tls_result.certificate_status is None or tls_result.certificate_status == "valid")  # noqa: W503
+            and len(tls_result.tls_versions_obsolete) == 0  # noqa: W503
         )
         yield _sse_message(
             "result",
@@ -74,6 +75,7 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
                     "https_enabled": tls_result.https_enabled,
                     "http_redirects_to_https": tls_result.http_redirects_to_https,
                     "certificate_status": tls_result.certificate_status,
+                    "tls_versions_obsolete": list(tls_result.tls_versions_obsolete),
                     "findings": list(tls_result.findings),
                 },
             },

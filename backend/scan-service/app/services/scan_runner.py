@@ -31,12 +31,14 @@ class TlsCheckResult:
         http_redirects_to_https (bool | None): True si HTTP redirige vers HTTPS, False sinon.
             None si non vérifiable (HTTP inaccessible ou HTTPS non activé).
         certificate_status (str | None): "valid", "expired" ou "self_signed". None si non vérifiable.
+        tls_versions_obsolete (tuple[str, ...]): Versions TLS obsolètes supportées (ex. ("1.0", "1.1")).
         findings (tuple[str, ...]): Liste des findings.
     """
 
     https_enabled: bool
     http_redirects_to_https: bool | None
     certificate_status: str | None
+    tls_versions_obsolete: tuple[str, ...]
     findings: tuple[str, ...]
 
 
@@ -151,6 +153,67 @@ def _get_host_from_url(url: str) -> str:
     return parsed.hostname or parsed.netloc.split(":")[0]
 
 
+def _try_tls_version(host: str, port: int, timeout: float, min_ver: ssl.TLSVersion, max_ver: ssl.TLSVersion) -> bool:
+    """Tente une connexion TLS avec les versions min/max spécifiées.
+
+    Args:
+        host: Nom d'hôte.
+        port: Port (443).
+        timeout: Timeout en secondes.
+        min_ver: Version TLS minimale.
+        max_ver: Version TLS maximale.
+
+    Returns:
+        bool: True si la connexion réussit.
+    """
+    try:
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        context.minimum_version = min_ver
+        context.maximum_version = max_ver
+        with socket.create_connection((host, port), timeout=timeout) as sock, context.wrap_socket(sock, server_hostname=host) as ssock:
+            _ = ssock.version()
+        return True
+    except (ssl.SSLError, OSError):
+        return False
+
+
+def _check_tls_versions_obsolete(host: str, timeout: float) -> tuple[list[str], list[str]]:
+    """Détecte si le serveur accepte TLS 1.0 ou 1.1 (obsolètes).
+
+    Args:
+        host: Nom d'hôte.
+        timeout: Timeout en secondes.
+
+    Returns:
+        tuple[list[str], list[str]]: (versions_obsolete, findings).
+    """
+    obsolete: list[str] = []
+    findings: list[str] = []
+    port = 443
+
+    if _try_tls_version(host, port, timeout, ssl.TLSVersion.TLSv1, ssl.TLSVersion.TLSv1):
+        obsolete.append("1.0")
+    if _try_tls_version(host, port, timeout, ssl.TLSVersion.TLSv1_1, ssl.TLSVersion.TLSv1_1):
+        obsolete.append("1.1")
+
+    if obsolete:
+        findings.append(f"TLS {' et '.join(obsolete)} encore accepté(s). Versions obsolètes à désactiver.")
+
+    return obsolete, findings
+
+
+async def _check_tls_versions(host: str, timeouts: ScanTimeoutsSettings, findings: list[str]) -> tuple[str, ...]:
+    """Vérification 4 : détecte TLS 1.0/1.1. Retourne la liste des versions obsolètes."""
+    try:
+        obsolete, tls_findings = await asyncio.to_thread(_check_tls_versions_obsolete, host, timeouts.connection)
+        findings.extend(tls_findings)
+        return tuple(obsolete)
+    except Exception:
+        return ()
+
+
 async def _check_certificate(host: str, timeouts: ScanTimeoutsSettings, findings: list[str]) -> str | None:
     """Vérification 3 : récupère et analyse le certificat. Retourne le statut ou None."""
     try:
@@ -197,6 +260,7 @@ async def run_tls_checks(url: str) -> TlsCheckResult:
             https_enabled=False,
             http_redirects_to_https=None,
             certificate_status=None,
+            tls_versions_obsolete=(),
             findings=tuple(findings),
         )
     except Exception as e:
@@ -205,6 +269,7 @@ async def run_tls_checks(url: str) -> TlsCheckResult:
             https_enabled=False,
             http_redirects_to_https=None,
             certificate_status=None,
+            tls_versions_obsolete=(),
             findings=tuple(findings),
         )
 
@@ -236,9 +301,13 @@ async def run_tls_checks(url: str) -> TlsCheckResult:
     host = _get_host_from_url(url)
     certificate_status = await _check_certificate(host, timeouts, findings)
 
+    # Vérification 4 : Versions TLS obsolètes (1.0, 1.1)
+    tls_versions_obsolete = await _check_tls_versions(host, timeouts, findings)
+
     return TlsCheckResult(
         https_enabled=True,
         http_redirects_to_https=http_redirects_to_https,
         certificate_status=certificate_status,
+        tls_versions_obsolete=tls_versions_obsolete,
         findings=tuple(findings),
     )

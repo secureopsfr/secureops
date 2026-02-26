@@ -40,6 +40,7 @@ def test_post_scan_accepte_url_valide() -> None:
     assert result_events[0][1]["tls"]["https_enabled"] is True
     assert result_events[0][1]["tls"]["http_redirects_to_https"] is True
     assert result_events[0][1]["tls"]["certificate_status"] == "valid"
+    assert result_events[0][1]["tls"]["tls_versions_obsolete"] == []
     assert result_events[0][1]["tls"]["findings"] == []
 
 
