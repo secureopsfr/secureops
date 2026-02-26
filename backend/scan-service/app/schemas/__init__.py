@@ -1,5 +1,5 @@
 """Schémas Pydantic du scan-service."""
 
-from app.schemas.scan import ScanRequest, ScanValidationResponse
+from app.schemas.scan import ScanRequest
 
-__all__ = ["ScanRequest", "ScanValidationResponse"]
+__all__ = ["ScanRequest"]

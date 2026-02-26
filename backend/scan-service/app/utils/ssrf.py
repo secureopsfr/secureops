@@ -8,9 +8,9 @@ import asyncio
 import socket
 from functools import lru_cache
 from ipaddress import ip_address, ip_network
-from urllib.parse import urlparse
 
 from app.config_loader import get_ssrf_settings
+from app.utils.url_helpers import extract_host_from_url, extract_port_from_url
 from app.utils.url_validator import URLValidationError
 
 
@@ -97,17 +97,16 @@ async def check_ssrf(url: str, timeout: float = 5.0) -> None:
     Raises:
         URLValidationError: Si le host est interdit ou résout vers une IP bloquée.
     """
-    parsed = urlparse(url)
-    host = (parsed.hostname or "").strip()
+    host = extract_host_from_url(url).strip()
     if not host:
         raise URLValidationError("URL sans host.")
     if is_hostname_blocked(host):
         raise URLValidationError("Les adresses localhost / 127.0.0.1 / ::1 ne sont pas autorisées.")
 
-    loop = asyncio.get_event_loop()
+    port = extract_port_from_url(url)
     try:
         ips = await asyncio.wait_for(
-            loop.run_in_executor(None, _resolve_host, host, parsed.port),
+            asyncio.to_thread(_resolve_host, host, port),
             timeout=timeout,
         )
     except asyncio.TimeoutError:

@@ -1,0 +1,188 @@
+"""Orchestration des vérifications TLS/HTTPS (roadmap §3.1)."""
+
+import asyncio
+import ssl
+from dataclasses import dataclass
+
+import httpx
+
+from app.config_loader import ScanTimeoutsSettings, get_scan_timeouts
+from app.services.tls.certificate import analyze_certificate, fetch_certificate_der
+from app.services.tls.versions import check_tls_versions_obsolete
+from app.utils.url_helpers import build_http_url, build_https_url, get_host_from_url, get_https_port_from_url, location_redirects_to_https
+
+
+def _ssl_context_for_scan() -> ssl.SSLContext:
+    """Contexte SSL permissif pour le scan : TLS 1.0+ accepté, pas de vérif. certificat.
+
+    Permet de se connecter aux serveurs TLS 1.0-only (ex. badssl.com:1010) pour les détecter.
+
+    Returns:
+        ssl.SSLContext: Contexte configuré.
+    """
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    ctx.minimum_version = ssl.TLSVersion.TLSv1
+    return ctx
+
+
+@dataclass
+class TlsCheckResult:
+    """Résultat des vérifications TLS/HTTPS.
+
+    Attributes:
+        https_enabled (bool): True si le site répond en HTTPS.
+        http_redirects_to_https (bool | None): True si HTTP redirige vers HTTPS, False sinon.
+            None si non vérifiable (HTTP inaccessible ou HTTPS non activé).
+        certificate_status (str | None): "valid", "expired" ou "self_signed". None si non vérifiable.
+        tls_versions_obsolete (tuple[str, ...]): Versions TLS obsolètes supportées (ex. ("1.0", "1.1")).
+        findings (tuple[str, ...]): Liste des findings.
+    """
+
+    https_enabled: bool
+    http_redirects_to_https: bool | None
+    certificate_status: str | None
+    tls_versions_obsolete: tuple[str, ...]
+    findings: tuple[str, ...]
+
+    def is_posture_valid(self) -> bool:
+        """Indique si la posture TLS est acceptable (HTTPS OK, redirect OK, cert valide, pas de TLS obsolète).
+
+        Returns:
+            bool: True si tous les critères sont satisfaits ou non vérifiables.
+        """
+        redirect_ok = self.http_redirects_to_https is None or self.http_redirects_to_https
+        cert_ok = self.certificate_status is None or self.certificate_status == "valid"
+        no_obsolete = len(self.tls_versions_obsolete) == 0
+        return self.https_enabled and redirect_ok and cert_ok and no_obsolete
+
+
+def _format_https_connection_error(exc: BaseException) -> str | None:
+    """Formate une erreur de connexion HTTPS avec message explicatif si pertinent.
+
+    Détecte les erreurs SSL (ex. TLS 1.0 désactivé dans OpenSSL 3.x).
+
+    Args:
+        exc: Exception capturée.
+
+    Returns:
+        str | None: Message formaté ou None pour utiliser le message par défaut.
+    """
+    err_str = str(exc).lower()
+    cause = getattr(exc, "__cause__", None)
+    if cause:
+        err_str += " " + str(cause).lower()
+    if "no_protocols_available" in err_str or "unsupported protocol" in err_str:
+        return (
+            "Impossible de se connecter en HTTPS. Le serveur n'accepte peut-être que TLS 1.0/1.1, "
+            "désactivés par défaut dans OpenSSL 3.x (limitation de l'environnement de scan)."
+        )
+    if "connection refused" in err_str or "timeout" in err_str:
+        return "HTTPS non activé (connexion refusée ou timeout). Risque d'interception."
+    return None
+
+
+async def _check_tls_versions(host: str, port: int, timeouts: ScanTimeoutsSettings, findings: list[str]) -> tuple[str, ...]:
+    """Vérification 4 : détecte TLS 1.0/1.1. Retourne la liste des versions obsolètes."""
+    try:
+        obsolete, tls_findings = await asyncio.to_thread(check_tls_versions_obsolete, host, port, timeouts.connection)
+        findings.extend(tls_findings)
+        return tuple(obsolete)
+    except Exception:
+        return ()
+
+
+async def _check_certificate(host: str, port: int, timeouts: ScanTimeoutsSettings, findings: list[str]) -> str | None:
+    """Vérification 3 : récupère et analyse le certificat. Retourne le statut ou None."""
+    try:
+        cert_der = await asyncio.to_thread(fetch_certificate_der, host, port, timeouts.connection)
+        status, cert_findings = analyze_certificate(cert_der, host)
+        findings.extend(cert_findings)
+        return status
+    except Exception as e:
+        findings.append(f"Impossible d'analyser le certificat : {e!s}")
+        return None
+
+
+async def run_tls_checks(url: str) -> TlsCheckResult:
+    """Vérifications TLS/HTTPS (roadmap §3.1).
+
+    Vérification 1 : HTTPS activé ? Une requête GET vers https://<host>/ doit aboutir
+    (même si le certificat est invalide ou auto-signé). Si connexion refusée ou timeout,
+    HTTPS n'est pas proposé.
+
+    Args:
+        url: URL normalisée à scanner (sera utilisée pour extraire le host).
+
+    Returns:
+        TlsCheckResult: https_enabled et liste des findings.
+    """
+    timeouts = get_scan_timeouts()
+    https_url = build_https_url(url)
+    http_url = build_http_url(url)
+    findings: list[str] = []
+
+    async with httpx.AsyncClient(
+        verify=_ssl_context_for_scan(),
+        follow_redirects=False,
+        timeout=httpx.Timeout(timeouts.connection, read=timeouts.read),
+    ) as client:
+        try:
+            response = await client.get(https_url)
+            # Toute réponse (200, 301, 404, etc.) indique que HTTPS répond
+            _ = response.status_code
+        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout) as e:
+            err_msg = _format_https_connection_error(e) or "HTTPS non activé (connexion refusée ou timeout). Risque d'interception."
+            findings.append(err_msg)
+            return TlsCheckResult(
+                https_enabled=False,
+                http_redirects_to_https=None,
+                certificate_status=None,
+                tls_versions_obsolete=(),
+                findings=tuple(findings),
+            )
+        except Exception as e:
+            err_msg = _format_https_connection_error(e) or f"HTTPS non activé : {e!s}"
+            findings.append(err_msg)
+            return TlsCheckResult(
+                https_enabled=False,
+                http_redirects_to_https=None,
+                certificate_status=None,
+                tls_versions_obsolete=(),
+                findings=tuple(findings),
+            )
+
+        # Vérification 2 : Redirection HTTP→HTTPS (uniquement si HTTPS activé)
+        http_redirects_to_https: bool | None = None
+        try:
+            response = await client.get(http_url)
+            if response.status_code in (301, 302, 307, 308):
+                location = response.headers.get("location")
+                http_redirects_to_https = location_redirects_to_https(location)
+                if not http_redirects_to_https:
+                    findings.append("Pas de redirection HTTP→HTTPS : la redirection ne pointe pas vers https://.")
+            else:
+                http_redirects_to_https = False
+                findings.append("Pas de redirection HTTP→HTTPS (réponse 200 ou autre sans redirection). " "Le trafic peut rester en clair.")
+        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout):
+            http_redirects_to_https = None
+            # HTTP inaccessible : non vérifiable (site peut être HTTPS-only)
+        except Exception:
+            http_redirects_to_https = None
+
+    # Vérification 3 et 4 : certificat et versions TLS (utiliser le port de l'URL)
+    host = get_host_from_url(url)
+    port = get_https_port_from_url(url)
+    certificate_status = await _check_certificate(host, port, timeouts, findings)
+
+    # Vérification 4 : Versions TLS obsolètes (1.0, 1.1)
+    tls_versions_obsolete = await _check_tls_versions(host, port, timeouts, findings)
+
+    return TlsCheckResult(
+        https_enabled=True,
+        http_redirects_to_https=http_redirects_to_https,
+        certificate_status=certificate_status,
+        tls_versions_obsolete=tls_versions_obsolete,
+        findings=tuple(findings),
+    )

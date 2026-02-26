@@ -9,6 +9,17 @@ from common.config_base import AppSettings, GeneralSettings, RoutersSettings, cr
 settings = create_simple_settings("scan-service", default_port=8012, caller_file=__file__)
 
 
+@lru_cache(maxsize=1)
+def _load_settings_yml() -> dict:
+    """Charge config/settings.yml une fois (mis en cache).
+
+    Returns:
+        dict: Contenu complet du fichier YAML.
+    """
+    root = Path(__file__).resolve().parents[1]
+    return load_yaml(root / "config" / "settings.yml")
+
+
 @dataclass(frozen=True)
 class SsrfSettings:
     """Configuration de la protection SSRF (hostnames, plages IP, timeout DNS)."""
@@ -32,8 +43,7 @@ def get_ssrf_settings() -> SsrfSettings:
     Returns:
         SsrfSettings: hostnames et plages IP bloqués.
     """
-    root = Path(__file__).resolve().parents[1]
-    data = load_yaml(root / "config" / "settings.yml")
+    data = _load_settings_yml()
     ssrf = data.get("ssrf") or {}
     dns_timeout = float(ssrf.get("dns_timeout", 5.0))
     hostnames = ssrf.get("blocked_hostnames") or _DEFAULT_SSRF_HOSTNAMES
@@ -68,8 +78,7 @@ def get_url_validation_settings() -> UrlValidationSettings:
     Returns:
         UrlValidationSettings: longueur max, schémas et ports autorisés.
     """
-    root = Path(__file__).resolve().parents[1]
-    data = load_yaml(root / "config" / "settings.yml")
+    data = _load_settings_yml()
     uv = data.get("url_validation") or {}
     max_len = int(uv.get("max_url_length", _DEFAULT_URL_MAX_LENGTH))
     schemes = uv.get("allowed_schemes") or _DEFAULT_URL_SCHEMES
@@ -102,8 +111,7 @@ def get_scan_timeouts() -> ScanTimeoutsSettings:
     Returns:
         ScanTimeoutsSettings: timeouts connexion, lecture et global.
     """
-    root = Path(__file__).resolve().parents[1]
-    data = load_yaml(root / "config" / "settings.yml")
+    data = _load_settings_yml()
     t = data.get("timeouts") or {}
     return ScanTimeoutsSettings(
         connection=float(t.get("connection", _DEFAULT_CONNECTION_TIMEOUT)),

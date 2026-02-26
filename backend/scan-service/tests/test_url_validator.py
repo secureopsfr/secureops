@@ -23,6 +23,12 @@ def test_accepte_ports_80_443() -> None:
     assert "://example.com:443/" in validate_and_normalize_url("https://example.com:443")
 
 
+def test_accepte_ports_badssl_tls() -> None:
+    """Accepte les ports 1010 et 1011 (badssl.com TLS 1.0/1.1)."""
+    assert "://tls-v1-0.badssl.com:1010/" in validate_and_normalize_url("https://tls-v1-0.badssl.com:1010")
+    assert "://tls-v1-1.badssl.com:1011/" in validate_and_normalize_url("https://tls-v1-1.badssl.com:1011")
+
+
 def test_refuse_schema_non_http() -> None:
     """Refuse les schémas autres que http/https."""
     with pytest.raises(URLValidationError, match="Seuls les schémas http et https"):
@@ -42,10 +48,10 @@ def test_refuse_credentials_dans_url() -> None:
 
 
 def test_refuse_port_non_autorise() -> None:
-    """Refuse les ports autres que 80 et 443."""
-    with pytest.raises(URLValidationError, match="ports 80 et 443"):
+    """Refuse les ports non autorisés (ex. 8080, 8443)."""
+    with pytest.raises(URLValidationError, match="ports .+ sont autorisés"):
         validate_and_normalize_url("http://example.com:8080")
-    with pytest.raises(URLValidationError, match="ports 80 et 443"):
+    with pytest.raises(URLValidationError, match="ports .+ sont autorisés"):
         validate_and_normalize_url("https://example.com:8443")
 
 
