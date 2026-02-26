@@ -195,6 +195,52 @@ def get_exposed_files_max_body() -> int:
     return int(ef.get("max_body_bytes", 8192))
 
 
+@dataclass(frozen=True)
+class DirectoryListingConfig:
+    """Configuration d'un répertoire à tester pour le listing (roadmap §3.5)."""
+
+    path: str
+    severity: str
+    message: str
+
+
+_DEFAULT_DIRECTORY_LISTING_PATHS: tuple[tuple[str, str, str], ...] = (
+    ("/uploads/", "high", "Directory listing activé sur /uploads/ : fichiers utilisateurs énumérables."),
+    ("/assets/", "medium", "Directory listing activé sur /assets/ : structure révélée."),
+    ("/static/", "medium", "Directory listing activé sur /static/ : structure révélée."),
+)
+
+
+@lru_cache(maxsize=1)
+def get_directory_listing_settings() -> tuple[DirectoryListingConfig, ...]:
+    """Charge la section directory_listing depuis config/settings.yml (mis en cache).
+
+    Returns:
+        tuple[DirectoryListingConfig, ...]: Liste des répertoires à tester.
+    """
+    data = _load_settings_yml()
+    dl = data.get("directory_listing") or {}
+    paths_raw = dl.get("paths") or []
+    if not paths_raw:
+        return tuple(DirectoryListingConfig(p[0], p[1], p[2]) for p in _DEFAULT_DIRECTORY_LISTING_PATHS)
+    result: list[DirectoryListingConfig] = []
+    for item in paths_raw:
+        if isinstance(item, dict):
+            path = str(item.get("path", ""))
+            severity = str(item.get("severity", "medium"))
+            message = str(item.get("message", ""))
+            result.append(DirectoryListingConfig(path=path, severity=severity, message=message))
+    return tuple(result)
+
+
+@lru_cache(maxsize=1)
+def get_directory_listing_max_body() -> int:
+    """Retourne la limite de lecture du corps (octets) pour la détection du listing."""
+    data = _load_settings_yml()
+    dl = data.get("directory_listing") or {}
+    return int(dl.get("max_body_bytes", 8192))
+
+
 @lru_cache(maxsize=1)
 def get_scan_timeouts() -> ScanTimeoutsSettings:
     """Charge la section timeouts depuis config/settings.yml (mis en cache).
@@ -214,11 +260,14 @@ def get_scan_timeouts() -> ScanTimeoutsSettings:
 __all__ = [
     "settings",
     "AppSettings",
+    "DirectoryListingConfig",
     "ExposedFileConfig",
     "GeneralSettings",
     "RoutersSettings",
     "SecurityHeaderConfig",
     "SsrfSettings",
+    "get_directory_listing_max_body",
+    "get_directory_listing_settings",
     "get_exposed_files_max_body",
     "get_exposed_files_settings",
     "get_security_headers_settings",

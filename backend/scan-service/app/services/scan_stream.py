@@ -7,6 +7,7 @@ from collections.abc import AsyncGenerator, Callable
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
 from app.models.check_results import CheckResultProtocol
 from app.services.cookies import check_cookies_from_response
+from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
 from app.services.security_headers import check_security_headers_from_response
 from app.services.tls import run_tls_checks
@@ -127,12 +128,27 @@ async def _run_checks_with_client(
     )
     for c in chunks:
         yield c
+    if over_global():
+        yield _timeout_error_message()
+        return
+
+    chunks, directory_listing_result = await _emit_step_and_run(
+        "directory_listing",
+        "Vérification directory listing…",
+        "Directory listing vérifié.",
+        run_directory_listing_checks,
+        base_https,
+        client=client,
+    )
+    for c in chunks:
+        yield c
 
     results: dict[str, CheckResultProtocol] = {
         "tls": tls_result,
         "headers": headers_result,
         "cookies": cookies_result,
         "exposed_files": exposed_files_result,
+        "directory_listing": directory_listing_result,
     }
     payload = _build_result_payload(tls_result.is_posture_valid(), normalized_url, results)
     yield sse_message("result", payload)
