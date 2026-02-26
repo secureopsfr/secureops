@@ -1,7 +1,6 @@
 """Orchestration des vérifications TLS/HTTPS (roadmap §3.1)."""
 
 import asyncio
-import ssl
 from dataclasses import dataclass
 
 import httpx
@@ -9,25 +8,11 @@ import httpx
 from app.config_loader import ScanTimeoutsSettings, get_scan_timeouts
 from app.services.tls.certificate import analyze_certificate, fetch_certificate_der
 from app.services.tls.versions import check_tls_versions_obsolete
+from app.utils.ssl_scan import ssl_context_for_scan
 from app.utils.url_helpers import build_http_url, build_https_url, get_host_from_url, get_https_port_from_url, location_redirects_to_https
 
 # Sentinel pour distinguer "paramètre non fourni" de "fetch a échoué (None)"
 _UNSET = object()
-
-
-def _ssl_context_for_scan() -> ssl.SSLContext:
-    """Contexte SSL permissif pour le scan : TLS 1.0+ accepté, pas de vérif. certificat.
-
-    Permet de se connecter aux serveurs TLS 1.0-only (ex. badssl.com:1010) pour les détecter.
-
-    Returns:
-        ssl.SSLContext: Contexte configuré.
-    """
-    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    ctx.minimum_version = ssl.TLSVersion.TLSv1
-    return ctx
 
 
 @dataclass
@@ -41,6 +26,7 @@ class TlsCheckResult:
         certificate_status (str | None): "valid", "expired" ou "self_signed". None si non vérifiable.
         tls_versions_obsolete (tuple[str, ...]): Versions TLS obsolètes supportées (ex. ("1.0", "1.1")).
         findings (tuple[str, ...]): Liste des findings.
+        fetch_ok (bool): True si la requête HTTPS a abouti (conforme CheckResultProtocol).
     """
 
     https_enabled: bool
@@ -48,6 +34,7 @@ class TlsCheckResult:
     certificate_status: str | None
     tls_versions_obsolete: tuple[str, ...]
     findings: tuple[str, ...]
+    fetch_ok: bool = True
 
     def is_posture_valid(self) -> bool:
         """Indique si la posture TLS est acceptable (HTTPS OK, redirect OK, cert valide, pas de TLS obsolète).
@@ -59,6 +46,17 @@ class TlsCheckResult:
         cert_ok = self.certificate_status is None or self.certificate_status == "valid"
         no_obsolete = len(self.tls_versions_obsolete) == 0
         return self.https_enabled and redirect_ok and cert_ok and no_obsolete
+
+    def to_dict(self) -> dict:
+        """Sérialise le résultat pour l'événement SSE result."""
+        return {
+            "https_enabled": self.https_enabled,
+            "http_redirects_to_https": self.http_redirects_to_https,
+            "certificate_status": self.certificate_status,
+            "tls_versions_obsolete": list(self.tls_versions_obsolete),
+            "findings": list(self.findings),
+            "fetch_ok": self.fetch_ok,
+        }
 
 
 def _format_https_connection_error(exc: BaseException) -> str | None:
@@ -111,7 +109,7 @@ async def _check_certificate(host: str, port: int, timeouts: ScanTimeoutsSetting
 async def _fetch_https_when_unset(https_url: str, timeouts: ScanTimeoutsSettings, findings: list[str]) -> httpx.Response | None:
     """Effectue le GET HTTPS si la réponse n'a pas été fournie. Retourne None en cas d'erreur."""
     async with httpx.AsyncClient(
-        verify=_ssl_context_for_scan(),
+        verify=ssl_context_for_scan(),
         follow_redirects=False,
         timeout=httpx.Timeout(timeouts.connection, read=timeouts.read),
     ) as client:
@@ -131,7 +129,7 @@ async def _check_http_redirect(http_url: str, timeouts: ScanTimeoutsSettings, fi
     """Vérification 2 : redirection HTTP→HTTPS. Retourne True/False/None."""
     try:
         async with httpx.AsyncClient(
-            verify=_ssl_context_for_scan(),
+            verify=ssl_context_for_scan(),
             follow_redirects=False,
             timeout=httpx.Timeout(timeouts.connection, read=timeouts.read),
         ) as client:
@@ -179,6 +177,7 @@ async def run_tls_checks(url: str, https_response: httpx.Response | None = _UNSE
             certificate_status=None,
             tls_versions_obsolete=(),
             findings=tuple(findings),
+            fetch_ok=False,
         )
 
     # Cas : pas de réponse fournie, on fait le GET nous-mêmes
@@ -191,6 +190,7 @@ async def run_tls_checks(url: str, https_response: httpx.Response | None = _UNSE
                 certificate_status=None,
                 tls_versions_obsolete=(),
                 findings=tuple(findings),
+                fetch_ok=False,
             )
 
     # On a une réponse HTTPS (fournie ou venant de notre GET)

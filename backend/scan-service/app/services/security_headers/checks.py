@@ -26,6 +26,15 @@ class SecurityHeadersCheckResult:
     findings: tuple[str, ...]
     fetch_ok: bool
 
+    def to_dict(self) -> dict:
+        """Sérialise le résultat pour l'événement SSE result."""
+        return {
+            "headers_present": list(self.headers_present),
+            "headers_missing": list(self.headers_missing),
+            "findings": list(self.findings),
+            "fetch_ok": self.fetch_ok,
+        }
+
 
 def check_security_headers_from_response(response: httpx.Response | None) -> SecurityHeadersCheckResult:
     """Vérifie la présence des en-têtes de sécurité sur une réponse HTTPS.

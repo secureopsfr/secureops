@@ -40,6 +40,15 @@ class CookieCheckResult:
     findings: tuple[str, ...]
     fetch_ok: bool
 
+    def to_dict(self) -> dict:
+        """Sérialise le résultat pour l'événement SSE result."""
+        cookies_serialized = [{"name": c.name, "secure": c.secure, "httponly": c.httponly, "samesite": c.samesite} for c in self.cookies]
+        return {
+            "cookies": cookies_serialized,
+            "findings": list(self.findings),
+            "fetch_ok": self.fetch_ok,
+        }
+
 
 def _parse_set_cookie_header(header_value: str) -> CookieInfo | None:
     """Parse un en-tête Set-Cookie et extrait nom + flags.
