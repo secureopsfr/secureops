@@ -5,6 +5,7 @@ import time
 from collections.abc import AsyncGenerator, Callable
 
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
+from app.models.check_results import CheckResultProtocol
 from app.services.cookies import check_cookies_from_response
 from app.services.exposed_files import run_exposed_files_checks
 from app.services.security_headers import check_security_headers_from_response
@@ -43,6 +44,27 @@ def _timeout_error_message() -> str:
     return sse_message("error", {"message": "Délai global du scan dépassé.", "status_code": 408})
 
 
+def _build_result_payload(
+    valid: bool,
+    url: str,
+    results: dict[str, CheckResultProtocol],
+) -> dict:
+    """Construit le payload de l'événement SSE result à partir des résultats.
+
+    Args:
+        valid: Posture TLS valide (is_posture_valid).
+        url: URL normalisée scannée.
+        results: Dict clé → résultat (tls, headers, cookies, exposed_files).
+
+    Returns:
+        dict: Payload sérialisable pour {event: result, data: {...}}.
+    """
+    payload: dict = {"valid": valid, "url": url}
+    for key, result in results.items():
+        payload[key] = result.to_dict()
+    return payload
+
+
 async def _run_checks_with_client(
     normalized_url: str,
     client,
@@ -59,6 +81,7 @@ async def _run_checks_with_client(
         run_tls_checks,
         normalized_url,
         https_response=https_response,
+        client=client,
     )
     for c in chunks:
         yield c
@@ -105,18 +128,14 @@ async def _run_checks_with_client(
     for c in chunks:
         yield c
 
-    valid = tls_result.is_posture_valid()
-    yield sse_message(
-        "result",
-        {
-            "valid": valid,
-            "url": normalized_url,
-            "tls": tls_result.to_dict(),
-            "headers": headers_result.to_dict(),
-            "cookies": cookies_result.to_dict(),
-            "exposed_files": exposed_files_result.to_dict(),
-        },
-    )
+    results: dict[str, CheckResultProtocol] = {
+        "tls": tls_result,
+        "headers": headers_result,
+        "cookies": cookies_result,
+        "exposed_files": exposed_files_result,
+    }
+    payload = _build_result_payload(tls_result.is_posture_valid(), normalized_url, results)
+    yield sse_message("result", payload)
 
 
 async def _run_pipeline_steps(url: str) -> AsyncGenerator[str, None]:

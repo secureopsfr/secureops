@@ -6,13 +6,40 @@ les connexions TCP (keep-alive) sur toute la durée du scan.
 """
 
 import contextlib
+import logging
 from typing import AsyncIterator
 
 import httpx
 
 from app.config_loader import get_scan_timeouts
 from app.utils.ssl_scan import ssl_context_for_scan
-from app.utils.url_helpers import build_https_url
+
+logger = logging.getLogger(__name__)
+
+# Exceptions réseau connues (connexion, timeout) — on ne log pas, comportement attendu.
+_NETWORK_EXCEPTIONS = (
+    httpx.ConnectError,
+    httpx.ConnectTimeout,
+    httpx.ReadTimeout,
+    httpx.WriteTimeout,
+)
+
+
+def _create_scan_client(*, follow_redirects: bool = True) -> httpx.AsyncClient:
+    """Crée un AsyncClient configuré pour le scan (SSL permissif, timeouts).
+
+    Args:
+        follow_redirects: Si True, suit les redirections.
+
+    Returns:
+        httpx.AsyncClient: Client non encore entré dans un contexte (à utiliser avec async with).
+    """
+    timeouts = get_scan_timeouts()
+    return httpx.AsyncClient(
+        verify=ssl_context_for_scan(),
+        follow_redirects=follow_redirects,
+        timeout=httpx.Timeout(timeouts.connection, read=timeouts.read),
+    )
 
 
 @contextlib.asynccontextmanager
@@ -25,12 +52,8 @@ async def scan_client() -> AsyncIterator[httpx.AsyncClient]:
     Yields:
         httpx.AsyncClient: Client configuré (SSL permissif, timeouts).
     """
-    timeouts = get_scan_timeouts()
-    async with httpx.AsyncClient(
-        verify=ssl_context_for_scan(),
-        follow_redirects=True,
-        timeout=httpx.Timeout(timeouts.connection, read=timeouts.read),
-    ) as client:
+    client = _create_scan_client(follow_redirects=True)
+    async with client:
         yield client
 
 
@@ -53,39 +76,10 @@ async def get_with_client(
     try:
         response = await client.get(url, follow_redirects=follow_redirects)
         return response
-    except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout):
+    except _NETWORK_EXCEPTIONS:
         return None
-    except Exception:
-        return None
-
-
-async def fetch_https(url: str, *, follow_redirects: bool = True) -> httpx.Response | None:
-    """Effectue un GET HTTPS vers l'URL et retourne la réponse.
-
-    Utilise un contexte SSL permissif (certificats non vérifiés) pour pouvoir
-    scanner des sites avec certificats auto-signés ou invalides.
-
-    Args:
-        url: URL normalisée à scanner.
-        follow_redirects: Si True, suit les redirections (pour récupérer la page finale).
-
-    Returns:
-        httpx.Response | None: La réponse HTTP ou None en cas d'erreur (connexion, timeout).
-    """
-    timeouts = get_scan_timeouts()
-    https_url = build_https_url(url)
-
-    try:
-        async with httpx.AsyncClient(
-            verify=ssl_context_for_scan(),
-            follow_redirects=follow_redirects,
-            timeout=httpx.Timeout(timeouts.connection, read=timeouts.read),
-        ) as client:
-            response = await client.get(https_url)
-            return response
-    except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout):
-        return None
-    except Exception:
+    except Exception as e:
+        logger.warning("Erreur HTTP inattendue lors du GET %s : %s", url, e, exc_info=True)
         return None
 
 
@@ -99,16 +93,11 @@ async def fetch_url(full_url: str, *, follow_redirects: bool = False) -> httpx.R
     Returns:
         httpx.Response | None: La réponse ou None en cas d'erreur.
     """
-    timeouts = get_scan_timeouts()
     try:
-        async with httpx.AsyncClient(
-            verify=ssl_context_for_scan(),
-            follow_redirects=follow_redirects,
-            timeout=httpx.Timeout(timeouts.connection, read=timeouts.read),
-        ) as client:
-            response = await client.get(full_url)
-            return response
-    except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout):
+        async with _create_scan_client(follow_redirects=follow_redirects) as client:
+            return await client.get(full_url)
+    except _NETWORK_EXCEPTIONS:
         return None
-    except Exception:
+    except Exception as e:
+        logger.warning("Erreur HTTP inattendue lors du fetch %s : %s", full_url, e, exc_info=True)
         return None
