@@ -66,6 +66,23 @@ ssrf:
     - "fe80::/10"
     - "fc00::/7"
 
+# Security Headers (roadmap §3.2) : en-têtes à vérifier.
+security_headers:
+  headers:
+    - name: Content-Security-Policy
+      message_absent: "Content-Security-Policy absent : risque XSS accru."
+    - name: Strict-Transport-Security
+      message_absent: "Strict-Transport-Security absent : risque de downgrade HTTPS→HTTP."
+    - name: X-Frame-Options
+      message_absent: "X-Frame-Options absent : risque de clickjacking."
+    - name: X-Content-Type-Options
+      message_absent: "X-Content-Type-Options absent : risque de MIME sniffing."
+      expected_value: nosniff
+    - name: Referrer-Policy
+      message_absent: "Referrer-Policy absent : risque de fuite d'URLs sensibles."
+    - name: Permissions-Policy
+      message_absent: "Permissions-Policy absent : APIs navigateur accessibles par défaut."
+
 # Timeouts scan (roadmap §2.3) : connexion, lecture, durée max du scan.
 timeouts:
   connection: 3    # secondes pour établir la connexion

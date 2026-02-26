@@ -1,10 +1,12 @@
 """Tests du routeur de scan (POST /api/scan, réponse SSE)."""
 
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.tls.checks import TlsCheckResult
 
 client = TestClient(app)
 
@@ -26,9 +28,28 @@ def _parse_sse_events(response) -> list[tuple[str, dict]]:
 
 
 def test_post_scan_accepte_url_valide() -> None:
-    """POST /api/scan avec URL valide retourne 200 et stream avec result."""
-    # github.com redirige HTTP→HTTPS et répond en HTTPS
-    response = client.post("/api/scan", json={"url": "https://github.com"})
+    """POST /api/scan avec URL valide retourne 200 et stream avec result.
+
+    Mock des appels réseau (fetch_https, run_tls_checks, check_ssrf) pour fiabilité en CI.
+    """
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.headers = {}
+    tls_result = TlsCheckResult(
+        https_enabled=True,
+        http_redirects_to_https=True,
+        certificate_status="valid",
+        tls_versions_obsolete=(),
+        findings=(),
+    )
+
+    with (
+        patch("app.services.scan_stream.check_ssrf", new_callable=AsyncMock),
+        patch("app.services.scan_stream.fetch_https", new_callable=AsyncMock, return_value=mock_response),
+        patch("app.services.scan_stream.run_tls_checks", new_callable=AsyncMock, return_value=tls_result),
+    ):
+        response = client.post("/api/scan", json={"url": "https://github.com"})
+
     assert response.status_code == 200
     assert "text/event-stream" in response.headers.get("content-type", "")
     events = _parse_sse_events(response)

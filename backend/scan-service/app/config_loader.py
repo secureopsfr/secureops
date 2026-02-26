@@ -104,6 +104,48 @@ _DEFAULT_READ_TIMEOUT = 10.0
 _DEFAULT_SCAN_GLOBAL_TIMEOUT = 60.0
 
 
+@dataclass(frozen=True)
+class SecurityHeaderConfig:
+    """Configuration d'un en-tête de sécurité à vérifier."""
+
+    name: str
+    message_absent: str
+    expected_value: str | None
+
+
+_DEFAULT_SECURITY_HEADERS: tuple[tuple[str, str, str | None], ...] = (
+    ("Content-Security-Policy", "Content-Security-Policy absent : risque XSS accru.", None),
+    ("Strict-Transport-Security", "Strict-Transport-Security absent : risque de downgrade HTTPS→HTTP.", None),
+    ("X-Frame-Options", "X-Frame-Options absent : risque de clickjacking.", None),
+    ("X-Content-Type-Options", "X-Content-Type-Options absent : risque de MIME sniffing.", "nosniff"),
+    ("Referrer-Policy", "Referrer-Policy absent : risque de fuite d'URLs sensibles.", None),
+    ("Permissions-Policy", "Permissions-Policy absent : APIs navigateur accessibles par défaut.", None),
+)
+
+
+@lru_cache(maxsize=1)
+def get_security_headers_settings() -> tuple[SecurityHeaderConfig, ...]:
+    """Charge la section security_headers depuis config/settings.yml (mis en cache).
+
+    Returns:
+        tuple[SecurityHeaderConfig, ...]: Liste des en-têtes à vérifier.
+    """
+    data = _load_settings_yml()
+    sh = data.get("security_headers") or {}
+    headers_raw = sh.get("headers") or []
+    if not headers_raw:
+        return tuple(SecurityHeaderConfig(h[0], h[1], h[2]) for h in _DEFAULT_SECURITY_HEADERS)
+    result: list[SecurityHeaderConfig] = []
+    for item in headers_raw:
+        if isinstance(item, dict):
+            name = str(item.get("name", ""))
+            msg = str(item.get("message_absent", ""))
+            exp = item.get("expected_value")
+            exp_val = str(exp) if exp is not None else None
+            result.append(SecurityHeaderConfig(name=name, message_absent=msg, expected_value=exp_val))
+    return tuple(result)
+
+
 @lru_cache(maxsize=1)
 def get_scan_timeouts() -> ScanTimeoutsSettings:
     """Charge la section timeouts depuis config/settings.yml (mis en cache).
@@ -125,7 +167,9 @@ __all__ = [
     "AppSettings",
     "GeneralSettings",
     "RoutersSettings",
+    "SecurityHeaderConfig",
     "SsrfSettings",
+    "get_security_headers_settings",
     "get_ssrf_settings",
     "UrlValidationSettings",
     "get_url_validation_settings",
