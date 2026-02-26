@@ -75,10 +75,16 @@ Objectif : livrer un **scanner de posture sécurité web** (non-intrusif) destin
 - [x] HTTPS activé ? ✅
 - [x] Redirection HTTP→HTTPS ? ✅
 - [x] Certificat valide / expiré / auto-signé ? ✅
-- [ ] Version TLS (au minimum détecter 1.0/1.1)
+- [x] Version TLS (au minimum détecter 1.0/1.1) ✅
 - [ ] Résumé “TLS posture”
 
 Pour les explications détaillées (failles, exemples, matrices de risque, conseils), voir [Vérifications TLS/HTTPS](verifications/tls-https.md).
+
+**Limitations et notes d’implémentation :**
+
+- **Ports autorisés** : par défaut 80 et 443. Les ports 1010 et 1011 sont autorisés pour les tests badssl.com (TLS 1.0 sur `tls-v1-0.badssl.com:1010`, TLS 1.1 sur `tls-v1-1.badssl.com:1011`). Configurable dans `config/settings.yml` (`url_validation.allowed_ports`).
+- **Port non standard** : le scan utilise le port explicite de l’URL pour les vérifications TLS (certificat, versions obsolètes). Ex. `https://tls-v1-0.badssl.com:1010` est testé sur le port 1010, pas 443.
+- **OpenSSL 3.x** : TLS 1.0 et 1.1 sont désactivés par défaut dans OpenSSL 3.x. Les serveurs qui n’acceptent que TLS 1.0/1.1 (ex. `tls-v1-0.badssl.com:1010`) ne sont pas joignables depuis un environnement avec OpenSSL 3.x. Le scan affiche alors un message explicite : *« Le serveur n'accepte peut-être que TLS 1.0/1.1, désactivés par défaut dans OpenSSL 3.x (limitation de l'environnement de scan) »*. Pour tester la détection TLS 1.0/1.1, utiliser un environnement avec TLS 1.0 activé (ex. conteneur avec ancienne OpenSSL) ou un site qui propose TLS 1.0 en plus de TLS 1.2+ sur le port 443.
 
 ### 3.2 Security Headers
 - [ ] Vérifier présence :
