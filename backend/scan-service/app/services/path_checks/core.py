@@ -9,6 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from app.config_loader import PathCheckConfig
 from app.utils.http_fetch import fetch_url, get_with_client
 from app.utils.url_helpers import build_url_with_path
 
@@ -87,7 +88,7 @@ async def _check_single_path(
 
 async def run_path_checks(
     base_url: str,
-    configs: tuple,
+    configs: tuple[PathCheckConfig, ...],
     body_checker_fn: Callable[[bytes, str], bool],
     max_body: int,
     *,
@@ -100,7 +101,7 @@ async def run_path_checks(
 
     Args:
         base_url: URL de base (ex. https://example.com/).
-        configs: Tuple de configs avec .path, .severity, .message.
+        configs: Tuple de PathCheckConfig (path, severity, message).
         body_checker_fn: (body: bytes, path: str) -> bool.
         max_body: Limite de lecture du corps (octets).
         client: Client httpx optionnel pour réutilisation.

@@ -1,4 +1,11 @@
-"""Pipeline de scan en streaming SSE : étapes et format des événements."""
+"""Pipeline de scan en streaming SSE : étapes et format des événements.
+
+Exceptions :
+  - Remontées vers l'appelant (émises en événement error) : URLValidationError (400).
+  - Gérées en interne (pas de remontée) : dépassement du délai global (événement error 408),
+    échecs réseau dans les étapes (fetch, path checks, etc.) : les steps retournent None
+    ou un résultat avec fetch_ok=False ; aucune exception n'est levée.
+"""
 
 import asyncio
 import time
@@ -12,6 +19,7 @@ from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
 from app.services.robots_txt import run_robots_txt_checks
 from app.services.security_headers import check_security_headers_from_response
+from app.services.tech_fingerprinting import check_tech_fingerprinting_from_response
 from app.services.tls import run_tls_checks
 from app.utils.http_fetch import get_with_client, scan_client
 from app.utils.sse import sse_message
@@ -75,7 +83,7 @@ def _build_result_payload(
     Args:
         valid: Posture TLS valide (is_posture_valid).
         url: URL normalisée scannée.
-        results: Dict clé → résultat (tls, headers, cookies, exposed_files, directory_listing, robots_txt).
+        results: Dict clé → résultat (tls, headers, cookies, exposed_files, directory_listing, robots_txt, tech_fingerprinting).
 
     Returns:
         dict: Payload sérialisable pour {event: result, data: {...}}.
@@ -130,6 +138,12 @@ _SCAN_STEPS: list[tuple[str, str, str, Callable]] = [
         "Vérification robots.txt…",
         "robots.txt vérifié.",
         lambda ctx: run_robots_txt_checks(ctx.https_url, client=ctx.client),
+    ),
+    (
+        "tech_fingerprinting",
+        "Fingerprinting technologique…",
+        "Tech fingerprinting vérifié.",
+        lambda ctx: check_tech_fingerprinting_from_response(ctx.https_response),
     ),
 ]
 
@@ -203,6 +217,11 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
 
     Yields:
         str: Blocs SSE (event + data).
+
+    Raises:
+        Aucune. Les erreurs sont émises en événements SSE (error 400 pour URLValidationError,
+        error 408 pour timeout global, error 500 pour exception inattendue). Les erreurs réseau
+        dans les steps sont gérées en interne (résultats avec fetch_ok=False).
     """
     try:
         async for chunk in _run_pipeline_steps(url):
