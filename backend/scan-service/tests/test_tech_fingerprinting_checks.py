@@ -2,10 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from app.services.tech_fingerprinting import (
-    TechFingerprintingCheckResult,
-    check_tech_fingerprinting_from_response,
-)
+from app.services.tech_fingerprinting import TechFingerprintingCheckResult, check_tech_fingerprinting_from_response
 
 
 def test_check_tech_fingerprinting_response_none() -> None:
