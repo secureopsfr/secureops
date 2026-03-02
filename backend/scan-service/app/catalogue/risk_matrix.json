@@ -1,0 +1,154 @@
+{
+  "tls-https-disabled": {
+    "gravite": "Majeure",
+    "vraisemblance": "Très forte"
+  },
+  "tls-no-redirect": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "tls-cert-expired": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "tls-cert-self-signed": {
+    "gravite": "Importante",
+    "vraisemblance": "Faible"
+  },
+  "tls-cert-not-yet-valid": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
+  "tls-versions-obsolete": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "tls-connection-failed": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "headers-csp-absent": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "headers-hsts-absent": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "headers-xfo-absent": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "headers-xcto-absent": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "headers-xcto-wrong-value": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "headers-referrer-absent": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
+  "headers-permissions-absent": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
+  "headers-connection-failed": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "headers-unknown-absent": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
+  "cookies-connection-failed": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "cookies-no-secure": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "cookies-no-httponly": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "cookies-no-samesite": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "cookies-samesite-none-requires-secure": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
+  "exposed_files-env": {
+    "gravite": "Majeure",
+    "vraisemblance": "Forte"
+  },
+  "exposed_files-git-config": {
+    "gravite": "Majeure",
+    "vraisemblance": "Forte"
+  },
+  "exposed_files-backup-zip": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "exposed_files-phpinfo": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "exposed_files-phpinfo-php": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "exposed_files-admin": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "exposed_files-ds-store": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "directory_listing-uploads": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "directory_listing-assets": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
+  "directory_listing-static": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
+  "robots_txt-connection-failed": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "robots_txt-sensitive-route": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
+  "tech_fingerprinting-connection-failed": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "tech_fingerprinting-server-detected": {
+    "gravite": "Mineure",
+    "vraisemblance": "Très forte"
+  },
+  "tech_fingerprinting-runtime-detected": {
+    "gravite": "Mineure",
+    "vraisemblance": "Très forte"
+  },
+  "tech_fingerprinting-framework-detected": {
+    "gravite": "Mineure",
+    "vraisemblance": "Très forte"
+  },
+  "tech_fingerprinting-stack-unknown": {
+    "gravite": "Mineure",
+    "vraisemblance": "Très faible"
+  }
+}

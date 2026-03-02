@@ -19,7 +19,7 @@ import { showErrorToast } from "../../utils/toastNotifications";
 import { formatDate } from "../../utils/dateFormat";
 
 interface ScanHistoryBlockProps {
-  onSelectScan: (result: ScanResult) => void;
+  onSelectScan: (result: ScanResult, scanId?: string) => void;
 }
 
 export default function ScanHistoryBlock({
@@ -80,7 +80,7 @@ export default function ScanHistoryBlock({
           score: detail.score ?? 0,
           findings: detail.findings,
         };
-        onSelectScan(result);
+        onSelectScan(result, detail.id);
       } catch {
         showErrorToast(t("scanner.historyLoadError"));
       } finally {

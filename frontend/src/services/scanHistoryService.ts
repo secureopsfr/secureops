@@ -96,6 +96,45 @@ export async function deleteScan(id: string): Promise<void> {
   }
 }
 
+export interface ExportPdfOptions {
+  includeMatrices?: boolean;
+  lang?: "fr" | "en";
+}
+
+/**
+ * Télécharge le rapport PDF d'un scan sauvegardé.
+ * Nécessite un scan_id (scan sauvegardé dans l'historique).
+ */
+export async function downloadScanPdf(
+  scanId: string,
+  options: ExportPdfOptions = {},
+): Promise<void> {
+  const params = new URLSearchParams();
+  params.set("scan_id", scanId);
+  params.set("include_matrices", String(options.includeMatrices ?? true));
+  params.set("lang", options.lang ?? "fr");
+
+  const response = await fetchWithAuth(
+    `${getApiBaseUrl()}/scan/api/scan/export/pdf?${params.toString()}`,
+    { method: "GET" },
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || "Erreur lors du téléchargement du PDF");
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `scan-${scanId.slice(0, 8)}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 /**
  * Supprime tous les scans de l'historique de l'utilisateur.
  * Utilisé dans la section Données & confidentialité (Mon compte).

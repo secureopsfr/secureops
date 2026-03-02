@@ -19,12 +19,15 @@ SAVE_TIMEOUT = 15.0
 async def save_scan_to_history(
     payload: dict[str, Any],
     authorization: str,
-) -> None:
+) -> str | None:
     """Enregistre le résultat du scan dans l'historique via le gateway.
 
     Args:
         payload: Payload du résultat (url, timestamp, duration, score, findings).
         authorization: Header Authorization (Bearer <token>).
+
+    Returns:
+        str | None: ID du scan créé, ou None si la réponse n'en contient pas.
 
     Raises:
         Exception: Si la sauvegarde échoue (pour émettre save_failed).
@@ -49,3 +52,5 @@ async def save_scan_to_history(
             logger.warning("Sauvegarde scan échouée: %s", msg)
             raise RuntimeError(msg)
         logger.info("Scan sauvegardé dans l'historique: url=%s", payload["url"][:50])
+        data = resp.json()
+        return data.get("id") if isinstance(data, dict) else None

@@ -38,6 +38,7 @@ export default function ScannerContent() {
   const [state, setState] = useState<ScanState>("idle");
   const [steps, setSteps] = useState<ScanStepDisplay[]>([]);
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [scanId, setScanId] = useState<string | null>(null);
   const [error, setError] = useState<ScanError | null>(null);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
 
@@ -61,6 +62,7 @@ export default function ScannerContent() {
       setState("loading");
       setSteps([]);
       setResult(null);
+      setScanId(null);
       setError(null);
       setErrorModalOpen(false);
 
@@ -97,6 +99,8 @@ export default function ScannerContent() {
                 setResult(ev.data);
                 setState("success");
               }
+            } else if (ev.type === "save_done") {
+              setScanId(ev.data.scan_id);
             } else if (ev.type === "error") {
               setError(ev.data);
               setState("error");
@@ -124,6 +128,7 @@ export default function ScannerContent() {
     setState("idle");
     setSteps([]);
     setResult(null);
+    setScanId(null);
     setError(null);
   }, []);
 
@@ -197,8 +202,9 @@ export default function ScannerContent() {
               </div>
               {isAuthenticated && !authLoading && (
                 <ScanHistoryBlock
-                  onSelectScan={(r) => {
+                  onSelectScan={(r, id) => {
                     setResult(r);
+                    setScanId(id ?? null);
                     setState("success");
                   }}
                 />
@@ -212,7 +218,11 @@ export default function ScannerContent() {
             result &&
             !authLoading &&
             (isAuthenticated ? (
-              <ScanResults result={result} onNewScan={handleNewScan} />
+              <ScanResults
+                result={result}
+                scanId={scanId}
+                onNewScan={handleNewScan}
+              />
             ) : (
               <>
                 <FakeScanResultsBlurred />

@@ -3,7 +3,13 @@
 import { useCallback, useState, useEffect } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
-import { Download, FileSpreadsheet, FileJson, FileText } from "lucide-react";
+import {
+  Download,
+  FileSpreadsheet,
+  FileJson,
+  FileText,
+  FileOutput,
+} from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { GenericButton } from "../buttons";
 import AnimateInView from "../AnimateInView";
@@ -14,9 +20,12 @@ import FindingCard from "./FindingCard";
 import type { ScanResult } from "../../services/scanService";
 import { getScoreBadge, getCategoryKey, severitySort } from "./scanConstants";
 import { exportScanResult, type ExportFormat } from "../../utils/exportScan";
+import { downloadScanPdf } from "../../services/scanHistoryService";
+import { showErrorToast } from "../../utils/toastNotifications";
 
 interface ScanResultsProps {
   result: ScanResult;
+  scanId: string | null;
   onNewScan: () => void;
 }
 
@@ -65,9 +74,16 @@ const EXPORT_BUTTON_BOTTOM_DEFAULT = 20;
 /** Hauteur fixe au-dessus du footer quand il est visible (footer ~200px + marge). */
 const EXPORT_BUTTON_BOTTOM_ABOVE_FOOTER = 220;
 
-export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
+export default function ScanResults({
+  result,
+  scanId,
+  onNewScan,
+}: ScanResultsProps) {
   const { t } = useLanguage();
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [pdfIncludeMatrices, setPdfIncludeMatrices] = useState(true);
+  const [pdfLang, setPdfLang] = useState<"fr" | "en">("fr");
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [faviconError, setFaviconError] = useState(false);
   const [gaugeScore, setGaugeScore] = useState(0);
 
@@ -124,6 +140,22 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
     },
     [result],
   );
+
+  const handlePdfDownload = useCallback(async () => {
+    if (!scanId) return;
+    setPdfLoading(true);
+    try {
+      await downloadScanPdf(scanId, {
+        includeMatrices: pdfIncludeMatrices,
+        lang: pdfLang,
+      });
+      setExportModalOpen(false);
+    } catch {
+      showErrorToast(t("scanner.exportPdfDownload") + " — erreur");
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [scanId, pdfIncludeMatrices, pdfLang, t]);
 
   const byCategory = sortedFindings.reduce<Record<string, number>>((acc, f) => {
     acc[f.category] = (acc[f.category] ?? 0) + 1;
@@ -315,6 +347,50 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
               <span className="font-medium">{t(labelKey)}</span>
             </button>
           ))}
+          <div className="mt-4 pt-4 border-t border-[var(--border)]">
+            <div className="flex items-center gap-3 mb-3">
+              <FileOutput className="w-5 h-5 shrink-0" />
+              <span className="font-medium">{t("scanner.exportPdf")}</span>
+            </div>
+            {scanId ? (
+              <>
+                <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pdfIncludeMatrices}
+                    onChange={(e) => setPdfIncludeMatrices(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm">
+                    {t("scanner.exportPdfIncludeMatrices")}
+                  </span>
+                </label>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-sm shrink-0">
+                    {t("scanner.exportPdfLang")}:
+                  </span>
+                  <select
+                    value={pdfLang}
+                    onChange={(e) => setPdfLang(e.target.value as "fr" | "en")}
+                    className="auth-input py-1.5 px-2 text-sm"
+                  >
+                    <option value="fr">Français</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+                <GenericButton
+                  label={pdfLoading ? "..." : t("scanner.exportPdfDownload")}
+                  variant="primary"
+                  onClick={handlePdfDownload}
+                  disabled={pdfLoading}
+                />
+              </>
+            ) : (
+              <p className="text-sm text-muted-theme">
+                {t("scanner.exportPdfUnavailable")}
+              </p>
+            )}
+          </div>
         </div>
       </Modal>
     </div>
