@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { History, Trash2 } from "lucide-react";
 import Card from "../cards/Card";
 import ConfirmModal from "../ConfirmModal";
+import LoadingScreen from "../LoadingScreen";
 import { GenericButton } from "../buttons";
 import { useLanguage } from "../LanguageProvider";
 import {
@@ -106,7 +107,10 @@ export default function ScanHistoryBlock({
         </div>
         <div className="space-y-4">
           {loading ? (
-            <p className="text-muted-theme">{t("scanner.historyLoading")}</p>
+            <LoadingScreen
+              variant="section"
+              message={t("scanner.historyLoading")}
+            />
           ) : items.length === 0 ? (
             <p className="text-muted-theme">{t("scanner.historyEmpty")}</p>
           ) : (

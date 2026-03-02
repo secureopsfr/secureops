@@ -60,13 +60,13 @@ const PrivacySection: React.FC<PrivacySectionProps> = ({
 
         <div className="pt-4 border-t border-[var(--border)]">
           <h3 className="text-lg font-semibold text-[var(--text)] mb-2">
-            {t("privacy.favoritesTitle")}
+            {t("privacy.historyTitle")}
           </h3>
           <p className="text-sm text-[var(--muted)] mb-3">
-            {t("privacy.favoritesDesc")}
+            {t("privacy.historyDesc")}
           </p>
           <GenericButton
-            label={t("privacy.deleteFavoritesBtn")}
+            label={t("privacy.deleteHistoryBtn")}
             onClick={handleDeleteHistoryClick}
             variant="outline"
             icon={<Trash2 className="w-4 h-4" />}
@@ -95,9 +95,9 @@ const PrivacySection: React.FC<PrivacySectionProps> = ({
         isOpen={isDeleteHistoryDialogOpen}
         onClose={() => setIsDeleteHistoryDialogOpen(false)}
         onConfirm={handleDeleteHistoryConfirm}
-        title={t("privacy.deleteFavoritesModalTitle")}
-        message={t("privacy.deleteFavoritesModalMessage")}
-        confirmText={t("privacy.deleteFavoritesConfirm")}
+        title={t("privacy.deleteHistoryModalTitle")}
+        message={t("privacy.deleteHistoryModalMessage")}
+        confirmText={t("privacy.deleteHistoryConfirm")}
         cancelText={t("common.cancel")}
         variant="danger"
       />

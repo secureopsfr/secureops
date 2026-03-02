@@ -95,3 +95,22 @@ export async function deleteScan(id: string): Promise<void> {
     throw new Error((err.detail as string) || "Erreur lors de la suppression");
   }
 }
+
+/**
+ * Supprime tous les scans de l'historique de l'utilisateur.
+ * Utilisé dans la section Données & confidentialité (Mon compte).
+ */
+export async function deleteAllScans(): Promise<{ deletedCount: number }> {
+  const response = await fetchWithAuth(
+    `${getApiBaseUrl()}/user/api/scans/history`,
+    { method: "DELETE" },
+  );
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(
+      (err.detail as string) || "Erreur lors de la suppression de l'historique",
+    );
+  }
+  const data = await response.json();
+  return { deletedCount: (data.deleted_count as number) ?? 0 };
+}

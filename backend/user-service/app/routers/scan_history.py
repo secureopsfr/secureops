@@ -8,7 +8,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.db import get_async_session
 from app.schemas.scan import ScanCreateRequest, ScanDetailResponse, ScanListItem, ScanListResponse
-from app.services.scan_repository import count_user_scans, create_scan, delete_scan_by_id, get_scan_by_id, list_scans_by_user_id
+from app.services.scan_repository import (
+    count_user_scans,
+    create_scan,
+    delete_all_user_scans,
+    delete_scan_by_id,
+    get_scan_by_id,
+    list_scans_by_user_id,
+)
 from app.services.user_repository import get_user_by_cognito_sub
 from app.utils.auth import get_current_user
 
@@ -157,6 +164,26 @@ async def get_scan_detail(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erreur lors de la récupération du scan",
+        )
+
+
+@router.delete("/history", status_code=status.HTTP_200_OK)
+async def delete_all_scans(
+    current_user: Annotated[Dict, Depends(get_current_user)],
+) -> dict:
+    """Supprime tous les scans de l'historique de l'utilisateur."""
+    try:
+        user_id = await _resolve_user_id(current_user)
+        async with get_async_session() as session:
+            deleted_count = await delete_all_user_scans(session, user_id)
+            return {"deleted_count": deleted_count}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Erreur lors de la suppression de l'historique: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de la suppression de l'historique",
         )
 
 

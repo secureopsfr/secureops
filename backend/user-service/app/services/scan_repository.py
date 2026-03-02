@@ -134,3 +134,22 @@ async def delete_scan_by_id(session: AsyncSession, scan_id: uuid.UUID, user_id: 
     await session.commit()
     logger.info("Scan supprimé: id=%s, user_id=%s", scan_id, user_id)
     return True
+
+
+async def delete_all_user_scans(session: AsyncSession, user_id: uuid.UUID) -> int:
+    """Supprime tous les scans d'un utilisateur.
+
+    Args:
+        session: Session de base de données.
+        user_id: UUID de l'utilisateur.
+
+    Returns:
+        Nombre de scans supprimés.
+    """
+    result = await session.execute(select(Scan).where(Scan.user_id == user_id))
+    scans = list(result.scalars().all())
+    for scan in scans:
+        await session.delete(scan)
+    await session.commit()
+    logger.info("Tous les scans supprimés pour user_id=%s: %s entrées", user_id, len(scans))
+    return len(scans)

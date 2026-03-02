@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { showErrorToast, showSuccessToast } from "../utils/toastNotifications";
 import { log, error } from "../utils/logger";
 import userService from "../services/userService";
+import { deleteAllScans } from "../services/scanHistoryService";
 import { useLanguage } from "../components/LanguageProvider";
 import { useAuthUser } from "./useAuthUser";
 
@@ -296,19 +297,15 @@ export function useAccountPage() {
 
   const handleDeleteHistory = async () => {
     try {
-      const result = await userService.deleteAllFavorites();
-      if (result.success) {
-        showSuccessToast(
-          (result.deletedCount || 0) > 0
-            ? t("account.favoritesDeleted", { count: result.deletedCount || 0 })
-            : t("account.noFavorites"),
-        );
-      } else {
-        showErrorToast(result.error || t("account.favoritesDeleteError"));
-      }
+      const { deletedCount } = await deleteAllScans();
+      showSuccessToast(
+        deletedCount > 0
+          ? t("account.historyDeleted", { count: deletedCount })
+          : t("account.noHistory"),
+      );
     } catch (err) {
-      error("Error deleting favorites:", err);
-      showErrorToast(t("account.favoritesDeleteError"));
+      error("Error deleting scan history:", err);
+      showErrorToast(t("account.historyDeleteError"));
     }
   };
 
