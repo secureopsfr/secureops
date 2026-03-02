@@ -14,6 +14,7 @@ from app.routers.health import router as health_router
 from app.routers.preferences import router as preferences_router
 from app.routers.privacy import router as privacy_router
 from app.routers.profile import router as profile_router
+from app.routers.scan_history import router as scan_history_router
 from app.routers.security import router as security_router
 from app.routers.subscription import router as subscription_router
 
@@ -47,6 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(profile_router)
     app.include_router(security_router)
     app.include_router(favorites_router)
+    app.include_router(scan_history_router)
     app.include_router(subscription_router)
     app.include_router(preferences_router)
     app.include_router(privacy_router)
