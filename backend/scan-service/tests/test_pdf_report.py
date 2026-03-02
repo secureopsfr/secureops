@@ -1,5 +1,7 @@
 """Tests unitaires pour la génération PDF (app.services.pdf_report)."""
 
+import pytest
+
 from app.services.pdf_report import generate_pdf
 from app.services.pdf_report.findings import _group_findings_by_category
 from app.services.pdf_report.pdf_i18n import t
@@ -143,3 +145,38 @@ def test_generate_pdf_exposed_files_en() -> None:
     assert "credentials and secrets accessible" in html
     assert "Block access" in html
     assert "Fichier .env exposé" not in html
+
+
+@pytest.mark.integration()
+def test_pdf_integration_scan_to_pdf(client) -> None:
+    """Test d'intégration : scan complet → génération PDF bout en bout.
+
+    Lance un scan mocké (headers manquants), récupère le result, génère le PDF.
+    Exclure en CI avec : pytest -m 'not integration'
+    """
+    from tests.conftest import parse_sse_events, patch_scan_checks
+
+    with patch_scan_checks():
+        response = client.post("/api/scan", json={"url": "https://example.com"})
+
+    assert response.status_code == 200
+    events = parse_sse_events(response)
+    result_events = [e for e in events if e[0] == "result"]
+    assert len(result_events) == 1, "Scan doit produire un événement result"
+
+    data = result_events[0][1]
+    pdf = generate_pdf(
+        url=data["url"],
+        score=data["score"],
+        timestamp=data["timestamp"],
+        duration=data["duration"],
+        findings=data["findings"],
+        include_matrices=True,
+        lang="en",
+    )
+
+    assert isinstance(pdf, bytes)
+    assert len(pdf) > 500
+    assert pdf[:4] == b"%PDF"
+    # Le scan mocké a headers vides → findings headers manquants
+    assert len(data["findings"]) > 0

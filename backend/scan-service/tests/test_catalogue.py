@@ -1,5 +1,8 @@
 """Tests unitaires pour le catalogue des recommandations (app.catalogue)."""
 
+import json
+from pathlib import Path
+
 from app.catalogue.recommendations import get_detail, get_evidence, get_recommendation, get_references, get_title
 
 
@@ -68,3 +71,19 @@ def test_get_detail_i18n() -> None:
     en = get_detail("tech_fingerprinting-stack-unknown", "en")
     assert "Aucun en-tête" in fr or "masquée" in fr
     assert "No revealing header" in en or "intentionally hidden" in en
+
+
+def test_all_risk_matrix_slugs_have_recommendation_en() -> None:
+    """Tous les slugs de risk_matrix.json ont recommendation_en dans recommendations.json."""
+    risk_path = Path(__file__).resolve().parents[1] / "app" / "catalogue" / "risk_matrix.json"
+    rec_path = Path(__file__).resolve().parents[1] / "app" / "catalogue" / "recommendations.json"
+    with risk_path.open(encoding="utf-8") as f:
+        risk_slugs = set(json.load(f).keys())
+    with rec_path.open(encoding="utf-8") as f:
+        catalogue = json.load(f)
+    missing: list[str] = []
+    for slug in risk_slugs:
+        entry = catalogue.get(slug)
+        if not entry or not entry.get("recommendation_en"):
+            missing.append(slug)
+    assert not missing, f"Slugs sans recommendation_en: {missing}"

@@ -118,6 +118,22 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - [x] Support i18n (fr/en) dans le PDF
   → Paramètre `lang` utilisé dans tout le rapport (libellés, catalogue `detail_fr`/`detail_en`)
 
+### 3.5 Refactoring PDF (complété) ✅
+- [x] Constantes centralisées : catégories (ordre, libellés, checked) dans `config/settings.yml`
+- [x] CSS extrait : `app/static/pdf_report.css` (styles séparés du Python)
+- [x] i18n centralisée : `pdf_i18n.py` (libellés UI) + catalogue `recommendations.json` (title, evidence, recommendation, detail fr/en)
+- [x] Footer URL configurable : `pdf.footer_url` dans settings.yml
+- [x] Découpage en modules : `app/services/pdf_report/` (cover, sommaire, synthese, findings, matrix, links, html_builder)
+- [x] Validation schéma : `ScanForPdfSchema` avant génération
+- [x] Tests unitaires : `tests/test_pdf_report.py`, `tests/test_catalogue.py`
+- [x] Liens externes factorisés : `links.py` (build_ref_links, build_inline_ref_links)
+- [x] Documentation : `docs/PDF-I18N.md` (architecture, ajout finding, nouvelle langue)
+
+**Reste (optionnel) :**
+- [x] Validation catalogue : test `test_all_risk_matrix_slugs_have_recommendation_en` vérifie que tous les slugs ont `recommendation_en`
+- [x] i18n messages `settings.yml` : `message_absent_en` et `message_en` ajoutés (security_headers, exposed_files, directory_listing) ; le catalogue reste la source pour le PDF
+- [x] Tests d'intégration : `test_pdf_integration_scan_to_pdf` (scan mocké → PDF, marqué `@pytest.mark.integration`)
+
 ---
 
 ## 4) Monitoring continu (scans planifiés)
