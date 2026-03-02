@@ -1,5 +1,6 @@
 """Point d'entrée principal du User Service."""
 
+import asyncio
 from contextlib import asynccontextmanager
 
 from common.error_handlers import register_exception_handlers
@@ -27,8 +28,25 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Gère le cycle de vie de l'application (startup/shutdown)."""
-    # Startup: initialiser la base de données
-    await init_db()
+    max_retries = 5
+    retry_delay = 2
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info("Tentative d'initialisation de la base de données (%s/%s)", attempt, max_retries)
+            await init_db()
+            logger.info("Base de données initialisée avec succès")
+            break
+        except Exception as e:
+            logger.warning("Échec de l'initialisation de la base de données: %s", e)
+            logger.exception("Traceback init_db")
+            if attempt < max_retries:
+                logger.info("Réessai dans %s secondes...", retry_delay)
+                await asyncio.sleep(retry_delay)
+            else:
+                logger.error("Impossible d'initialiser la base de données après tous les essais")
+                raise
+
     yield
     # Shutdown: rien à faire pour l'instant
 
