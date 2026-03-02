@@ -225,57 +225,6 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 
 ---
 
-## 8) Qualité / CI (dès MVP)
-
-### 8.1 Backend CI
-- [ ] Lint (ruff/flake8)
-- [ ] Tests unitaires (pytest)
-- [ ] Coverage minimal
-
-### 8.2 Frontend CI
-- [ ] Lint (eslint)
-- [ ] Build (npm run build)
-
-### 8.3 Branch protection (main)
-- [ ] PR required
-- [ ] checks required
-
----
-
-## 9) Déploiement AWS (MVP)
-
-### 9.1 Infra minimale
-- [ ] EC2 (Docker ou runtime direct)
-- [ ] Nginx reverse proxy
-- [ ] Certificat SSL (ACM via ALB ou Let’s Encrypt)
-
-### 9.2 Sécurité AWS (minimum)
-- [ ] Security Group : ouvrir seulement 80/443
-- [ ] SSH restreint à ton IP
-- [ ] Activer IMDSv2 sur EC2 (recommandé)
-- [ ] Logs CloudWatch (au minimum app logs)
-
----
-
-## 10) Tests finaux (avant annonce)
-
-- [ ] Tester sur sites de test (DVWA/Juice Shop en local)
-- [ ] Tester sur un vrai site vitrine simple
-- [ ] Tester cas d’erreurs : DNS, timeout, redirect, TLS broken
-- [ ] Vérifier que SSRF est impossible (tests IP privées)
-- [ ] Vérifier charge (10 scans rapides)
-
----
-
-## 11) Release MVP v0.1
-
-- [ ] Tag `v0.1.0`
-- [ ] Release notes (fonctionnalités + limites)
-- [ ] Démo GIF / screenshots
-- [ ] Feedback form (Google Form / email)
-
----
-
 # V2 (après MVP) — Roadmap MVP 0.2.0
 
 > Voir [ROADMAP-MVP-0.2.0.md](ROADMAP-MVP-0.2.0.md) pour le détail complet.

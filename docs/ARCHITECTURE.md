@@ -1,10 +1,10 @@
-# Architecture du template
+# Architecture SecureOps
 
 Ce document décrit l’architecture des services, le flux d’authentification et l’usage des bases de données.
 
 ## Vue d’ensemble
 
-Le template est organisé en **microservices** derrière un **API Gateway** unique. Le frontend (Next.js) ne parle qu’au gateway ; le gateway authentifie les requêtes (JWT Cognito) et proxy vers les services backend.
+SecureOps est organisé en **microservices** derrière un **API Gateway** unique. Le frontend (Next.js) ne parle qu’au gateway ; le gateway authentifie les requêtes (JWT Cognito) et proxy vers les services backend.
 
 ```
                     ┌─────────────────────────────────────────────────────────┐
@@ -46,9 +46,9 @@ Le template est organisé en **microservices** derrière un **API Gateway** uniq
 | **gateway** | 8000 | Authentification JWT (Cognito), CORS, proxy vers les services. Ne stocke pas de données. | — |
 | **admin-service** | 8010 | Administration : contacts, newsletter, emails, analytics, KPIs, alerting, gestion utilisateurs, upload d’images. | PostgreSQL (async), Alembic |
 | **user-service** | 8011 | Utilisateurs : profil, préférences, abonnements, favoris, sécurité, confidentialité. | PostgreSQL, Alembic |
-| **scan-service** | 8012 | Scan de posture sécurité (health + config). Scanner d'URL, score, findings. | — |
+| **scan-service** | 8012 | Scanner de posture sécurité : TLS/HTTPS, headers, cookies, exposition fichiers, directory listing, robots.txt, fingerprinting. Score /100, findings normalisés. | — |
 
-Le **scan-service** expose l’endpoint `/api/health` et la configuration ; la logique de scan est à implémenter selon la roadmap MVP.
+Le **scan-service** expose `POST /api/scan` (SSE) et `/api/health`. Protection SSRF, validation URL stricte, timeouts configurables.
 
 ## Routes du gateway
 
@@ -57,7 +57,7 @@ Le gateway expose :
 - **`/health`** — Health check (public).
 - **`/admin/*`** — Proxifié vers admin-service. Requiert **JWT + groupe Cognito `admin`** (sauf routes explicitement publiques).
 - **`/user/*`** — Proxifié vers user-service. Requiert **JWT** (utilisateur authentifié).
-- **`/scan/*`** — Proxifié vers scan-service. Requiert **JWT**.
+- **`/scan/*`** — Proxifié vers scan-service. `POST /scan/api/scan` est **public** (MVP) ; les autres routes requièrent **JWT**.
 
 Routes **publiques** (sans auth) :
 
@@ -65,6 +65,7 @@ Routes **publiques** (sans auth) :
 - `GET /images/*`, `GET /admin/images/*` (accès aux images)
 - `POST /api/contact` (formulaire de contact, protégé côté front par Turnstile)
 - `POST /admin/api/analytics/ingest` (ingestion analytics depuis le front)
+- `POST /scan/api/scan` (scanner de posture sécurité — MVP)
 - `POST /user/api/user/init` (création/initialisation du compte utilisateur après première connexion)
 
 La configuration des URLs des services (Docker vs local) est dans `backend/gateway/config/settings.yml` (clés `services.docker` et `services.local`). Le mode est choisi via la variable d’environnement `IS_DOCKER`.
