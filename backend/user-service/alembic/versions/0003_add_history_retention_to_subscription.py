@@ -22,7 +22,12 @@ depends_on: Optional[Sequence[str]] = None
 
 
 def upgrade() -> None:
-    """Ajoute la colonne history_retention à subscriptions."""
+    """Ajoute la colonne history_retention à subscriptions (idempotent)."""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [c["name"] for c in inspector.get_columns("subscriptions")]
+    if "history_retention" in columns:
+        return
     op.add_column(
         "subscriptions",
         sa.Column(

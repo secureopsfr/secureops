@@ -23,7 +23,11 @@ depends_on: Optional[Sequence[str]] = None
 
 
 def upgrade() -> None:
-    """Crée la table scans."""
+    """Crée la table scans (idempotent : skip si déjà créée par 0001.create_all)."""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if "scans" in inspector.get_table_names():
+        return
     op.create_table(
         "scans",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
