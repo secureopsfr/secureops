@@ -7,10 +7,22 @@ from urllib.parse import urljoin
 import httpx
 from fastapi import APIRouter, Request
 from fastapi.responses import Response, StreamingResponse
+from pydantic import BaseModel, Field
 
 from app.schemas.scan import ScanRequest
 from app.services.pdf_report import generate_pdf
 from app.services.scan_stream import scan_stream_generator
+
+
+class ScanForPdfSchema(BaseModel):
+    """Schéma attendu pour la génération PDF (réponse user-service)."""
+
+    url: str
+    score: int | None = None
+    timestamp: str = ""
+    duration: float = 0.0
+    findings: list[dict] = Field(default_factory=list)
+
 
 logger = logging.getLogger(__name__)
 
@@ -50,18 +62,24 @@ async def export_scan_pdf(
             return Response(status_code=502, content="Impossible de récupérer le scan")
 
     data = resp.json()
+    try:
+        scan_data = ScanForPdfSchema.model_validate(data)
+    except Exception as e:
+        logger.warning("Schéma scan invalide pour PDF: %s", e)
+        return Response(status_code=502, content="Données du scan invalides")
+
     pdf_bytes = generate_pdf(
-        url=data["url"],
-        score=data.get("score"),
-        timestamp=data.get("timestamp", ""),
-        duration=float(data.get("duration", 0)),
-        findings=data.get("findings", []),
+        url=scan_data.url,
+        score=scan_data.score,
+        timestamp=scan_data.timestamp,
+        duration=scan_data.duration,
+        findings=scan_data.findings,
         include_matrices=include_matrices,
         lang=lang if lang in ("fr", "en") else "fr",
     )
 
-    host = data.get("url", "scan").replace("https://", "").replace("http://", "").split("/")[0][:30]
-    filename = f"scan-{host}-{data.get('timestamp', '')[:10]}.pdf".replace(":", "-")
+    host = scan_data.url.replace("https://", "").replace("http://", "").split("/")[0][:30]
+    filename = f"scan-{host}-{scan_data.timestamp[:10]}.pdf".replace(":", "-")
 
     return Response(
         content=pdf_bytes,

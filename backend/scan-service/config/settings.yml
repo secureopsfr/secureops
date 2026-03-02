@@ -150,3 +150,43 @@ scoring:
     medium: 25
     low: 10
     info: 0
+
+# PDF (rapport de scan) : catégories, libellés i18n, footer.
+pdf:
+  footer_url: "https://secureops.example.com"
+  categories:
+    order:
+      - tls
+      - headers
+      - cookies
+      - exposed_files
+      - directory_listing
+      - robots_txt
+      - tech_fingerprinting
+      - other
+    checked:
+      - tls
+      - headers
+      - cookies
+      - exposed_files
+      - directory_listing
+      - robots_txt
+      - tech_fingerprinting
+    labels_fr:
+      tls: "TLS / HTTPS"
+      headers: "Security Headers"
+      cookies: "Cookies"
+      exposed_files: "Fichiers exposés"
+      directory_listing: "Directory listing"
+      robots_txt: "robots.txt"
+      tech_fingerprinting: "Tech fingerprinting"
+      other: "Autres"
+    labels_en:
+      tls: "TLS / HTTPS"
+      headers: "Security Headers"
+      cookies: "Cookies"
+      exposed_files: "Exposed files"
+      directory_listing: "Directory listing"
+      robots_txt: "robots.txt"
+      tech_fingerprinting: "Tech fingerprinting"
+      other: "Other"

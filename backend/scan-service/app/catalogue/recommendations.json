@@ -35,6 +35,11 @@
   },
   "headers-csp-absent": {
     "recommendation": "Ajouter l'en-tête Content-Security-Policy pour limiter les sources de scripts et réduire le risque XSS.",
+    "recommendation_en": "Add Content-Security-Policy header to limit script sources and reduce XSS risk.",
+    "title_fr": "Content-Security-Policy absent",
+    "title_en": "Content-Security-Policy absent",
+    "evidence_fr": "Content-Security-Policy absent : risque XSS accru.",
+    "evidence_en": "Content-Security-Policy absent: increased XSS risk.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP",
       "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/12-Test_for_Content_Security_Policy"
@@ -44,6 +49,11 @@
   },
   "headers-hsts-absent": {
     "recommendation": "Ajouter Strict-Transport-Security (HSTS) pour forcer les navigateurs à utiliser HTTPS.",
+    "recommendation_en": "Add Strict-Transport-Security (HSTS) to force browsers to use HTTPS.",
+    "title_fr": "Strict-Transport-Security absent",
+    "title_en": "Strict-Transport-Security absent",
+    "evidence_fr": "Strict-Transport-Security absent : risque de downgrade HTTPS→HTTP.",
+    "evidence_en": "Strict-Transport-Security absent: risk of HTTPS→HTTP downgrade.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security"
     ],
@@ -52,6 +62,11 @@
   },
   "headers-xfo-absent": {
     "recommendation": "Ajouter X-Frame-Options: DENY ou SAMEORIGIN pour empêcher le clickjacking.",
+    "recommendation_en": "Add X-Frame-Options: DENY or SAMEORIGIN to prevent clickjacking.",
+    "title_fr": "X-Frame-Options absent",
+    "title_en": "X-Frame-Options absent",
+    "evidence_fr": "X-Frame-Options absent : risque de clickjacking.",
+    "evidence_en": "X-Frame-Options absent: clickjacking risk.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options"
     ],
@@ -60,6 +75,11 @@
   },
   "headers-xcto-absent": {
     "recommendation": "Ajouter X-Content-Type-Options: nosniff pour éviter le MIME sniffing.",
+    "recommendation_en": "Add X-Content-Type-Options: nosniff to prevent MIME sniffing.",
+    "title_fr": "X-Content-Type-Options absent",
+    "title_en": "X-Content-Type-Options absent",
+    "evidence_fr": "X-Content-Type-Options absent : risque de MIME sniffing.",
+    "evidence_en": "X-Content-Type-Options absent: MIME sniffing risk.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options"
     ],
@@ -74,6 +94,11 @@
   },
   "headers-referrer-absent": {
     "recommendation": "Ajouter Referrer-Policy pour contrôler les informations envoyées dans l'en-tête Referer.",
+    "recommendation_en": "Add Referrer-Policy to control information sent in the Referer header.",
+    "title_fr": "Referrer-Policy absent",
+    "title_en": "Referrer-Policy absent",
+    "evidence_fr": "Referrer-Policy absent : risque de fuite d'URLs sensibles.",
+    "evidence_en": "Referrer-Policy absent: risk of sensitive URL leakage.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy"
     ],
@@ -82,6 +107,11 @@
   },
   "headers-permissions-absent": {
     "recommendation": "Ajouter Permissions-Policy pour restreindre l'accès aux APIs navigateur (géoloc, caméra, etc.).",
+    "recommendation_en": "Add Permissions-Policy to restrict access to browser APIs (geolocation, camera, etc.).",
+    "title_fr": "Permissions-Policy absent",
+    "title_en": "Permissions-Policy absent",
+    "evidence_fr": "Permissions-Policy absent : APIs navigateur accessibles par défaut.",
+    "evidence_en": "Permissions-Policy absent: browser APIs accessible by default.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy"
     ],
@@ -182,22 +212,39 @@
   },
   "tech_fingerprinting-connection-failed": {
     "recommendation": "Vérifier la connectivité. Impossible d'analyser les en-têtes.",
+    "recommendation_en": "Check connectivity. Unable to analyze headers.",
+    "title_fr": "En-têtes inaccessibles",
+    "title_en": "Headers unavailable",
     "references": []
   },
   "tech_fingerprinting-server-detected": {
     "recommendation": "Information : l'en-tête Server révèle le logiciel. Optionnel : masquer ou modifier pour réduire la surface d'attaque.",
+    "recommendation_en": "Information: Server header reveals software. Optional: hide or modify to reduce attack surface.",
+    "title_fr": "Serveur détecté",
+    "title_en": "Server detected",
     "references": []
   },
   "tech_fingerprinting-runtime-detected": {
     "recommendation": "Information : X-Powered-By révèle le runtime. Optionnel : masquer pour réduire la surface d'attaque.",
+    "recommendation_en": "Information: X-Powered-By reveals runtime. Optional: hide to reduce attack surface.",
+    "title_fr": "Runtime détecté",
+    "title_en": "Runtime detected",
     "references": []
   },
   "tech_fingerprinting-framework-detected": {
     "recommendation": "Information : framework/CMS détecté. Vérifier les mises à jour de sécurité.",
+    "recommendation_en": "Information: framework/CMS detected. Check for security updates.",
+    "title_fr": "Framework/CMS détecté",
+    "title_en": "Framework/CMS detected",
     "references": []
   },
   "tech_fingerprinting-stack-unknown": {
     "recommendation": "Information : stack non identifiée ou masquée. Pas d'action requise.",
+    "recommendation_en": "Information: stack not identified or hidden. No action required.",
+    "title_fr": "Stack non identifiée",
+    "title_en": "Stack not identified",
+    "evidence_fr": "Stack : non identifiée (ou masquée)",
+    "evidence_en": "Stack: not identified (or hidden)",
     "references": [],
     "detail_fr": "Aucun en-tête révélateur (Server, X-Powered-By, etc.) n'a été détecté. La stack technique est soit masquée volontairement (bonne pratique), soit non identifiable par les motifs analysés. Ce n'est pas une anomalie de sécurité.",
     "detail_en": "No revealing header (Server, X-Powered-By, etc.) was detected. The tech stack is either intentionally hidden (good practice) or not identifiable by the analyzed patterns. This is not a security anomaly."
