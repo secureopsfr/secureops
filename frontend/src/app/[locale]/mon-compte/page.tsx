@@ -121,7 +121,7 @@ export default function MonComptePage() {
         onExportData={handleExportData}
         onDeleteAccount={handleDeleteAccount}
         onDeleteHistory={handleDeleteHistory}
-        historyRetention={subscription?.history_retention ?? "30"}
+        historyRetention={String(subscription?.history_retention ?? "30")}
         onHistoryRetentionChange={handleHistoryRetentionChange}
       />
     </AccountLayout>
