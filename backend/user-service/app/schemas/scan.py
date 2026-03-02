@@ -1,7 +1,7 @@
 """Schémas Pydantic pour les endpoints d'historique des scans."""
 
 from datetime import datetime
-from typing import Any, List
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -54,4 +54,4 @@ class ScanDetailResponse(BaseModel):
     findings: List[dict[str, Any]] = Field(default_factory=list, description="Findings")
     timestamp: str = Field(..., description="Horodatage ISO")
     duration: float = Field(..., description="Durée en secondes")
-    created_at: datetime = Field(..., description="Date de création")
+    created_at: Optional[datetime] = Field(None, description="Date de création (None si non enregistré)")

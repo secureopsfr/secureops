@@ -2,10 +2,10 @@
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, List, Optional
 
-from sqlalchemy import desc, func, select
+from sqlalchemy import delete, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scan import Scan
@@ -153,3 +153,28 @@ async def delete_all_user_scans(session: AsyncSession, user_id: uuid.UUID) -> in
     await session.commit()
     logger.info("Tous les scans supprimés pour user_id=%s: %s entrées", user_id, len(scans))
     return len(scans)
+
+
+async def delete_scans_older_than_days(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    days: int,
+) -> int:
+    """Supprime les scans plus anciens que X jours pour un utilisateur.
+
+    Args:
+        session: Session de base de données.
+        user_id: UUID de l'utilisateur.
+        days: Nombre de jours (ex. 7, 30, 90).
+
+    Returns:
+        Nombre de scans supprimés.
+    """
+    cutoff = datetime.now(UTC) - timedelta(days=days)
+    stmt = delete(Scan).where(Scan.user_id == user_id, Scan.created_at < cutoff)
+    result = await session.execute(stmt)
+    deleted = result.rowcount or 0
+    await session.commit()
+    if deleted > 0:
+        logger.info("Scans supprimés pour user_id=%s (plus vieux que %s jours): %s entrées", user_id, days, deleted)
+    return deleted

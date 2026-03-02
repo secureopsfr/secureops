@@ -309,6 +309,26 @@ export function useAccountPage() {
     }
   };
 
+  const handleHistoryRetentionChange = async (value: string) => {
+    setSaving(true);
+    try {
+      const result = await userService.updateSubscriptionPreferences({
+        history_retention: value,
+      });
+      if (result.success && result.subscription) {
+        setSubscription(result.subscription);
+        showSuccessToast(t("account.preferencesSaved"));
+      } else {
+        showErrorToast(result.error || t("account.preferencesError"));
+      }
+    } catch (err) {
+      error("Error updating history retention:", err);
+      showErrorToast(t("account.preferencesError"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     try {
       const result = await userService.deleteAccount();
@@ -376,6 +396,7 @@ export function useAccountPage() {
     handleChangePassword,
     handleExportData,
     handleDeleteHistory,
+    handleHistoryRetentionChange,
     handleDeleteAccount,
     handleSignOutAll,
     handleSignOut,

@@ -16,6 +16,7 @@ from app.services.scan_repository import (
     get_scan_by_id,
     list_scans_by_user_id,
 )
+from app.services.subscription_repository import get_subscription_by_user_id
 from app.services.user_repository import get_user_by_cognito_sub
 from app.utils.auth import get_current_user
 
@@ -51,6 +52,20 @@ async def create_scan_entry(
     try:
         user_id = await _resolve_user_id(current_user)
         async with get_async_session() as session:
+            subscription = await get_subscription_by_user_id(session, user_id)
+            retention = (subscription.history_retention if subscription else None) or "30"
+            if retention == "none":
+                # Ne pas enregistrer : retourner une réponse minimale pour compatibilité
+                return ScanDetailResponse(
+                    id="",
+                    url=body.url,
+                    status=body.status,
+                    score=body.score,
+                    findings=body.findings,
+                    timestamp=body.timestamp,
+                    duration=body.duration,
+                    created_at=None,
+                )
             scan = await create_scan(
                 session=session,
                 user_id=user_id,

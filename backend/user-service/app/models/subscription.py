@@ -39,6 +39,13 @@ class Subscription(Base):
         Boolean, nullable=False, default=False, comment="Notifications par mail pour nouvelles données ou features"
     )
 
+    history_retention = Column(
+        String(10),
+        nullable=False,
+        default="30",
+        comment="Durée de conservation de l'historique des scans (none, 7, 30, 90, 365 jours)",
+    )
+
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, comment="Date de création")
 
     updated_at = Column(

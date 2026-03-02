@@ -45,6 +45,7 @@ export default function MonComptePage() {
     handleChangePassword,
     handleExportData,
     handleDeleteHistory,
+    handleHistoryRetentionChange,
     handleDeleteAccount,
     handleSignOutAll,
     handleSignOut,
@@ -120,6 +121,8 @@ export default function MonComptePage() {
         onExportData={handleExportData}
         onDeleteAccount={handleDeleteAccount}
         onDeleteHistory={handleDeleteHistory}
+        historyRetention={subscription?.history_retention ?? "30"}
+        onHistoryRetentionChange={handleHistoryRetentionChange}
       />
     </AccountLayout>
   );
