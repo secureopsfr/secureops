@@ -120,7 +120,7 @@ def parse_router_config(data: Dict[str, Any], default_prefix: str = "/api", defa
 
 # ---------------------------------------------------------------------------
 # Dataclasses et factory pour les services simples
-# (metier-a, metier-b, metier-c, user-service, …)
+# (scan-service, user-service, …)
 # ---------------------------------------------------------------------------
 
 
@@ -164,7 +164,7 @@ def create_simple_settings(
     ``config_loader.py`` complet.
 
     Args:
-        service_name: nom par défaut du service (ex. ``"metier-a-service"``).
+        service_name: nom par défaut du service (ex. ``"scan-service"``).
         default_port: port par défaut si absent du YAML.
         caller_file: ``__file__`` du module appelant — sert à localiser le
             fichier ``config/settings.yml`` relatif à la racine du service.
@@ -177,7 +177,7 @@ def create_simple_settings(
         from common.config_base import create_simple_settings
 
         settings = create_simple_settings(
-            "metier-a-service", 8008, caller_file=__file__,
+            "scan-service", 8012, caller_file=__file__,
         )
     """
     # caller_file = "<service>/app/config_loader.py"

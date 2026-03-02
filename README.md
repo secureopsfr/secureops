@@ -1,6 +1,8 @@
-# Template Fullstack Immosphere
+# SecureOps — Scanner de posture sécurité
 
-Template fullstack (backend Python/FastAPI + frontend Next.js) avec authentification Cognito, gateway API, services métier et base PostgreSQL. Utilisable comme base pour des applications SaaS (cybersécurité, gestion, etc.).
+**SecureOps** est un scanner de posture sécurité web (non intrusif) destiné aux développeurs débutants et intermédiaires : **URL → scan rapide → score + rapport clair**.
+
+Stack : backend Python/FastAPI, frontend Next.js, authentification Cognito, gateway API, services métier et base PostgreSQL.
 
 ## Prérequis
 
@@ -39,6 +41,8 @@ Voir [docs/VARIABLES-ENVIRONNEMENT.md](docs/VARIABLES-ENVIRONNEMENT.md) pour la 
 
 Les logs sont dans `logs/`. Arrêt : `Ctrl+C` ou `pkill -f uvicorn; pkill -f npm`.
 
+> **Si admin-service ou user-service affichent « Impossible de se connecter à la base »** : PostgreSQL n’est pas démarré. Soit relancez `./launch_dev.sh` (il démarre Postgres puis attend qu’il soit prêt), soit démarrez uniquement la base : `docker start postgres` (après un premier `./launch_dev.sh` ou `docker volume create pgdata && docker run -d --name postgres -p 5433:5432 -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -e POSTGRES_DB=template_db -v pgdata:/var/lib/postgresql/data postgis/postgis:17-3.4`).
+
 **Option B — Tout en Docker**
 
 ```bash
@@ -48,34 +52,34 @@ docker volume create pgdata
 docker compose up -d --build
 ```
 
-- Frontend : http://localhost:3000  
-- Gateway API : http://localhost:8000  
-- Health gateway : http://localhost:8000/health  
+- Frontend : http://localhost:3000 (page Scanner : `/scanner` ou `/en/scanner`)
+- Gateway API : http://localhost:8000
+- Health gateway : http://localhost:8000/health
 
 Arrêt : `docker compose down`. Données Postgres conservées dans le volume `pgdata`.
 
 **Option C — Windows**
 
-Le script `launch_dev.sh` affiche les commandes à lancer manuellement dans plusieurs terminaux (Postgres, gateway, admin-service, user-service, metier-*-service, frontend). Voir les messages à l’écran après exécution de `launch_dev.sh`.
+Le script `launch_dev.sh` affiche les commandes à lancer manuellement dans plusieurs terminaux (Postgres, gateway, admin-service, user-service, scan-service, frontend). Voir les messages à l’écran après exécution de `launch_dev.sh`.
 
 ## Structure du projet
 
 ```
-template/
+secureops/
 ├── backend/
 │   ├── common/                 # Package Python partagé (config, JWT, DB, logging, etc.)
 │   ├── gateway/                # API Gateway (auth, proxy vers les services)
 │   ├── admin-service/          # Service admin (contacts, analytics, emails, KPIs, etc.)
 │   ├── user-service/           # Utilisateurs, profil, abonnements, favoris
-│   ├── metier-a-service/       # Service métier A (stub)
-│   ├── metier-b-service/       # Service métier B (stub)
-│   └── metier-c-service/       # Service métier C (stub)
+│   └── scan-service/           # Scanner de posture sécurité (TLS, headers, cookies, etc.)
 ├── frontend/                   # Next.js 16 (App Router), i18n fr/en, Cognito, Tailwind
-├── docs/                       # Documentation (architecture, déploiement, variables)
+├── docs/                       # Documentation (architecture, roadmaps, vérifications)
 ├── .github/workflows/          # CI (lint Python + JS)
 ├── docker-compose.yml          # Stack complète
 ├── launch_dev.sh               # Démarrage dev (Postgres + services locaux)
 ├── .env.example                # Variables d’environnement racine
+├── VERSION                     # Version courante (ex. 0.1.0)
+├── CHANGELOG.md                # Historique des modifications
 └── pytest.ini                  # Config pytest (tests à venir)
 ```
 
@@ -83,9 +87,13 @@ template/
 
 | Document | Description |
 |----------|-------------|
+| [docs/README.md](docs/README.md) | Index de la documentation |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture des services, flux d’authentification, bases de données |
 | [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md) | Déploiement, migrations Alembic, healthchecks, bonnes pratiques |
 | [docs/VARIABLES-ENVIRONNEMENT.md](docs/VARIABLES-ENVIRONNEMENT.md) | Référence des variables d’environnement (racine et frontend) |
+| [docs/ROADMAP-MVP-0.1.0.md](docs/ROADMAP-MVP-0.1.0.md) | Roadmap MVP 0.1.0 (scanner de posture sécurité) |
+| [docs/ROADMAP-MVP-0.2.0.md](docs/ROADMAP-MVP-0.2.0.md) | Roadmap MVP 0.2.0 (auth, historique, export, API publique) |
+| [CHANGELOG.md](CHANGELOG.md) | Historique des modifications (Keep a Changelog) |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Lint, pre-commit, conventions de code |
 | [docs/AUDIT-TEMPLATE.md](docs/AUDIT-TEMPLATE.md) | Audit des manques et améliorations prioritaires |
 | [frontend/README.md](frontend/README.md) | Détails du projet Next.js (pages, config Amplify) |
@@ -119,6 +127,10 @@ cd backend/admin-service && . venv/bin/activate && alembic upgrade head
 cd backend/user-service && . venv/bin/activate && alembic upgrade head
 ```
 
+## Version
+
+La version courante est indiquée dans le fichier [VERSION](VERSION). Voir [CHANGELOG.md](CHANGELOG.md) pour l'historique des modifications.
+
 ## Licence
 
-Voir le fichier [LICENSE](LICENSE) s’il est présent, ou convenir avec l’équipe Immosphere.
+Voir le fichier [LICENSE](LICENSE) s'il est présent.

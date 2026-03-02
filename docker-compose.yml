@@ -42,11 +42,7 @@ services:
         condition: service_healthy
       user-service:
         condition: service_healthy
-      metier-a-service:
-        condition: service_healthy
-      metier-b-service:
-        condition: service_healthy
-      metier-c-service:
+      scan-service:
         condition: service_healthy
       postgres:
         condition: service_healthy
@@ -94,52 +90,10 @@ services:
       postgres:
         condition: service_healthy
 
-  metier-a-service:
+  scan-service:
     build:
       context: ./backend
-      dockerfile: metier-a-service/Dockerfile
-    ports:
-      - "8008:8008"
-    environment:
-      - IS_DOCKER=true
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8008/api/health')\""]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  metier-b-service:
-    build:
-      context: ./backend
-      dockerfile: metier-b-service/Dockerfile
-    ports:
-      - "8009:8009"
-    environment:
-      - IS_DOCKER=true
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8009/api/health')\""]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  metier-c-service:
-    build:
-      context: ./backend
-      dockerfile: metier-c-service/Dockerfile
+      dockerfile: scan-service/Dockerfile
     ports:
       - "8012:8012"
     environment:

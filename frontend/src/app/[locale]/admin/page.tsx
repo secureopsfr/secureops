@@ -73,10 +73,13 @@ const ImageGallery = nextDynamic(
     ssr: false,
   },
 );
-const AuditLog = nextDynamic(() => import("../../../components/admin/AuditLog"), {
-  loading: () => <AdminInlineLoading message="Chargement de la section..." />,
-  ssr: false,
-});
+const AuditLog = nextDynamic(
+  () => import("../../../components/admin/AuditLog"),
+  {
+    loading: () => <AdminInlineLoading message="Chargement de la section..." />,
+    ssr: false,
+  },
+);
 const AlertingDashboard = nextDynamic(
   () => import("../../../components/admin/AlertingDashboard"),
   {

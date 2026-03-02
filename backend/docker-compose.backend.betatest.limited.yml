@@ -22,11 +22,7 @@ services:
         condition: service_started
       user-service:
         condition: service_started
-      metier-a-service:
-        condition: service_started
-      metier-b-service:
-        condition: service_started
-      metier-c-service:
+      scan-service:
         condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -92,65 +88,13 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  metier-a-service:
+  scan-service:
     build:
       context: .
-      dockerfile: metier-a-service/Dockerfile
-    container_name: immosphere-metier-a-service
+      dockerfile: scan-service/Dockerfile
+    container_name: immosphere-scan-service
     ports:
-      - "${METIER_A_PORT:-8008}:8008"
-    environment:
-      - IS_DOCKER=true
-      - IS_PROD=true
-      - DATABASE_URL=${RDS_DATABASE_URL}
-    restart: unless-stopped
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8008/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  metier-b-service:
-    build:
-      context: .
-      dockerfile: metier-b-service/Dockerfile
-    container_name: immosphere-metier-b-service
-    ports:
-      - "${METIER_B_PORT:-8009}:8009"
-    environment:
-      - IS_DOCKER=true
-      - IS_PROD=true
-      - DATABASE_URL=${RDS_DATABASE_URL}
-    restart: unless-stopped
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8009/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  metier-c-service:
-    build:
-      context: .
-      dockerfile: metier-c-service/Dockerfile
-    container_name: immosphere-metier-c-service
-    ports:
-      - "${METIER_C_PORT:-8012}:8012"
+      - "${SCAN_PORT:-8012}:8012"
     environment:
       - IS_DOCKER=true
       - IS_PROD=true
@@ -174,4 +118,3 @@ networks:
   app-network:
     driver: bridge
     name: immosphere-network
-

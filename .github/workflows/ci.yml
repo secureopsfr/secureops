@@ -23,7 +23,7 @@ jobs:
         run: |
           echo "Working directory: $(pwd)"
           test -f frontend/Dockerfile || { echo "Missing frontend/Dockerfile"; exit 1; }
-          test -f backend/metier-c-service/Dockerfile || { echo "Missing backend/metier-c-service/Dockerfile"; exit 1; }
+          test -f backend/scan-service/Dockerfile || { echo "Missing backend/scan-service/Dockerfile"; exit 1; }
           (test -f backend/gateway/Dockerfile && test -f backend/admin-service/Dockerfile) || true
 
       # Build & démarrage de la stack
@@ -64,17 +64,26 @@ jobs:
       # Lint Python + JS
       - name: Python Lint & Formatting
         run: |
-          for svc in gateway admin-service user-service metier-a-service metier-b-service metier-c-service; do
+          for svc in gateway admin-service user-service scan-service; do
             docker compose -f docker-compose.ci.yml exec -T $svc black --check .
             docker compose -f docker-compose.ci.yml exec -T $svc isort --check-only .
             docker compose -f docker-compose.ci.yml exec -T $svc flake8 .
           done
 
+      - name: Python Tests (pytest)
+        run: |
+          for svc in gateway admin-service user-service scan-service; do
+            echo "Running pytest in $svc..."
+            docker compose -f docker-compose.ci.yml exec -T $svc pytest
+          done
+
       - name: JS Lint & Prettier
         run: docker compose -f docker-compose.ci.yml exec -T frontend npm run lint
+
+      - name: JS Tests (Jest)
+        run: docker compose -f docker-compose.ci.yml exec -T frontend npm run test
 
       # Teardown : nettoyage des conteneurs
       - name: Teardown full stack
         if: always()
         run: docker compose -f docker-compose.ci.yml down --volumes
-

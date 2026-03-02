@@ -159,8 +159,19 @@ class JSONFormatter(logging.Formatter):
         if cid:
             log_entry["correlation_id"] = cid
 
-        # Ajouter les extras pertinents
-        for key in ("path", "status_code", "method", "duration_ms", "user_id"):
+        # Ajouter les extras pertinents (requête HTTP, scan, etc.)
+        extra_keys = (
+            "path",
+            "status_code",
+            "method",
+            "duration_ms",
+            "user_id",
+            "request_id",
+            "duration_seconds",
+            "nb_findings",
+            "status",
+        )
+        for key in extra_keys:
             value = getattr(record, key, None)
             if value is not None:
                 log_entry[key] = value

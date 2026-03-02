@@ -1,6 +1,8 @@
-# Audit du template fullstack (backend + frontend)
+# Audit SecureOps (backend + frontend)
 
 Analyse détaillée des manques et améliorations recommandées, **par ordre de priorité**.
+
+> **Note :** Certains points (ex. documentation) ont été mis à jour depuis la création de cet audit. Voir [README.md](README.md) et [ROADMAP-MVP-0.1.0.md](ROADMAP-MVP-0.1.0.md) pour l'état actuel.
 
 ---
 
@@ -8,20 +10,20 @@ Analyse détaillée des manques et améliorations recommandées, **par ordre de 
 
 ### 1.1 Tests absents
 
-- **Backend**  
-  - `pytest.ini` à la racine définit `testpaths = tests/unit, tests/integration, tests/e2e` mais **aucun répertoire `tests/`** n’existe (ni à la racine ni dans les services).  
-  - Aucun fichier `test_*.py` ou `*_test.py` dans le backend.  
+- **Backend**
+  - `pytest.ini` à la racine définit `testpaths = tests/unit, tests/integration, tests/e2e` mais **aucun répertoire `tests/`** n’existe (ni à la racine ni dans les services).
+  - Aucun fichier `test_*.py` ou `*_test.py` dans le backend.
   - **Action :** Créer une arborescence `tests/` (unit / integration / e2e) par service ou partagée, ajouter des tests unitaires sur les routes critiques (auth, user, admin), des tests d’intégration sur la base et le gateway, et exécuter `pytest` dans la CI.
 
-- **Frontend**  
-  - Aucun runner de tests (Jest, Vitest) dans `package.json`, pas de script `test`, pas de dépendances de test.  
+- **Frontend**
+  - Aucun runner de tests (Jest, Vitest) dans `package.json`, pas de script `test`, pas de dépendances de test.
   - **Action :** Introduire Vitest (ou Jest) + React Testing Library, ajouter un script `npm run test`, couvrir au minimum les composants critiques (auth, formulaires, appels API) et les faire tourner en CI.
 
 ### 1.2 Rate limiting non implémenté
 
 - La doc et les commentaires (ex. `gateway/app/middleware.py`, `admin-service/app/routers/analytics.py`) indiquent que le rate limiting est prévu « au niveau du reverse proxy / gateway », mais **aucun rate limiting n’est en place** dans le gateway ni dans les services.
-- Les endpoints publics (`/api/contact`, `POST /admin/api/analytics/ingest`) sont donc exposés au abus (spam, surcharge).
-- **Action :** Ajouter un rate limiter au gateway (ex. `slowapi` ou middleware custom avec Redis/in-memory) pour les routes publiques et/ou par IP, et documenter la politique (ex. 100 req/min par IP pour `/api/contact`, 50 req/min pour analytics ingest).
+- Les endpoints publics (`/api/contact`, `POST /admin/api/analytics/ingest`, `POST /scan/api/scan`) sont donc exposés aux abus (spam, surcharge).
+- **Action :** Ajouter un rate limiter au gateway (ex. `slowapi` ou middleware custom avec Redis/in-memory) pour les routes publiques et/ou par IP, et documenter la politique (ex. 10 req/min par IP pour `/scan/api/scan`, 100 req/min pour `/api/contact`, 50 req/min pour analytics ingest).
 
 ### 1.3 CI sans exécution des tests
 
@@ -38,14 +40,10 @@ Analyse détaillée des manques et améliorations recommandées, **par ordre de 
 
 ## Priorité 2 — Haute (maintenabilité, opérations, onboarding)
 
-### 2.1 Documentation projet vide
+### 2.1 Documentation projet
 
-- Le dossier **`docs/`** est vide (aucune architecture, runbook, déploiement).
-- Il n’y a **pas de README à la racine** du repo ; seul `frontend/README.md` existe et reste très générique.
-- **Action :** Rédiger au minimum :
-  - **README.md** à la racine : présentation du template, prérequis, démarrage (`launch_dev.sh` / docker-compose), structure backend/frontend, lien vers `docs/`.
-  - **docs/ARCHITECTURE.md** : schéma des services (gateway, user-service, admin-service, metier-*), flux auth (Cognito → gateway), bases de données.
-  - **docs/DEPLOIEMENT.md** ou **docs/OPERATIONS.md** : variables d’environnement, build Docker, migrations Alembic, santé des services.
+- **Fait :** README à la racine, ARCHITECTURE.md, DEPLOIEMENT.md, VARIABLES-ENVIRONNEMENT.md, ROADMAP-MVP-0.1.0.md, ROADMAP-MVP-0.2.0.md, CHANGELOG.md, docs de vérifications (TLS, headers, cookies, etc.).
+- **À compléter :** Mettre à jour régulièrement la doc lors des évolutions ; ajouter un runbook opérationnel si besoin.
 
 ### 2.2 Makefile ou scripts de référence
 
@@ -83,10 +81,10 @@ Analyse détaillée des manques et améliorations recommandées, **par ordre de 
 - La page **`app/not-found.tsx`** propose un lien « Retour à l’accueil » codé en dur vers **`/fr`**. En environnement multilingue, il serait préférable de renvoyer vers la locale courante ou la page d’accueil par défaut.
 - **Action :** Utiliser la locale détectée (middleware, cookie ou en-tête) pour générer le lien d’accueil (ex. `/${locale}`) ou rediriger vers la home sans forcer `fr`.
 
-### 3.4 Services métier (metier-a, metier-b, metier-c) sans logique métier
+### 3.4 Service scan (scan-service)
 
-- Les trois services **metier-a**, **metier-b**, **metier-c** n’ont qu’un health check et une config ; ils n’exposent pas de modèles ni de logique métier. C’est cohérent pour un template à compléter, mais peut prêter à confusion.
-- **Action :** Dans `docs/ARCHITECTURE.md`, préciser que ces services sont des **stubs** destinés à être remplacés ou étendus selon le projet, et indiquer comment y ajouter des routes et une base de données (en s’inspirant de user-service ou admin-service).
+- Le service **scan-service** expose un health check et une config ; la logique de scan (posture sécurité) est à implémenter selon la roadmap MVP.
+- **Action :** Étendre le service avec les endpoints et la logique décrits dans `docs/ROADMAP-MVP.md`.
 
 ---
 

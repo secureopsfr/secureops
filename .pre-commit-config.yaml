@@ -35,23 +35,11 @@ repos:
         args:
           - --config=backend/user-service/pyproject.toml
       - id: black
-        name: Black metier-a-service
+        name: Black scan-service
         language_version: python3
-        files: ^backend/metier-a-service/.*\.py$
+        files: ^backend/scan-service/.*\.py$
         args:
-          - --config=backend/metier-a-service/pyproject.toml
-      - id: black
-        name: Black metier-b-service
-        language_version: python3
-        files: ^backend/metier-b-service/.*\.py$
-        args:
-          - --config=backend/metier-b-service/pyproject.toml
-      - id: black
-        name: Black metier-c-service
-        language_version: python3
-        files: ^backend/metier-c-service/.*\.py$
-        args:
-          - --config=backend/metier-c-service/pyproject.toml
+          - --config=backend/scan-service/pyproject.toml
 
   # ──────────────────────────────────────────────────────────────────────────────
   # isort (Python) — un hook par service, pour prendre la config locale
@@ -75,18 +63,8 @@ repos:
         args:
           - --profile=black
       - id: isort
-        name: isort metier-a-service
-        files: ^backend/metier-a-service/.*\.py$
-        args:
-          - --profile=black
-      - id: isort
-        name: isort metier-b-service
-        files: ^backend/metier-b-service/.*\.py$
-        args:
-          - --profile=black
-      - id: isort
-        name: isort metier-c-service
-        files: ^backend/metier-c-service/.*\.py$
+        name: isort scan-service
+        files: ^backend/scan-service/.*\.py$
         args:
           - --profile=black
 
@@ -112,20 +90,10 @@ repos:
         args:
           - --config=backend/user-service/.flake8
       - id: flake8
-        name: Flake8 metier-a-service
-        files: ^backend/metier-a-service/.*\.py$
+        name: Flake8 scan-service
+        files: ^backend/scan-service/.*\.py$
         args:
-          - --config=backend/metier-a-service/.flake8
-      - id: flake8
-        name: Flake8 metier-b-service
-        files: ^backend/metier-b-service/.*\.py$
-        args:
-          - --config=backend/metier-b-service/.flake8
-      - id: flake8
-        name: Flake8 metier-c-service
-        files: ^backend/metier-c-service/.*\.py$
-        args:
-          - --config=backend/metier-c-service/.flake8
+          - --config=backend/scan-service/.flake8
 
   # ──────────────────────────────────────────────────────────────────────────────
   # ESLint (TypeScript/React) pour frontend Next.js
@@ -152,4 +120,3 @@ repos:
         entry: bash -c "cd frontend && npm run format"
         files: ^frontend/.*\.(js|jsx|ts|tsx|css|json|md)$
         pass_filenames: false
-

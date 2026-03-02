@@ -14,6 +14,7 @@ export default function Footer({ locale }: { locale: string }) {
   return (
     <AnimateInView
       as="footer"
+      id="site-footer"
       role="contentinfo"
       className="border-t border-[var(--color-border)] pt-10 px-4 pb-4 text-[var(--color-text-muted)] text-sm text-center md:text-left mt-6 landing-reveal-footer"
     >

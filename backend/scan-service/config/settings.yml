@@ -1,0 +1,152 @@
+general:
+  service_name: "scan-service"
+  environment: "development"
+  cors_allow_origins:
+    - "*"
+  # URL de connexion : utiliser la variable d'environnement DATABASE_URL.
+
+server:
+  host: "0.0.0.0"
+  port: 8012
+
+logging:
+  level: "INFO"
+
+database:
+  pool_size: 20
+  max_overflow: 30
+  pool_timeout: 30
+  pool_recycle: 3600
+  pool_pre_ping: true
+  echo: false
+  connect_args:
+    server_settings:
+      application_name: "scan-service"
+  ssl_mode: "prefer"
+  pool_logging: false
+
+routers:
+  health:
+    prefix: "/api"
+    tags:
+      - "health"
+
+# Validation d'URL (roadmap §2.1) : schémas, ports, longueur max.
+url_validation:
+  max_url_length: 2048
+  allowed_schemes:
+    - "http"
+    - "https"
+  allowed_ports:
+    - 80
+    - 443
+    # Ports badssl.com pour tests TLS 1.0/1.1 (tls-v1-0.badssl.com:1010, tls-v1-1.badssl.com:1011)
+    - 1010
+    - 1011
+
+# Protection SSRF (roadmap §2.2) : hostnames et plages IP interdits.
+ssrf:
+  dns_timeout: 5.0  # secondes pour la résolution DNS
+  blocked_hostnames:
+    - "localhost"
+    - "localhost."
+    - "127.0.0.1"
+    - "::1"
+    - "[::1]"
+    - "0.0.0.0"
+  blocked_ipv4_networks:
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+    - "169.254.0.0/16"
+    - "127.0.0.0/8"
+    - "0.0.0.0/8"
+  blocked_ipv6_networks:
+    - "::1/128"
+    - "fe80::/10"
+    - "fc00::/7"
+
+# Security Headers (roadmap §3.2) : en-têtes à vérifier.
+security_headers:
+  headers:
+    - name: Content-Security-Policy
+      message_absent: "Content-Security-Policy absent : risque XSS accru."
+    - name: Strict-Transport-Security
+      message_absent: "Strict-Transport-Security absent : risque de downgrade HTTPS→HTTP."
+    - name: X-Frame-Options
+      message_absent: "X-Frame-Options absent : risque de clickjacking."
+    - name: X-Content-Type-Options
+      message_absent: "X-Content-Type-Options absent : risque de MIME sniffing."
+      expected_value: nosniff
+    - name: Referrer-Policy
+      message_absent: "Referrer-Policy absent : risque de fuite d'URLs sensibles."
+    - name: Permissions-Policy
+      message_absent: "Permissions-Policy absent : APIs navigateur accessibles par défaut."
+
+# Exposed files / sensitive endpoints (roadmap §3.4) : chemins à tester.
+exposed_files:
+  max_body_bytes: 8192  # Limite de lecture pour détection (éviter gros fichiers)
+  severity_upgrade:  # Chemins forcés en critical (ignorer severity du path)
+    - /.git/config
+    - /.env
+  paths:
+    - path: /.env
+      severity: critical
+      message: "Fichier .env exposé : credentials et secrets accessibles."
+    - path: /.git/config
+      severity: critical
+      message: "Fichier .git/config exposé : dépôt Git accessible."
+    - path: /backup.zip
+      severity: high
+      message: "Archive backup.zip exposée : sauvegarde accessible."
+    - path: /phpinfo.php
+      severity: high
+      message: "phpinfo.php exposé : configuration PHP révélée."
+    - path: /admin/
+      severity: medium
+      message: "Interface /admin/ exposée : à protéger par authentification."
+    - path: /.DS_Store
+      severity: low
+      message: "Fichier .DS_Store exposé : structure des répertoires révélée."
+
+# Directory listing (roadmap §3.5) : répertoires à tester.
+directory_listing:
+  max_body_bytes: 8192
+  paths:
+    - path: /uploads/
+      severity: high
+      message: "Directory listing activé sur /uploads/ : fichiers utilisateurs énumérables."
+    - path: /assets/
+      severity: medium
+      message: "Directory listing activé sur /assets/ : structure révélée."
+    - path: /static/
+      severity: medium
+      message: "Directory listing activé sur /static/ : structure révélée."
+
+# robots.txt (roadmap §3.6) : motifs de routes sensibles à signaler dans Disallow.
+# Par défaut : _DEFAULT_ROBOTS_TXT_PATTERNS dans config_loader. Surcharger ici si besoin.
+robots_txt:
+  patterns: []  # Vide = utiliser les defaults du code
+
+# Timeouts scan (roadmap §2.3) : connexion, lecture, durée max du scan.
+timeouts:
+  connection: 3    # secondes pour établir la connexion
+  read: 10         # secondes pour lire la réponse
+  scan_global: 60  # secondes max pour l'ensemble du scan (ex: 60–120)
+
+# Scoring (roadmap §5) : pondération par catégorie et pénalités par sévérité.
+scoring:
+  category_weights:
+    tls: 25
+    headers: 25
+    cookies: 20
+    exposed_files: 10
+    directory_listing: 10
+    robots_txt: 5
+    tech_fingerprinting: 5
+  severity_penalties:
+    critical: 100
+    high: 50
+    medium: 25
+    low: 10
+    info: 0

@@ -14,6 +14,7 @@ export const DEFAULT_LOCALE: Locale = "fr";
 const INTERNAL_SLUGS = [
   "tarifs",
   "contact",
+  "scanner",
   "connexion",
   "inscription",
   "confirmation",
@@ -32,6 +33,7 @@ export const SLUG_MAP: Record<Locale, Record<string, string>> = {
   en: {
     tarifs: "pricing",
     contact: "contact",
+    scanner: "scanner",
     connexion: "login",
     inscription: "register",
     confirmation: "confirmation",

@@ -4,19 +4,45 @@ const nextConfig: NextConfig = {
   // Pas de trailing slash pour éviter contenu dupliqué (SEO)
   trailingSlash: false,
 
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "www.google.com",
+        pathname: "/s2/favicons/**",
+      },
+    ],
+  },
+
   // Configuration pour éviter l'avertissement sur le workspace root
   // Note: Le warning sur les lockfiles multiples est normal si vous avez un monorepo
 
   async headers() {
     // CSP : limite les sources de scripts/styles/connexions pour atténuer XSS et injection.
     // À affiner selon les domaines réels (Cognito, gateway, analytics). Voir docs/SEO-AUDIT.md.
+    const isDev = process.env.NODE_ENV === "development";
+    const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL ?? "";
+    const useLocalGateway =
+      isDev ||
+      /localhost|127\.0\.0\.1/.test(gatewayUrl) ||
+      gatewayUrl === "";
+    const localhostSources = useLocalGateway
+      ? ["http://localhost:8000", "http://127.0.0.1:8000"]
+      : [];
+    const connectSrc = [
+      "'self'",
+      "https://challenges.cloudflare.com",
+      "https://*.amazoncognito.com",
+      "https:",
+      ...localhostSources,
+    ].join(" ");
     const csp = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self'",
-      "connect-src 'self' https://challenges.cloudflare.com https://*.amazoncognito.com https:",
+      `connect-src ${connectSrc}`,
       "frame-src 'self' https://challenges.cloudflare.com https://*.amazoncognito.com",
       "base-uri 'self'",
       "form-action 'self'",

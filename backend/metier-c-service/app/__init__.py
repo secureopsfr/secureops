@@ -1,1 +1,0 @@
-"""Package Metier C Service."""

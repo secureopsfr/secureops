@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { signIn, confirmSignIn, getCurrentUser } from "aws-amplify/auth";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   showErrorToast,
   showSuccessToast,
@@ -15,9 +15,25 @@ import { translateAuthError } from "./translateAuthError";
 import PasswordChangeForm from "./PasswordChangeForm";
 import LoginForm from "./LoginForm";
 
+/** Vérifie que returnTo est un chemin relatif sûr (évite open redirect). */
+function isSafeReturnTo(value: string | null): boolean {
+  if (!value || typeof value !== "string") return false;
+  const trimmed = value.trim();
+  return trimmed.startsWith("/") && !trimmed.startsWith("//");
+}
+
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t, lp, setLanguage } = useLanguage();
+  const returnTo = searchParams.get("returnTo");
+  const redirectAfterLogin = isSafeReturnTo(returnTo) ? returnTo! : lp("/");
+
+  useEffect(() => {
+    if (returnTo && isSafeReturnTo(returnTo)) {
+      sessionStorage.setItem("auth:returnTo", returnTo);
+    }
+  }, [returnTo]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -35,7 +51,7 @@ export default function LoginPage() {
       try {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
-        router.push(lp("/"));
+        window.location.href = redirectAfterLogin;
       } catch (err: unknown) {
         const errMsg = err instanceof Error ? err.message : String(err || "");
         debug("No user signed in:", errMsg);
@@ -73,7 +89,7 @@ export default function LoginPage() {
     };
 
     checkCurrentUser();
-  }, [router, lp]);
+  }, [router, lp, redirectAfterLogin]);
 
   useEffect(() => {
     document.body.style.paddingTop = "0";
@@ -167,7 +183,7 @@ export default function LoginPage() {
         }, 100);
 
         showSuccessToast(t("auth.login.successToast"));
-        router.push(lp("/"));
+        window.location.href = redirectAfterLogin;
       } else {
         showErrorToast(t("auth.login.errorToast"));
       }
@@ -234,7 +250,7 @@ export default function LoginPage() {
       localStorage.setItem("auth:signIn", Date.now().toString());
       localStorage.removeItem("auth:signIn");
       showSuccessToast(t("auth.login.passwordChangedSuccess"));
-      router.push(lp("/"));
+      window.location.href = redirectAfterLogin;
     } catch (err: unknown) {
       showErrorToast(
         translateAuthError(err, t) || t("auth.login.passwordChangeError"),
