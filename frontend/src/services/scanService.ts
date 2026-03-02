@@ -37,12 +37,13 @@ export interface ScanError {
   error_type?: string;
 }
 
-export type ScanEventType = "step" | "result" | "error";
+export type ScanEventType = "step" | "result" | "error" | "save_failed";
 
 export type ScanEventHandler =
   | { type: "step"; data: ScanStep }
   | { type: "result"; data: ScanResult }
-  | { type: "error"; data: ScanError };
+  | { type: "error"; data: ScanError }
+  | { type: "save_failed"; data: string };
 
 function parseSSEBlock(block: string): { event: string; data: unknown } | null {
   let event = "message";
@@ -64,23 +65,34 @@ function parseSSEBlock(block: string): { event: string; data: unknown } | null {
 
 /**
  * Lance un scan et consomme le flux SSE.
- * Appelle onEvent pour chaque événement (step, result, error).
+ * Appelle onEvent pour chaque événement (step, result, error, save_failed).
+ *
+ * @param url - URL à scanner
+ * @param onEvent - Callback pour chaque événement SSE
+ * @param getToken - Optionnel : retourne le token pour sauvegarder dans l'historique (si connecté)
  */
 export async function runScan(
   url: string,
   onEvent: (ev: ScanEventHandler) => void,
+  getToken?: () => Promise<string | null>,
 ): Promise<void> {
   const baseUrl = getApiBaseUrl();
   const endpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan`;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "text/event-stream",
+  };
+  if (getToken) {
+    const token = await getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
 
   let response: Response;
   try {
     response = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "text/event-stream",
-      },
+      headers,
       body: JSON.stringify({ url }),
     });
   } catch (err) {
@@ -141,10 +153,20 @@ export async function runScan(
           onEvent({ type: "step", data: data as ScanStep });
         } else if (event === "result" && data && typeof data === "object") {
           onEvent({ type: "result", data: data as ScanResult });
-          return;
+          // Ne pas return : le flux peut encore émettre save_failed
         } else if (event === "error" && data && typeof data === "object") {
           onEvent({ type: "error", data: data as ScanError });
           return;
+        } else if (
+          event === "save_failed" &&
+          data &&
+          typeof data === "object"
+        ) {
+          onEvent({
+            type: "save_failed",
+            data:
+              (data as { message?: string }).message ?? "Erreur de sauvegarde",
+          });
         }
       }
     }
