@@ -229,7 +229,7 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 
 > Voir [ROADMAP-MVP-0.2.0.md](ROADMAP-MVP-0.2.0.md) pour le détail complet.
 
-- [ ] Mode asynchrone + queue (SQS / Celery)
+- [ ] Mode asynchrone + queue (reporté, voir [A-PENSER-PLUS-TARD.md](A-PENSER-PLUS-TARD.md))
 - [ ] Auth + dashboard + historique scans
 - [ ] Export PDF
 - [ ] Monitoring continu (scans planifiés)
