@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { History, Trash2 } from "lucide-react";
+import { FileDown, History, Trash2 } from "lucide-react";
 import Card from "../cards/Card";
 import ConfirmModal from "../ConfirmModal";
 import LoadingScreen from "../LoadingScreen";
@@ -11,6 +11,7 @@ import {
   getScanHistory,
   getScanDetail,
   deleteScan,
+  downloadScanPdf,
   type ScanHistoryItem,
 } from "../../services/scanHistoryService";
 import type { ScanResult } from "../../services/scanService";
@@ -19,18 +20,19 @@ import { showErrorToast } from "../../utils/toastNotifications";
 import { formatDate } from "../../utils/dateFormat";
 
 interface ScanHistoryBlockProps {
-  onSelectScan: (result: ScanResult) => void;
+  onSelectScan: (result: ScanResult, scanId?: string) => void;
 }
 
 export default function ScanHistoryBlock({
   onSelectScan,
 }: ScanHistoryBlockProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [items, setItems] = useState<ScanHistoryItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
+  const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const perPage = 20;
 
@@ -80,7 +82,7 @@ export default function ScanHistoryBlock({
           score: detail.score ?? 0,
           findings: detail.findings,
         };
-        onSelectScan(result);
+        onSelectScan(result, detail.id);
       } catch {
         showErrorToast(t("scanner.historyLoadError"));
       } finally {
@@ -93,6 +95,21 @@ export default function ScanHistoryBlock({
   const handleDeleteModalClose = useCallback(() => {
     setDeleteTargetId(null);
   }, []);
+
+  const handlePdfClick = useCallback(
+    async (e: React.MouseEvent, item: ScanHistoryItem) => {
+      e.stopPropagation();
+      setPdfLoadingId(item.id);
+      try {
+        await downloadScanPdf(item.id, language as "fr" | "en");
+      } catch {
+        showErrorToast(t("scanner.exportPdfDownload") + " — erreur");
+      } finally {
+        setPdfLoadingId(null);
+      }
+    },
+    [language, t],
+  );
 
   const totalPages = Math.max(1, Math.ceil(total / perPage));
 
@@ -122,6 +139,7 @@ export default function ScanHistoryBlock({
                     item.url;
                   const badge = getScoreBadge(item.score ?? 0);
                   const isLoading = loadingDetailId === item.id;
+                  const isPdfLoading = pdfLoadingId === item.id;
                   return (
                     <li
                       key={item.id}
@@ -141,14 +159,25 @@ export default function ScanHistoryBlock({
                           /100 · {t(badge.labelKey)}
                         </span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClick(item.id)}
-                        className="p-2 text-[var(--muted)] hover:text-[rgb(var(--danger))] shrink-0 cursor-pointer"
-                        aria-label={t("scanner.historyDelete")}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => handlePdfClick(e, item)}
+                          disabled={isPdfLoading}
+                          className="p-2 text-[var(--muted)] hover:text-[rgb(var(--primary))] shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                          aria-label={t("scanner.exportPdfDownload")}
+                        >
+                          <FileDown className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(item.id)}
+                          className="p-2 text-[var(--muted)] hover:text-[rgb(var(--danger))] shrink-0 cursor-pointer"
+                          aria-label={t("scanner.historyDelete")}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </li>
                   );
                 })}

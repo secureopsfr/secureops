@@ -67,23 +67,31 @@ ssrf:
     - "fc00::/7"
 
 # Security Headers (roadmap §3.2) : en-têtes à vérifier.
+# message_absent (fr) utilisé par les checks ; message_absent_en pour cohérence i18n (catalogue override PDF).
 security_headers:
   headers:
     - name: Content-Security-Policy
       message_absent: "Content-Security-Policy absent : risque XSS accru."
+      message_absent_en: "Content-Security-Policy absent: increased XSS risk."
     - name: Strict-Transport-Security
       message_absent: "Strict-Transport-Security absent : risque de downgrade HTTPS→HTTP."
+      message_absent_en: "Strict-Transport-Security absent: risk of HTTPS→HTTP downgrade."
     - name: X-Frame-Options
       message_absent: "X-Frame-Options absent : risque de clickjacking."
+      message_absent_en: "X-Frame-Options absent: clickjacking risk."
     - name: X-Content-Type-Options
       message_absent: "X-Content-Type-Options absent : risque de MIME sniffing."
+      message_absent_en: "X-Content-Type-Options absent: MIME sniffing risk."
       expected_value: nosniff
     - name: Referrer-Policy
       message_absent: "Referrer-Policy absent : risque de fuite d'URLs sensibles."
+      message_absent_en: "Referrer-Policy absent: risk of sensitive URL leakage."
     - name: Permissions-Policy
       message_absent: "Permissions-Policy absent : APIs navigateur accessibles par défaut."
+      message_absent_en: "Permissions-Policy absent: browser APIs accessible by default."
 
 # Exposed files / sensitive endpoints (roadmap §3.4) : chemins à tester.
+# message (fr) utilisé par les checks ; message_en pour cohérence i18n (catalogue override PDF).
 exposed_files:
   max_body_bytes: 8192  # Limite de lecture pour détection (éviter gros fichiers)
   severity_upgrade:  # Chemins forcés en critical (ignorer severity du path)
@@ -93,35 +101,45 @@ exposed_files:
     - path: /.env
       severity: critical
       message: "Fichier .env exposé : credentials et secrets accessibles."
+      message_en: "File .env exposed: credentials and secrets accessible."
     - path: /.git/config
       severity: critical
       message: "Fichier .git/config exposé : dépôt Git accessible."
+      message_en: "File .git/config exposed: Git repository accessible."
     - path: /backup.zip
       severity: high
       message: "Archive backup.zip exposée : sauvegarde accessible."
+      message_en: "Backup archive exposed: backup accessible."
     - path: /phpinfo.php
       severity: high
       message: "phpinfo.php exposé : configuration PHP révélée."
+      message_en: "phpinfo.php exposed: PHP configuration revealed."
     - path: /admin/
       severity: medium
       message: "Interface /admin/ exposée : à protéger par authentification."
+      message_en: "Admin interface exposed: protect with authentication."
     - path: /.DS_Store
       severity: low
       message: "Fichier .DS_Store exposé : structure des répertoires révélée."
+      message_en: "File .DS_Store exposed: directory structure revealed."
 
 # Directory listing (roadmap §3.5) : répertoires à tester.
+# message (fr) utilisé par les checks ; message_en pour cohérence i18n (catalogue override PDF).
 directory_listing:
   max_body_bytes: 8192
   paths:
     - path: /uploads/
       severity: high
       message: "Directory listing activé sur /uploads/ : fichiers utilisateurs énumérables."
+      message_en: "Directory listing enabled on /uploads/: user files enumerable."
     - path: /assets/
       severity: medium
       message: "Directory listing activé sur /assets/ : structure révélée."
+      message_en: "Directory listing enabled on /assets/: structure revealed."
     - path: /static/
       severity: medium
       message: "Directory listing activé sur /static/ : structure révélée."
+      message_en: "Directory listing enabled on /static/: structure revealed."
 
 # robots.txt (roadmap §3.6) : motifs de routes sensibles à signaler dans Disallow.
 # Par défaut : _DEFAULT_ROBOTS_TXT_PATTERNS dans config_loader. Surcharger ici si besoin.
@@ -150,3 +168,43 @@ scoring:
     medium: 25
     low: 10
     info: 0
+
+# PDF (rapport de scan) : catégories, libellés i18n, footer.
+pdf:
+  footer_url: "https://secureops.example.com"
+  categories:
+    order:
+      - tls
+      - headers
+      - cookies
+      - exposed_files
+      - directory_listing
+      - robots_txt
+      - tech_fingerprinting
+      - other
+    checked:
+      - tls
+      - headers
+      - cookies
+      - exposed_files
+      - directory_listing
+      - robots_txt
+      - tech_fingerprinting
+    labels_fr:
+      tls: "TLS / HTTPS"
+      headers: "Security Headers"
+      cookies: "Cookies"
+      exposed_files: "Fichiers exposés"
+      directory_listing: "Directory listing"
+      robots_txt: "robots.txt"
+      tech_fingerprinting: "Tech fingerprinting"
+      other: "Autres"
+    labels_en:
+      tls: "TLS / HTTPS"
+      headers: "Security Headers"
+      cookies: "Cookies"
+      exposed_files: "Exposed files"
+      directory_listing: "Directory listing"
+      robots_txt: "robots.txt"
+      tech_fingerprinting: "Tech fingerprinting"
+      other: "Other"

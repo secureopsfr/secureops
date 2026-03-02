@@ -244,7 +244,9 @@ async def _run_checks_with_client(
         try:
             from app.services.scan_history_save import save_scan_to_history
 
-            await save_scan_to_history(payload, authorization)
+            scan_id = await save_scan_to_history(payload, authorization)
+            if scan_id:
+                yield sse_message("save_done", {"scan_id": scan_id})
         except Exception as e:
             logger.warning("Sauvegarde historique échouée: %s", e)
             yield sse_message("save_failed", {"message": str(e)})

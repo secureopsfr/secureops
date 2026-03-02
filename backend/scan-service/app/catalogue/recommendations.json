@@ -1,191 +1,353 @@
 {
   "tls-https-disabled": {
     "recommendation": "Activer HTTPS et rediriger tout le trafic HTTP vers HTTPS.",
+    "recommendation_en": "Enable HTTPS and redirect all HTTP traffic to HTTPS.",
+    "title_fr": "HTTPS non activé",
+    "title_en": "HTTPS not enabled",
     "references": [
       "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/09-Testing_for_Weak_Cryptography/01-Testing_for_Weak_Transport_Layer_Security"
     ]
   },
   "tls-no-redirect": {
     "recommendation": "Configurer une redirection HTTP 301/302 vers HTTPS pour tout le trafic.",
+    "recommendation_en": "Configure HTTP 301/302 redirect to HTTPS for all traffic.",
+    "title_fr": "Pas de redirection HTTP→HTTPS",
+    "title_en": "No HTTP→HTTPS redirect",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections"
     ]
   },
   "tls-cert-expired": {
     "recommendation": "Renouveler le certificat TLS avant expiration. Utiliser Let's Encrypt ou un CA reconnu.",
+    "recommendation_en": "Renew TLS certificate before expiration. Use Let's Encrypt or a recognized CA.",
+    "title_fr": "Certificat expiré",
+    "title_en": "Certificate expired",
     "references": ["https://letsencrypt.org/"]
   },
   "tls-cert-self-signed": {
     "recommendation": "Remplacer le certificat auto-signé par un certificat émis par une CA reconnue (Let's Encrypt, etc.).",
+    "recommendation_en": "Replace self-signed certificate with one from a recognized CA (Let's Encrypt, etc.).",
+    "title_fr": "Certificat auto-signé",
+    "title_en": "Self-signed certificate",
     "references": ["https://letsencrypt.org/"]
   },
   "tls-cert-not-yet-valid": {
     "recommendation": "Vérifier la date et l'heure du serveur. Le certificat n'est pas encore valide (notBefore dans le futur).",
+    "recommendation_en": "Check server date and time. Certificate not yet valid (notBefore in the future).",
+    "title_fr": "Certificat pas encore valide",
+    "title_en": "Certificate not yet valid",
     "references": []
   },
   "tls-versions-obsolete": {
     "recommendation": "Désactiver TLS 1.0 et TLS 1.1. Utiliser uniquement TLS 1.2 ou 1.3.",
+    "recommendation_en": "Disable TLS 1.0 and TLS 1.1. Use only TLS 1.2 or 1.3.",
+    "title_fr": "Versions TLS obsolètes",
+    "title_en": "Obsolete TLS versions",
     "references": [
       "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/09-Testing_for_Weak_Cryptography/01-Testing_for_Weak_Transport_Layer_Security"
     ]
   },
   "tls-connection-failed": {
     "recommendation": "Vérifier que le serveur HTTPS est accessible et que le certificat est correctement configuré.",
+    "recommendation_en": "Verify that HTTPS server is accessible and certificate is correctly configured.",
+    "title_fr": "Connexion HTTPS impossible",
+    "title_en": "HTTPS connection failed",
     "references": []
   },
   "headers-csp-absent": {
     "recommendation": "Ajouter l'en-tête Content-Security-Policy pour limiter les sources de scripts et réduire le risque XSS.",
+    "recommendation_en": "Add Content-Security-Policy header to limit script sources and reduce XSS risk.",
+    "title_fr": "Content-Security-Policy absent",
+    "title_en": "Content-Security-Policy absent",
+    "evidence_fr": "Content-Security-Policy absent : risque XSS accru.",
+    "evidence_en": "Content-Security-Policy absent: increased XSS risk.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP",
       "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/12-Test_for_Content_Security_Policy"
-    ]
+    ],
+    "detail_fr": "Sans CSP, le navigateur peut exécuter des scripts depuis n'importe quelle source. Une injection XSS peut charger du code malveillant depuis un domaine tiers. CSP restreint les sources autorisées (scripts, styles, images).",
+    "detail_en": "Without CSP, the browser can execute scripts from any source. An XSS injection can load malicious code from a third-party domain. CSP restricts allowed sources (scripts, styles, images)."
   },
   "headers-hsts-absent": {
     "recommendation": "Ajouter Strict-Transport-Security (HSTS) pour forcer les navigateurs à utiliser HTTPS.",
+    "recommendation_en": "Add Strict-Transport-Security (HSTS) to force browsers to use HTTPS.",
+    "title_fr": "Strict-Transport-Security absent",
+    "title_en": "Strict-Transport-Security absent",
+    "evidence_fr": "Strict-Transport-Security absent : risque de downgrade HTTPS→HTTP.",
+    "evidence_en": "Strict-Transport-Security absent: risk of HTTPS→HTTP downgrade.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security"
-    ]
+    ],
+    "detail_fr": "Sans HSTS, une première visite en HTTP ou une erreur de saisie peut exposer le trafic à des attaques man-in-the-middle. HSTS indique au navigateur de n'utiliser que HTTPS pour ce domaine.",
+    "detail_en": "Without HSTS, a first HTTP visit or typo can expose traffic to man-in-the-middle attacks. HSTS tells the browser to use HTTPS only for this domain."
   },
   "headers-xfo-absent": {
     "recommendation": "Ajouter X-Frame-Options: DENY ou SAMEORIGIN pour empêcher le clickjacking.",
+    "recommendation_en": "Add X-Frame-Options: DENY or SAMEORIGIN to prevent clickjacking.",
+    "title_fr": "X-Frame-Options absent",
+    "title_en": "X-Frame-Options absent",
+    "evidence_fr": "X-Frame-Options absent : risque de clickjacking.",
+    "evidence_en": "X-Frame-Options absent: clickjacking risk.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options"
-    ]
+    ],
+    "detail_fr": "Sans X-Frame-Options, la page peut être intégrée dans une iframe sur un site malveillant (clickjacking : l'utilisateur croit cliquer sur un élément alors qu'il déclenche une action sur votre site).",
+    "detail_en": "Without X-Frame-Options, the page can be embedded in an iframe on a malicious site (clickjacking: the user thinks they click on an element but triggers an action on your site)."
   },
   "headers-xcto-absent": {
     "recommendation": "Ajouter X-Content-Type-Options: nosniff pour éviter le MIME sniffing.",
+    "recommendation_en": "Add X-Content-Type-Options: nosniff to prevent MIME sniffing.",
+    "title_fr": "X-Content-Type-Options absent",
+    "title_en": "X-Content-Type-Options absent",
+    "evidence_fr": "X-Content-Type-Options absent : risque de MIME sniffing.",
+    "evidence_en": "X-Content-Type-Options absent: MIME sniffing risk.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options"
-    ]
+    ],
+    "detail_fr": "Sans nosniff, le navigateur peut interpréter un fichier (ex. image) comme un type différent (ex. HTML/JS) selon son contenu, ce qui peut faciliter des attaques XSS.",
+    "detail_en": "Without nosniff, the browser can interpret a file (e.g. image) as a different type (e.g. HTML/JS) based on its content, which can facilitate XSS attacks."
   },
   "headers-xcto-wrong-value": {
     "recommendation": "Configurer X-Content-Type-Options avec la valeur 'nosniff'.",
+    "recommendation_en": "Configure X-Content-Type-Options with value 'nosniff'.",
+    "title_fr": "X-Content-Type-Options valeur incorrecte",
+    "title_en": "X-Content-Type-Options wrong value",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options"
     ]
   },
   "headers-referrer-absent": {
     "recommendation": "Ajouter Referrer-Policy pour contrôler les informations envoyées dans l'en-tête Referer.",
+    "recommendation_en": "Add Referrer-Policy to control information sent in the Referer header.",
+    "title_fr": "Referrer-Policy absent",
+    "title_en": "Referrer-Policy absent",
+    "evidence_fr": "Referrer-Policy absent : risque de fuite d'URLs sensibles.",
+    "evidence_en": "Referrer-Policy absent: risk of sensitive URL leakage.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy"
-    ]
+    ],
+    "detail_fr": "Le Referer est envoyé automatiquement par le navigateur lors des requêtes ; il peut contenir des chemins complets, des query strings (tokens, IDs de session). Une politique permissive (no-referrer-when-downgrade, défaut) envoie l'URL complète vers des sites HTTPS tiers. Referrer-Policy permet de restreindre (ex. strict-origin-when-cross-origin, no-referrer).",
+    "detail_en": "The Referer header is sent automatically by the browser on requests; it can contain full paths, query strings (tokens, session IDs). A permissive policy (no-referrer-when-downgrade, default) sends the full URL to HTTPS third-party sites. Referrer-Policy allows restricting this (e.g. strict-origin-when-cross-origin, no-referrer)."
   },
   "headers-permissions-absent": {
     "recommendation": "Ajouter Permissions-Policy pour restreindre l'accès aux APIs navigateur (géoloc, caméra, etc.).",
+    "recommendation_en": "Add Permissions-Policy to restrict access to browser APIs (geolocation, camera, etc.).",
+    "title_fr": "Permissions-Policy absent",
+    "title_en": "Permissions-Policy absent",
+    "evidence_fr": "Permissions-Policy absent : APIs navigateur accessibles par défaut.",
+    "evidence_en": "Permissions-Policy absent: browser APIs accessible by default.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy"
-    ]
+    ],
+    "detail_fr": "Sans Permissions-Policy, les APIs sensibles du navigateur (géolocalisation, caméra, microphone, etc.) restent accessibles par défaut pour la page et ses iframes, augmentant la surface d'attaque.",
+    "detail_en": "Without Permissions-Policy, sensitive browser APIs (geolocation, camera, microphone, etc.) remain accessible by default for the page and its iframes, increasing the attack surface."
   },
   "headers-connection-failed": {
     "recommendation": "Vérifier la connectivité au serveur. Impossible de récupérer les en-têtes.",
+    "recommendation_en": "Check server connectivity. Unable to retrieve headers.",
+    "title_fr": "En-têtes inaccessibles",
+    "title_en": "Headers unavailable",
     "references": []
   },
   "headers-unknown-absent": {
     "recommendation": "Ajouter l'en-tête de sécurité manquant. Consulter la documentation pour les bonnes pratiques.",
+    "recommendation_en": "Add the missing security header. Consult documentation for best practices.",
+    "title_fr": "En-tête manquant",
+    "title_en": "Missing header",
     "references": []
   },
   "cookies-connection-failed": {
     "recommendation": "Vérifier la connectivité au serveur. Impossible d'analyser les cookies.",
+    "recommendation_en": "Check server connectivity. Unable to analyze cookies.",
+    "title_fr": "Cookies inaccessibles",
+    "title_en": "Cookies unavailable",
     "references": []
   },
   "cookies-no-secure": {
     "recommendation": "Ajouter le flag Secure aux cookies sur site HTTPS pour éviter l'interception en clair.",
+    "recommendation_en": "Add Secure flag to cookies on HTTPS site to prevent interception.",
+    "title_fr": "Cookie sans flag Secure",
+    "title_en": "Cookie without Secure flag",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/Secure"
     ]
   },
   "cookies-no-httponly": {
     "recommendation": "Ajouter le flag HttpOnly pour empêcher l'accès aux cookies via JavaScript (réduction risque XSS).",
+    "recommendation_en": "Add HttpOnly flag to prevent cookie access via JavaScript (XSS risk reduction).",
+    "title_fr": "Cookie sans flag HttpOnly",
+    "title_en": "Cookie without HttpOnly flag",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/HttpOnly"
     ]
   },
   "cookies-no-samesite": {
     "recommendation": "Configurer SameSite=Strict ou Lax pour limiter les requêtes cross-site avec cookies.",
+    "recommendation_en": "Configure SameSite=Strict or Lax to limit cross-site requests with cookies.",
+    "title_fr": "Cookie sans SameSite",
+    "title_en": "Cookie without SameSite",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite"
     ]
   },
   "cookies-samesite-none-requires-secure": {
     "recommendation": "SameSite=None requiert le flag Secure. Ajouter Secure au cookie.",
+    "recommendation_en": "SameSite=None requires Secure flag. Add Secure to the cookie.",
+    "title_fr": "SameSite=None sans Secure",
+    "title_en": "SameSite=None without Secure",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite"
     ]
   },
   "exposed_files-env": {
     "recommendation": "Bloquer l'accès à /.env (deny dans nginx/apache, ou déplacer hors de la racine web).",
+    "recommendation_en": "Block access to /.env (deny in nginx/apache, or move outside web root).",
+    "title_fr": "Fichier .env exposé",
+    "title_en": "File .env exposed",
+    "evidence_fr": "Fichier .env exposé : credentials et secrets accessibles.",
+    "evidence_en": "File .env exposed: credentials and secrets accessible.",
     "references": [
       "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/04-Review_File_Extensions_Handled_by_Web_Server"
     ]
   },
   "exposed_files-git-config": {
     "recommendation": "Bloquer l'accès au répertoire .git. Ne jamais exposer le dépôt Git en production.",
+    "recommendation_en": "Block access to .git directory. Never expose Git repository in production.",
+    "title_fr": "Fichier .git/config exposé",
+    "title_en": "File .git/config exposed",
+    "evidence_fr": "Fichier .git/config exposé : dépôt Git accessible.",
+    "evidence_en": "File .git/config exposed: Git repository accessible.",
     "references": [
       "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/04-Review_File_Extensions_Handled_by_Web_Server"
     ]
   },
   "exposed_files-backup-zip": {
     "recommendation": "Supprimer ou déplacer les archives de sauvegarde hors de la racine web.",
+    "recommendation_en": "Remove or move backup archives outside web root.",
+    "title_fr": "Archive backup.zip exposée",
+    "title_en": "Backup archive exposed",
+    "evidence_fr": "Archive backup.zip exposée : sauvegarde accessible.",
+    "evidence_en": "Backup archive exposed: backup accessible.",
     "references": []
   },
   "exposed_files-phpinfo": {
     "recommendation": "Désactiver ou supprimer phpinfo.php en production. Expose la configuration PHP.",
+    "recommendation_en": "Disable or remove phpinfo.php in production. Exposes PHP configuration.",
+    "title_fr": "phpinfo.php exposé",
+    "title_en": "phpinfo.php exposed",
+    "evidence_fr": "phpinfo.php exposé : configuration PHP révélée.",
+    "evidence_en": "phpinfo.php exposed: PHP configuration revealed.",
     "references": []
   },
   "exposed_files-phpinfo-php": {
     "recommendation": "Désactiver ou supprimer phpinfo.php en production. Expose la configuration PHP.",
+    "recommendation_en": "Disable or remove phpinfo.php in production. Exposes PHP configuration.",
+    "title_fr": "phpinfo.php exposé",
+    "title_en": "phpinfo.php exposed",
+    "evidence_fr": "phpinfo.php exposé : configuration PHP révélée.",
+    "evidence_en": "phpinfo.php exposed: PHP configuration revealed.",
     "references": []
   },
   "exposed_files-admin": {
     "recommendation": "Protéger /admin/ par authentification et HTTPS. Limiter l'accès par IP si possible.",
+    "recommendation_en": "Protect /admin/ with authentication and HTTPS. Restrict access by IP if possible.",
+    "title_fr": "Interface /admin/ exposée",
+    "title_en": "Admin interface exposed",
+    "evidence_fr": "Interface /admin/ exposée : à protéger par authentification.",
+    "evidence_en": "Admin interface exposed: protect with authentication.",
     "references": []
   },
   "exposed_files-ds-store": {
     "recommendation": "Bloquer l'accès aux fichiers .DS_Store ou les exclure du déploiement.",
+    "recommendation_en": "Block access to .DS_Store files or exclude from deployment.",
+    "title_fr": "Fichier .DS_Store exposé",
+    "title_en": "File .DS_Store exposed",
+    "evidence_fr": "Fichier .DS_Store exposé : structure des répertoires révélée.",
+    "evidence_en": "File .DS_Store exposed: directory structure revealed.",
     "references": []
   },
   "directory_listing-uploads": {
     "recommendation": "Désactiver le directory listing sur /uploads/. Configurer Options -Indexes (Apache) ou autoindex off (Nginx).",
+    "recommendation_en": "Disable directory listing on /uploads/. Configure Options -Indexes (Apache) or autoindex off (Nginx).",
+    "title_fr": "Directory listing sur /uploads/",
+    "title_en": "Directory listing on /uploads/",
+    "evidence_fr": "Directory listing activé sur /uploads/ : fichiers utilisateurs énumérables.",
+    "evidence_en": "Directory listing enabled on /uploads/: user files enumerable.",
     "references": [
       "https://httpd.apache.org/docs/2.4/mod/core.html#options"
     ]
   },
   "directory_listing-assets": {
     "recommendation": "Désactiver le directory listing sur /assets/ si la structure ne doit pas être exposée.",
+    "recommendation_en": "Disable directory listing on /assets/ if structure should not be exposed.",
+    "title_fr": "Directory listing sur /assets/",
+    "title_en": "Directory listing on /assets/",
+    "evidence_fr": "Directory listing activé sur /assets/ : structure révélée.",
+    "evidence_en": "Directory listing enabled on /assets/: structure revealed.",
     "references": []
   },
   "directory_listing-static": {
     "recommendation": "Désactiver le directory listing sur /static/ si la structure ne doit pas être exposée.",
+    "recommendation_en": "Disable directory listing on /static/ if structure should not be exposed.",
+    "title_fr": "Directory listing sur /static/",
+    "title_en": "Directory listing on /static/",
+    "evidence_fr": "Directory listing activé sur /static/ : structure révélée.",
+    "evidence_en": "Directory listing enabled on /static/: structure revealed.",
     "references": []
   },
   "robots_txt-connection-failed": {
     "recommendation": "Vérifier la connectivité. Impossible de récupérer robots.txt.",
+    "recommendation_en": "Check connectivity. Unable to retrieve robots.txt.",
+    "title_fr": "robots.txt inaccessible",
+    "title_en": "robots.txt unavailable",
     "references": []
   },
   "robots_txt-sensitive-route": {
     "recommendation": "Vérifier que les routes Disallow signalées sont protégées (auth, IP whitelist, etc.).",
+    "recommendation_en": "Verify that Disallow routes are protected (auth, IP whitelist, etc.).",
+    "title_fr": "Route sensible dans robots.txt",
+    "title_en": "Sensitive route in robots.txt",
     "references": [
       "https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt"
     ]
   },
   "tech_fingerprinting-connection-failed": {
     "recommendation": "Vérifier la connectivité. Impossible d'analyser les en-têtes.",
+    "recommendation_en": "Check connectivity. Unable to analyze headers.",
+    "title_fr": "En-têtes inaccessibles",
+    "title_en": "Headers unavailable",
     "references": []
   },
   "tech_fingerprinting-server-detected": {
     "recommendation": "Information : l'en-tête Server révèle le logiciel. Optionnel : masquer ou modifier pour réduire la surface d'attaque.",
+    "recommendation_en": "Information: Server header reveals software. Optional: hide or modify to reduce attack surface.",
+    "title_fr": "Serveur détecté",
+    "title_en": "Server detected",
     "references": []
   },
   "tech_fingerprinting-runtime-detected": {
     "recommendation": "Information : X-Powered-By révèle le runtime. Optionnel : masquer pour réduire la surface d'attaque.",
+    "recommendation_en": "Information: X-Powered-By reveals runtime. Optional: hide to reduce attack surface.",
+    "title_fr": "Runtime détecté",
+    "title_en": "Runtime detected",
     "references": []
   },
   "tech_fingerprinting-framework-detected": {
     "recommendation": "Information : framework/CMS détecté. Vérifier les mises à jour de sécurité.",
+    "recommendation_en": "Information: framework/CMS detected. Check for security updates.",
+    "title_fr": "Framework/CMS détecté",
+    "title_en": "Framework/CMS detected",
     "references": []
   },
   "tech_fingerprinting-stack-unknown": {
     "recommendation": "Information : stack non identifiée ou masquée. Pas d'action requise.",
-    "references": []
+    "recommendation_en": "Information: stack not identified or hidden. No action required.",
+    "title_fr": "Stack non identifiée",
+    "title_en": "Stack not identified",
+    "evidence_fr": "Stack : non identifiée (ou masquée)",
+    "evidence_en": "Stack: not identified (or hidden)",
+    "references": [],
+    "detail_fr": "Aucun en-tête révélateur (Server, X-Powered-By, etc.) n'a été détecté. La stack technique est soit masquée volontairement (bonne pratique), soit non identifiable par les motifs analysés. Ce n'est pas une anomalie de sécurité.",
+    "detail_en": "No revealing header (Server, X-Powered-By, etc.) was detected. The tech stack is either intentionally hidden (good practice) or not identifiable by the analyzed patterns. This is not a security anomaly."
   }
 }

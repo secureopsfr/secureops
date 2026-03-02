@@ -37,13 +37,19 @@ export interface ScanError {
   error_type?: string;
 }
 
-export type ScanEventType = "step" | "result" | "error" | "save_failed";
+export type ScanEventType =
+  | "step"
+  | "result"
+  | "error"
+  | "save_failed"
+  | "save_done";
 
 export type ScanEventHandler =
   | { type: "step"; data: ScanStep }
   | { type: "result"; data: ScanResult }
   | { type: "error"; data: ScanError }
-  | { type: "save_failed"; data: string };
+  | { type: "save_failed"; data: string }
+  | { type: "save_done"; data: { scan_id: string } };
 
 function parseSSEBlock(block: string): { event: string; data: unknown } | null {
   let event = "message";
@@ -166,6 +172,16 @@ export async function runScan(
             type: "save_failed",
             data:
               (data as { message?: string }).message ?? "Erreur de sauvegarde",
+          });
+        } else if (
+          event === "save_done" &&
+          data &&
+          typeof data === "object" &&
+          "scan_id" in data
+        ) {
+          onEvent({
+            type: "save_done",
+            data: { scan_id: (data as { scan_id: string }).scan_id },
           });
         }
       }

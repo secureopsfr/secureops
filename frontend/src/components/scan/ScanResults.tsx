@@ -3,7 +3,13 @@
 import { useCallback, useState, useEffect } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
-import { Download, FileSpreadsheet, FileJson, FileText } from "lucide-react";
+import {
+  Download,
+  FileSpreadsheet,
+  FileJson,
+  FileText,
+  FileOutput,
+} from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { GenericButton } from "../buttons";
 import AnimateInView from "../AnimateInView";
@@ -14,16 +20,20 @@ import FindingCard from "./FindingCard";
 import type { ScanResult } from "../../services/scanService";
 import { getScoreBadge, getCategoryKey, severitySort } from "./scanConstants";
 import { exportScanResult, type ExportFormat } from "../../utils/exportScan";
+import { downloadScanPdf } from "../../services/scanHistoryService";
+import { showErrorToast } from "../../utils/toastNotifications";
 
 interface ScanResultsProps {
   result: ScanResult;
+  scanId: string | null;
   onNewScan: () => void;
 }
 
 const EXPORT_FORMATS: {
-  value: ExportFormat;
+  value: ExportFormat | "pdf";
   labelKey: string;
   icon: React.ReactNode;
+  requiresScanId?: boolean;
 }[] = [
   {
     value: "csv",
@@ -39,6 +49,12 @@ const EXPORT_FORMATS: {
     value: "xlsx",
     labelKey: "scanner.exportXlsx",
     icon: <FileSpreadsheet className="w-5 h-5" />,
+  },
+  {
+    value: "pdf",
+    labelKey: "scanner.exportPdf",
+    icon: <FileOutput className="w-5 h-5" />,
+    requiresScanId: true,
   },
 ];
 
@@ -65,9 +81,14 @@ const EXPORT_BUTTON_BOTTOM_DEFAULT = 20;
 /** Hauteur fixe au-dessus du footer quand il est visible (footer ~200px + marge). */
 const EXPORT_BUTTON_BOTTOM_ABOVE_FOOTER = 220;
 
-export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
-  const { t } = useLanguage();
+export default function ScanResults({
+  result,
+  scanId,
+  onNewScan,
+}: ScanResultsProps) {
+  const { t, language } = useLanguage();
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [faviconError, setFaviconError] = useState(false);
   const [gaugeScore, setGaugeScore] = useState(0);
 
@@ -118,11 +139,24 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
   const sortedFindings = [...result.findings].sort(severitySort);
 
   const handleExport = useCallback(
-    (format: ExportFormat) => {
-      exportScanResult(result, format);
-      setExportModalOpen(false);
+    async (format: ExportFormat | "pdf") => {
+      if (format === "pdf") {
+        if (!scanId) return;
+        setPdfLoading(true);
+        try {
+          await downloadScanPdf(scanId, language as "fr" | "en");
+          setExportModalOpen(false);
+        } catch {
+          showErrorToast(t("scanner.exportPdfDownload") + " — erreur");
+        } finally {
+          setPdfLoading(false);
+        }
+      } else {
+        exportScanResult(result, format);
+        setExportModalOpen(false);
+      }
     },
-    [result],
+    [result, scanId, language, t],
   );
 
   const byCategory = sortedFindings.reduce<Record<string, number>>((acc, f) => {
@@ -304,17 +338,31 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
           {t("scanner.exportDesc")}
         </p>
         <div className="flex flex-col gap-2">
-          {EXPORT_FORMATS.map(({ value, labelKey, icon }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => handleExport(value)}
-              className="flex items-center gap-3 w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[var(--color-surface-hover)] transition-colors text-left"
-            >
-              {icon}
-              <span className="font-medium">{t(labelKey)}</span>
-            </button>
-          ))}
+          {EXPORT_FORMATS.map(({ value, labelKey, icon, requiresScanId }) => {
+            const isPdf = value === "pdf";
+            const disabled = (isPdf && !scanId) || (isPdf && pdfLoading);
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => !disabled && handleExport(value)}
+                disabled={disabled}
+                title={disabled ? t("scanner.exportPdfUnavailable") : undefined}
+                className="flex items-center gap-3 w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[var(--color-surface-hover)] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--color-surface-input)]"
+              >
+                {icon}
+                <span className="font-medium">{t(labelKey)}</span>
+                {disabled && (
+                  <span className="text-xs text-muted-theme ml-auto">
+                    {t("scanner.exportPdfUnavailable")}
+                  </span>
+                )}
+                {isPdf && scanId && pdfLoading && (
+                  <span className="text-xs text-muted-theme ml-auto">...</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </Modal>
     </div>

@@ -14,6 +14,7 @@ from app.config.path_checks import (
     get_exposed_files_settings,
     get_exposed_files_severity_upgrade,
 )
+from app.config.pdf import PdfSettings, get_pdf_settings
 from app.config.robots_txt import get_robots_txt_settings
 from app.config.scoring import ScoringSettings, get_scoring_settings
 from app.config.security_headers import SecurityHeaderConfig, get_security_headers_settings
@@ -25,11 +26,13 @@ __all__ = [
     "DirectoryListingConfig",
     "ExposedFileConfig",
     "PathCheckConfig",
+    "PdfSettings",
     "ScanTimeoutsSettings",
     "ScoringSettings",
     "SecurityHeaderConfig",
     "SsrfSettings",
     "UrlValidationSettings",
+    "get_pdf_settings",
     "get_directory_listing_max_body",
     "get_directory_listing_settings",
     "get_exposed_files_max_body",

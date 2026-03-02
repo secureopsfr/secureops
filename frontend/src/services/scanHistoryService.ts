@@ -97,6 +97,40 @@ export async function deleteScan(id: string): Promise<void> {
 }
 
 /**
+ * Télécharge le rapport PDF d'un scan sauvegardé.
+ * Nécessite un scan_id (scan sauvegardé dans l'historique).
+ * Langue déduite de la langue du compte (locale).
+ */
+export async function downloadScanPdf(
+  scanId: string,
+  lang: "fr" | "en" = "fr",
+): Promise<void> {
+  const params = new URLSearchParams();
+  params.set("scan_id", scanId);
+  params.set("lang", lang);
+
+  const response = await fetchWithAuth(
+    `${getApiBaseUrl()}/scan/api/scan/export/pdf?${params.toString()}`,
+    { method: "GET" },
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || "Erreur lors du téléchargement du PDF");
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `scan-${scanId.slice(0, 8)}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Supprime tous les scans de l'historique de l'utilisateur.
  * Utilisé dans la section Données & confidentialité (Mon compte).
  */
