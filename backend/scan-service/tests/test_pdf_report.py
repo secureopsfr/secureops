@@ -102,3 +102,44 @@ def test_generate_pdf_tech_fingerprinting_en() -> None:
     assert "Detail" in html
     assert "No revealing header" in html or "intentionally hidden" in html
     assert "Stack non identifiée" not in html
+
+
+def test_generate_pdf_headers_referrer_en() -> None:
+    """PDF en anglais : headers-referrer-absent affiche tout en EN."""
+    from app.services.pdf_report.findings import build_finding_block
+
+    finding = {
+        "id": "headers-referrer-absent",
+        "category": "headers",
+        "title": "Referrer-Policy absent",
+        "severity": "medium",
+        "evidence": "Referrer-Policy absent : risque de fuite d'URLs sensibles.",
+        "recommendation": "Ajouter Referrer-Policy...",
+        "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy"],
+    }
+    html = build_finding_block(finding, section_num=2, finding_idx=1, include_matrices=False, lang="en")
+    assert "Evidence" in html
+    assert "Detail" in html
+    assert "risk of sensitive URL leakage" in html
+    assert "Add Referrer-Policy" in html
+    assert "risque de fuite" not in html
+
+
+def test_generate_pdf_exposed_files_en() -> None:
+    """PDF en anglais : exposed_files-env affiche titre/evidence/recommendation en EN."""
+    from app.services.pdf_report.findings import build_finding_block
+
+    finding = {
+        "id": "exposed_files-env",
+        "category": "exposed_files",
+        "title": "Fichier .env exposé",
+        "severity": "critical",
+        "evidence": "Fichier .env exposé : credentials et secrets accessibles.",
+        "recommendation": "Bloquer l'accès...",
+        "references": [],
+    }
+    html = build_finding_block(finding, section_num=4, finding_idx=1, include_matrices=False, lang="en")
+    assert "File .env exposed" in html
+    assert "credentials and secrets accessible" in html
+    assert "Block access" in html
+    assert "Fichier .env exposé" not in html

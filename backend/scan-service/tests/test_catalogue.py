@@ -16,6 +16,12 @@ def test_get_recommendation_unknown_slug() -> None:
     assert "documentation" in rec.lower() or "sécurité" in rec.lower()
 
 
+def test_get_recommendation_unknown_slug_en() -> None:
+    """get_recommendation(slug, en) retourne le message générique en anglais."""
+    rec = get_recommendation("slug-inexistant-xyz", "en")
+    assert "consult" in rec.lower() or "security" in rec.lower()
+
+
 def test_get_references_known_slug() -> None:
     """get_references retourne les URLs pour un slug connu."""
     refs = get_references("tls-https-disabled")
