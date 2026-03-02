@@ -11,7 +11,9 @@ from pydantic import BaseModel, Field
 
 from app.schemas.scan import ScanRequest
 from app.services.pdf_report import generate_pdf
+from app.services.scan_runner import ScanRunError, run_scan_to_result
 from app.services.scan_stream import scan_stream_generator
+from app.utils.url_validator import URLValidationError
 
 
 class ScanForPdfSchema(BaseModel):
@@ -88,6 +90,30 @@ async def export_scan_pdf(
             "Content-Disposition": f'attachment; filename="{filename}"',
         },
     )
+
+
+class InternalScanRequest(BaseModel):
+    """Requête pour l'endpoint interne (scheduler)."""
+
+    url: str = Field(..., description="URL à scanner")
+
+
+@router.post(
+    "/internal/scan/run",
+    summary="[Interne] Exécuter un scan et retourner le résultat en JSON",
+    description="Utilisé par le scheduler user-service pour les scans planifiés. Pas d'auth (appel service-to-service).",
+)
+async def internal_run_scan(body: InternalScanRequest) -> dict:
+    """Exécute le scan et retourne le résultat en JSON (pas de SSE)."""
+    try:
+        return await run_scan_to_result(body.url)
+    except URLValidationError as e:
+        return {"status": "error", "message": str(e), "status_code": 400}
+    except ScanRunError as e:
+        return {"status": "error", "message": e.message, "status_code": e.status_code}
+    except Exception as e:
+        logger.exception("Erreur inattendue lors du scan interne: %s", e)
+        return {"status": "error", "message": str(e), "status_code": 500}
 
 
 @router.post(

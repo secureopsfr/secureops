@@ -91,6 +91,9 @@ services:
     environment:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - SCAN_SERVICE_URL=http://scan-service:8012
+      - SCHEDULED_SCAN_INITIAL_DELAY_SECONDS=${SCHEDULED_SCAN_INITIAL_DELAY_SECONDS:-60}
+      - SCHEDULED_SCAN_INTERVAL_SECONDS=${SCHEDULED_SCAN_INTERVAL_SECONDS:-300}
     networks: [app-network]
     depends_on:
       postgres:

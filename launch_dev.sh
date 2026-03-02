@@ -61,6 +61,9 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
     set +a
 fi
 
+# Sortie Python non bufferisée pour voir les logs en temps réel
+export PYTHONUNBUFFERED=1
+
 # Lancer PostgreSQL avec Docker
 echo -e "${GREEN}Lancement de PostgreSQL...${NC}"
 POSTGRES_RUNNING=$(docker ps -q -f name=^/postgres$ 2>/dev/null)

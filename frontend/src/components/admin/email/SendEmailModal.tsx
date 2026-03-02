@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Modal from "../../Modal";
 import { GenericButton } from "../../buttons";
-import { DatePicker } from "../../inputs";
+import { ScheduleFormPanel, ScheduleDateFields } from "../../schedule";
 import { useLanguage } from "../../LanguageProvider";
 
 interface SendEmailRecord {
@@ -89,31 +89,18 @@ export default function SendEmailModal({
           </label>
         </div>
         {scheduleType === "scheduled" && (
-          <div className="space-y-4 p-4 rounded-lg border border-[var(--border)] bg-[var(--color-surface-subtle)] min-w-0">
-            <div>
-              <label className="block text-sm font-medium text-[var(--text)] mb-2">
-                {t("admin.emails.sendDate")}
-              </label>
-              <DatePicker
-                value={scheduledDate}
-                onChange={setScheduledDate}
-                min={new Date().toISOString().split("T")[0]}
-                className="w-full min-w-0"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--text)] mb-2">
-                {t("admin.emails.sendTime")} (
-                {t("admin.emails.optionalDefaultMidnight")})
-              </label>
-              <input
-                type="time"
-                value={scheduledTime}
-                onChange={(e) => setScheduledTime(e.target.value)}
-                className="auth-input w-full min-w-0"
-              />
-            </div>
-          </div>
+          <ScheduleFormPanel>
+            <ScheduleDateFields
+              dateLabelKey="admin.emails.sendDate"
+              timeLabelKey="admin.emails.sendTime"
+              timeHintKey="admin.emails.optionalDefaultMidnight"
+              scheduledDate={scheduledDate}
+              scheduledTime={scheduledTime}
+              onDateChange={setScheduledDate}
+              onTimeChange={setScheduledTime}
+              minDate={new Date().toISOString().split("T")[0]}
+            />
+          </ScheduleFormPanel>
         )}
         <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border)]">
           <GenericButton

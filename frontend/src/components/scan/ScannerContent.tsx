@@ -14,12 +14,14 @@ import ScanResults from "./ScanResults";
 import ScanResultsGate from "./ScanResultsGate";
 import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
 import ScanHistoryBlock from "./ScanHistoryBlock";
+import ScheduledScansBlock from "./ScheduledScansBlock";
 import {
   runScan,
   type ScanResult,
   type ScanError,
   type ScanStepDisplay,
 } from "../../services/scanService";
+import { normalizeScanUrl } from "../../utils/scanUrl";
 import {
   savePendingScanResult,
   consumePendingScanResult,
@@ -59,6 +61,7 @@ export default function ScannerContent() {
       e.preventDefault();
       const trimmed = url.trim();
       if (!trimmed) return;
+      const urlToScan = normalizeScanUrl(trimmed);
       setState("loading");
       setSteps([]);
       setResult(null);
@@ -79,7 +82,7 @@ export default function ScannerContent() {
 
       try {
         await runScan(
-          trimmed,
+          urlToScan,
           (ev) => {
             if (ev.type === "step") {
               setSteps((prev) => [
@@ -166,7 +169,7 @@ export default function ScannerContent() {
                   <div className="flex items-center gap-3 mb-4 -mt-2">
                     <Globe className="w-6 h-6 text-[rgb(var(--primary))]" />
                     <h2 className="section-title !text-left !mb-0">
-                      {t("scanner.urlLabel")}
+                      {t("scheduledScans.urlLabel")}
                     </h2>
                   </div>
                   <form
@@ -174,23 +177,22 @@ export default function ScannerContent() {
                     aria-label="Scan form"
                     className="space-y-4"
                   >
-                    <div>
-                      <label htmlFor="scan-url" className="label-form">
-                        {t("scanner.urlLabel")}
-                      </label>
-                      <input
-                        id="scan-url"
-                        type="url"
-                        value={url}
-                        onChange={(e) => setUrl(e.target.value)}
-                        placeholder={t("scanner.urlPlaceholder")}
-                        required
-                        className="auth-input w-full"
-                      />
-                    </div>
-                    <p className="text-sm text-muted-theme">
-                      {t("scanner.disclaimer")}
-                    </p>
+                    <label
+                      htmlFor="scan-url"
+                      className="block text-sm font-medium text-[var(--text)]"
+                    >
+                      {t("scheduledScans.urlLabel")}
+                    </label>
+                    <input
+                      id="scan-url"
+                      type="text"
+                      inputMode="url"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder={t("scheduledScans.urlPlaceholder")}
+                      required
+                      className="auth-input w-full"
+                    />
                     <GenericButton
                       type="submit"
                       label={t("scanner.cta")}
@@ -201,13 +203,16 @@ export default function ScannerContent() {
                 </Card>
               </div>
               {isAuthenticated && !authLoading && (
-                <ScanHistoryBlock
-                  onSelectScan={(r, id) => {
-                    setResult(r);
-                    setScanId(id ?? null);
-                    setState("success");
-                  }}
-                />
+                <>
+                  <ScheduledScansBlock />
+                  <ScanHistoryBlock
+                    onSelectScan={(r, id) => {
+                      setResult(r);
+                      setScanId(id ?? null);
+                      setState("success");
+                    }}
+                  />
+                </>
               )}
             </>
           )}
