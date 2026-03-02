@@ -30,9 +30,10 @@ interface ScanResultsProps {
 }
 
 const EXPORT_FORMATS: {
-  value: ExportFormat;
+  value: ExportFormat | "pdf";
   labelKey: string;
   icon: React.ReactNode;
+  requiresScanId?: boolean;
 }[] = [
   {
     value: "csv",
@@ -48,6 +49,12 @@ const EXPORT_FORMATS: {
     value: "xlsx",
     labelKey: "scanner.exportXlsx",
     icon: <FileSpreadsheet className="w-5 h-5" />,
+  },
+  {
+    value: "pdf",
+    labelKey: "scanner.exportPdf",
+    icon: <FileOutput className="w-5 h-5" />,
+    requiresScanId: true,
   },
 ];
 
@@ -79,10 +86,8 @@ export default function ScanResults({
   scanId,
   onNewScan,
 }: ScanResultsProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [pdfIncludeMatrices, setPdfIncludeMatrices] = useState(true);
-  const [pdfLang, setPdfLang] = useState<"fr" | "en">("fr");
   const [pdfLoading, setPdfLoading] = useState(false);
   const [faviconError, setFaviconError] = useState(false);
   const [gaugeScore, setGaugeScore] = useState(0);
@@ -134,28 +139,25 @@ export default function ScanResults({
   const sortedFindings = [...result.findings].sort(severitySort);
 
   const handleExport = useCallback(
-    (format: ExportFormat) => {
-      exportScanResult(result, format);
-      setExportModalOpen(false);
+    async (format: ExportFormat | "pdf") => {
+      if (format === "pdf") {
+        if (!scanId) return;
+        setPdfLoading(true);
+        try {
+          await downloadScanPdf(scanId, language as "fr" | "en");
+          setExportModalOpen(false);
+        } catch {
+          showErrorToast(t("scanner.exportPdfDownload") + " — erreur");
+        } finally {
+          setPdfLoading(false);
+        }
+      } else {
+        exportScanResult(result, format);
+        setExportModalOpen(false);
+      }
     },
-    [result],
+    [result, scanId, language, t],
   );
-
-  const handlePdfDownload = useCallback(async () => {
-    if (!scanId) return;
-    setPdfLoading(true);
-    try {
-      await downloadScanPdf(scanId, {
-        includeMatrices: pdfIncludeMatrices,
-        lang: pdfLang,
-      });
-      setExportModalOpen(false);
-    } catch {
-      showErrorToast(t("scanner.exportPdfDownload") + " — erreur");
-    } finally {
-      setPdfLoading(false);
-    }
-  }, [scanId, pdfIncludeMatrices, pdfLang, t]);
 
   const byCategory = sortedFindings.reduce<Record<string, number>>((acc, f) => {
     acc[f.category] = (acc[f.category] ?? 0) + 1;
@@ -336,61 +338,31 @@ export default function ScanResults({
           {t("scanner.exportDesc")}
         </p>
         <div className="flex flex-col gap-2">
-          {EXPORT_FORMATS.map(({ value, labelKey, icon }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => handleExport(value)}
-              className="flex items-center gap-3 w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[var(--color-surface-hover)] transition-colors text-left"
-            >
-              {icon}
-              <span className="font-medium">{t(labelKey)}</span>
-            </button>
-          ))}
-          <div className="mt-4 pt-4 border-t border-[var(--border)]">
-            <div className="flex items-center gap-3 mb-3">
-              <FileOutput className="w-5 h-5 shrink-0" />
-              <span className="font-medium">{t("scanner.exportPdf")}</span>
-            </div>
-            {scanId ? (
-              <>
-                <label className="flex items-center gap-2 mb-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={pdfIncludeMatrices}
-                    onChange={(e) => setPdfIncludeMatrices(e.target.checked)}
-                    className="rounded"
-                  />
-                  <span className="text-sm">
-                    {t("scanner.exportPdfIncludeMatrices")}
+          {EXPORT_FORMATS.map(({ value, labelKey, icon, requiresScanId }) => {
+            const isPdf = value === "pdf";
+            const disabled = (isPdf && !scanId) || (isPdf && pdfLoading);
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => !disabled && handleExport(value)}
+                disabled={disabled}
+                title={disabled ? t("scanner.exportPdfUnavailable") : undefined}
+                className="flex items-center gap-3 w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[var(--color-surface-hover)] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--color-surface-input)]"
+              >
+                {icon}
+                <span className="font-medium">{t(labelKey)}</span>
+                {disabled && (
+                  <span className="text-xs text-muted-theme ml-auto">
+                    {t("scanner.exportPdfUnavailable")}
                   </span>
-                </label>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm shrink-0">
-                    {t("scanner.exportPdfLang")}:
-                  </span>
-                  <select
-                    value={pdfLang}
-                    onChange={(e) => setPdfLang(e.target.value as "fr" | "en")}
-                    className="auth-input py-1.5 px-2 text-sm"
-                  >
-                    <option value="fr">Français</option>
-                    <option value="en">English</option>
-                  </select>
-                </div>
-                <GenericButton
-                  label={pdfLoading ? "..." : t("scanner.exportPdfDownload")}
-                  variant="primary"
-                  onClick={handlePdfDownload}
-                  disabled={pdfLoading}
-                />
-              </>
-            ) : (
-              <p className="text-sm text-muted-theme">
-                {t("scanner.exportPdfUnavailable")}
-              </p>
-            )}
-          </div>
+                )}
+                {isPdf && scanId && pdfLoading && (
+                  <span className="text-xs text-muted-theme ml-auto">...</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </Modal>
     </div>

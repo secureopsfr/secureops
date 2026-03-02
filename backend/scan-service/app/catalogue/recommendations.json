@@ -38,25 +38,33 @@
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP",
       "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/12-Test_for_Content_Security_Policy"
-    ]
+    ],
+    "detail_fr": "Sans CSP, le navigateur peut exécuter des scripts depuis n'importe quelle source. Une injection XSS peut charger du code malveillant depuis un domaine tiers. CSP restreint les sources autorisées (scripts, styles, images).",
+    "detail_en": "Without CSP, the browser can execute scripts from any source. An XSS injection can load malicious code from a third-party domain. CSP restricts allowed sources (scripts, styles, images)."
   },
   "headers-hsts-absent": {
     "recommendation": "Ajouter Strict-Transport-Security (HSTS) pour forcer les navigateurs à utiliser HTTPS.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security"
-    ]
+    ],
+    "detail_fr": "Sans HSTS, une première visite en HTTP ou une erreur de saisie peut exposer le trafic à des attaques man-in-the-middle. HSTS indique au navigateur de n'utiliser que HTTPS pour ce domaine.",
+    "detail_en": "Without HSTS, a first HTTP visit or typo can expose traffic to man-in-the-middle attacks. HSTS tells the browser to use HTTPS only for this domain."
   },
   "headers-xfo-absent": {
     "recommendation": "Ajouter X-Frame-Options: DENY ou SAMEORIGIN pour empêcher le clickjacking.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options"
-    ]
+    ],
+    "detail_fr": "Sans X-Frame-Options, la page peut être intégrée dans une iframe sur un site malveillant (clickjacking : l'utilisateur croit cliquer sur un élément alors qu'il déclenche une action sur votre site).",
+    "detail_en": "Without X-Frame-Options, the page can be embedded in an iframe on a malicious site (clickjacking: the user thinks they click on an element but triggers an action on your site)."
   },
   "headers-xcto-absent": {
     "recommendation": "Ajouter X-Content-Type-Options: nosniff pour éviter le MIME sniffing.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options"
-    ]
+    ],
+    "detail_fr": "Sans nosniff, le navigateur peut interpréter un fichier (ex. image) comme un type différent (ex. HTML/JS) selon son contenu, ce qui peut faciliter des attaques XSS.",
+    "detail_en": "Without nosniff, the browser can interpret a file (e.g. image) as a different type (e.g. HTML/JS) based on its content, which can facilitate XSS attacks."
   },
   "headers-xcto-wrong-value": {
     "recommendation": "Configurer X-Content-Type-Options avec la valeur 'nosniff'.",
@@ -68,13 +76,17 @@
     "recommendation": "Ajouter Referrer-Policy pour contrôler les informations envoyées dans l'en-tête Referer.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy"
-    ]
+    ],
+    "detail_fr": "Le Referer est envoyé automatiquement par le navigateur lors des requêtes ; il peut contenir des chemins complets, des query strings (tokens, IDs de session). Une politique permissive (no-referrer-when-downgrade, défaut) envoie l'URL complète vers des sites HTTPS tiers. Referrer-Policy permet de restreindre (ex. strict-origin-when-cross-origin, no-referrer).",
+    "detail_en": "The Referer header is sent automatically by the browser on requests; it can contain full paths, query strings (tokens, session IDs). A permissive policy (no-referrer-when-downgrade, default) sends the full URL to HTTPS third-party sites. Referrer-Policy allows restricting this (e.g. strict-origin-when-cross-origin, no-referrer)."
   },
   "headers-permissions-absent": {
     "recommendation": "Ajouter Permissions-Policy pour restreindre l'accès aux APIs navigateur (géoloc, caméra, etc.).",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy"
-    ]
+    ],
+    "detail_fr": "Sans Permissions-Policy, les APIs sensibles du navigateur (géolocalisation, caméra, microphone, etc.) restent accessibles par défaut pour la page et ses iframes, augmentant la surface d'attaque.",
+    "detail_en": "Without Permissions-Policy, sensitive browser APIs (geolocation, camera, microphone, etc.) remain accessible by default for the page and its iframes, increasing the attack surface."
   },
   "headers-connection-failed": {
     "recommendation": "Vérifier la connectivité au serveur. Impossible de récupérer les en-têtes.",
@@ -186,6 +198,8 @@
   },
   "tech_fingerprinting-stack-unknown": {
     "recommendation": "Information : stack non identifiée ou masquée. Pas d'action requise.",
-    "references": []
+    "references": [],
+    "detail_fr": "Aucun en-tête révélateur (Server, X-Powered-By, etc.) n'a été détecté. La stack technique est soit masquée volontairement (bonne pratique), soit non identifiable par les motifs analysés. Ce n'est pas une anomalie de sécurité.",
+    "detail_en": "No revealing header (Server, X-Powered-By, etc.) was detected. The tech stack is either intentionally hidden (good practice) or not identifiable by the analyzed patterns. This is not a security anomaly."
   }
 }

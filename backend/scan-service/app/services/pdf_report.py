@@ -14,6 +14,7 @@ from typing import Any
 
 from weasyprint import HTML
 
+from app.catalogue.recommendations import get_detail
 from app.catalogue.risk_matrix import get_gravite, get_vraisemblance
 
 # Logo : PDF_LOGO_PATH ou app/static/logo.png par défaut
@@ -136,7 +137,9 @@ def _render_matrix(gravite: str, vraisemblance: str) -> str:
     row_idx = _gravite_index(gravite)
     col_idx = _vraisemblance_index(vraisemblance)
 
-    th_style = "border:1px solid #333;padding:4px 6px;font-weight:600;font-size:9px"
+    cell_size = "width:70px;height:38px;box-sizing:border-box"
+    th_style = f"border:1px solid #333;padding:4px 6px;font-weight:600;font-size:9px;text-align:center;{cell_size}"
+    td_style = f"border:1px solid #333;padding:6px;text-align:center;font-size:10px;{cell_size}"
     rows = []
     header_cells = f"<th style='{th_style}'>Gravité \\ Vraisemblance</th>" + "".join(
         f"<th style='{th_style}'>{escape(v)}</th>" for v in _VRAISEMBLANCES
@@ -147,26 +150,14 @@ def _render_matrix(gravite: str, vraisemblance: str) -> str:
         cells = []
         for j in range(4):
             bg = _COLORS[i][j]
-            cross = "✗" if (i == row_idx and j == col_idx) else ""
-            style = f"border:1px solid #333;padding:6px;background-color:{bg};min-width:45px;text-align:center;font-size:10px"
-            cells.append(f"<td style='{style}'>{escape(cross)}</td>")
+            cross = "×" if (i == row_idx and j == col_idx) else ""
+            style = f"{td_style};background-color:{bg}"
+            cross_html = f'<span style="font-size:18px;font-weight:700">{escape(cross)}</span>' if cross else ""
+            cells.append(f"<td style='{style}'>{cross_html}</td>")
         row_label = f"<td style='{th_style}'>{escape(grav)}</td>"
         rows.append(f"<tr>{row_label}{''.join(cells)}</tr>")
 
-    return f"<table style='border-collapse:collapse;margin:12px 0'>{''.join(rows)}</table>"
-
-
-def _get_risk_level(gravite: str, vraisemblance: str, lang: str) -> str:
-    """Dérive le niveau de risque (Élevé/Moyen/Faible) à partir de gravité et vraisemblance."""
-    gi = _gravite_index(gravite)
-    vi = _vraisemblance_index(vraisemblance)
-    # Score simplifié : plus la position est en bas-droite, plus le risque est élevé
-    score = gi * 4 + vi
-    if score >= 10:
-        return "Risque élevé" if lang == "fr" else "High risk"
-    if score >= 6:
-        return "Risque moyen" if lang == "fr" else "Medium risk"
-    return "Risque faible" if lang == "fr" else "Low risk"
+    return f"<table style='border-collapse:collapse;margin:12px 0;table-layout:fixed'>{''.join(rows)}</table>"
 
 
 def _severity_index(severity: str) -> int:
@@ -178,7 +169,6 @@ def _severity_index(severity: str) -> int:
 
 def _group_findings_by_category(findings: list[dict[str, Any]], lang: str) -> tuple[dict[str, list[dict[str, Any]]], list[str]]:
     """Groupe les findings par catégorie et retourne l'ordre des catégories."""
-    category_labels = _CATEGORY_LABELS_FR if lang == "fr" else _CATEGORY_LABELS_EN
     by_category: dict[str, list[dict[str, Any]]] = {}
     for f in findings:
         cat = f.get("category", "other")
@@ -229,19 +219,27 @@ def _build_sommaire(
     category_labels: dict[str, str],
     lang: str,
 ) -> str:
-    """Construit le HTML du sommaire."""
+    """Construit le HTML du sommaire (sections et sous-parties 2.1, 2.2, etc.)."""
     sommaire_label = "Sommaire" if lang == "fr" else "Table of contents"
     synthese_label = "Synthèse du scan" if lang == "fr" else "Scan summary"
     annexes_label = "Annexes" if lang == "fr" else "Appendix"
     items = [f'<li class="toc-item"><a href="#synthese" class="toc-link"><span class="toc-num">1</span> {synthese_label}</a></li>']
     section_num = 2
     for cat in ordered_cats:
-        if by_category.get(cat):
-            label = category_labels.get(cat, cat)
+        cat_findings = by_category.get(cat, [])
+        if not cat_findings:
+            continue
+        label = category_labels.get(cat, cat)
+        items.append(
+            f'<li class="toc-item"><a href="#sect-{cat}" class="toc-link"><span class="toc-num">{section_num}</span> {escape(label)}</a></li>'
+        )
+        for idx, f in enumerate(sorted(cat_findings, key=lambda x: _severity_index(x.get("severity"))), start=1):
+            title = escape(str(f.get("title", "")))
             items.append(
-                f'<li class="toc-item"><a href="#sect-{cat}" class="toc-link"><span class="toc-num">{section_num}</span> {escape(label)}</a></li>'
+                f'<li class="toc-item toc-sub"><a href="#finding-{section_num}-{idx}" class="toc-link">'
+                f'<span class="toc-num">{section_num}.{idx}</span> {title}</a></li>'
             )
-            section_num += 1
+        section_num += 1
     items.append(f'<li class="toc-item"><a href="#annexes" class="toc-link"><span class="toc-num">{section_num}</span> {annexes_label}</a></li>')
     return f"""
     <div class="report-section sommaire" id="sommaire">
@@ -348,45 +346,62 @@ def _build_finding_block(
     f: dict[str, Any],
     section_num: int,
     finding_idx: int,
-    severity_label: str,
-    contexte_label: str,
-    impact_label: str,
-    matrice_label: str,
-    risque_label: str,
-    conseils_label: str,
+    evidence_label: str,
+    detail_label: str,
+    how_to_fix_label: str,
     include_matrices: bool,
     lang: str,
 ) -> str:
-    """Construit le bloc HTML d'un finding (2.1, 2.2…, badge, contexte, impact, matrice, conseils)."""
+    """Construit le bloc HTML d'un finding (titre, badge, catégorie, evidence, détail, matrice, how to fix)."""
     slug = f.get("id", "")
     title_f = escape(str(f.get("title", "")))
     severity = (f.get("severity") or "info").lower()
     severity_display = _severity_label(severity, lang)
     evidence = escape(str(f.get("evidence", ""))[:800])
     recommendation = escape(str(f.get("recommendation", ""))[:800])
+    references = f.get("references") or []
     gravite = get_gravite(slug) if slug else ""
     vraisemblance = get_vraisemblance(slug) if slug else ""
     badge_bg, badge_text = _severity_badge_style(severity)
+    detail_text = get_detail(slug, lang) if slug else ""
 
-    impact_text = f"Gravité : {gravite}." if gravite else f"{severity_label} : {severity_display}."
-    block = f"""
-    <div class="finding-block">
-        <div class="finding-header">
-            <h3 class="finding-title">{section_num}.{finding_idx} – {title_f}</h3>
-            <span class="finding-badge" style="background:{badge_bg};color:{badge_text}">{escape(severity_display)}</span>
+    refs_html = ""
+    if references:
+        refs_html = '<ul class="finding-refs">' + "".join(f'<li><a href="{escape(ref)}">{escape(ref)}</a></li>' for ref in references[:10]) + "</ul>"
+
+    detail_html = ""
+    if detail_text:
+        refs_line = ""
+        if references:
+            more_label = "En savoir plus :" if lang == "fr" else "Learn more:"
+            links = " ".join(f'<a href="{escape(ref)}" class="finding-detail-link">{escape(ref)}</a>' for ref in references[:3])
+            refs_line = f'<p class="finding-detail-refs">{more_label} {links}</p>'
+        detail_html = f"""
+        <div class="finding-detail">
+            <p><strong>{detail_label}:</strong> {escape(detail_text)}</p>
+            {refs_line}
         </div>
-        <p class="finding-contexte"><strong>{contexte_label}</strong> {evidence}</p>
-        <p class="finding-impact"><strong>{impact_label}</strong> {impact_text}</p>
+        """
+
+    badge_html = f'<span class="finding-badge" style="background:{badge_bg};color:{badge_text}">{escape(severity_display)}</span>'
+    block = f"""
+    <div class="finding-block" id="finding-{section_num}-{finding_idx}">
+        <h3 class="finding-title-row">
+            <span class="finding-title">{section_num}.{finding_idx} – {title_f} {badge_html}</span>
+        </h3>
+        <p class="finding-evidence"><strong>{evidence_label}:</strong> {evidence}</p>
+        {detail_html}
     """
     if include_matrices and slug and gravite and vraisemblance:
-        risk_level = _get_risk_level(gravite, vraisemblance, lang)
         block += f"""
-        <p class="finding-matrice-label"><strong>{matrice_label}</strong></p>
         <div class="finding-matrix">{_render_matrix(gravite, vraisemblance)}</div>
-        <p class="finding-risque-label"><strong>{risque_label}</strong> {risk_level}</p>
         """
     block += f"""
-        <p class="finding-conseils"><strong>{conseils_label}</strong> {recommendation}</p>
+        <div class="finding-howtofix">
+            <p class="finding-howtofix-label">{how_to_fix_label}</p>
+            <p class="finding-recommendation">{recommendation}</p>
+            {refs_html}
+        </div>
     </div>
     """
     return block
@@ -396,16 +411,13 @@ def _build_category_sections(
     by_category: dict[str, list[dict[str, Any]]],
     ordered_cats: list[str],
     category_labels: dict[str, str],
-    severity_label: str,
     include_matrices: bool,
     lang: str,
 ) -> list[str]:
     """Construit les sections HTML par catégorie."""
-    contexte_label = "Contexte" if lang == "fr" else "Context"
-    impact_label = "Impact" if lang == "fr" else "Impact"
-    matrice_label = "Gravité / Vraisemblance" if lang == "fr" else "Severity / Likelihood"
-    risque_label = "Risque identifié" if lang == "fr" else "Identified risk"
-    conseils_label = "Conseils" if lang == "fr" else "Recommendations"
+    evidence_label = "Preuve" if lang == "fr" else "Evidence"
+    detail_label = "Détail" if lang == "fr" else "Detail"
+    how_to_fix_label = "Comment corriger" if lang == "fr" else "How to fix"
 
     sections_html: list[str] = []
     section_num = 2
@@ -413,20 +425,17 @@ def _build_category_sections(
         cat_findings = by_category.get(cat, [])
         if not cat_findings:
             continue
-        label = category_labels.get(cat, cat)
+        cat_label = category_labels.get(cat, cat)
         sections_html.append(f'<div class="report-section" id="sect-{cat}">')
-        sections_html.append(f'<h2 class="section-title">{section_num}. {escape(label)}</h2>')
+        sections_html.append(f'<h2 class="section-title">{section_num}. {escape(cat_label)}</h2>')
         for idx, f in enumerate(sorted(cat_findings, key=lambda x: _severity_index(x.get("severity"))), start=1):
             block = _build_finding_block(
                 f,
                 section_num,
                 idx,
-                severity_label,
-                contexte_label,
-                impact_label,
-                matrice_label,
-                risque_label,
-                conseils_label,
+                evidence_label,
+                detail_label,
+                how_to_fix_label,
                 include_matrices,
                 lang,
             )
@@ -460,7 +469,6 @@ def _build_html(
         str: Document HTML complet.
     """
     title = "Rapport de scan" if lang == "fr" else "Scan report"
-    severity_label = "Sévérité" if lang == "fr" else "Severity"
     disclaimer = (
         "Ce rapport est généré par SecureOps. Usage autorisé uniquement sur des sites dont vous avez la permission."
         if lang == "fr"
@@ -486,7 +494,7 @@ def _build_html(
     cover_page = _build_cover_page(url, date_str, lang, report_title, subtitle)
     sommaire_html = _build_sommaire(by_category, ordered_cats, category_labels, lang)
     synthese_html = _build_synthese(by_category, ordered_cats, category_labels, findings, score_val, score_color, lang)
-    sections_html = _build_category_sections(by_category, ordered_cats, category_labels, severity_label, include_matrices, lang)
+    sections_html = _build_category_sections(by_category, ordered_cats, category_labels, include_matrices, lang)
 
     section_num = 2 + sum(1 for c in ordered_cats if by_category.get(c))
     annexes_label = "Annexes" if lang == "fr" else "Appendix"
@@ -626,6 +634,8 @@ def _build_html(
         .toc-link {{ color: inherit; text-decoration: none; display: flex; align-items: baseline; }}
         .toc-link:hover {{ text-decoration: underline; color: #1e40af; }}
         .toc-num {{ font-weight: 600; font-size: 15px; color: #1e40af; margin-right: 12px; min-width: 24px; }}
+        .toc-sub {{ margin-left: 20px; margin-top: 8px; margin-bottom: 8px; }}
+        .toc-sub .toc-num {{ font-size: 13px; min-width: 28px; }}
         .synthese-gauge-block {{ display: flex; flex-direction: column; align-items: center; margin: 20px 0 24px 0; }}
         .synthese-gauge-label {{ font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 12px; }}
         .synthese-gauge-wrapper {{ position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; }}
@@ -642,23 +652,33 @@ def _build_html(
         .status-fail {{ color: #ef4444; font-weight: 600; }}
         .finding-block {{
             margin: 20px 0; padding: 18px 0; border-bottom: 1px solid #e5e7eb;
-            page-break-inside: avoid;
         }}
-        .finding-header {{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }}
-        .finding-title {{ font-size: 13px; font-weight: 600; margin: 0; color: #1e40af; }}
+        .finding-title-row {{ margin: 0 0 8px 0; }}
+        .finding-title {{ font-size: 14px; font-weight: 600; margin: 0; color: #1e40af; }}
+        .finding-title .finding-badge {{ margin-left: 8px; vertical-align: middle; }}
+        .finding-meta {{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }}
         .finding-badge {{
             display: inline-block; padding: 3px 10px; border-radius: 9999px;
             font-size: 10px; font-weight: 500;
         }}
-        .finding-contexte, .finding-impact, .finding-conseils {{
-            margin: 10px 0; font-size: 12px; line-height: 1.55; color: #374151;
+        .finding-evidence {{ margin: 10px 0; font-size: 12px; line-height: 1.55; color: #4b5563; }}
+        .finding-evidence strong {{ font-size: 11px; font-weight: 600; color: #475569; }}
+        .finding-detail {{ margin: 10px 0; font-size: 12px; line-height: 1.55; color: #4b5563; }}
+        .finding-detail strong {{ font-size: 11px; font-weight: 600; color: #475569; }}
+        .finding-detail-refs {{ margin: 6px 0 0 0; font-size: 11px; }}
+        .finding-detail-link {{ color: #2563eb; text-decoration: none; }}
+        .finding-detail-link:hover {{ text-decoration: underline; }}
+        .finding-howtofix {{
+            background: #f3f4f6; border-radius: 8px; padding: 12px 16px; margin: 12px 0;
+            border: 1px solid #e5e7eb;
         }}
-        .finding-contexte strong, .finding-impact strong, .finding-conseils strong {{
-            font-size: 11px; font-weight: 600; color: #475569;
-        }}
-        .finding-matrice-label {{ margin: 12px 0 6px 0; font-size: 11px; font-weight: 600; color: #475569; }}
-        .finding-matrix {{ margin-top: 8px; }}
-        .finding-risque-label {{ margin-top: 10px; font-size: 12px; font-weight: 600; color: #374151; }}
+        .finding-howtofix-label {{ font-size: 12px; font-weight: 600; margin: 0 0 6px 0; color: #374151; }}
+        .finding-recommendation {{ font-size: 12px; line-height: 1.55; color: #4b5563; margin: 0; }}
+        .finding-refs {{ margin: 10px 0 0 0; padding-left: 18px; font-size: 11px; line-height: 1.5; color: #2563eb; }}
+        .finding-refs a {{ color: #2563eb; text-decoration: none; }}
+        .finding-refs a:hover {{ text-decoration: underline; }}
+        .finding-matrix {{ margin: 12px 0; width: 100%; overflow-x: auto; }}
+        .finding-matrix table {{ width: 100%; }}
         .annexes-text {{ font-size: 11px; color: #6b7280; line-height: 1.5; }}
     </style>
 </head>
