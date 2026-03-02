@@ -1,5 +1,5 @@
 /** Config Jest pour les tests du frontend (Next.js). */
-export default {
+const config = {
   testEnvironment: "node",
   testMatch: ["**/tests/**/*.test.ts", "**/tests/**/*.test.tsx"],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json"],
@@ -8,3 +8,5 @@ export default {
   },
   testPathIgnorePatterns: ["/node_modules/", "/.next/"],
 };
+
+export default config;

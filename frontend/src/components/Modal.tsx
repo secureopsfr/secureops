@@ -10,6 +10,8 @@ const DURATION_MS = 250;
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Appelé après la fin de l'animation de fermeture. */
+  onExited?: () => void;
   title?: string | React.ReactNode;
   children: React.ReactNode;
   maxWidth?: string;
@@ -32,6 +34,7 @@ interface ModalProps {
 export default function Modal({
   isOpen,
   onClose,
+  onExited,
   title,
   children,
   maxWidth = "500px",
@@ -71,6 +74,7 @@ export default function Modal({
         setPhase("exited");
         setVisible(false);
         exitTimeoutRef.current = null;
+        onExited?.();
       }, DURATION_MS);
       return () => {
         if (exitTimeoutRef.current) {
@@ -79,7 +83,7 @@ export default function Modal({
         }
       };
     }
-  }, [mounted, isOpen, visible]);
+  }, [mounted, isOpen, visible, onExited]);
 
   // Bloquer le scroll du body quand la modal est affichée
   useEffect(() => {

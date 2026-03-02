@@ -47,6 +47,7 @@ export default function Header() {
 
   const NAV_LINKS = [
     { label: t("header.home"), href: lp("/") },
+    { label: t("header.scanner"), href: lp("/scanner") },
     { label: t("header.pricing"), href: lp("/tarifs") },
     { label: t("header.contact"), href: lp("/contact") },
   ];

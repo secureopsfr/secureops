@@ -18,6 +18,7 @@ PUBLIC_PREFIX: tuple[str, ...] = ("/images/", "/admin/images/")
 PUBLIC_METHOD_PATHS: set[tuple[str, str]] = {
     ("POST", "/api/contact"),  # Protégé par captcha Turnstile
     ("POST", "/admin/api/analytics/ingest"),  # Protégé par validation + rate limiting
+    ("POST", "/scan/api/scan"),  # MVP : scan posture sécurité public (disclaimer côté front)
 }
 
 # ── Routes authentifiées sans vérification de groupe ────────────────

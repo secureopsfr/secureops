@@ -1,4 +1,4 @@
-# SecureOps — Roadmap MVP (étape par étape)
+# SecureOps — Roadmap MVP 0.1.0 (étape par étape)
 
 Objectif : livrer un **scanner de posture sécurité web** (non-intrusif) destiné aux devs débutants/intermédiaires :
 **URL → scan rapide → score + rapport clair**.
@@ -189,22 +189,39 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 
 ## 7) Frontend MVP (simple et pro)
 
-### 7.1 Landing
-- [ ] Hero + promesse claire
-- [ ] Champ URL + CTA “Scan”
-- [ ] Disclaimer usage autorisé
+### 7.1 Landing ✅
+- [x] Hero + promesse claire
+- [x] Champ URL + CTA “Scan”
+- [x] Disclaimer usage autorisé
 
-### 7.2 Page résultats
-- [ ] Score global + badge (🟢/🟡/🔴)
-- [ ] Résumé par catégorie
-- [ ] Liste des findings (triés par sévérité)
-- [ ] Bloc “How to fix” (recommandations pédagogiques)
-- [ ] Erreurs affichées proprement
+### 7.2 Page résultats ✅
+- [x] Score global + badge (🟢/🟡/🔴)
+- [x] Résumé par catégorie
+- [x] Liste des findings (triés par sévérité)
+- [x] Bloc “How to fix” (recommandations pédagogiques)
+- [x] Erreurs affichées proprement
 
-### 7.3 UX
-- [ ] Loader pendant scan
-- [ ] États : idle / loading / success / error
-- [ ] Responsive mobile
+### 7.3 UX ✅
+- [x] Loader pendant scan
+- [x] États : idle / loading / success / error
+- [x] Responsive mobile
+
+> **Fait :** Page `/scanner` (fr/en), service SSE `scanService.ts`, composants ScanLoader/ScanResults/ScannerContent. Gateway : `POST /scan/api/scan` rendu public. Lien "Scanner" dans le Header.
+
+### 7.4 Accès aux résultats réservé aux utilisateurs connectés ✅
+- [x] Gate « Connectez-vous pour accéder aux résultats » si non authentifié après scan
+- [x] Stockage temporaire des résultats en `sessionStorage` (Option C hybride)
+- [x] Restauration automatique des résultats après connexion (redirection vers scanner)
+- [x] Composant `ScanResultsGate` + utilitaires `scanStorage.ts`
+
+> **Fait :** Une fois le scan terminé, l’utilisateur non connecté voit une carte l’invitant à se connecter. Les résultats sont stockés en `sessionStorage`. Après connexion, si l’utilisateur revient sur la page scanner, les résultats sont restaurés et affichés. Si l’onglet est fermé avant connexion, les résultats sont perdus (fallback : relancer un scan).
+
+### 7.5 Affichage du favicon / logo du site scanné ✅
+- [x] Favicon du domaine affiché au-dessus de l'URL dans les résultats
+- [x] Service Google Favicon (`/s2/favicons?domain=...&sz=128`) côté frontend
+- [x] Fallback : icône globe SVG vectorielle si favicon indisponible (évite la pixellisation)
+
+> **Fait :** Le composant `ScanResults` affiche le favicon du site scanné au-dessus du nom de domaine. Extraction du hostname depuis `result.url`, requête vers le service Google. En cas d'échec (404, CORS), affichage d'une icône globe SVG nette en fallback.
 
 ---
 
@@ -259,7 +276,9 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 
 ---
 
-# V2 (après MVP) — évolutions naturelles
+# V2 (après MVP) — Roadmap MVP 0.2.0
+
+> Voir [ROADMAP-MVP-0.2.0.md](ROADMAP-MVP-0.2.0.md) pour le détail complet.
 
 - [ ] Mode asynchrone + queue (SQS / Celery)
 - [ ] Auth + dashboard + historique scans
