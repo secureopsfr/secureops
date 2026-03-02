@@ -83,7 +83,7 @@ export default function Modal({
         }
       };
     }
-  }, [mounted, isOpen, visible]);
+  }, [mounted, isOpen, visible, onExited]);
 
   // Bloquer le scroll du body quand la modal est affichée
   useEffect(() => {

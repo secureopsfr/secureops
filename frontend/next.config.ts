@@ -4,6 +4,16 @@ const nextConfig: NextConfig = {
   // Pas de trailing slash pour éviter contenu dupliqué (SEO)
   trailingSlash: false,
 
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "www.google.com",
+        pathname: "/s2/favicons/**",
+      },
+    ],
+  },
+
   // Configuration pour éviter l'avertissement sur le workspace root
   // Note: Le warning sur les lockfiles multiples est normal si vous avez un monorepo
 

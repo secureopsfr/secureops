@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, useEffect } from "react";
+import Image from "next/image";
 import { createPortal } from "react-dom";
 import { Download, FileSpreadsheet, FileJson, FileText } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
@@ -162,9 +163,11 @@ export default function ScanResults({ result, onNewScan }: ScanResultsProps) {
                   <DefaultFavicon />
                 </div>
               ) : (
-                <img
+                <Image
                   src={faviconUrl}
                   alt=""
+                  width={56}
+                  height={56}
                   className="h-14 w-14 rounded-xl object-cover"
                   onError={() => setFaviconError(true)}
                 />
