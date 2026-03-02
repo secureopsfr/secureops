@@ -70,6 +70,8 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] Redirection vers login si non connecté + tentative de scan
 - [ ] Message clair : « Connectez-vous pour scanner et sauvegarder vos résultats »
 
+> **Partiellement fait (MVP 0.1.0) :** Gate « Connectez-vous pour accéder aux résultats » après scan. L’utilisateur peut lancer un scan sans être connecté ; les résultats sont stockés en `sessionStorage` et affichés après connexion. Voir [ROADMAP-MVP-0.1.0.md](ROADMAP-MVP-0.1.0.md) § 7.4.
+
 ---
 
 ## 3) Export PDF

@@ -208,6 +208,21 @@ Pour les explications détaillées (failles, exemples, matrices de risque, conse
 
 > **Fait :** Page `/scanner` (fr/en), service SSE `scanService.ts`, composants ScanLoader/ScanResults/ScannerContent. Gateway : `POST /scan/api/scan` rendu public. Lien "Scanner" dans le Header.
 
+### 7.4 Accès aux résultats réservé aux utilisateurs connectés ✅
+- [x] Gate « Connectez-vous pour accéder aux résultats » si non authentifié après scan
+- [x] Stockage temporaire des résultats en `sessionStorage` (Option C hybride)
+- [x] Restauration automatique des résultats après connexion (redirection vers scanner)
+- [x] Composant `ScanResultsGate` + utilitaires `scanStorage.ts`
+
+> **Fait :** Une fois le scan terminé, l’utilisateur non connecté voit une carte l’invitant à se connecter. Les résultats sont stockés en `sessionStorage`. Après connexion, si l’utilisateur revient sur la page scanner, les résultats sont restaurés et affichés. Si l’onglet est fermé avant connexion, les résultats sont perdus (fallback : relancer un scan).
+
+### 7.5 Affichage du favicon / logo du site scanné ✅
+- [x] Favicon du domaine affiché au-dessus de l'URL dans les résultats
+- [x] Service Google Favicon (`/s2/favicons?domain=...&sz=128`) côté frontend
+- [x] Fallback : icône globe SVG vectorielle si favicon indisponible (évite la pixellisation)
+
+> **Fait :** Le composant `ScanResults` affiche le favicon du site scanné au-dessus du nom de domaine. Extraction du hostname depuis `result.url`, requête vers le service Google. En cas d'échec (404, CORS), affichage d'une icône globe SVG nette en fallback.
+
 ---
 
 ## 8) Qualité / CI (dès MVP)
