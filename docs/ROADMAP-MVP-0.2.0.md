@@ -6,7 +6,37 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-## 0) Décisions MVP 0.2.0 (à figer avant de coder)
+## 0) Prérequis — Qualité, tests et release v0.1 (à compléter avant 0.2.0)
+
+### 0.1 Backend CI
+- [ ] Lint (ruff/flake8)
+- [ ] Tests unitaires (pytest)
+- [ ] Coverage minimal
+
+### 0.2 Frontend CI
+- [ ] Lint (eslint)
+- [ ] Build (npm run build)
+
+### 0.3 Branch protection (main)
+- [ ] PR required
+- [ ] checks required
+
+### 0.4 Tests finaux (avant annonce)
+- [ ] Tester sur sites de test (DVWA/Juice Shop en local)
+- [ ] Tester sur un vrai site vitrine simple
+- [ ] Tester cas d'erreurs : DNS, timeout, redirect, TLS broken
+- [ ] Vérifier que SSRF est impossible (tests IP privées)
+- [ ] Vérifier charge (10 scans rapides)
+
+### 0.5 Release MVP v0.1
+- [ ] Tag `v0.1.0`
+- [ ] Release notes (fonctionnalités + limites)
+- [ ] Démo GIF / screenshots
+- [ ] Feedback form (Google Form / email)
+
+---
+
+## 1) Décisions MVP 0.2.0 (à figer avant de coder)
 
 - [ ] **Scope V2** : Auth + dashboard + historique + export PDF + mode asynchrone + API publique
 - [ ] **Auth** : Cognito (déjà en place) — scanner protégé pour utilisateurs connectés
@@ -16,57 +46,57 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-## 1) Mode asynchrone + queue
+## 2) Mode asynchrone + queue
 
-### 1.1 Choix technologique
+### 2.1 Choix technologique
 - [ ] Choisir stack : SQS + worker Python **ou** Celery + Redis
 - [ ] Documenter décision (pros/cons, coût, complexité)
 
-### 1.2 Infrastructure queue
+### 2.2 Infrastructure queue
 - [ ] Créer file SQS (ou Redis pour Celery)
 - [ ] Configurer dead-letter queue (DLQ) pour échecs
 - [ ] Timeout et retry policy (ex. 3 tentatives, backoff exponentiel)
 
-### 1.3 Worker scan
+### 2.3 Worker scan
 - [ ] Worker dédié : consomme jobs de la queue, exécute le scan
 - [ ] Réutiliser la logique existante (`scan_stream`, checks, normalisation)
 - [ ] Stocker résultat en base (ex. PostgreSQL) avec `job_id`, `status`, `result`
 
-### 1.4 API endpoints
+### 2.4 API endpoints
 - [ ] `POST /api/scan/async` : enqueue un job, retourne `job_id`
 - [ ] `GET /api/scan/async/{job_id}` : statut du job (pending, running, completed, failed)
 - [ ] `GET /api/scan/async/{job_id}/result` : résultat du scan (si completed)
 
-### 1.5 Frontend
+### 2.5 Frontend
 - [ ] Option : lancer scan en mode async si durée estimée > seuil
 - [ ] Polling ou WebSocket pour afficher le statut
 - [ ] Page résultats accessible via URL partageable (`/scan/{job_id}`)
 
 ---
 
-## 2) Auth + dashboard + historique scans
+## 3) Auth + dashboard + historique scans
 
-### 2.1 Backend — persistance
+### 3.1 Backend — persistance
 - [ ] Schéma : `scans` (id, user_id, url, status, score, findings_json, created_at)
 - [ ] Migration Alembic (user-service ou nouveau service scan-history)
 - [ ] Associer chaque scan à l’utilisateur Cognito (via `user_id` ou `sub`)
 
-### 2.2 Protection du scanner
+### 3.2 Protection du scanner
 - [ ] Retirer `POST /scan/api/scan` des routes publiques
 - [ ] Exiger JWT pour lancer un scan
 
-### 2.3 API historique
+### 3.3 API historique
 - [ ] `GET /api/scan/history` : liste des scans de l’utilisateur (pagination)
 - [ ] `GET /api/scan/history/{id}` : détail d’un scan passé
 - [ ] `DELETE /api/scan/history/{id}` : suppression (optionnel)
 
-### 2.4 Dashboard frontend
+### 3.4 Dashboard frontend
 - [ ] Page « Mon historique » (ou section dans Mon compte)
 - [ ] Liste des scans : URL, date, score, lien vers détail
 - [ ] Filtres : par date, par score
 - [ ] Accès rapide au dernier scan
 
-### 2.5 UX
+### 3.5 UX
 - [ ] Redirection vers login si non connecté + tentative de scan
 - [ ] Message clair : « Connectez-vous pour scanner et sauvegarder vos résultats »
 
@@ -74,66 +104,66 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-## 3) Export PDF
+## 4) Export PDF
 
-### 3.1 Backend
+### 4.1 Backend
 - [ ] Choisir librairie : WeasyPrint, ReportLab, ou pdfkit
 - [ ] Endpoint `GET /api/scan/{id}/export/pdf` : génère et retourne le PDF
 
-### 3.2 Contenu du rapport
+### 4.2 Contenu du rapport
 - [ ] En-tête : logo, titre, date, URL scannée
 - [ ] Score global + badge
 - [ ] Résumé par catégorie
 - [ ] Liste des findings (titre, sévérité, preuve, recommandation)
 - [ ] Pied de page : disclaimer, lien SecureOps
 
-### 3.3 Frontend
+### 4.3 Frontend
 - [ ] Bouton « Télécharger PDF » sur la page résultats
 - [ ] Bouton « Télécharger PDF » sur la page détail d’un scan historique
 
-### 3.4 Style
+### 4.4 Style
 - [ ] Template PDF professionnel (mise en page, couleurs)
 - [ ] Support i18n (fr/en) dans le PDF
 
 ---
 
-## 4) Monitoring continu (scans planifiés)
+## 5) Monitoring continu (scans planifiés)
 
-### 4.1 Modèle de données
+### 5.1 Modèle de données
 - [ ] Schéma : `scheduled_scans` (id, user_id, url, frequency, next_run_at, enabled)
 - [ ] Fréquences : daily, weekly, monthly
 
-### 4.2 Scheduler
+### 5.2 Scheduler
 - [ ] Job cron (ou EventBridge) : réveille les scans à exécuter
 - [ ] Enqueue les jobs dans la queue async
 - [ ] Mise à jour `next_run_at` après exécution
 
-### 4.3 API
+### 5.3 API
 - [ ] `POST /api/scan/schedule` : créer un scan planifié
 - [ ] `GET /api/scan/schedule` : liste des scans planifiés
 - [ ] `PATCH /api/scan/schedule/{id}` : modifier (fréquence, pause)
 - [ ] `DELETE /api/scan/schedule/{id}` : supprimer
 
-### 4.4 Alertes (optionnel)
+### 5.4 Alertes (optionnel)
 - [ ] Détection de régression (score chute vs dernier scan)
 - [ ] Email ou notification si finding critical détecté
 
-### 4.5 Frontend
+### 5.5 Frontend
 - [ ] Page « Scans planifiés » : liste, CRUD
 - [ ] Formulaire : URL, fréquence (daily/weekly/monthly)
 - [ ] Indicateur : prochain scan prévu
 
 ---
 
-## 5) Scan plus avancé (OWASP light, non intrusif)
+## 6) Scan plus avancé (OWASP light, non intrusif)
 
 > **Principe :** tests passifs uniquement — pas d’injection, pas de bruteforce, pas de fuzzing. Lecture et analyse des réponses HTTP/HTML.
 
 ---
 
-### 5.1 Améliorations des tests existants
+### 6.1 Améliorations des tests existants
 
-#### 5.1.1 TLS / HTTPS
+#### 6.1.1 TLS / HTTPS
 
 **Existant (v0.1.0) :**
 - HTTPS activé ? ✅
@@ -148,7 +178,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] Alerte si certificat expire dans < 30 jours
 - [ ] Support TLS 1.3 (détection si proposé)
 
-#### 5.1.2 Security Headers
+#### 6.1.2 Security Headers
 
 **Existant (v0.1.0) :**
 - Vérifier présence : `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options` (nosniff), `Referrer-Policy`, `Permissions-Policy` ✅
@@ -160,7 +190,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] `Clear-Site-Data` pour déconnexion sécurisée
 - [ ] Sévérité différenciée selon le header manquant
 
-#### 5.1.3 Cookies
+#### 6.1.3 Cookies
 
 **Existant (v0.1.0) :**
 - Vérifier flags : `Secure`, `HttpOnly`, `SameSite` ✅
@@ -172,7 +202,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] Alerte si cookie de session sans `HttpOnly` + `Secure` + `SameSite=Strict`
 - [ ] Détection de cookies avec `Expires` trop lointain pour session
 
-#### 5.1.4 Exposition fichiers
+#### 6.1.4 Exposition fichiers
 
 **Existant (v0.1.0) :**
 - Liste fixe : `/.env`, `/.git/config`, `/backup.zip`, `/phpinfo.php`, `/admin/`, `/.DS_Store` ✅
@@ -184,7 +214,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] Détection de fichiers de backup (`.bak`, `.old`, `.swp`, `~`)
 - [ ] Endpoints API docs exposés : `/swagger`, `/api-docs`, `/graphql` (introspection)
 
-#### 5.1.5 Directory listing
+#### 6.1.5 Directory listing
 
 **Existant (v0.1.0) :**
 - Répertoires : `/uploads/`, `/assets/`, `/static/` ✅
@@ -195,7 +225,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] Détection de listing partiel (réponse HTML avec liens vers fichiers)
 - [ ] Alerte si répertoire sensible retourne 403 (existence révélée)
 
-#### 5.1.6 robots.txt
+#### 6.1.6 robots.txt
 
 **Existant (v0.1.0) :**
 - Lire `/robots.txt` ✅
@@ -207,7 +237,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] Analyser `Allow` en complément de `Disallow`
 - [ ] Comparer chemins Disallow avec endpoints sensibles connus
 
-#### 5.1.7 Tech fingerprinting
+#### 6.1.7 Tech fingerprinting
 
 **Existant (v0.1.0) :**
 - Lire `Server`, `X-Powered-By`, `X-Generator`, `X-Drupal-Cache` ✅
@@ -222,7 +252,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 5.2 Nouveaux tests — Information disclosure
+### 6.2 Nouveaux tests — Information disclosure
 
 #### 5.2.1 Fuites dans les réponses
 - [ ] Détection de stack traces (PHP, Python, Java, .NET, Node) dans le body
@@ -237,7 +267,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 5.3 Nouveaux tests — Cache et performances
+### 6.3 Nouveaux tests — Cache et performances
 
 #### 5.3.1 Headers de cache
 - [ ] `Cache-Control` : présence, directives (`max-age`, `no-store`, `private` pour données sensibles)
@@ -252,7 +282,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 5.4 Nouveaux tests — CORS et cross-origin
+### 6.4 Nouveaux tests — CORS et cross-origin
 
 #### 5.4.1 CORS
 - [ ] `Access-Control-Allow-Origin: *` sur endpoints sensibles → finding
@@ -267,7 +297,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 5.5 Nouveaux tests — Méthodes HTTP et redirections
+### 6.5 Nouveaux tests — Méthodes HTTP et redirections
 
 #### 5.5.1 Méthodes HTTP
 - [ ] Requête `OPTIONS` : lister les méthodes autorisées
@@ -282,7 +312,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 5.6 Nouveaux tests — Intégrité et sous-ressources
+### 6.6 Nouveaux tests — Intégrité et sous-ressources
 
 #### 5.6.1 Subresource Integrity (SRI)
 - [ ] Scripts/CSS externes (CDN) sans attribut `integrity` → finding
@@ -296,7 +326,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 5.7 Nouveaux tests — APIs et formats
+### 6.7 Nouveaux tests — APIs et formats
 
 #### 5.7.1 APIs exposées
 - [ ] Détection GraphQL : introspection activée sur `/graphql` ou similaire
@@ -310,7 +340,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 5.8 Documentation et scoring
+### 6.8 Documentation et scoring
 
 #### 5.8.1 Documentation
 - [ ] Fichier `docs/verifications/` par catégorie de test
@@ -323,73 +353,60 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-## 6) API publique + clés API
+## 7) API publique + clés API
 
-### 6.1 Modèle
+### 7.1 Modèle
 - [ ] Schéma : `api_keys` (id, user_id, key_hash, name, created_at, last_used_at)
 - [ ] Génération : clé aléatoire (ex. 32 caractères) ; stocker uniquement le hash
 
-### 6.2 Authentification
+### 7.2 Authentification
 - [ ] Header `X-API-Key` ou `Authorization: Bearer <api_key>`
 - [ ] Middleware : vérifier la clé, résoudre l’utilisateur, appliquer quotas
 
-### 6.3 Quotas et rate limiting
+### 7.3 Quotas et rate limiting
 - [ ] Quotas par clé : ex. 100 scans/jour
 - [ ] Rate limiting : ex. 10 req/min par clé
 - [ ] Réponse 429 si dépassement
 
-### 6.4 API
+### 7.4 API
 - [ ] `POST /api/keys` : créer une clé (nom, retourne la clé en clair une seule fois)
 - [ ] `GET /api/keys` : liste des clés (sans valeur)
 - [ ] `DELETE /api/keys/{id}` : révoquer une clé
 
-### 6.5 Frontend
+### 7.5 Frontend
 - [ ] Page « Clés API » dans Mon compte
 - [ ] Création, affichage (une fois), révocation
 - [ ] Documentation : exemple curl avec `X-API-Key`
 
 ---
 
-## 7) Intégration CI/CD (GitHub Action)
+## 8) Intégration CI/CD (GitHub Action)
 
-### 7.1 Action GitHub
+### 8.1 Action GitHub
 - [ ] Répo `secureops/actions` ou action dans le monorepo
 - [ ] Inputs : `url`, `api_key` (secret), `fail_on_score_below` (optionnel)
 
-### 7.2 Comportement
+### 8.2 Comportement
 - [ ] Appel `POST /scan/api/scan` (ou async + poll) avec `X-API-Key`
 - [ ] Parse le résultat (score, findings)
 - [ ] Fail le job si `score < fail_on_score_below` ou si finding critical
 
-### 7.3 Documentation
+### 8.3 Documentation
 - [ ] README : exemple d’utilisation dans un workflow
 - [ ] Badge optionnel : « Scan SecureOps » sur le README du projet
 
 ---
 
-## 8) Qualité / CI (V2)
+## 9) Qualité / CI (V2)
 
-### 8.1 Backend
+### 9.1 Backend
 - [ ] Tests unitaires pour les nouveaux modules (queue, worker, export)
 - [ ] Tests d’intégration pour l’API async (mock queue)
 - [ ] Coverage maintenu
 
-### 8.2 Frontend
+### 9.2 Frontend
 - [ ] Tests unitaires pour les nouveaux composants (dashboard, historique)
 - [ ] E2E tests (optionnel) : login → scan → historique
-
----
-
-## 9) Déploiement AWS (V2)
-
-### 9.1 Infra
-- [ ] SQS (ou Redis pour Celery)
-- [ ] Worker déployé (EC2, ECS, ou Lambda)
-- [ ] Scaling du worker selon la charge
-
-### 9.2 Base de données
-- [ ] Tables `scans`, `scheduled_scans`, `api_keys` (user-service ou scan-service)
-- [ ] Backups et migrations
 
 ---
 
