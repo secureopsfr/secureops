@@ -9,161 +9,143 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 ## 0) Prérequis — Qualité, tests et release v0.1 (à compléter avant 0.2.0)
 
 ### 0.1 Backend CI
-- [ ] Lint (ruff/flake8)
-- [ ] Tests unitaires (pytest)
-- [ ] Coverage minimal
+- [x] Lint (ruff/flake8)
+- [x] Tests unitaires (pytest)
+- [x] Coverage minimal
 
 ### 0.2 Frontend CI
-- [ ] Lint (eslint)
-- [ ] Build (npm run build)
+- [x] Lint (eslint)
+- [x] Build (npm run build)
 
 ### 0.3 Branch protection (main)
-- [ ] PR required
-- [ ] checks required
+- [x] PR required
+- [x] checks required
 
 ### 0.4 Tests finaux (avant annonce)
-- [ ] Tester sur sites de test (DVWA/Juice Shop en local)
-- [ ] Tester sur un vrai site vitrine simple
-- [ ] Tester cas d'erreurs : DNS, timeout, redirect, TLS broken
-- [ ] Vérifier que SSRF est impossible (tests IP privées)
-- [ ] Vérifier charge (10 scans rapides)
+- [x] Tester sur sites de test (DVWA/Juice Shop en local)
+- [x] Tester sur un vrai site vitrine simple
+- [x] Tester cas d'erreurs : DNS, timeout, redirect, TLS broken
+- [x] Vérifier que SSRF est impossible (tests IP privées)
+- [x] Vérifier charge (10 scans rapides)
 
 ### 0.5 Release MVP v0.1
-- [ ] Tag `v0.1.0`
-- [ ] Release notes (fonctionnalités + limites)
-- [ ] Démo GIF / screenshots
-- [ ] Feedback form (Google Form / email)
+- [x] Tag `v0.1.0`
+- [x] Release notes (fonctionnalités + limites)
+- [x] Démo GIF / screenshots
+- [x] Feedback form (Google Form / email)
 
 ---
 
 ## 1) Décisions MVP 0.2.0 (à figer avant de coder)
 
-- [ ] **Scope V2** : Auth + dashboard + historique + export PDF + mode asynchrone + API publique
-- [ ] **Auth** : Cognito (déjà en place) — scanner protégé pour utilisateurs connectés
-- [ ] **Mode scan** : synchrone conservé pour scans rapides ; asynchrone pour scans longs (> 30s)
+- [ ] **Scope V2** : Auth + dashboard + historique + export PDF + API publique
+- [ ] **Auth** : Cognito (déjà en place) — connexion **après** le scan pour accéder aux résultats (comme 0.1.0 § 7.4), scanner restant public
+- [ ] **Mode scan** : synchrone uniquement (mode async reporté, voir [A-PENSER-PLUS-TARD.md](A-PENSER-PLUS-TARD.md))
 - [ ] **API publique** : clés API pour intégrations externes (CI/CD, scripts)
 - [ ] **Limites** : quotas par utilisateur (ex. 50 scans/jour) ; rate limiting API
 
 ---
 
-## 2) Mode asynchrone + queue
+## 2) Auth + dashboard + historique scans
 
-### 2.1 Choix technologique
-- [ ] Choisir stack : SQS + worker Python **ou** Celery + Redis
-- [ ] Documenter décision (pros/cons, coût, complexité)
+### 2.1 Backend — persistance ✅
+- [x] Schéma : `scans` (id, user_id, url, status, score, findings_json, timestamp, duration, created_at)
+- [x] Migration Alembic (user-service) : `alembic/versions/0002_add_scans_table.py`
+- [x] Associer chaque scan à l’utilisateur Cognito (via `user_id` ou `sub`)
 
-### 2.2 Infrastructure queue
-- [ ] Créer file SQS (ou Redis pour Celery)
-- [ ] Configurer dead-letter queue (DLQ) pour échecs
-- [ ] Timeout et retry policy (ex. 3 tentatives, backoff exponentiel)
+### 2.2 Scanner public (inchangé vs 0.1.0) ✅
+- [x] Conserver `POST /scan/api/scan` en route publique (scan sans login)
+- [x] Connexion requise uniquement pour accéder aux résultats et à l’historique
 
-### 2.3 Worker scan
-- [ ] Worker dédié : consomme jobs de la queue, exécute le scan
-- [ ] Réutiliser la logique existante (`scan_stream`, checks, normalisation)
-- [ ] Stocker résultat en base (ex. PostgreSQL) avec `job_id`, `status`, `result`
+### 2.3 API historique ✅
+- [x] `POST /user/api/scans/history` : enregistrer un scan (auth requise)
+- [x] `GET /user/api/scans/history` : liste des scans de l’utilisateur (pagination)
+- [x] `GET /user/api/scans/history/{id}` : détail d’un scan passé
+- [x] `DELETE /user/api/scans/history/{id}` : suppression
 
-### 2.4 API endpoints
-- [ ] `POST /api/scan/async` : enqueue un job, retourne `job_id`
-- [ ] `GET /api/scan/async/{job_id}` : statut du job (pending, running, completed, failed)
-- [ ] `GET /api/scan/async/{job_id}/result` : résultat du scan (si completed)
+> **Fait (2.1-2.3) :** Modèle `app/models/scan.py`, migration 0002, `scan_repository.py`. Router `scan_history.py` dans user-service. Routes sous `/api/scans`. Gateway proxy `/user/*` → user-service. Pagination page/limit, tri `created_at DESC`. Scan-service appelle `/user/api/scans/history` via gateway en fin de scan si token présent.
 
-### 2.5 Frontend
-- [ ] Option : lancer scan en mode async si durée estimée > seuil
-- [ ] Polling ou WebSocket pour afficher le statut
-- [ ] Page résultats accessible via URL partageable (`/scan/{job_id}`)
+### 2.4 Dashboard frontend ✅
+- [x] Section « Historique des scans » dans Mon compte
+- [x] Liste des scans : URL, date, score, badge, lien vers détail
+- [x] Pagination (page, limit)
+- [x] Détail : réutilisation du composant `ScanResults`
 
----
+> **Fait :** `HistorySection` dans `components/user/sections/`. Service `scanHistoryService.ts` (getHistory, getScanDetail, deleteScan). Intégré dans `AccountLayout` et page Mon compte. Clic sur un scan → détail avec `ScanResults`.
 
-## 3) Auth + dashboard + historique scans
+### 2.5 UX ✅
+- [x] Garder le flux 0.1.0 : scan sans login → gate « Connectez-vous pour accéder aux résultats » après scan
+- [x] Message clair : « Connectez-vous pour sauvegarder vos résultats dans l'historique »
 
-### 3.1 Backend — persistance
-- [ ] Schéma : `scans` (id, user_id, url, status, score, findings_json, created_at)
-- [ ] Migration Alembic (user-service ou nouveau service scan-history)
-- [ ] Associer chaque scan à l’utilisateur Cognito (via `user_id` ou `sub`)
+> **Fait :** `ScanResultsGate` affiche `gateHistoryDesc`. Si sauvegarde échoue (scan-service → gateway), événement SSE `save_failed` → toast d'erreur. Frontend envoie le token (`fetchAuthSession`) dans le POST scan si connecté.
 
-### 3.2 Protection du scanner
-- [ ] Retirer `POST /scan/api/scan` des routes publiques
-- [ ] Exiger JWT pour lancer un scan
+### Architecture sauvegarde (une seule requête)
+Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorization` présent. Flux : Frontend (token) → Gateway → Scan-service → scan → Scan-service → Gateway → User-service (POST /user/api/scans/history). Variable `GATEWAY_URL` (ex. `http://localhost:8000` en local, `http://gateway:8000` en Docker).
 
-### 3.3 API historique
-- [ ] `GET /api/scan/history` : liste des scans de l’utilisateur (pagination)
-- [ ] `GET /api/scan/history/{id}` : détail d’un scan passé
-- [ ] `DELETE /api/scan/history/{id}` : suppression (optionnel)
-
-### 3.4 Dashboard frontend
-- [ ] Page « Mon historique » (ou section dans Mon compte)
-- [ ] Liste des scans : URL, date, score, lien vers détail
-- [ ] Filtres : par date, par score
-- [ ] Accès rapide au dernier scan
-
-### 3.5 UX
-- [ ] Redirection vers login si non connecté + tentative de scan
-- [ ] Message clair : « Connectez-vous pour scanner et sauvegarder vos résultats »
-
-> **Partiellement fait (MVP 0.1.0) :** Gate « Connectez-vous pour accéder aux résultats » après scan. L’utilisateur peut lancer un scan sans être connecté ; les résultats sont stockés en `sessionStorage` et affichés après connexion. Voir [ROADMAP-MVP-0.1.0.md](ROADMAP-MVP-0.1.0.md) § 7.4.
+> **Fait (MVP 0.1.0) :** Gate « Connectez-vous pour accéder aux résultats » après scan. L’utilisateur peut lancer un scan sans être connecté ; les résultats sont stockés en `sessionStorage` et affichés après connexion. Voir [ROADMAP-MVP-0.1.0.md](ROADMAP-MVP-0.1.0.md) § 7.4.
 
 ---
 
-## 4) Export PDF
+## 3) Export PDF
 
-### 4.1 Backend
+### 3.1 Backend
 - [ ] Choisir librairie : WeasyPrint, ReportLab, ou pdfkit
 - [ ] Endpoint `GET /api/scan/{id}/export/pdf` : génère et retourne le PDF
 
-### 4.2 Contenu du rapport
+### 3.2 Contenu du rapport
 - [ ] En-tête : logo, titre, date, URL scannée
 - [ ] Score global + badge
 - [ ] Résumé par catégorie
 - [ ] Liste des findings (titre, sévérité, preuve, recommandation)
 - [ ] Pied de page : disclaimer, lien SecureOps
 
-### 4.3 Frontend
+### 3.3 Frontend
 - [ ] Bouton « Télécharger PDF » sur la page résultats
 - [ ] Bouton « Télécharger PDF » sur la page détail d’un scan historique
 
-### 4.4 Style
+### 3.4 Style
 - [ ] Template PDF professionnel (mise en page, couleurs)
 - [ ] Support i18n (fr/en) dans le PDF
 
 ---
 
-## 5) Monitoring continu (scans planifiés)
+## 4) Monitoring continu (scans planifiés)
 
-### 5.1 Modèle de données
+### 4.1 Modèle de données
 - [ ] Schéma : `scheduled_scans` (id, user_id, url, frequency, next_run_at, enabled)
 - [ ] Fréquences : daily, weekly, monthly
 
-### 5.2 Scheduler
+### 4.2 Scheduler
 - [ ] Job cron (ou EventBridge) : réveille les scans à exécuter
-- [ ] Enqueue les jobs dans la queue async
+- [ ] Appel direct du scan (synchrone) ou intégration future avec queue
 - [ ] Mise à jour `next_run_at` après exécution
 
-### 5.3 API
+### 4.3 API
 - [ ] `POST /api/scan/schedule` : créer un scan planifié
 - [ ] `GET /api/scan/schedule` : liste des scans planifiés
 - [ ] `PATCH /api/scan/schedule/{id}` : modifier (fréquence, pause)
 - [ ] `DELETE /api/scan/schedule/{id}` : supprimer
 
-### 5.4 Alertes (optionnel)
+### 4.4 Alertes (optionnel)
 - [ ] Détection de régression (score chute vs dernier scan)
 - [ ] Email ou notification si finding critical détecté
 
-### 5.5 Frontend
+### 4.5 Frontend
 - [ ] Page « Scans planifiés » : liste, CRUD
 - [ ] Formulaire : URL, fréquence (daily/weekly/monthly)
 - [ ] Indicateur : prochain scan prévu
 
 ---
 
-## 6) Scan plus avancé (OWASP light, non intrusif)
+## 5) Scan plus avancé (OWASP light, non intrusif)
 
 > **Principe :** tests passifs uniquement — pas d’injection, pas de bruteforce, pas de fuzzing. Lecture et analyse des réponses HTTP/HTML.
 
 ---
 
-### 6.1 Améliorations des tests existants
+### 5.1 Améliorations des tests existants
 
-#### 6.1.1 TLS / HTTPS
+#### 5.1.1 TLS / HTTPS
 
 **Existant (v0.1.0) :**
 - HTTPS activé ? ✅
@@ -178,7 +160,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] Alerte si certificat expire dans < 30 jours
 - [ ] Support TLS 1.3 (détection si proposé)
 
-#### 6.1.2 Security Headers
+#### 5.1.2 Security Headers
 
 **Existant (v0.1.0) :**
 - Vérifier présence : `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options` (nosniff), `Referrer-Policy`, `Permissions-Policy` ✅
@@ -190,7 +172,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] `Clear-Site-Data` pour déconnexion sécurisée
 - [ ] Sévérité différenciée selon le header manquant
 
-#### 6.1.3 Cookies
+#### 5.1.3 Cookies
 
 **Existant (v0.1.0) :**
 - Vérifier flags : `Secure`, `HttpOnly`, `SameSite` ✅
@@ -202,7 +184,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] Alerte si cookie de session sans `HttpOnly` + `Secure` + `SameSite=Strict`
 - [ ] Détection de cookies avec `Expires` trop lointain pour session
 
-#### 6.1.4 Exposition fichiers
+#### 5.1.4 Exposition fichiers
 
 **Existant (v0.1.0) :**
 - Liste fixe : `/.env`, `/.git/config`, `/backup.zip`, `/phpinfo.php`, `/admin/`, `/.DS_Store` ✅
@@ -214,7 +196,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] Détection de fichiers de backup (`.bak`, `.old`, `.swp`, `~`)
 - [ ] Endpoints API docs exposés : `/swagger`, `/api-docs`, `/graphql` (introspection)
 
-#### 6.1.5 Directory listing
+#### 5.1.5 Directory listing
 
 **Existant (v0.1.0) :**
 - Répertoires : `/uploads/`, `/assets/`, `/static/` ✅
@@ -225,7 +207,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] Détection de listing partiel (réponse HTML avec liens vers fichiers)
 - [ ] Alerte si répertoire sensible retourne 403 (existence révélée)
 
-#### 6.1.6 robots.txt
+#### 5.1.6 robots.txt
 
 **Existant (v0.1.0) :**
 - Lire `/robots.txt` ✅
@@ -237,7 +219,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 - [ ] Analyser `Allow` en complément de `Disallow`
 - [ ] Comparer chemins Disallow avec endpoints sensibles connus
 
-#### 6.1.7 Tech fingerprinting
+#### 5.1.7 Tech fingerprinting
 
 **Existant (v0.1.0) :**
 - Lire `Server`, `X-Powered-By`, `X-Generator`, `X-Drupal-Cache` ✅
@@ -252,7 +234,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 6.2 Nouveaux tests — Information disclosure
+### 5.2 Nouveaux tests — Information disclosure
 
 #### 5.2.1 Fuites dans les réponses
 - [ ] Détection de stack traces (PHP, Python, Java, .NET, Node) dans le body
@@ -267,7 +249,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 6.3 Nouveaux tests — Cache et performances
+### 5.3 Nouveaux tests — Cache et performances
 
 #### 5.3.1 Headers de cache
 - [ ] `Cache-Control` : présence, directives (`max-age`, `no-store`, `private` pour données sensibles)
@@ -282,7 +264,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 6.4 Nouveaux tests — CORS et cross-origin
+### 5.4 Nouveaux tests — CORS et cross-origin
 
 #### 5.4.1 CORS
 - [ ] `Access-Control-Allow-Origin: *` sur endpoints sensibles → finding
@@ -297,7 +279,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 6.5 Nouveaux tests — Méthodes HTTP et redirections
+### 5.5 Nouveaux tests — Méthodes HTTP et redirections
 
 #### 5.5.1 Méthodes HTTP
 - [ ] Requête `OPTIONS` : lister les méthodes autorisées
@@ -312,7 +294,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 6.6 Nouveaux tests — Intégrité et sous-ressources
+### 5.6 Nouveaux tests — Intégrité et sous-ressources
 
 #### 5.6.1 Subresource Integrity (SRI)
 - [ ] Scripts/CSS externes (CDN) sans attribut `integrity` → finding
@@ -326,7 +308,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 6.7 Nouveaux tests — APIs et formats
+### 5.7 Nouveaux tests — APIs et formats
 
 #### 5.7.1 APIs exposées
 - [ ] Détection GraphQL : introspection activée sur `/graphql` ou similaire
@@ -340,7 +322,7 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-### 6.8 Documentation et scoring
+### 5.8 Documentation et scoring
 
 #### 5.8.1 Documentation
 - [ ] Fichier `docs/verifications/` par catégorie de test
@@ -353,75 +335,74 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ---
 
-## 7) API publique + clés API
+## 6) API publique + clés API
 
-### 7.1 Modèle
+### 6.1 Modèle
 - [ ] Schéma : `api_keys` (id, user_id, key_hash, name, created_at, last_used_at)
 - [ ] Génération : clé aléatoire (ex. 32 caractères) ; stocker uniquement le hash
 
-### 7.2 Authentification
+### 6.2 Authentification
 - [ ] Header `X-API-Key` ou `Authorization: Bearer <api_key>`
 - [ ] Middleware : vérifier la clé, résoudre l’utilisateur, appliquer quotas
 
-### 7.3 Quotas et rate limiting
+### 6.3 Quotas et rate limiting
 - [ ] Quotas par clé : ex. 100 scans/jour
 - [ ] Rate limiting : ex. 10 req/min par clé
 - [ ] Réponse 429 si dépassement
 
-### 7.4 API
+### 6.4 API
 - [ ] `POST /api/keys` : créer une clé (nom, retourne la clé en clair une seule fois)
 - [ ] `GET /api/keys` : liste des clés (sans valeur)
 - [ ] `DELETE /api/keys/{id}` : révoquer une clé
 
-### 7.5 Frontend
+### 6.5 Frontend
 - [ ] Page « Clés API » dans Mon compte
 - [ ] Création, affichage (une fois), révocation
 - [ ] Documentation : exemple curl avec `X-API-Key`
 
 ---
 
-## 8) Intégration CI/CD (GitHub Action)
+## 7) Intégration CI/CD (GitHub Action)
 
-### 8.1 Action GitHub
+### 7.1 Action GitHub
 - [ ] Répo `secureops/actions` ou action dans le monorepo
 - [ ] Inputs : `url`, `api_key` (secret), `fail_on_score_below` (optionnel)
 
-### 8.2 Comportement
-- [ ] Appel `POST /scan/api/scan` (ou async + poll) avec `X-API-Key`
+### 7.2 Comportement
+- [ ] Appel `POST /scan/api/scan` avec `X-API-Key`
 - [ ] Parse le résultat (score, findings)
 - [ ] Fail le job si `score < fail_on_score_below` ou si finding critical
 
-### 8.3 Documentation
+### 7.3 Documentation
 - [ ] README : exemple d’utilisation dans un workflow
 - [ ] Badge optionnel : « Scan SecureOps » sur le README du projet
 
 ---
 
-## 9) Qualité / CI (V2)
+## 8) Qualité / CI (V2)
 
-### 9.1 Backend
-- [ ] Tests unitaires pour les nouveaux modules (queue, worker, export)
-- [ ] Tests d’intégration pour l’API async (mock queue)
+### 8.1 Backend
+- [ ] Tests unitaires pour les nouveaux modules (export, historique)
 - [ ] Coverage maintenu
 
-### 9.2 Frontend
+### 8.2 Frontend
 - [ ] Tests unitaires pour les nouveaux composants (dashboard, historique)
 - [ ] E2E tests (optionnel) : login → scan → historique
 
 ---
 
-## 10) Release MVP v0.2.0
+## 9) Release MVP v0.2.0
 
 - [ ] Tag `v0.2.0`
 - [ ] Release notes (nouvelles fonctionnalités vs v0.1.0)
-- [ ] Migration guide (changements breaking : auth requise pour scan)
+- [ ] Migration guide (changements : historique, export PDF — scan reste public)
 - [ ] Mise à jour de la documentation
 
 ---
 
 # Notes importantes (MVP 0.2.0)
 
-- L’authentification devient **requise** pour le scanner (sauf si API publique avec clé).
+- L’authentification est requise **après** le scan pour accéder aux résultats et à l'historique ; le scanner reste public (comme 0.1.0).
 - Les scans sont **persistés** : respecter les limites de rétention et RGPD.
 - L’API publique : **rate limiting** et **quotas** obligatoires pour éviter les abus.
 - La protection SSRF + timeout reste **non négociable**.

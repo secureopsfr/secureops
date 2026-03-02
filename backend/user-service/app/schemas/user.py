@@ -91,6 +91,7 @@ class SubscriptionResponse(BaseModel):
     current_period_end: Optional[str] = Field(None, description="Date de fin de la période courante au format ISO")
     newsletter_enabled: bool = Field(default=False, description="Inscription à la newsletter")
     new_features_notifications_enabled: bool = Field(default=False, description="Notifications par mail pour nouvelles données ou features")
+    history_retention: str = Field(default="30", description="Durée de conservation de l'historique (none, 7, 30, 90, 365)")
 
     class Config:
         """Configuration Pydantic."""
@@ -148,7 +149,9 @@ class SubscriptionPreferencesUpdateRequest(BaseModel):
     Attributes:
         newsletter_enabled (Optional[bool]): Inscription à la newsletter.
         new_features_notifications_enabled (Optional[bool]): Notifications par mail pour nouvelles données ou features.
+        history_retention (Optional[str]): Durée de conservation de l'historique (none, 7, 30, 90, 365).
     """
 
     newsletter_enabled: Optional[bool] = Field(None, description="Inscription à la newsletter")
     new_features_notifications_enabled: Optional[bool] = Field(None, description="Notifications par mail pour nouvelles données ou features")
+    history_retention: Optional[str] = Field(None, description="Durée de conservation de l'historique (none, 7, 30, 90, 365)")

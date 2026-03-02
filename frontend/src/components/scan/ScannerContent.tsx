@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { AlertTriangle } from "lucide-react";
+import { fetchAuthSession } from "aws-amplify/auth";
+import { AlertTriangle, Globe } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { GenericButton } from "../buttons";
@@ -12,6 +13,7 @@ import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
 import ScanResultsGate from "./ScanResultsGate";
 import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
+import ScanHistoryBlock from "./ScanHistoryBlock";
 import {
   runScan,
   type ScanResult,
@@ -22,6 +24,8 @@ import {
   savePendingScanResult,
   consumePendingScanResult,
 } from "../../utils/scanStorage";
+import { saveScan } from "../../services/scanHistoryService";
+import { showErrorToast } from "../../utils/toastNotifications";
 
 type ScanState = "idle" | "loading" | "success" | "error";
 
@@ -43,9 +47,11 @@ export default function ScannerContent() {
       if (pending) {
         setResult(pending);
         setState("success");
+        // Sauvegarder dans l'historique (scan fait sans être connecté, puis connexion)
+        saveScan(pending).catch(() => showErrorToast(t("scanner.saveFailed")));
       }
     }
-  }, [authLoading, isAuthenticated]);
+  }, [authLoading, isAuthenticated, t]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -58,32 +64,49 @@ export default function ScannerContent() {
       setError(null);
       setErrorModalOpen(false);
 
-      try {
-        await runScan(trimmed, (ev) => {
-          if (ev.type === "step") {
-            setSteps((prev) => [
-              ...prev,
-              {
-                step: ev.data.step,
-                message: ev.data.message,
-                done: ev.data.step.endsWith("_done"),
-              },
-            ]);
-          } else if (ev.type === "result") {
-            if (isAuthenticated) {
-              setResult(ev.data);
-              setState("success");
-            } else {
-              savePendingScanResult(ev.data);
-              setResult(ev.data);
-              setState("success");
+      const getToken = isAuthenticated
+        ? async () => {
+            try {
+              const session = await fetchAuthSession();
+              return session.tokens?.accessToken?.toString() ?? null;
+            } catch {
+              return null;
             }
-          } else if (ev.type === "error") {
-            setError(ev.data);
-            setState("error");
-            setErrorModalOpen(true);
           }
-        });
+        : undefined;
+
+      try {
+        await runScan(
+          trimmed,
+          (ev) => {
+            if (ev.type === "step") {
+              setSteps((prev) => [
+                ...prev,
+                {
+                  step: ev.data.step,
+                  message: ev.data.message,
+                  done: ev.data.step.endsWith("_done"),
+                },
+              ]);
+            } else if (ev.type === "result") {
+              if (isAuthenticated) {
+                setResult(ev.data);
+                setState("success");
+              } else {
+                savePendingScanResult(ev.data);
+                setResult(ev.data);
+                setState("success");
+              }
+            } else if (ev.type === "error") {
+              setError(ev.data);
+              setState("error");
+              setErrorModalOpen(true);
+            } else if (ev.type === "save_failed") {
+              showErrorToast(ev.data || t("scanner.saveFailed"));
+            }
+          },
+          getToken,
+        );
       } catch (err) {
         setError({
           message:
@@ -132,42 +155,55 @@ export default function ScannerContent() {
       >
         <div className="scanner-content">
           {(state === "idle" || state === "error") && (
-            <div className="form-container">
-              <Card disableHover>
-                <h2 className="section-title !text-left -mt-2">
-                  {t("scanner.urlLabel")}
-                </h2>
-                <form
-                  onSubmit={handleSubmit}
-                  aria-label="Scan form"
-                  className="space-y-4"
-                >
-                  <div>
-                    <label htmlFor="scan-url" className="label-form">
+            <>
+              <div className="w-full">
+                <Card disableHover>
+                  <div className="flex items-center gap-3 mb-4 -mt-2">
+                    <Globe className="w-6 h-6 text-[rgb(var(--primary))]" />
+                    <h2 className="section-title !text-left !mb-0">
                       {t("scanner.urlLabel")}
-                    </label>
-                    <input
-                      id="scan-url"
-                      type="url"
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      placeholder={t("scanner.urlPlaceholder")}
-                      required
-                      className="auth-input w-full"
-                    />
+                    </h2>
                   </div>
-                  <p className="text-sm text-muted-theme">
-                    {t("scanner.disclaimer")}
-                  </p>
-                  <GenericButton
-                    type="submit"
-                    label={t("scanner.cta")}
-                    variant="primary"
-                    disabled={!url.trim()}
-                  />
-                </form>
-              </Card>
-            </div>
+                  <form
+                    onSubmit={handleSubmit}
+                    aria-label="Scan form"
+                    className="space-y-4"
+                  >
+                    <div>
+                      <label htmlFor="scan-url" className="label-form">
+                        {t("scanner.urlLabel")}
+                      </label>
+                      <input
+                        id="scan-url"
+                        type="url"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        placeholder={t("scanner.urlPlaceholder")}
+                        required
+                        className="auth-input w-full"
+                      />
+                    </div>
+                    <p className="text-sm text-muted-theme">
+                      {t("scanner.disclaimer")}
+                    </p>
+                    <GenericButton
+                      type="submit"
+                      label={t("scanner.cta")}
+                      variant="primary"
+                      disabled={!url.trim()}
+                    />
+                  </form>
+                </Card>
+              </div>
+              {isAuthenticated && !authLoading && (
+                <ScanHistoryBlock
+                  onSelectScan={(r) => {
+                    setResult(r);
+                    setState("success");
+                  }}
+                />
+              )}
+            </>
           )}
 
           {state === "loading" && <ScanLoader steps={steps} />}

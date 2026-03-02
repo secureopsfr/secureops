@@ -201,6 +201,7 @@ async def _run_checks_with_client(
     client: object,
     over_global: Callable[[], bool],
     start_time: float,
+    authorization: str | None = None,
 ) -> AsyncGenerator[str, None]:
     """Exécute les étapes de vérification avec le client partagé."""
     https_url = build_https_url(normalized_url)
@@ -238,8 +239,18 @@ async def _run_checks_with_client(
     _log_scan_complete(duration, nb_findings, "success")
     yield sse_message("result", payload)
 
+    # Sauvegarde dans l'historique si utilisateur connecté (roadmap 0.2.0 §2)
+    if authorization:
+        try:
+            from app.services.scan_history_save import save_scan_to_history
 
-async def _run_pipeline_steps(url: str) -> AsyncGenerator[str, None]:
+            await save_scan_to_history(payload, authorization)
+        except Exception as e:
+            logger.warning("Sauvegarde historique échouée: %s", e)
+            yield sse_message("save_failed", {"message": str(e)})
+
+
+async def _run_pipeline_steps(url: str, authorization: str | None = None) -> AsyncGenerator[str, None]:
     """Exécute les étapes de la pipeline (validation, SSRF, fetch, checks)."""
     start = time.monotonic()
     scan_global = get_scan_timeouts().scan_global
@@ -266,11 +277,11 @@ async def _run_pipeline_steps(url: str) -> AsyncGenerator[str, None]:
     yield sse_message("step", {"step": "fetch_https", "message": "Récupération de la page HTTPS…"})
 
     async with scan_client() as client:
-        async for chunk in _run_checks_with_client(normalized_url, client, _over_global, start):
+        async for chunk in _run_checks_with_client(normalized_url, client, _over_global, start, authorization=authorization):
             yield chunk
 
 
-async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
+async def scan_stream_generator(url: str, authorization: str | None = None) -> AsyncGenerator[str, None]:
     """Générateur SSE : émet un événement à chaque étape de la pipeline.
 
     Le timeout global (scan_global) est vérifié avant chaque étape longue ; si dépassé, un
@@ -289,7 +300,7 @@ async def scan_stream_generator(url: str) -> AsyncGenerator[str, None]:
     """
     start = time.monotonic()
     try:
-        async for chunk in _run_pipeline_steps(url):
+        async for chunk in _run_pipeline_steps(url, authorization=authorization):
             yield chunk
     except URLValidationError as e:
         _log_scan_complete(time.monotonic() - start, 0, "error_400")

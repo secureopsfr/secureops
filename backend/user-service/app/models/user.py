@@ -36,6 +36,8 @@ class User(Base):
 
     favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
 
+    scans = relationship("Scan", back_populates="user", cascade="all, delete-orphan")
+
     __table_args__ = (UniqueConstraint("cognito_sub", name="uq_users_cognito_sub"),)
 
     def __repr__(self) -> str:

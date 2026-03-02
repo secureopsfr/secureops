@@ -55,7 +55,15 @@ services:
       - COGNITO_REGION=${COGNITO_REGION:-eu-west-3}
       - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID:-test-user-pool-id}
     networks: [app-network]
-    depends_on: [admin-service, user-service, scan-service, postgres]
+    depends_on:
+      admin-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      scan-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
   admin-service:
     build:
@@ -87,6 +95,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8011/api/health')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   scan-service:
     build:
@@ -99,6 +113,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8012/api/health')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   postgres:
     image: postgis/postgis:15-3.3
@@ -111,7 +131,7 @@ services:
       - ./docker/initdb.d:/docker-entrypoint-initdb.d:ro
     networks: [app-network]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5

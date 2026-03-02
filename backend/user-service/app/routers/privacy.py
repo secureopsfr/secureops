@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import PlainTextResponse
 
 from app.db import get_async_session
-from app.services.favorite_repository import get_user_favorites
+from app.services.scan_repository import list_scans_by_user_id
 from app.services.subscription_repository import get_subscription_by_user_id
 from app.services.user_repository import get_user_by_cognito_sub
 from app.utils.auth import get_current_user
@@ -55,6 +55,7 @@ async def export_user_data(
                     "status": subscription.status,
                     "newsletter_enabled": subscription.newsletter_enabled,
                     "new_features_notifications_enabled": subscription.new_features_notifications_enabled,
+                    "history_retention": subscription.history_retention or "30",
                     "created_at": subscription.created_at.isoformat() if subscription.created_at else None,
                     "updated_at": subscription.updated_at.isoformat() if subscription.updated_at else None,
                     "current_period_end": subscription.current_period_end.isoformat() if subscription.current_period_end else None,
@@ -65,20 +66,24 @@ async def export_user_data(
                     "status": "active",
                     "newsletter_enabled": False,
                     "new_features_notifications_enabled": False,
+                    "history_retention": "30",
                     "created_at": None,
                     "updated_at": None,
                     "current_period_end": None,
                 }
 
-            # Favoris (sans ID ni user_id)
-            favorites = await get_user_favorites(session, user.id, limit=1000)
-            favorites_data = [
+            # Historique des scans (sans ID ni user_id)
+            scans = await list_scans_by_user_id(session, user.id, limit=1000, offset=0)
+            scans_data = [
                 {
-                    "search_type": favorite.search_type,
-                    "query_json": favorite.query_json,
-                    "created_at": favorite.created_at.isoformat() if favorite.created_at else None,
+                    "url": scan.url,
+                    "status": scan.status,
+                    "score": scan.score,
+                    "timestamp": scan.timestamp.isoformat() if scan.timestamp else None,
+                    "duration": scan.duration,
+                    "created_at": scan.created_at.isoformat() if scan.created_at else None,
                 }
-                for favorite in favorites
+                for scan in scans
             ]
 
             export_date = datetime.now(UTC).isoformat()
@@ -94,21 +99,25 @@ async def export_user_data(
                 f"  status: {subscription_data['status']}",
                 f"  newsletter_enabled: {subscription_data['newsletter_enabled']}",
                 f"  new_features_notifications_enabled: {subscription_data['new_features_notifications_enabled']}",
+                f"  history_retention: {subscription_data.get('history_retention') or '30'}",
                 f"  created_at: {subscription_data.get('created_at') or 'N/A'}",
                 f"  updated_at: {subscription_data.get('updated_at') or 'N/A'}",
                 f"  current_period_end: {subscription_data.get('current_period_end') or 'N/A'}",
                 "",
-                "Favoris:",
+                "Historique:",
             ]
 
-            if favorites_data:
-                for index, favorite in enumerate(favorites_data, start=1):
-                    lines.append(f"  Favori {index}:")
-                    lines.append(f"    search_type: {favorite['search_type']}")
-                    lines.append(f"    query_json: {favorite['query_json']}")
-                    lines.append(f"    created_at: {favorite.get('created_at') or 'N/A'}")
+            if scans_data:
+                for index, scan in enumerate(scans_data, start=1):
+                    lines.append(f"  Scan {index}:")
+                    lines.append(f"    url: {scan['url']}")
+                    lines.append(f"    status: {scan['status']}")
+                    lines.append(f"    score: {scan.get('score') or 'N/A'}")
+                    lines.append(f"    timestamp: {scan.get('timestamp') or 'N/A'}")
+                    lines.append(f"    duration: {scan.get('duration') or 'N/A'}")
+                    lines.append(f"    created_at: {scan.get('created_at') or 'N/A'}")
             else:
-                lines.append("  Aucun favori enregistré.")
+                lines.append("  Aucun scan enregistré.")
 
             lines.extend(["", f"Date d'export: {export_date}"])
 
