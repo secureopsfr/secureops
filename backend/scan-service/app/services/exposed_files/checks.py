@@ -130,9 +130,9 @@ def _content_matches_generic_sensitive(body: bytes, _path: str) -> bool:
     )
     if any(kw in text for kw in sensitive_keywords):
         return True
-    if "=" in text and re.search(r"^[a-z0-9_]+=.*$", text[:500], re.MULTILINE | re.IGNORECASE):
-        if any(kw in text[:1000] for kw in ("secret", "pass", "key", "token")):
-            return True
+    env_like = "=" in text and re.search(r"^[a-z0-9_]+=.*$", text[:500], re.MULTILINE | re.IGNORECASE)
+    if env_like and any(kw in text[:1000] for kw in ("secret", "pass", "key", "token")):
+        return True
     if "{" in text and "}" in text and ('"password"' in text or '"secret"' in text or '"api_key"' in text):
         return True
     return False

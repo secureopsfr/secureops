@@ -121,7 +121,7 @@ def fetch_certificate_chain(host: str, port: int, timeout: float) -> list[bytes]
             check=False,
         )
         output = proc.stderr.decode("utf-8", errors="replace") + proc.stdout.decode("utf-8", errors="replace")
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+    except (subprocess.TimeoutExpired, OSError):
         return []
 
     # Extraire les blocs PEM

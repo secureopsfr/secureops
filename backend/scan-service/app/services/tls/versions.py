@@ -22,12 +22,11 @@ def get_negotiated_tls_version(host: str, port: int, timeout: float) -> str | No
     """
     try:
         context = ssl_context_for_scan()
-        with socket.create_connection((host, port), timeout=timeout) as sock:
-            with context.wrap_socket(sock, server_hostname=host) as ssock:
-                raw = ssock.version()
-                if raw:
-                    return raw.replace("v", " ").strip()
-                return None
+        with socket.create_connection((host, port), timeout=timeout) as sock, context.wrap_socket(sock, server_hostname=host) as ssock:
+            raw = ssock.version()
+            if raw:
+                return raw.replace("v", " ").strip()
+            return None
     except (ssl.SSLError, OSError):
         return None
 

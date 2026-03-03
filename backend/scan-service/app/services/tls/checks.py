@@ -9,12 +9,7 @@ import httpx
 from app.config_loader import ScanTimeoutsSettings, get_scan_timeouts
 from app.constants import MSG_HTTPS_UNAVAILABLE
 from app.errors.fetch_errors import classify_fetch_exception
-from app.services.tls.certificate import (
-    analyze_certificate,
-    fetch_certificate_chain,
-    fetch_certificate_der,
-    verify_certificate_chain,
-)
+from app.services.tls.certificate import analyze_certificate, fetch_certificate_chain, fetch_certificate_der, verify_certificate_chain
 from app.services.tls.versions import check_tls_versions_obsolete, get_negotiated_tls_version
 from app.utils.http_fetch import get_with_client
 from app.utils.ssl_scan import ssl_context_for_scan

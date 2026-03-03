@@ -436,7 +436,7 @@ def test_normalize_robots_txt_crawl_delay() -> None:
 
 
 def test_normalize_sitemap_not_found() -> None:
-    """sitemap avec sitemap_found=False produit sitemap-not-found (info)."""
+    """Sitemap avec sitemap_found=False produit sitemap-not-found (info)."""
     from app.services.sitemap.checks import SitemapCheckResult
 
     result = SitemapCheckResult(
@@ -452,7 +452,7 @@ def test_normalize_sitemap_not_found() -> None:
 
 
 def test_normalize_sitemap_sensitive_url() -> None:
-    """sitemap avec URL sensible produit sitemap-sensitive-url."""
+    """Sitemap avec URL sensible produit sitemap-sensitive-url."""
     from app.services.sitemap.checks import SensitiveSitemapUrl, SitemapCheckResult
 
     result = SitemapCheckResult(

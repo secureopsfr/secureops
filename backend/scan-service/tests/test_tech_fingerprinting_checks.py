@@ -2,10 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from app.services.tech_fingerprinting import (
-    TechFingerprintingCheckResult,
-    check_tech_fingerprinting_from_response,
-)
+from app.services.tech_fingerprinting import TechFingerprintingCheckResult, check_tech_fingerprinting_from_response
 
 
 def test_check_tech_fingerprinting_response_none() -> None:
@@ -101,7 +98,7 @@ def test_check_tech_fingerprinting_html_meta_generator() -> None:
 
 
 def test_check_tech_fingerprinting_vulnerable_version() -> None:
-    """nginx 1.18.0 < 1.20.0 → version vulnérable détectée."""
+    """Nginx 1.18.0 < 1.20.0 → version vulnérable détectée."""
     mock_resp = MagicMock()
     mock_resp.headers = {"Server": "nginx/1.18.0"}
     mock_resp.text = ""

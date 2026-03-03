@@ -177,9 +177,8 @@ def _check_vulnerable(product: str, version: str) -> str | None:
     thresholds = get_tech_fingerprinting_thresholds()
     key = product.lower()
     for prod_key, min_ver in thresholds.items():
-        if prod_key in key or key in prod_key:
-            if _version_less_than(version, min_ver):
-                return min_ver
+        if (prod_key in key or key in prod_key) and _version_less_than(version, min_ver):
+            return min_ver
     return None
 
 
