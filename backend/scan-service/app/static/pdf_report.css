@@ -292,8 +292,8 @@ a.status-ok.status-link:visited {
 }
 
 .category-intro {
-    margin: 16px 0 20px 0;
-    padding: 12px 0;
+    margin: 16px 0 0 0;
+    padding: 12px 0 16px 0;
     border-bottom: 1px solid #e5e7eb;
 }
 .category-intro-title {
@@ -331,8 +331,8 @@ a.status-ok.status-link:visited {
     line-height: 1.5;
 }
 .other-test-subsection {
-    margin: 16px 0;
-    padding: 12px 0;
+    margin: 0;
+    padding: 16px 0;
     border-bottom: 1px solid #e5e7eb;
 }
 .other-test-subsection:last-child {
@@ -343,8 +343,8 @@ a.status-ok.status-link:visited {
 }
 
 .finding-block {
-    margin: 20px 0;
-    padding: 18px 0;
+    margin: 0;
+    padding: 16px 0;
     border-bottom: 1px solid #e5e7eb;
 }
 .report-section .finding-block:last-child {
