@@ -347,6 +347,9 @@ a.status-ok.status-link:visited {
     padding: 18px 0;
     border-bottom: 1px solid #e5e7eb;
 }
+.report-section .finding-block:last-child {
+    border-bottom: none;
+}
 .finding-title-row {
     margin: 0 0 8px 0;
 }
