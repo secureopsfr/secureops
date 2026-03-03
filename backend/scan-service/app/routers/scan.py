@@ -149,7 +149,7 @@ async def internal_run_scan(
 async def post_scan(body: ScanRequest, request: Request) -> StreamingResponse:
     """Scan en streaming : un événement SSE à chaque étape (validation, SSRF, scan).
 
-    Événements : step (validation_url, url_validated, ssrf_check, ssrf_ok, scan_run, scan_done),
+    Événements : step (validation_url_check/done, ssrf_check/done, fetch_https_check/done, tls_check/done, …),
     puis result ou error. Si Authorization présent et scan réussi, sauvegarde dans l'historique.
     """
     authorization = request.headers.get("Authorization")

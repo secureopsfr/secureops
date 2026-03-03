@@ -217,6 +217,8 @@ async def _run_checks_with_client(
         yield sse_message("error", build_sse_error_payload(fetch_result))
         return
 
+    yield sse_message("step", {"step": "fetch_https_done", "message": "Page HTTPS récupérée."})
+
     https_response = fetch_result.response
     ctx = ScanContext(
         normalized_url=normalized_url,
@@ -263,9 +265,9 @@ async def _run_pipeline_steps(url: str, authorization: str | None = None) -> Asy
     def _over_global() -> bool:
         return (time.monotonic() - start) > scan_global
 
-    yield sse_message("step", {"step": "validation_url", "message": "Validation de l'URL…"})
+    yield sse_message("step", {"step": "validation_url_check", "message": "Validation de l'URL…"})
     normalized_url = validate_and_normalize_url(url)
-    yield sse_message("step", {"step": "url_validated", "message": "URL validée et normalisée."})
+    yield sse_message("step", {"step": "validation_url_done", "message": "URL validée et normalisée."})
 
     if _over_global():
         _log_scan_complete(time.monotonic() - start, 0, "error_408")
@@ -273,13 +275,13 @@ async def _run_pipeline_steps(url: str, authorization: str | None = None) -> Asy
         return
     yield sse_message("step", {"step": "ssrf_check", "message": "Vérification SSRF (résolution DNS)…"})
     await check_ssrf(normalized_url, timeout=get_ssrf_settings().dns_timeout)
-    yield sse_message("step", {"step": "ssrf_ok", "message": "Vérification SSRF OK."})
+    yield sse_message("step", {"step": "ssrf_done", "message": "Vérification SSRF OK."})
 
     if _over_global():
         _log_scan_complete(time.monotonic() - start, 0, "error_408")
         yield _timeout_error_message()
         return
-    yield sse_message("step", {"step": "fetch_https", "message": "Récupération de la page HTTPS…"})
+    yield sse_message("step", {"step": "fetch_https_check", "message": "Récupération de la page HTTPS…"})
 
     async with scan_client() as client:
         async for chunk in _run_checks_with_client(normalized_url, client, _over_global, start, authorization=authorization):
