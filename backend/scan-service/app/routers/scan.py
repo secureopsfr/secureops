@@ -5,7 +5,7 @@ import os
 from urllib.parse import urljoin
 
 import httpx
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -14,6 +14,23 @@ from app.services.pdf_report import generate_pdf
 from app.services.scan_runner import ScanRunError, run_scan_to_result
 from app.services.scan_stream import scan_stream_generator
 from app.utils.url_validator import URLValidationError
+
+# Clé API pour les appels service-to-service (endpoint interne).
+# Si définie, le header X-Internal-Api-Key doit correspondre.
+INTERNAL_API_KEY = os.getenv("SCAN_SERVICE_INTERNAL_API_KEY")
+
+
+async def _verify_internal_api_key(
+    x_internal_api_key: str | None = Header(default=None, alias="X-Internal-Api-Key"),
+) -> None:
+    """Vérifie la clé API interne si SCAN_SERVICE_INTERNAL_API_KEY est définie.
+
+    En dev (variable non définie), l'accès est autorisé sans clé.
+    """
+    if not INTERNAL_API_KEY:
+        return
+    if x_internal_api_key != INTERNAL_API_KEY:
+        raise HTTPException(status_code=401, detail="Clé API interne invalide ou manquante")
 
 
 class ScanForPdfSchema(BaseModel):
@@ -101,9 +118,12 @@ class InternalScanRequest(BaseModel):
 @router.post(
     "/internal/scan/run",
     summary="[Interne] Exécuter un scan et retourner le résultat en JSON",
-    description="Utilisé par le scheduler user-service pour les scans planifiés. Pas d'auth (appel service-to-service).",
+    description="Utilisé par le scheduler user-service. Si SCAN_SERVICE_INTERNAL_API_KEY est définie, " "le header X-Internal-Api-Key est requis.",
 )
-async def internal_run_scan(body: InternalScanRequest) -> dict:
+async def internal_run_scan(
+    body: InternalScanRequest,
+    _: None = Depends(_verify_internal_api_key),
+) -> dict:
     """Exécute le scan et retourne le résultat en JSON (pas de SSE)."""
     try:
         return await run_scan_to_result(body.url)
