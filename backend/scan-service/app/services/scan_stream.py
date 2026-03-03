@@ -30,6 +30,7 @@ from app.services.cache import checks as cache_checks
 from app.services.cookies import check_cookies_from_response
 from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
+from app.services.information_disclosure import check_information_disclosure_from_response
 from app.services.normalization import normalize_results
 from app.services.robots_txt import run_robots_txt_checks
 from app.services.scoring import compute_score
@@ -223,6 +224,12 @@ _SCAN_STEPS: list[tuple[str, str, str, Callable]] = [
         "Fingerprinting technologique…",
         "Tech fingerprinting vérifié.",
         lambda ctx: check_tech_fingerprinting_from_response(ctx.https_response),
+    ),
+    (
+        "information_disclosure",
+        "Vérification fuites d'information…",
+        "Fuites d'information vérifiées.",
+        lambda ctx: check_information_disclosure_from_response(ctx.https_response),
     ),
 ]
 

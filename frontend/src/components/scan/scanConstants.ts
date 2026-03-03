@@ -22,6 +22,7 @@ export const CHECKS_COUNT_FALLBACK: Record<string, number> = {
   directory_listing: 9,
   robots_txt: 5,
   tech_fingerprinting: 6,
+  information_disclosure: 6,
 };
 
 /** Ordre des catégories de tests (aligné avec le PDF). */
@@ -34,6 +35,7 @@ export const CHECKED_CATEGORIES_ORDER: readonly string[] = [
   "directory_listing",
   "robots_txt",
   "tech_fingerprinting",
+  "information_disclosure",
 ];
 
 export const CATEGORY_I18N_MAP: Record<string, string> = {
@@ -45,6 +47,7 @@ export const CATEGORY_I18N_MAP: Record<string, string> = {
   directory_listing: "scanner.categoryDirectoryListing",
   robots_txt: "scanner.categoryRobotsTxt",
   tech_fingerprinting: "scanner.categoryTechFingerprinting",
+  information_disclosure: "scanner.categoryInformationDisclosure",
 };
 
 export const SEVERITY_I18N_MAP: Record<string, string> = {
@@ -69,6 +72,7 @@ export const CATEGORY_SUMMARY_OK_I18N: Record<string, string> = {
   directory_listing: "scanner.summaryDirectoryListingOk",
   robots_txt: "scanner.summaryRobotsTxtOk",
   tech_fingerprinting: "scanner.summaryTechFingerprintingOk",
+  information_disclosure: "scanner.summaryInformationDisclosureOk",
 };
 
 export function getCategorySummaryOkKey(category: string): string {

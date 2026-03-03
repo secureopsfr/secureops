@@ -19,6 +19,7 @@ from app.constants import (
 from app.models.finding import Finding
 from app.services.cache.checks import CacheCheckResult
 from app.services.cookies.checks import CookieCheckResult
+from app.services.information_disclosure.checks import InformationDisclosureCheckResult
 from app.services.path_checks.core import PathCheckResult
 from app.services.robots_txt.checks import RobotsTxtCheckResult
 from app.services.security_headers.checks import SecurityHeadersCheckResult
@@ -455,6 +456,57 @@ def _normalize_tech_fingerprinting(result: TechFingerprintingCheckResult) -> lis
     return findings
 
 
+def _information_disclosure_msg_to_finding(msg: str) -> tuple[str, str, str]:
+    """Mappe un message information_disclosure vers (slug, title, severity).
+
+    Args:
+        msg: Message brut du finding.
+
+    Returns:
+        tuple[str, str, str]: (slug, title, severity).
+    """
+    msg_lower = msg.lower()
+    if "stack trace détectée" in msg_lower:
+        return ("info-disclosure-stack-trace", "Stack trace dans la réponse", "high")
+    if "message d'erreur debug" in msg_lower or "mode développement" in msg_lower:
+        return ("info-disclosure-debug-mode", "Mode debug exposé", "medium")
+    if "secret potentiel" in msg_lower:
+        return ("info-disclosure-secret", "Secret potentiel dans la réponse", "critical")
+    if "header de debug détecté" in msg_lower:
+        return ("info-disclosure-debug-headers", "En-têtes de débogage exposés", "medium")
+    if "version serveur exposée" in msg_lower:
+        return ("info-disclosure-server-version", "Version serveur exposée", "low")
+    if "version runtime exposée" in msg_lower or "x-powered-by" in msg_lower:
+        return ("info-disclosure-powered-by-version", "Version runtime exposée", "low")
+    if "x-aspnet-version" in msg_lower:
+        return ("info-disclosure-aspnet-version", "Version ASP.NET exposée", "low")
+    if "en-tête custom révélant" in msg_lower:
+        return ("info-disclosure-custom-header", "En-tête custom révélant la stack", "low")
+    if "réponse https indisponible" in msg_lower or "fuites d'information" in msg_lower:
+        return ("info-disclosure-connection-failed", "Analyse fuites impossible", "info")
+    return ("info-disclosure-generic", "Fuite d'information", "medium")
+
+
+def _normalize_information_disclosure(result: InformationDisclosureCheckResult) -> list[Finding]:
+    """Convertit InformationDisclosureCheckResult en list[Finding]."""
+    findings: list[Finding] = []
+    if not result.fetch_ok:
+        findings.append(
+            _finding(
+                "info-disclosure-connection-failed",
+                "information_disclosure",
+                "Analyse fuites d'information impossible",
+                "info",
+                "Réponse HTTPS indisponible pour analyser les fuites d'information.",
+            ),
+        )
+        return findings
+    for msg in result.findings:
+        slug, title, severity = _information_disclosure_msg_to_finding(msg)
+        findings.append(_finding(slug, "information_disclosure", title, severity, msg))
+    return findings
+
+
 class ScanResultsDict(TypedDict, total=False):
     """Structure des résultats de checks passés à normalize_results."""
 
@@ -467,6 +519,7 @@ class ScanResultsDict(TypedDict, total=False):
     sitemap: SitemapCheckResult
     tech_fingerprinting: TechFingerprintingCheckResult
     cache: CacheCheckResult
+    information_disclosure: InformationDisclosureCheckResult
 
 
 _NORMALIZERS: list[tuple[str, Callable[[object], list[Finding]]]] = [
@@ -479,6 +532,7 @@ _NORMALIZERS: list[tuple[str, Callable[[object], list[Finding]]]] = [
     ("robots_txt", _normalize_robots_txt),
     ("sitemap", _normalize_sitemap),
     ("tech_fingerprinting", _normalize_tech_fingerprinting),
+    ("information_disclosure", _normalize_information_disclosure),
 ]
 
 

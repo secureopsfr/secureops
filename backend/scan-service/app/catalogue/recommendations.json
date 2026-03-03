@@ -682,5 +682,75 @@
     "references": [],
     "detail_fr": "Aucun en-tête révélateur (Server, X-Powered-By, etc.) n'a été détecté. La stack technique est soit masquée volontairement (bonne pratique), soit non identifiable par les motifs analysés. Ce n'est pas une anomalie de sécurité.",
     "detail_en": "No revealing header (Server, X-Powered-By, etc.) was detected. The tech stack is either intentionally hidden (good practice) or not identifiable by the analyzed patterns. This is not a security anomaly."
+  },
+  "info-disclosure-stack-trace": {
+    "recommendation": "Désactiver l'affichage des stack traces en production. Configurer le framework pour des pages d'erreur génériques et logger les traces côté serveur uniquement.",
+    "recommendation_en": "Disable stack trace display in production. Configure the framework for generic error pages and log traces server-side only.",
+    "title_fr": "Stack trace dans la réponse",
+    "title_en": "Stack trace in response",
+    "references": ["https://owasp.org/www-community/Improper_Error_Handling", "https://cwe.mitre.org/data/definitions/209.html"]
+  },
+  "info-disclosure-debug-mode": {
+    "recommendation": "Désactiver explicitement le mode debug en production (DEBUG=False, NODE_ENV=production). Ne pas exposer de pages de diagnostic sur l'internet public.",
+    "recommendation_en": "Explicitly disable debug mode in production (DEBUG=False, NODE_ENV=production). Do not expose diagnostic pages on the public internet.",
+    "title_fr": "Mode debug exposé",
+    "title_en": "Debug mode exposed",
+    "references": ["https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html"]
+  },
+  "info-disclosure-secret": {
+    "recommendation": "Ne jamais hardcoder de secrets dans le code ou les templates. Utiliser des variables d'environnement ou un secret manager. Révoquer immédiatement tout secret exposé.",
+    "recommendation_en": "Never hardcode secrets in code or templates. Use environment variables or a secret manager. Revoke any exposed secret immediately.",
+    "title_fr": "Secret potentiel dans la réponse",
+    "title_en": "Potential secret in response",
+    "references": ["https://owasp.org/www-project-top-ten/2017/A3_2017-Sensitive_Data_Exposure", "https://cwe.mitre.org/data/definitions/798.html"]
+  },
+  "info-disclosure-debug-headers": {
+    "recommendation": "Désactiver les outils de debug (Symfony Profiler, Xdebug, etc.) en production. Ne pas exposer les en-têtes X-Debug, X-Debug-Token, X-Runtime sur les sites publics.",
+    "recommendation_en": "Disable debug tools (Symfony Profiler, Xdebug, etc.) in production. Do not expose X-Debug, X-Debug-Token, X-Runtime headers on public sites.",
+    "title_fr": "En-têtes de débogage exposés",
+    "title_en": "Debug headers exposed",
+    "references": ["https://cwe.mitre.org/data/definitions/489.html"]
+  },
+  "info-disclosure-server-version": {
+    "recommendation": "Masquer ou simplifier l'en-tête Server (server_tokens off pour Nginx, ServerTokens Prod pour Apache). Ne pas exposer de version précise.",
+    "recommendation_en": "Hide or simplify the Server header (server_tokens off for Nginx, ServerTokens Prod for Apache). Do not expose exact version.",
+    "title_fr": "Version serveur exposée",
+    "title_en": "Server version exposed",
+    "references": ["https://owasp.org/www-project-top-ten/2017/A6_2017-Security_Misconfiguration"]
+  },
+  "info-disclosure-powered-by-version": {
+    "recommendation": "Masquer ou supprimer l'en-tête X-Powered-By (ou ne pas exposer de version précise) pour limiter le fingerprinting et le ciblage d'exploits.",
+    "recommendation_en": "Hide or remove X-Powered-By header (or do not expose exact version) to limit fingerprinting and exploit targeting.",
+    "title_fr": "Version runtime exposée",
+    "title_en": "Runtime version exposed",
+    "references": []
+  },
+  "info-disclosure-aspnet-version": {
+    "recommendation": "Désactiver l'en-tête X-AspNet-Version dans la configuration IIS/ASP.NET pour ne pas révéler la version du runtime.",
+    "recommendation_en": "Disable X-AspNet-Version header in IIS/ASP.NET configuration to avoid revealing runtime version.",
+    "title_fr": "Version ASP.NET exposée",
+    "title_en": "ASP.NET version exposed",
+    "references": []
+  },
+  "info-disclosure-custom-header": {
+    "recommendation": "Désactiver ou masquer les en-têtes personnalisés révélant la stack (X-Generator, X-Version, etc.) en production.",
+    "recommendation_en": "Disable or hide custom headers that reveal the stack (X-Generator, X-Version, etc.) in production.",
+    "title_fr": "En-tête custom révélant la stack",
+    "title_en": "Custom header revealing stack",
+    "references": ["https://owasp.org/www-community/controls/Fingerprinting"]
+  },
+  "info-disclosure-connection-failed": {
+    "recommendation": "Vérifier que la réponse HTTPS est accessible pour permettre l'analyse des fuites d'information.",
+    "recommendation_en": "Ensure HTTPS response is accessible to allow information disclosure analysis.",
+    "title_fr": "Analyse fuites impossible",
+    "title_en": "Information disclosure analysis unavailable",
+    "references": []
+  },
+  "info-disclosure-generic": {
+    "recommendation": "Corriger la fuite d'information identifiée : ne pas exposer de données sensibles, stack traces ou détails techniques en production.",
+    "recommendation_en": "Fix the identified information leak: do not expose sensitive data, stack traces or technical details in production.",
+    "title_fr": "Fuite d'information",
+    "title_en": "Information disclosure",
+    "references": ["https://cwe.mitre.org/data/definitions/200.html"]
   }
 }

@@ -27,44 +27,52 @@ class PdfSettings:
 _DEFAULT_ORDER = (
     "tls",
     "headers",
+    "cache",
     "cookies",
     "exposed_files",
     "directory_listing",
     "robots_txt",
     "sitemap",
     "tech_fingerprinting",
+    "information_disclosure",
     "other",
 )
 _DEFAULT_CHECKED = (
     "tls",
     "headers",
+    "cache",
     "cookies",
     "exposed_files",
     "directory_listing",
     "robots_txt",
     "sitemap",
     "tech_fingerprinting",
+    "information_disclosure",
 )
 _DEFAULT_LABELS_FR = {
     "tls": "TLS / HTTPS",
     "headers": "Security Headers",
+    "cache": "Cache et performances",
     "cookies": "Cookies",
     "exposed_files": "Fichiers exposés",
     "directory_listing": "Directory listing",
     "robots_txt": "robots.txt",
     "sitemap": "Sitemap",
     "tech_fingerprinting": "Tech fingerprinting",
+    "information_disclosure": "Fuites d'information",
     "other": "Autres",
 }
 _DEFAULT_LABELS_EN = {
     "tls": "TLS / HTTPS",
     "headers": "Security Headers",
+    "cache": "Cache and performance",
     "cookies": "Cookies",
     "exposed_files": "Exposed files",
     "directory_listing": "Directory listing",
     "robots_txt": "robots.txt",
     "sitemap": "Sitemap",
     "tech_fingerprinting": "Tech fingerprinting",
+    "information_disclosure": "Information disclosure",
     "other": "Other",
 }
 

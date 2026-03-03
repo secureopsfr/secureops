@@ -21,6 +21,7 @@ _CATEGORY_ORDER = (
     "robots_txt",
     "sitemap",
     "tech_fingerprinting",
+    "information_disclosure",
 )
 
 
