@@ -330,15 +330,22 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 ### 5.4 Nouveaux tests — CORS et cross-origin
 
 #### 5.4.1 CORS
-- [ ] `Access-Control-Allow-Origin: *` sur endpoints sensibles → finding
-- [ ] `Access-Control-Allow-Credentials: true` + `Origin: *` → incohérence dangereuse
-- [ ] Vérifier `Access-Control-Allow-Methods` (éviter PUT/DELETE si non nécessaire)
-- [ ] `Access-Control-Expose-Headers` : exposition d’headers sensibles
+- [x] `Access-Control-Allow-Origin: *` sur endpoints sensibles → finding
+  - **Fait :** Requêtes GET/OPTIONS avec Origin vers page + chemins sensibles (`cors_cross_origin.sensitive_paths`) ; finding `cors-allow-origin-star-sensitive` (high) si réponse type API.
+- [x] `Access-Control-Allow-Credentials: true` + `Origin: *` → incohérence dangereuse
+  - **Fait :** Finding `cors-credentials-origin-star` (critical). Réflexion d'origine non validée → `cors-credentials-origin-reflection` (critical).
+- [x] Vérifier `Access-Control-Allow-Methods` (éviter PUT/DELETE si non nécessaire)
+  - **Fait :** Finding `cors-allow-methods-dangerous` (info) si PUT/DELETE/PATCH exposés ; filtré par type de réponse (API) pour endpoints sensibles.
+- [x] `Access-Control-Expose-Headers` : exposition d’headers sensibles
+  - **Fait :** Liste `expose_headers_sensitive` dans settings ; finding `cors-expose-headers-sensitive` (medium) si en-tête sensible exposé.
 
 #### 5.4.2 Cross-origin
-- [ ] Détection de ressources chargées en HTTP sur page HTTPS (mixed content)
-- [ ] `Cross-Origin-Resource-Policy` manquant sur APIs
-- [ ] `Referrer-Policy` trop permissif (`unsafe-url`, absence)
+- [x] Détection de ressources chargées en HTTP sur page HTTPS (mixed content)
+  - **Fait :** Extraction sous-ressources via `subresources.py` ; finding `mixed-content-http-on-https` (high) pour chaque URL `http://` sur page HTTPS.
+- [x] `Cross-Origin-Resource-Policy` manquant sur APIs
+  - **Fait :** Finding `corp-missing` sur endpoint sensible (si réponse type API) et `corp-missing-main` sur page principale. Filtre « réponse = API » pour éviter faux positifs (page HTML « n'existe pas »).
+- [x] `Referrer-Policy` trop permissif (`unsafe-url`, absence) — vérifié dans Security Headers (mention dans le résumé CORS)
+  - **Fait :** Vérification dans la catégorie Security Headers ; résumé CORS et `category_summaries.json` indiquent que Referrer-Policy est vérifié côté headers.
 
 ---
 
