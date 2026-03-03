@@ -160,10 +160,17 @@ footer {
 .toc-item {
     display: flex;
     align-items: baseline;
-    margin: 36px 0;
-    font-size: 15px;
+    margin: 24px 0 4px 0;
+    font-size: 16px;
+    font-weight: 500;
     line-height: 1.5;
     color: #374151;
+}
+.toc-item:first-child {
+    margin-top: 0;
+}
+.toc-item + .toc-sub {
+    margin-top: 2px;
 }
 .toc-link {
     color: inherit;
@@ -177,18 +184,20 @@ footer {
 }
 .toc-num {
     font-weight: 600;
-    font-size: 15px;
+    font-size: 16px;
     color: #1e40af;
     margin-right: 12px;
     min-width: 24px;
 }
 .toc-sub {
     margin-left: 20px;
-    margin-top: 8px;
-    margin-bottom: 8px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    font-size: 12px;
+    font-weight: 400;
 }
 .toc-sub .toc-num {
-    font-size: 13px;
+    font-size: 12px;
     min-width: 28px;
 }
 
