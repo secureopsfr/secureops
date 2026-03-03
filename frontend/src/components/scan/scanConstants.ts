@@ -45,6 +45,21 @@ export function getCategoryKey(category: string): string {
   return CATEGORY_I18N_MAP[category] ?? category;
 }
 
+/** Clés i18n pour le résumé « ce qui a été vérifié » quand tout est OK. */
+export const CATEGORY_SUMMARY_OK_I18N: Record<string, string> = {
+  tls: "scanner.summaryTlsOk",
+  headers: "scanner.summaryHeadersOk",
+  cookies: "scanner.summaryCookiesOk",
+  exposed_files: "scanner.summaryExposedFilesOk",
+  directory_listing: "scanner.summaryDirectoryListingOk",
+  robots_txt: "scanner.summaryRobotsTxtOk",
+  tech_fingerprinting: "scanner.summaryTechFingerprintingOk",
+};
+
+export function getCategorySummaryOkKey(category: string): string {
+  return CATEGORY_SUMMARY_OK_I18N[category] ?? "";
+}
+
 export function getSeverityKey(severity: string): string {
   return SEVERITY_I18N_MAP[severity] ?? severity;
 }

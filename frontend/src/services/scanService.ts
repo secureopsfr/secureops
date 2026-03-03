@@ -23,12 +23,24 @@ export interface ScanFinding {
   references: string[];
 }
 
+export interface CategorySummary {
+  category: string;
+  label_fr: string;
+  label_en: string;
+  description_fr: string;
+  description_en: string;
+  checks_fr: string[];
+  checks_en: string[];
+  anomaly_count: number;
+}
+
 export interface ScanResult {
   url: string;
   timestamp: string;
   duration: number;
   score: number;
   findings: ScanFinding[];
+  category_summaries?: CategorySummary[];
 }
 
 export interface ScanError {

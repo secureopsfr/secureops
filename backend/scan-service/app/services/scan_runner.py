@@ -7,6 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+from app.catalogue.category_summaries import build_category_summaries
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
 from app.errors.fetch_errors import build_sse_error_payload
 from app.models.scan_result import ScanResult
@@ -138,5 +139,6 @@ async def run_scan_to_result(url: str) -> dict:
         findings=findings_tuple,
     )
     payload = scan_result.to_dict()
+    payload["category_summaries"] = build_category_summaries(findings_tuple)
     payload["status"] = "success"
     return payload

@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 
 from common.logging_config import correlation_id_ctx
 
+from app.catalogue.category_summaries import build_category_summaries
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
 from app.errors.fetch_errors import (
     build_sse_error_payload,
@@ -139,7 +140,9 @@ def _build_result_payload(
         score=score,
         findings=findings_tuple,
     )
-    return scan_result.to_dict()
+    payload = scan_result.to_dict()
+    payload["category_summaries"] = build_category_summaries(findings_tuple)
+    return payload
 
 
 # Étapes de la pipeline : (step_name, msg_check, msg_done, step_fn)

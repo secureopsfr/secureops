@@ -21,13 +21,16 @@ import type { ScanResult } from "../../services/scanService";
 import {
   getScoreBadge,
   getCategoryKey,
+  getCategorySummaryOkKey,
   severitySort,
   CHECKED_CATEGORIES_ORDER,
 } from "./scanConstants";
+import type { CategorySummary } from "../../services/scanService";
 import { exportScanResult, type ExportFormat } from "../../utils/exportScan";
 import { formatUrlDisplay } from "../../utils/urlFormat";
 import { downloadScanPdf } from "../../services/scanHistoryService";
 import { showErrorToast } from "../../utils/toastNotifications";
+import { renderWithBold } from "../../utils/renderWithBold";
 
 interface ScanResultsProps {
   result: ScanResult;
@@ -86,6 +89,22 @@ const DefaultFavicon = () => (
 const EXPORT_BUTTON_BOTTOM_DEFAULT = 20;
 /** Hauteur fixe au-dessus du footer quand il est visible (footer ~200px + marge). */
 const EXPORT_BUTTON_BOTTOM_ABOVE_FOOTER = 220;
+
+/** Construit des résumés de fallback quand category_summaries n'est pas dans la réponse (ex. historique). */
+function buildFallbackSummaries(
+  byCategory: Record<string, number>,
+): CategorySummary[] {
+  return CHECKED_CATEGORIES_ORDER.map((cat) => ({
+    category: cat,
+    label_fr: "",
+    label_en: "",
+    description_fr: "",
+    description_en: "",
+    checks_fr: [],
+    checks_en: [],
+    anomaly_count: byCategory[cat] ?? 0,
+  }));
+}
 
 export default function ScanResults({
   result,
@@ -317,7 +336,12 @@ export default function ScanResults({
                         </span>
                       ) : (
                         <span className="font-medium text-[rgb(var(--warning))]">
-                          {count} {t("scanner.anomalies")}
+                          {count}{" "}
+                          {t(
+                            count === 1
+                              ? "scanner.anomalies_one"
+                              : "scanner.anomalies",
+                          )}
                         </span>
                       )}
                     </td>
@@ -333,6 +357,76 @@ export default function ScanResults({
         className="landing-section landing-reveal-scanner"
         as="div"
       >
+        <Card disableHover className="scanner-block p-4 sm:p-6">
+          <h3 className="mb-6 text-center text-sm font-semibold uppercase tracking-wider text-[var(--text)]">
+            {t("scanner.summarySectionTitle")}
+          </h3>
+          <div className="space-y-6">
+            {(
+              result.category_summaries ?? buildFallbackSummaries(byCategory)
+            ).map((entry) => {
+              const desc =
+                language === "en" ? entry.description_en : entry.description_fr;
+              const label =
+                (language === "en" ? entry.label_en : entry.label_fr) ||
+                t(getCategoryKey(entry.category));
+              const shortSummary =
+                desc || t(getCategorySummaryOkKey(entry.category));
+              const hasAnomalies = entry.anomaly_count > 0;
+
+              return (
+                <div
+                  key={entry.category}
+                  className="rounded-lg border border-[var(--color-border)] p-4"
+                >
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <h4 className="font-semibold text-[var(--text)]">
+                      {label}
+                    </h4>
+                    {hasAnomalies ? (
+                      <a
+                        href={`#anomalies-${entry.category}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          document
+                            .getElementById(`anomalies-${entry.category}`)
+                            ?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className="text-sm font-medium text-[rgb(var(--primary))] hover:underline"
+                      >
+                        {entry.anomaly_count}{" "}
+                        {t(
+                          entry.anomaly_count === 1
+                            ? "scanner.anomalies_one"
+                            : "scanner.anomalies",
+                        )}{" "}
+                        <span className="text-xs">
+                          ({t("scanner.details")})
+                        </span>
+                      </a>
+                    ) : (
+                      <span className="text-sm font-medium text-[rgb(var(--success))]">
+                        {t("scanner.statusOk")}
+                      </span>
+                    )}
+                  </div>
+                  {(desc || shortSummary) && (
+                    <p className="mb-3 text-sm text-[var(--muted)] leading-relaxed">
+                      {renderWithBold(desc || shortSummary)}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </AnimateInView>
+
+      <AnimateInView
+        className="landing-section landing-reveal-scanner"
+        as="div"
+        id="anomalies-section"
+      >
         <Card disableHover className="scanner-block p-4">
           <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wider text-[var(--text)]">
             {t("scanner.findings")}
@@ -341,19 +435,36 @@ export default function ScanResults({
             <p className="text-muted-theme">{t("scanner.noFindings")}</p>
           ) : (
             <ul className="divide-y-0">
-              {sortedFindings.map((f, i) => (
-                <li key={`${f.id}-${i}`}>
-                  <AnimateInView className="landing-reveal-finding" as="div">
-                    <FindingCard finding={f} />
-                    {i < sortedFindings.length - 1 && (
-                      <div
-                        className="my-4 mx-auto w-[90%] border-t border-[var(--color-border)] opacity-50"
-                        aria-hidden
-                      />
-                    )}
-                  </AnimateInView>
-                </li>
-              ))}
+              {(() => {
+                const seenCategories = new Set<string>();
+                return sortedFindings.map((f, i) => {
+                  const isFirstOfCategory = !seenCategories.has(f.category);
+                  if (isFirstOfCategory) seenCategories.add(f.category);
+                  return (
+                    <li
+                      key={`${f.id}-${i}`}
+                      id={
+                        isFirstOfCategory
+                          ? `anomalies-${f.category}`
+                          : undefined
+                      }
+                    >
+                      <AnimateInView
+                        className="landing-reveal-finding"
+                        as="div"
+                      >
+                        <FindingCard finding={f} />
+                        {i < sortedFindings.length - 1 && (
+                          <div
+                            className="my-4 mx-auto w-[90%] border-t border-[var(--color-border)] opacity-50"
+                            aria-hidden
+                          />
+                        )}
+                      </AnimateInView>
+                    </li>
+                  );
+                });
+              })()}
             </ul>
           )}
         </Card>

@@ -1,0 +1,58 @@
+{
+  "tls": {
+    "label_fr": "TLS / HTTPS",
+    "label_en": "TLS / HTTPS",
+    "description_fr": "Le scan vérifie que le site est accessible en **HTTPS**, que le trafic HTTP redirige vers **HTTPS**, que le **certificat** est valide (non expiré, non auto-signé) et que les versions **TLS** obsolètes (1.0, 1.1) sont désactivées.",
+    "description_en": "The scan verifies that the site is accessible via **HTTPS**, that HTTP traffic redirects to **HTTPS**, that the **certificate** is valid (not expired, not self-signed), and that obsolete **TLS** versions (1.0, 1.1) are disabled.",
+    "checks_fr": ["**HTTPS** activé", "Redirection **HTTP→HTTPS**", "**Certificat** valide", "Pas de **TLS** 1.0/1.1"],
+    "checks_en": ["**HTTPS** enabled", "**HTTP→HTTPS** redirect", "Valid **certificate**", "No **TLS** 1.0/1.1"]
+  },
+  "headers": {
+    "label_fr": "Security Headers",
+    "label_en": "Security Headers",
+    "description_fr": "Le scan vérifie la présence des en-têtes de sécurité recommandés : **Content-Security-Policy** (CSP), **Strict-Transport-Security** (HSTS), **X-Frame-Options**, **X-Content-Type-Options** (nosniff), **Referrer-Policy** et **Permissions-Policy**. Ces en-têtes protègent contre le XSS, le clickjacking, le MIME sniffing et les fuites d'URL.",
+    "description_en": "The scan verifies the presence of recommended security headers: **Content-Security-Policy** (CSP), **Strict-Transport-Security** (HSTS), **X-Frame-Options**, **X-Content-Type-Options** (nosniff), **Referrer-Policy** and **Permissions-Policy**. These headers protect against XSS, clickjacking, MIME sniffing and URL leakage.",
+    "checks_fr": ["**CSP**", "**HSTS**", "**X-Frame-Options**", "**X-Content-Type-Options**", "**Referrer-Policy**", "**Permissions-Policy**"],
+    "checks_en": ["**CSP**", "**HSTS**", "**X-Frame-Options**", "**X-Content-Type-Options**", "**Referrer-Policy**", "**Permissions-Policy**"]
+  },
+  "cookies": {
+    "label_fr": "Cookies",
+    "label_en": "Cookies",
+    "description_fr": "Le scan analyse les en-têtes Set-Cookie et vérifie les flags de sécurité : **Secure** (obligatoire sur HTTPS), **HttpOnly** (protection XSS) et **SameSite** (protection CSRF). Les cookies de session sans ces flags sont signalés.",
+    "description_en": "The scan analyzes Set-Cookie headers and verifies security flags: **Secure** (required on HTTPS), **HttpOnly** (XSS protection) and **SameSite** (CSRF protection). Session cookies without these flags are reported.",
+    "checks_fr": ["**Secure**", "**HttpOnly**", "**SameSite**"],
+    "checks_en": ["**Secure**", "**HttpOnly**", "**SameSite**"]
+  },
+  "exposed_files": {
+    "label_fr": "Fichiers exposés",
+    "label_en": "Exposed files",
+    "description_fr": "Le scan teste une liste de chemins sensibles (**/.env**, **/.git/config**, **/backup.zip**, **/phpinfo.php**, **/admin/**, **/.DS_Store**) pour détecter une exposition accidentelle. Un fichier est considéré exposé si la réponse est 200 et que le contenu correspond aux signatures connues.",
+    "description_en": "The scan tests a list of sensitive paths (**/.env**, **/.git/config**, **/backup.zip**, **/phpinfo.php**, **/admin/**, **/.DS_Store**) to detect accidental exposure. A file is considered exposed if the response is 200 and the content matches known signatures.",
+    "checks_fr": ["**.env**", "**.git/config**", "**backup.zip**", "**phpinfo.php**", "**/admin/**", "**.DS_Store**"],
+    "checks_en": ["**.env**", "**.git/config**", "**backup.zip**", "**phpinfo.php**", "**/admin/**", "**.DS_Store**"]
+  },
+  "directory_listing": {
+    "label_fr": "Directory listing",
+    "label_en": "Directory listing",
+    "description_fr": "Le scan vérifie si le listing de répertoires est activé sur **/uploads/**, **/assets/** et **/static/**. Un listing actif permet à un attaquant d'énumérer les fichiers et d'accéder à des ressources non prévues pour le public.",
+    "description_en": "The scan checks whether directory listing is enabled on **/uploads/**, **/assets/** and **/static/**. An active listing allows an attacker to enumerate files and access resources not intended for public access.",
+    "checks_fr": ["**/uploads/**", "**/assets/**", "**/static/**"],
+    "checks_en": ["**/uploads/**", "**/assets/**", "**/static/**"]
+  },
+  "robots_txt": {
+    "label_fr": "robots.txt",
+    "label_en": "robots.txt",
+    "description_fr": "Le scan lit le fichier **/robots.txt**, extrait les directives **Disallow** et signale les routes potentiellement sensibles (admin, api, backup, config, etc.). Ces chemins sont révélés publiquement et doivent être protégés par d'autres moyens.",
+    "description_en": "The scan reads **/robots.txt**, extracts **Disallow** directives and reports potentially sensitive routes (admin, api, backup, config, etc.). These paths are publicly revealed and must be protected by other means.",
+    "checks_fr": ["Lecture **robots.txt**", "Extraction **Disallow**", "Détection routes sensibles"],
+    "checks_en": ["Read **robots.txt**", "Extract **Disallow**", "Detect sensitive routes"]
+  },
+  "tech_fingerprinting": {
+    "label_fr": "Tech fingerprinting",
+    "label_en": "Tech fingerprinting",
+    "description_fr": "Le scan analyse les en-têtes **Server**, **X-Powered-By**, **X-Generator** et **X-Drupal-Cache** pour identifier le serveur web, le runtime et le framework/CMS. Ces informations aident les attaquants à cibler des exploits connus ; leur masquage est recommandé.",
+    "description_en": "The scan analyzes **Server**, **X-Powered-By**, **X-Generator** and **X-Drupal-Cache** headers to identify the web server, runtime and framework/CMS. This information helps attackers target known exploits; masking it is recommended.",
+    "checks_fr": ["**Server**", "**X-Powered-By**", "**X-Generator**", "Heuristiques CMS"],
+    "checks_en": ["**Server**", "**X-Powered-By**", "**X-Generator**", "CMS heuristics"]
+  }
+}
