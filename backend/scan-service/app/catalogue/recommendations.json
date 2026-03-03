@@ -365,6 +365,104 @@
     "evidence_en": "File .DS_Store exposed: directory structure revealed.",
     "references": []
   },
+  "exposed_files-htaccess": {
+    "recommendation": "Bloquer l'accès à .htaccess. Exclure du document root ou configurer deny.",
+    "recommendation_en": "Block access to .htaccess. Exclude from document root or configure deny.",
+    "title_fr": "Fichier .htaccess exposé",
+    "title_en": "File .htaccess exposed",
+    "references": []
+  },
+  "exposed_files-web-config": {
+    "recommendation": "Bloquer l'accès à web.config. Ne pas exposer la configuration IIS en production.",
+    "recommendation_en": "Block access to web.config. Do not expose IIS configuration in production.",
+    "title_fr": "Fichier web.config exposé",
+    "title_en": "File web.config exposed",
+    "references": []
+  },
+  "exposed_files-svn-entries": {
+    "recommendation": "Bloquer l'accès au répertoire .svn. Ne jamais exposer Subversion en production.",
+    "recommendation_en": "Block access to .svn directory. Never expose Subversion in production.",
+    "title_fr": "Fichier .svn/entries exposé",
+    "title_en": "File .svn/entries exposed",
+    "references": []
+  },
+  "exposed_files-composer-json": {
+    "recommendation": "Exclure composer.json du document root ou restreindre l'accès.",
+    "recommendation_en": "Exclude composer.json from document root or restrict access.",
+    "title_fr": "Fichier composer.json exposé",
+    "title_en": "File composer.json exposed",
+    "references": []
+  },
+  "exposed_files-package-json": {
+    "recommendation": "Exclure package.json du document root ou restreindre l'accès.",
+    "recommendation_en": "Exclude package.json from document root or restrict access.",
+    "title_fr": "Fichier package.json exposé",
+    "title_en": "File package.json exposed",
+    "references": []
+  },
+  "exposed_files-npmrc": {
+    "recommendation": "Bloquer l'accès à .npmrc. Peut contenir des tokens de registry.",
+    "recommendation_en": "Block access to .npmrc. May contain registry tokens.",
+    "title_fr": "Fichier .npmrc exposé",
+    "title_en": "File .npmrc exposed",
+    "references": []
+  },
+  "exposed_files-config-bak": {
+    "recommendation": "Supprimer les fichiers de backup ou les déplacer hors de la racine web.",
+    "recommendation_en": "Remove backup files or move outside web root.",
+    "title_fr": "Fichier de backup config.bak exposé",
+    "title_en": "Backup file config.bak exposed",
+    "references": []
+  },
+  "exposed_files-web-config-bak": {
+    "recommendation": "Supprimer les fichiers de backup ou les déplacer hors de la racine web.",
+    "recommendation_en": "Remove backup files or move outside web root.",
+    "title_fr": "Fichier de backup web.config.bak exposé",
+    "title_en": "Backup file web.config.bak exposed",
+    "references": []
+  },
+  "exposed_files-env-bak": {
+    "recommendation": "Supprimer immédiatement .env.bak. Contient des credentials.",
+    "recommendation_en": "Remove .env.bak immediately. Contains credentials.",
+    "title_fr": "Fichier de backup .env.bak exposé",
+    "title_en": "Backup file .env.bak exposed",
+    "references": []
+  },
+  "exposed_files-swagger": {
+    "recommendation": "Protéger Swagger/OpenAPI par authentification ou le désactiver en production.",
+    "recommendation_en": "Protect Swagger/OpenAPI with authentication or disable in production.",
+    "title_fr": "Swagger/OpenAPI exposé",
+    "title_en": "Swagger/OpenAPI exposed",
+    "references": ["https://swagger.io/docs/specification/about/"]
+  },
+  "exposed_files-swagger-json": {
+    "recommendation": "Protéger swagger.json par authentification ou le désactiver en production.",
+    "recommendation_en": "Protect swagger.json with authentication or disable in production.",
+    "title_fr": "swagger.json exposé",
+    "title_en": "swagger.json exposed",
+    "references": []
+  },
+  "exposed_files-api-docs": {
+    "recommendation": "Protéger la documentation API par authentification ou la désactiver en production.",
+    "recommendation_en": "Protect API documentation with authentication or disable in production.",
+    "title_fr": "Documentation API exposée",
+    "title_en": "API documentation exposed",
+    "references": []
+  },
+  "exposed_files-api-docs-json": {
+    "recommendation": "Protéger api-docs.json par authentification ou le désactiver en production.",
+    "recommendation_en": "Protect api-docs.json with authentication or disable in production.",
+    "title_fr": "api-docs.json exposé",
+    "title_en": "api-docs.json exposed",
+    "references": []
+  },
+  "exposed_files-graphql": {
+    "recommendation": "Désactiver l'introspection GraphQL en production ou protéger l'endpoint.",
+    "recommendation_en": "Disable GraphQL introspection in production or protect the endpoint.",
+    "title_fr": "Endpoint GraphQL exposé",
+    "title_en": "GraphQL endpoint exposed",
+    "references": ["https://graphql.org/learn/introspection/"]
+  },
   "directory_listing-uploads": {
     "recommendation": "Désactiver le directory listing sur /uploads/. Configurer Options -Indexes (Apache) ou autoindex off (Nginx).",
     "recommendation_en": "Disable directory listing on /uploads/. Configure Options -Indexes (Apache) or autoindex off (Nginx).",

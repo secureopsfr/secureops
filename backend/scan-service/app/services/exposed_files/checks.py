@@ -48,25 +48,99 @@ def _content_matches_ds_store(body: bytes, _path: str) -> bool:
     return b"Bud1" in body[:1024] or b"DSDB" in body[:1024]
 
 
-_SIGNATURE_CHECKERS: dict[str, callable] = {
-    "/.env": _content_matches_env,
-    "/.git/config": _content_matches_git_config,
-    "/backup.zip": _content_matches_zip,
-    "/phpinfo.php": _content_matches_phpinfo,
-    "/admin/": _content_matches_admin,
-    "/.ds_store": _content_matches_ds_store,  # .DS_Store normalisé en minuscules
-}
+def _content_matches_htaccess(body: bytes, _path: str) -> bool:
+    """Vérifie si le corps ressemble à .htaccess (Apache)."""
+    text = body.decode("utf-8", errors="replace").lower()
+    return "rewriterule" in text or "order" in text or "allow" in text or "deny" in text
+
+
+def _content_matches_web_config(body: bytes, _path: str) -> bool:
+    """Vérifie si le corps ressemble à web.config (XML IIS)."""
+    text = body.decode("utf-8", errors="replace").lower()
+    return "<configuration" in text or "<system.webserver" in text
+
+
+def _content_matches_svn_entries(body: bytes, _path: str) -> bool:
+    """Vérifie si le corps ressemble à .svn/entries."""
+    text = body.decode("utf-8", errors="replace")
+    return "dir" in text[:50] or "file" in text[:50] or "10" in text[:20]
+
+
+def _content_matches_json_package(body: bytes, _path: str) -> bool:
+    """Vérifie si le corps est un JSON de type package (composer.json ou package.json)."""
+    text = body.decode("utf-8", errors="replace").lower()
+    if "{" not in text or "}" not in text:
+        return False
+    return '"name"' in text and ("require" in text or "dependencies" in text)
+
+
+def _content_matches_npmrc(body: bytes, _path: str) -> bool:
+    """Vérifie si le corps ressemble à .npmrc (registry=, auth=)."""
+    text = body.decode("utf-8", errors="replace").lower()
+    return "registry=" in text or "auth=" in text or "_auth=" in text
+
+
+def _content_matches_backup_config(body: bytes, _path: str) -> bool:
+    """Vérifie si le corps ressemble à un fichier de config (backup)."""
+    text = body.decode("utf-8", errors="replace").lower()
+    if "database" in text or "secret" in text or "password" in text:
+        return True
+    if "<configuration" in text or "rewriterule" in text:
+        return True
+    return False
+
+
+def _content_matches_openapi(body: bytes, _path: str) -> bool:
+    """Vérifie si le corps est Swagger/OpenAPI (JSON ou HTML Swagger UI)."""
+    text = body.decode("utf-8", errors="replace").lower()
+    if '"openapi"' in text or '"swagger"' in text:
+        return True
+    if "swagger" in text and ("paths" in text or "api" in text):
+        return True
+    return False
+
+
+def _content_matches_graphql(body: bytes, _path: str) -> bool:
+    """Vérifie si le corps suggère un endpoint GraphQL (JSON avec data/errors/__schema)."""
+    text = body.decode("utf-8", errors="replace").lower()
+    if "{" not in text:
+        return False
+    return '"data"' in text or '"errors"' in text or '"__schema"' in text or '"querytype"' in text
+
+
+def _get_signature_checker(path: str):
+    """Retourne le checker de signature pour un chemin (normalisé)."""
+    path_norm = path.rstrip("/") if path != "/" else path
+    key = path_norm.lower()
+    # Mapping explicite par chemin
+    checkers = {
+        "/.env": _content_matches_env,
+        "/.git/config": _content_matches_git_config,
+        "/backup.zip": _content_matches_zip,
+        "/phpinfo.php": _content_matches_phpinfo,
+        "/admin/": _content_matches_admin,
+        "/.ds_store": _content_matches_ds_store,
+        "/.htaccess": _content_matches_htaccess,
+        "/web.config": _content_matches_web_config,
+        "/.svn/entries": _content_matches_svn_entries,
+        "/composer.json": _content_matches_json_package,
+        "/package.json": _content_matches_json_package,
+        "/.npmrc": _content_matches_npmrc,
+        "/config.bak": _content_matches_backup_config,
+        "/web.config.bak": _content_matches_backup_config,
+        "/.env.bak": _content_matches_env,  # Même signature que .env
+        "/swagger": _content_matches_openapi,
+        "/swagger.json": _content_matches_openapi,
+        "/api-docs": _content_matches_openapi,
+        "/api-docs.json": _content_matches_openapi,
+        "/graphql": _content_matches_graphql,
+    }
+    return checkers.get(key)
 
 
 def _get_checker_for_path(path: str):
     """Retourne le checker de signature pour un chemin (normalisé)."""
-    path_normalized = path.rstrip("/") if path != "/" else path
-    key = path_normalized.lower()
-    if key in _SIGNATURE_CHECKERS:
-        return _SIGNATURE_CHECKERS[key]
-    if path_normalized == "/.git/config":
-        return _content_matches_git_config
-    return None
+    return _get_signature_checker(path)
 
 
 def _body_checker(body: bytes, path: str) -> bool:

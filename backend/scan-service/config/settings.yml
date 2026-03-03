@@ -116,6 +116,7 @@ exposed_files:
   severity_upgrade:  # Chemins forcés en critical (ignorer severity du path)
     - /.git/config
     - /.env
+    - /.env.bak
   paths:
     - path: /.env
       severity: critical
@@ -141,6 +142,62 @@ exposed_files:
       severity: low
       message: "Fichier .DS_Store exposé : structure des répertoires révélée."
       message_en: "File .DS_Store exposed: directory structure revealed."
+    - path: /.htaccess
+      severity: medium
+      message: "Fichier .htaccess exposé : configuration Apache accessible."
+      message_en: "File .htaccess exposed: Apache configuration accessible."
+    - path: /web.config
+      severity: medium
+      message: "Fichier web.config exposé : configuration IIS/ASP.NET accessible."
+      message_en: "File web.config exposed: IIS/ASP.NET configuration accessible."
+    - path: /.svn/entries
+      severity: high
+      message: "Fichier .svn/entries exposé : dépôt Subversion accessible."
+      message_en: "File .svn/entries exposed: Subversion repository accessible."
+    - path: /composer.json
+      severity: low
+      message: "Fichier composer.json exposé : dépendances PHP révélées."
+      message_en: "File composer.json exposed: PHP dependencies revealed."
+    - path: /package.json
+      severity: low
+      message: "Fichier package.json exposé : dépendances Node.js révélées."
+      message_en: "File package.json exposed: Node.js dependencies revealed."
+    - path: /.npmrc
+      severity: medium
+      message: "Fichier .npmrc exposé : configuration npm accessible."
+      message_en: "File .npmrc exposed: npm configuration accessible."
+    - path: /config.bak
+      severity: high
+      message: "Fichier de backup config.bak exposé : configuration accessible."
+      message_en: "Backup file config.bak exposed: configuration accessible."
+    - path: /web.config.bak
+      severity: high
+      message: "Fichier de backup web.config.bak exposé."
+      message_en: "Backup file web.config.bak exposed."
+    - path: /.env.bak
+      severity: critical
+      message: "Fichier de backup .env.bak exposé : credentials accessibles."
+      message_en: "Backup file .env.bak exposed: credentials accessible."
+    - path: /swagger
+      severity: medium
+      message: "Swagger/OpenAPI exposé : documentation API accessible sans authentification."
+      message_en: "Swagger/OpenAPI exposed: API documentation accessible without authentication."
+    - path: /swagger.json
+      severity: medium
+      message: "Swagger/OpenAPI (swagger.json) exposé : schéma API accessible."
+      message_en: "Swagger/OpenAPI (swagger.json) exposed: API schema accessible."
+    - path: /api-docs
+      severity: medium
+      message: "Documentation API exposée : endpoints et schémas accessibles."
+      message_en: "API documentation exposed: endpoints and schemas accessible."
+    - path: /api-docs.json
+      severity: medium
+      message: "Documentation API (api-docs.json) exposée : schéma accessible."
+      message_en: "API documentation (api-docs.json) exposed: schema accessible."
+    - path: /graphql
+      severity: medium
+      message: "Endpoint GraphQL exposé : introspection possible sans authentification."
+      message_en: "GraphQL endpoint exposed: introspection possible without authentication."
 
 # Directory listing (roadmap §3.5) : répertoires à tester.
 # message (fr) utilisé par les checks ; message_en pour cohérence i18n (catalogue override PDF).

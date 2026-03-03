@@ -26,10 +26,10 @@
   "exposed_files": {
     "label_fr": "Fichiers exposés",
     "label_en": "Exposed files",
-    "description_fr": "Le scan teste une liste de chemins sensibles (**/.env**, **/.git/config**, **/backup.zip**, **/phpinfo.php**, **/admin/**, **/.DS_Store**) pour détecter une exposition accidentelle. Un fichier est considéré exposé si la réponse est 200 et que le contenu correspond aux signatures connues.",
-    "description_en": "The scan tests a list of sensitive paths (**/.env**, **/.git/config**, **/backup.zip**, **/phpinfo.php**, **/admin/**, **/.DS_Store**) to detect accidental exposure. A file is considered exposed if the response is 200 and the content matches known signatures.",
-    "checks_fr": ["**.env**", "**.git/config**", "**backup.zip**", "**phpinfo.php**", "**/admin/**", "**.DS_Store**"],
-    "checks_en": ["**.env**", "**.git/config**", "**backup.zip**", "**phpinfo.php**", "**/admin/**", "**.DS_Store**"]
+    "description_fr": "Le scan teste une liste de chemins sensibles pour détecter une exposition accidentelle : **/.env**, **/.git/config**, **/backup.zip**, **/phpinfo.php**, **/admin/**, **/.DS_Store**, **/.htaccess**, **/web.config**, **/.svn/entries**, **/composer.json**, **/package.json**, **/.npmrc**, fichiers backup (**config.bak**, **.env.bak**), et endpoints API docs (**/swagger**, **/api-docs**, **/graphql**). Un fichier est exposé si la réponse est 200 et que le contenu correspond aux signatures connues.",
+    "description_en": "The scan tests a list of sensitive paths to detect accidental exposure: **/.env**, **/.git/config**, **/backup.zip**, **/phpinfo.php**, **/admin/**, **/.DS_Store**, **/.htaccess**, **/web.config**, **/.svn/entries**, **/composer.json**, **/package.json**, **/.npmrc**, backup files (**config.bak**, **.env.bak**), and API docs endpoints (**/swagger**, **/api-docs**, **/graphql**). A file is exposed if the response is 200 and the content matches known signatures.",
+    "checks_fr": ["**.env**", "**.git/config**", "**backup.zip**", "**phpinfo.php**", "**/admin/**", "**.DS_Store**", "**.htaccess**", "**web.config**", "**/.svn/entries**", "**composer.json**", "**package.json**", "**backup**", "**swagger/api-docs/graphql**"],
+    "checks_en": ["**.env**", "**.git/config**", "**backup.zip**", "**phpinfo.php**", "**/admin/**", "**.DS_Store**", "**.htaccess**", "**web.config**", "**/.svn/entries**", "**composer.json**", "**package.json**", "**backup**", "**swagger/api-docs/graphql**"]
   },
   "directory_listing": {
     "label_fr": "Directory listing",
