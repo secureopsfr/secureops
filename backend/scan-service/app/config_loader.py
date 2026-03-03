@@ -7,6 +7,7 @@ Le chargement est découpé dans app.config/ par domaine.
 from common.config_base import create_simple_settings
 
 from app.config import (
+    CacheSettings,
     DirectoryListingConfig,
     ExposedFileConfig,
     PathCheckConfig,
@@ -15,6 +16,7 @@ from app.config import (
     SecurityHeaderConfig,
     SsrfSettings,
     UrlValidationSettings,
+    get_cache_settings,
     get_directory_listing_max_body,
     get_directory_listing_settings,
     get_exposed_files_max_body,
@@ -32,6 +34,7 @@ from app.config import (
 settings = create_simple_settings("scan-service", default_port=8012, caller_file=__file__)
 
 __all__ = [
+    "CacheSettings",
     "DirectoryListingConfig",
     "ExposedFileConfig",
     "PathCheckConfig",
@@ -40,6 +43,7 @@ __all__ = [
     "SecurityHeaderConfig",
     "SsrfSettings",
     "UrlValidationSettings",
+    "get_cache_settings",
     "get_directory_listing_max_body",
     "get_directory_listing_settings",
     "get_exposed_files_max_body",

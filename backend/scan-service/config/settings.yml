@@ -237,6 +237,20 @@ directory_listing:
       message: "Directory listing activé sur /data/ : données exposées."
       message_en: "Directory listing enabled on /data/: data exposed."
 
+# Cache et performances (roadmap §5.3.1 et §5.3.2).
+# Analyse la page principale et un nombre limité de sous-ressources (scripts, CSS, images).
+cache:
+  sensitive_paths:
+    - "/login"
+    - "/admin"
+    - "/auth"
+    - "/api/"
+  max_sub_resources: 50          # Nombre maximal de sous-ressources analysées par page
+  subresource_timeout: 3.0       # Timeout (s) par requête HEAD/GET sur une sous-ressource
+  immutable_pattern: "\\.[a-f0-9]{8,}\\.(js|css)$"
+  immutable_max_age: 31536000
+  sensitive_max_age: 0           # max-age autorisé pour une page sensible (0 = uniquement no-store / no-cache / private)
+
 # robots.txt (roadmap §3.6) : motifs de routes sensibles à signaler dans Disallow.
 # Par défaut : _DEFAULT_ROBOTS_TXT_PATTERNS dans config_loader. Surcharger ici si besoin.
 robots_txt:
@@ -259,6 +273,7 @@ scoring:
   category_weights:
     tls: 25
     headers: 25
+    cache: 5
     cookies: 20
     exposed_files: 10
     directory_listing: 10
@@ -279,6 +294,7 @@ pdf:
     order:
       - tls
       - headers
+      - cache
       - cookies
       - exposed_files
       - directory_listing
@@ -289,6 +305,7 @@ pdf:
     checked:
       - tls
       - headers
+      - cache
       - cookies
       - exposed_files
       - directory_listing
@@ -298,6 +315,7 @@ pdf:
     labels_fr:
       tls: "TLS / HTTPS"
       headers: "Security Headers"
+      cache: "Cache et performances"
       cookies: "Cookies"
       exposed_files: "Fichiers exposés"
       directory_listing: "Directory listing"
@@ -308,6 +326,7 @@ pdf:
     labels_en:
       tls: "TLS / HTTPS"
       headers: "Security Headers"
+      cache: "Cache and performance"
       cookies: "Cookies"
       exposed_files: "Exposed files"
       directory_listing: "Directory listing"

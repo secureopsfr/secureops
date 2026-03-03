@@ -15,6 +15,26 @@
     "checks_fr": ["**CSP**", "**HSTS**", "**X-Frame-Options**", "**X-Content-Type-Options**", "**Referrer-Policy**", "**Permissions-Policy**"],
     "checks_en": ["**CSP**", "**HSTS**", "**X-Frame-Options**", "**X-Content-Type-Options**", "**Referrer-Policy**", "**Permissions-Policy**"]
   },
+  "cache": {
+    "label_fr": "Cache et performances",
+    "label_en": "Cache and performance",
+    "description_fr": "Le scan analyse les en-têtes de cache de la page principale (**Cache-Control**, **Pragma**, **ETag**, **Last-Modified**, **Vary**) et détecte les pages sensibles (login, admin, API) cacheables publiquement. Il extrait ensuite un sous-ensemble de sous-requêtes (scripts, feuilles de style, images) pour vérifier que les assets immuables (fichiers avec hash dans l'URL) bénéficient d'un cache long (`max-age` élevé, `immutable`).",
+    "description_en": "The scan analyzes cache headers on the main page (**Cache-Control**, **Pragma**, **ETag**, **Last-Modified**, **Vary**) and detects sensitive pages (login, admin, API) that are publicly cacheable. It then extracts a subset of sub-requests (scripts, stylesheets, images) to verify that immutable assets (files with a hash in the URL) benefit from a long cache (`max-age` and `immutable`).",
+    "checks_fr": [
+      "**Cache-Control** page principale",
+      "Pages sensibles non cacheables publiquement",
+      "Cohérence **Pragma** / **Cache-Control**",
+      "Analyse des sous-requêtes (JS/CSS/images)",
+      "Cache long pour assets immuables"
+    ],
+    "checks_en": [
+      "**Cache-Control** on main page",
+      "Sensitive pages not publicly cacheable",
+      "Consistent **Pragma** / **Cache-Control**",
+      "Analysis of sub-requests (JS/CSS/images)",
+      "Long cache for immutable assets"
+    ]
+  },
   "cookies": {
     "label_fr": "Cookies",
     "label_en": "Cookies",

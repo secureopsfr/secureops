@@ -4,6 +4,7 @@ Réexporte toutes les fonctions get_* pour compatibilité avec config_loader.
 settings reste dans config_loader (caller_file pour create_simple_settings).
 """
 
+from app.config.cache import CacheSettings, get_cache_settings
 from app.config.path_checks import (
     DirectoryListingConfig,
     ExposedFileConfig,
@@ -24,6 +25,7 @@ from app.config.timeouts import ScanTimeoutsSettings, get_scan_timeouts
 from app.config.url_validation import UrlValidationSettings, get_url_validation_settings
 
 __all__ = [
+    "CacheSettings",
     "DirectoryListingConfig",
     "ExposedFileConfig",
     "PathCheckConfig",
@@ -33,6 +35,7 @@ __all__ = [
     "SecurityHeaderConfig",
     "SsrfSettings",
     "UrlValidationSettings",
+    "get_cache_settings",
     "get_pdf_settings",
     "get_directory_listing_max_body",
     "get_directory_listing_settings",

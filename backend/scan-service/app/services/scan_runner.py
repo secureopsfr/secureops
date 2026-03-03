@@ -11,6 +11,7 @@ from app.catalogue.category_summaries import build_category_summaries
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
 from app.errors.fetch_errors import build_sse_error_payload
 from app.models.scan_result import ScanResult
+from app.services.cache import checks as cache_checks
 from app.services.cookies import check_cookies_from_response
 from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
@@ -60,6 +61,14 @@ class ScanRunError(Exception):
 _SCAN_STEPS: list[tuple[str, Callable]] = [
     ("tls", lambda ctx: run_tls_checks(ctx.normalized_url, https_response=ctx.https_response, client=ctx.client)),
     ("headers", lambda ctx: check_security_headers_from_response(ctx.https_response)),
+    (
+        "cache",
+        lambda ctx: cache_checks.check_cache_from_response(
+            ctx.https_response,
+            ctx.https_url,
+            ctx.client,
+        ),
+    ),
     ("cookies", lambda ctx: check_cookies_from_response(ctx.https_response, is_https=ctx.results["tls"].https_enabled)),
     ("exposed_files", lambda ctx: run_exposed_files_checks(ctx.https_url, client=ctx.client)),
     ("directory_listing", lambda ctx: run_directory_listing_checks(ctx.https_url, client=ctx.client)),

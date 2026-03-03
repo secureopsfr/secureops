@@ -17,6 +17,7 @@ from app.constants import (
     MSG_ROBOTS_TXT_UNAVAILABLE,
 )
 from app.models.finding import Finding
+from app.services.cache.checks import CacheCheckResult
 from app.services.cookies.checks import CookieCheckResult
 from app.services.path_checks.core import PathCheckResult
 from app.services.robots_txt.checks import RobotsTxtCheckResult
@@ -208,6 +209,76 @@ def _normalize_cookies(result: CookieCheckResult) -> list[Finding]:
     return findings
 
 
+def _normalize_cache(result: CacheCheckResult) -> list[Finding]:
+    """Convertit CacheCheckResult en list[Finding]."""
+    findings: list[Finding] = []
+    if not result.fetch_ok:
+        findings.append(
+            _finding(
+                "cache-connection-failed",
+                "cache",
+                "En-têtes de cache inaccessibles",
+                "high",
+                MSG_HEADERS_UNAVAILABLE,
+            ),
+        )
+        return findings
+
+    for msg in result.findings:
+        msg_lower = msg.lower()
+        if "page sensible" in msg_lower and "cacheable publiquement" in msg_lower:
+            findings.append(
+                _finding(
+                    "cache-sensitive-page-public",
+                    "cache",
+                    "Page sensible cacheable publiquement",
+                    "high",
+                    msg,
+                ),
+            )
+        elif "sans en-tête cache-control explicite" in msg_lower:
+            findings.append(
+                _finding(
+                    "cache-no-cache-control",
+                    "cache",
+                    "Absence de Cache-Control sur page sensible",
+                    "medium",
+                    msg,
+                ),
+            )
+        elif "incohérence pragma/cache-control" in msg_lower:
+            findings.append(
+                _finding(
+                    "cache-pragma-incoherent",
+                    "cache",
+                    "Incohérence Pragma / Cache-Control",
+                    "low",
+                    msg,
+                ),
+            )
+        elif "asset immuable sans cache long" in msg_lower:
+            findings.append(
+                _finding(
+                    "cache-immutable-no-long-cache",
+                    "cache",
+                    "Asset immuable sans cache long",
+                    "info",
+                    msg,
+                ),
+            )
+        else:
+            findings.append(
+                _finding(
+                    "cache-generic-issue",
+                    "cache",
+                    "Problème de configuration de cache",
+                    "medium",
+                    msg,
+                ),
+            )
+    return findings
+
+
 def _path_to_slug(path: str, category: str) -> str:
     """Retourne le slug pour un chemin exposé."""
     p = path.rstrip("/").lower().replace(".", "-").replace("/", "-").strip("-") or "root"
@@ -395,11 +466,13 @@ class ScanResultsDict(TypedDict, total=False):
     robots_txt: RobotsTxtCheckResult
     sitemap: SitemapCheckResult
     tech_fingerprinting: TechFingerprintingCheckResult
+    cache: CacheCheckResult
 
 
 _NORMALIZERS: list[tuple[str, Callable[[object], list[Finding]]]] = [
     ("tls", _normalize_tls),
     ("headers", _normalize_headers),
+    ("cache", _normalize_cache),
     ("cookies", _normalize_cookies),
     ("exposed_files", _normalize_exposed_files),
     ("directory_listing", _normalize_directory_listing),

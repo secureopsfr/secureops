@@ -14,6 +14,7 @@ from pathlib import Path
 _CATEGORY_ORDER = (
     "tls",
     "headers",
+    "cache",
     "cookies",
     "exposed_files",
     "directory_listing",

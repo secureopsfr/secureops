@@ -26,6 +26,7 @@ from app.errors.fetch_errors import (
     build_validation_error_payload,
 )
 from app.models.scan_result import ScanResult
+from app.services.cache import checks as cache_checks
 from app.services.cookies import check_cookies_from_response
 from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
@@ -169,6 +170,16 @@ _SCAN_STEPS: list[tuple[str, str, str, Callable]] = [
         "Vérification Security Headers…",
         "Security Headers vérifiés.",
         lambda ctx: check_security_headers_from_response(ctx.https_response),
+    ),
+    (
+        "cache",
+        "Vérification Cache et performances…",
+        "Cache et performances vérifiés.",
+        lambda ctx: cache_checks.check_cache_from_response(
+            ctx.https_response,
+            ctx.https_url,
+            ctx.client,
+        ),
     ),
     (
         "cookies",
