@@ -23,7 +23,14 @@ depends_on: Optional[Sequence[str]] = None
 
 
 def upgrade() -> None:
-    """Ajoute la colonne category_summaries_json à scans."""
+    """Ajoute la colonne category_summaries_json à scans (idempotent)."""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if "scans" not in inspector.get_table_names():
+        return
+    cols = [c["name"] for c in inspector.get_columns("scans")]
+    if "category_summaries_json" in cols:
+        return
     op.add_column(
         "scans",
         sa.Column(
@@ -36,5 +43,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Supprime la colonne category_summaries_json."""
+    """Supprime la colonne category_summaries_json (idempotent)."""
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if "scans" not in inspector.get_table_names():
+        return
+    cols = [c["name"] for c in inspector.get_columns("scans")]
+    if "category_summaries_json" not in cols:
+        return
     op.drop_column("scans", "category_summaries_json")
