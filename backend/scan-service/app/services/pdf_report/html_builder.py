@@ -7,11 +7,7 @@ from typing import Any
 
 from app.config.pdf import get_pdf_settings
 from app.services.pdf_report.cover import build_cover_page
-from app.services.pdf_report.findings import (
-    _group_findings_by_category,
-    build_category_sections,
-    build_other_tests_section,
-)
+from app.services.pdf_report.findings import _group_findings_by_category, build_category_sections, build_other_tests_section
 from app.services.pdf_report.pdf_i18n import t
 from app.services.pdf_report.sommaire import build_sommaire
 from app.services.pdf_report.synthese import build_synthese
