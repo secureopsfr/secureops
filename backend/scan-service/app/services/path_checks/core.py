@@ -40,19 +40,23 @@ class PathCheckResult:
         exposed (tuple[PathFinding, ...]): Chemins avec finding.
         findings (tuple[str, ...]): Messages des findings.
         fetch_ok (bool): True si au moins une requête a réussi.
+        exposed_403 (tuple[PathFinding, ...]): Chemins sensibles retournant 403 (directory_listing uniquement).
     """
 
     exposed: tuple[PathFinding, ...]
     findings: tuple[str, ...]
     fetch_ok: bool
+    exposed_403: tuple[PathFinding, ...] = ()
 
     def to_dict(self) -> dict:
         """Sérialise pour l'événement SSE result."""
         exposed_serialized = [{"path": e.path, "severity": e.severity, "message": e.message} for e in self.exposed]
+        exposed_403_serialized = [{"path": e.path, "severity": e.severity, "message": e.message} for e in self.exposed_403]
         return {
             "exposed": exposed_serialized,
             "findings": list(self.findings),
             "fetch_ok": self.fetch_ok,
+            "exposed_403": exposed_403_serialized,
         }
 
 

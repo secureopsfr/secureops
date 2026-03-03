@@ -156,7 +156,7 @@
     "summaryHeadersOk": "**CSP**, **HSTS**, **X-Frame-Options**, **X-Content-Type-Options**, **Referrer-Policy**, **Permissions-Policy** verified.",
     "summaryCookiesOk": "**Secure**, **HttpOnly**, **SameSite** verified.",
     "summaryExposedFilesOk": "Sensitive paths (**.env**, **.git**, etc.) not exposed.",
-    "summaryDirectoryListingOk": "Listing disabled on **/uploads/**, **/assets/**, **/static/**.",
+    "summaryDirectoryListingOk": "Listing disabled on **/uploads/**, **/assets/**, **/static/** and sensitive directories (**/tmp/**, **/logs/**, **/config/**, **/backup/**, **/data/**).",
     "summaryRobotsTxtOk": "**Disallow** analyzed, no sensitive route revealed.",
     "summaryTechFingerprintingOk": "**Server**, **X-Powered-By** headers analyzed.",
     "tlsVersionPhraseBefore": "The connection was established using ",

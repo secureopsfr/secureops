@@ -492,6 +492,58 @@
     "evidence_en": "Directory listing enabled on /static/: structure revealed.",
     "references": []
   },
+  "directory_listing-tmp": {
+    "recommendation": "Désactiver le directory listing sur /tmp/ ou restreindre l'accès.",
+    "recommendation_en": "Disable directory listing on /tmp/ or restrict access.",
+    "title_fr": "Directory listing sur /tmp/",
+    "title_en": "Directory listing on /tmp/",
+    "evidence_fr": "Directory listing activé sur /tmp/ : fichiers temporaires énumérables.",
+    "evidence_en": "Directory listing enabled on /tmp/: temporary files enumerable.",
+    "references": []
+  },
+  "directory_listing-logs": {
+    "recommendation": "Désactiver le directory listing sur /logs/ et protéger l'accès aux journaux.",
+    "recommendation_en": "Disable directory listing on /logs/ and protect log access.",
+    "title_fr": "Directory listing sur /logs/",
+    "title_en": "Directory listing on /logs/",
+    "evidence_fr": "Directory listing activé sur /logs/ : journaux accessibles.",
+    "evidence_en": "Directory listing enabled on /logs/: logs accessible.",
+    "references": []
+  },
+  "directory_listing-config": {
+    "recommendation": "Désactiver le directory listing sur /config/ et restreindre l'accès aux fichiers de configuration.",
+    "recommendation_en": "Disable directory listing on /config/ and restrict access to configuration files.",
+    "title_fr": "Directory listing sur /config/",
+    "title_en": "Directory listing on /config/",
+    "evidence_fr": "Directory listing activé sur /config/ : configuration exposée.",
+    "evidence_en": "Directory listing enabled on /config/: configuration exposed.",
+    "references": []
+  },
+  "directory_listing-backup": {
+    "recommendation": "Désactiver le directory listing sur /backup/ et protéger les sauvegardes.",
+    "recommendation_en": "Disable directory listing on /backup/ and protect backups.",
+    "title_fr": "Directory listing sur /backup/",
+    "title_en": "Directory listing on /backup/",
+    "evidence_fr": "Directory listing activé sur /backup/ : sauvegardes énumérables.",
+    "evidence_en": "Directory listing enabled on /backup/: backups enumerable.",
+    "references": []
+  },
+  "directory_listing-data": {
+    "recommendation": "Désactiver le directory listing sur /data/ et restreindre l'accès aux données.",
+    "recommendation_en": "Disable directory listing on /data/ and restrict data access.",
+    "title_fr": "Directory listing sur /data/",
+    "title_en": "Directory listing on /data/",
+    "evidence_fr": "Directory listing activé sur /data/ : données exposées.",
+    "evidence_en": "Directory listing enabled on /data/: data exposed.",
+    "references": []
+  },
+  "directory_listing-sensitive-403": {
+    "recommendation": "Un 403 sur un répertoire sensible révèle son existence. Retourner 404 ou masquer l'existence du chemin.",
+    "recommendation_en": "A 403 on a sensitive directory reveals its existence. Return 404 or hide the path existence.",
+    "title_fr": "Répertoire sensible révélé (403)",
+    "title_en": "Sensitive directory revealed (403)",
+    "references": []
+  },
   "robots_txt-connection-failed": {
     "recommendation": "Vérifier la connectivité. Impossible de récupérer robots.txt.",
     "recommendation_en": "Check connectivity. Unable to retrieve robots.txt.",

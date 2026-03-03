@@ -372,6 +372,17 @@ def test_normalize_directory_listing() -> None:
     assert findings[0].severity == "high"
 
 
+def test_normalize_directory_listing_exposed_403() -> None:
+    """directory_listing : exposed_403 produit finding directory_listing-sensitive-403."""
+    pf_403 = PathFinding(path="/config/", severity="medium", message="Répertoire sensible /config/ retourne 403.")
+    result = PathCheckResult(exposed=(), findings=(), fetch_ok=True, exposed_403=(pf_403,))
+    findings = normalize_results({"directory_listing": result})
+    assert len(findings) == 1
+    assert findings[0].id == "directory_listing-sensitive-403"
+    assert findings[0].title == "Répertoire sensible révélé : /config/"
+    assert findings[0].severity == "medium"
+
+
 def test_normalize_robots_txt_fetch_ok_false() -> None:
     """robots_txt avec fetch_ok=False produit robots_txt-connection-failed."""
     result = RobotsTxtCheckResult(

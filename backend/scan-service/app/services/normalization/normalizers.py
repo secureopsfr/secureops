@@ -258,13 +258,27 @@ def _normalize_exposed_files(result: PathCheckResult) -> list[Finding]:
 
 
 def _normalize_directory_listing(result: PathCheckResult) -> list[Finding]:
-    """Convertit PathCheckResult (directory_listing) en list[Finding]."""
-    return _normalize_path_check_result(
+    """Convertit PathCheckResult (directory_listing) en list[Finding].
+
+    Gère exposed (listing 200) et exposed_403 (chemins sensibles retournant 403).
+    """
+    findings = _normalize_path_check_result(
         result,
         "directory_listing",
         title_fn=lambda pf: f"Directory listing : {pf.path}",
         severity_fn=lambda pf: pf.severity.lower(),
     )
+    for pf in result.exposed_403:
+        findings.append(
+            _finding(
+                "directory_listing-sensitive-403",
+                "directory_listing",
+                f"Répertoire sensible révélé : {pf.path}",
+                pf.severity.lower(),
+                pf.message,
+            )
+        )
+    return findings
 
 
 def _normalize_robots_txt(result: RobotsTxtCheckResult) -> list[Finding]:

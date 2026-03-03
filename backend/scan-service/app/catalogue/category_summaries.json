@@ -34,10 +34,10 @@
   "directory_listing": {
     "label_fr": "Directory listing",
     "label_en": "Directory listing",
-    "description_fr": "Le scan vérifie si le listing de répertoires est activé sur **/uploads/**, **/assets/** et **/static/**. Un listing actif permet à un attaquant d'énumérer les fichiers et d'accéder à des ressources non prévues pour le public.",
-    "description_en": "The scan checks whether directory listing is enabled on **/uploads/**, **/assets/** and **/static/**. An active listing allows an attacker to enumerate files and access resources not intended for public access.",
-    "checks_fr": ["**/uploads/**", "**/assets/**", "**/static/**"],
-    "checks_en": ["**/uploads/**", "**/assets/**", "**/static/**"]
+    "description_fr": "Le scan vérifie si le listing de répertoires est activé sur **/uploads/**, **/assets/**, **/static/**, **/tmp/**, **/logs/**, **/config/**, **/backup/** et **/data/**. Un listing actif permet à un attaquant d'énumérer les fichiers et d'accéder à des ressources non prévues pour le public. Un 403 sur un répertoire sensible (/config/, /backup/, /logs/, /tmp/, /data/) révèle son existence et est également signalé.",
+    "description_en": "The scan checks whether directory listing is enabled on **/uploads/**, **/assets/**, **/static/**, **/tmp/**, **/logs/**, **/config/**, **/backup/** and **/data/**. An active listing allows an attacker to enumerate files and access resources not intended for public access. A 403 on a sensitive directory (/config/, /backup/, /logs/, /tmp/, /data/) reveals its existence and is also reported.",
+    "checks_fr": ["**/uploads/**", "**/assets/**", "**/static/**", "**/tmp/**", "**/logs/**", "**/config/**", "**/backup/**", "**/data/**", "403 sur chemins sensibles"],
+    "checks_en": ["**/uploads/**", "**/assets/**", "**/static/**", "**/tmp/**", "**/logs/**", "**/config/**", "**/backup/**", "**/data/**", "403 on sensitive paths"]
   },
   "robots_txt": {
     "label_fr": "robots.txt",

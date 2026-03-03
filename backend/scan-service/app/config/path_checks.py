@@ -30,6 +30,11 @@ _DEFAULT_DIRECTORY: tuple[tuple[str, str, str], ...] = (
     ("/uploads/", "high", "Directory listing activé sur /uploads/ : fichiers utilisateurs énumérables."),
     ("/assets/", "medium", "Directory listing activé sur /assets/ : structure révélée."),
     ("/static/", "medium", "Directory listing activé sur /static/ : structure révélée."),
+    ("/tmp/", "medium", "Directory listing activé sur /tmp/ : fichiers temporaires énumérables."),
+    ("/logs/", "high", "Directory listing activé sur /logs/ : journaux accessibles."),
+    ("/config/", "high", "Directory listing activé sur /config/ : configuration exposée."),
+    ("/backup/", "high", "Directory listing activé sur /backup/ : sauvegardes énumérables."),
+    ("/data/", "high", "Directory listing activé sur /data/ : données exposées."),
 )
 _DEFAULT_UPGRADE: tuple[str, ...] = ("/.git/config", "/.env")
 

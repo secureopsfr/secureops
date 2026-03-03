@@ -216,6 +216,26 @@ directory_listing:
       severity: medium
       message: "Directory listing activé sur /static/ : structure révélée."
       message_en: "Directory listing enabled on /static/: structure revealed."
+    - path: /tmp/
+      severity: medium
+      message: "Directory listing activé sur /tmp/ : fichiers temporaires énumérables."
+      message_en: "Directory listing enabled on /tmp/: temporary files enumerable."
+    - path: /logs/
+      severity: high
+      message: "Directory listing activé sur /logs/ : journaux accessibles."
+      message_en: "Directory listing enabled on /logs/: logs accessible."
+    - path: /config/
+      severity: high
+      message: "Directory listing activé sur /config/ : configuration exposée."
+      message_en: "Directory listing enabled on /config/: configuration exposed."
+    - path: /backup/
+      severity: high
+      message: "Directory listing activé sur /backup/ : sauvegardes énumérables."
+      message_en: "Directory listing enabled on /backup/: backups enumerable."
+    - path: /data/
+      severity: high
+      message: "Directory listing activé sur /data/ : données exposées."
+      message_en: "Directory listing enabled on /data/: data exposed."
 
 # robots.txt (roadmap §3.6) : motifs de routes sensibles à signaler dans Disallow.
 # Par défaut : _DEFAULT_ROBOTS_TXT_PATTERNS dans config_loader. Surcharger ici si besoin.

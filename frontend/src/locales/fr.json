@@ -156,7 +156,7 @@
     "summaryHeadersOk": "**CSP**, **HSTS**, **X-Frame-Options**, **X-Content-Type-Options**, **Referrer-Policy**, **Permissions-Policy** vérifiés.",
     "summaryCookiesOk": "**Secure**, **HttpOnly**, **SameSite** vérifiés.",
     "summaryExposedFilesOk": "Chemins sensibles (**.env**, **.git**, etc.) non exposés.",
-    "summaryDirectoryListingOk": "Listing désactivé sur **/uploads/**, **/assets/**, **/static/**.",
+    "summaryDirectoryListingOk": "Listing désactivé sur **/uploads/**, **/assets/**, **/static/** et répertoires sensibles (**/tmp/**, **/logs/**, **/config/**, **/backup/**, **/data/**).",
     "summaryRobotsTxtOk": "**Disallow** analysé, pas de route sensible révélée.",
     "summaryTechFingerprintingOk": "En-têtes **Server**, **X-Powered-By** analysés.",
     "tlsVersionPhraseBefore": "La connexion a été établie en ",

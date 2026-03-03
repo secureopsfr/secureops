@@ -223,6 +223,30 @@
     "gravite": "Significative",
     "vraisemblance": "Faible"
   },
+  "directory_listing-tmp": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
+  "directory_listing-logs": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "directory_listing-config": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "directory_listing-backup": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "directory_listing-data": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "directory_listing-sensitive-403": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
   "robots_txt-connection-failed": {
     "gravite": "Mineure",
     "vraisemblance": "Forte"
