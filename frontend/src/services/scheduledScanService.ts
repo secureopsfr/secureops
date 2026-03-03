@@ -20,6 +20,14 @@ export interface ScheduledScan {
   created_at: string;
 }
 
+export interface ScanAlertEvent {
+  id: string;
+  url: string;
+  alert_type: string;
+  email_sent: boolean;
+  triggered_at: string;
+}
+
 export interface CreateScheduledScanInput {
   url: string;
   frequency: Frequency;
@@ -115,6 +123,8 @@ export async function updateScheduledScan(
   if (input.schedule_day_of_month !== undefined)
     body.schedule_day_of_month = input.schedule_day_of_month;
   if (input.enabled !== undefined) body.enabled = input.enabled;
+  if (input.scan_alerts_enabled !== undefined)
+    body.scan_alerts_enabled = input.scan_alerts_enabled;
 
   const response = await fetchWithAuth(
     `${getApiBaseUrl()}/user/api/scans/schedule/${id}`,
@@ -145,4 +155,19 @@ export async function deleteScheduledScan(id: string): Promise<void> {
         "Erreur lors de la suppression du scan planifié",
     );
   }
+}
+
+export async function getScanAlertHistory(): Promise<ScanAlertEvent[]> {
+  const response = await fetchWithAuth(
+    `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history`,
+    { method: "GET" },
+  );
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(
+      (err.detail as string) ||
+        "Erreur lors de la récupération de l'historique des alertes",
+    );
+  }
+  return response.json();
 }

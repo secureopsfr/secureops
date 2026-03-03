@@ -15,6 +15,7 @@ import ScanResultsGate from "./ScanResultsGate";
 import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
 import ScanHistoryBlock from "./ScanHistoryBlock";
 import ScheduledScansBlock from "./ScheduledScansBlock";
+import AlertHistoryBlock from "./AlertHistoryBlock";
 import {
   runScan,
   type ScanResult,
@@ -138,7 +139,7 @@ export default function ScannerContent() {
   const showHeader = state === "idle" || state === "error";
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] space-y-8 px-4 sm:px-6 md:px-8">
+    <div className="space-y-8 w-full">
       {showHeader && (
         <AnimateInView
           initialOnly
@@ -205,13 +206,20 @@ export default function ScannerContent() {
               {isAuthenticated && !authLoading && (
                 <>
                   <ScheduledScansBlock />
-                  <ScanHistoryBlock
-                    onSelectScan={(r, id) => {
-                      setResult(r);
-                      setScanId(id ?? null);
-                      setState("success");
-                    }}
-                  />
+                  <div className="flex flex-col lg:flex-row gap-6 mt-6">
+                    <div className="flex-1 min-w-0">
+                      <ScanHistoryBlock
+                        onSelectScan={(r, id) => {
+                          setResult(r);
+                          setScanId(id ?? null);
+                          setState("success");
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <AlertHistoryBlock />
+                    </div>
+                  </div>
                 </>
               )}
             </>

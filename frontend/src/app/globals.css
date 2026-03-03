@@ -757,6 +757,12 @@
     max-width: 1200px;
   }
 
+  /* Page scanner : même largeur que l'admin (1400px) */
+  .scanner-page section.landing-section,
+  .scanner-page .page-container {
+    max-width: 1400px;
+  }
+
   .section-title-block {
     text-align: center;
     margin-bottom: 3rem;

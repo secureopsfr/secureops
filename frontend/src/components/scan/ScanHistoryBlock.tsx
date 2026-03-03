@@ -115,7 +115,7 @@ export default function ScanHistoryBlock({
 
   return (
     <>
-      <Card disableHover className="mt-6">
+      <Card disableHover>
         <div className="flex items-center gap-3 mb-4">
           <History className="w-6 h-6 text-[rgb(var(--primary))]" />
           <h2 className="text-xl font-bold text-[var(--text)]">

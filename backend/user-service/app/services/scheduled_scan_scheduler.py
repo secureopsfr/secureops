@@ -147,6 +147,7 @@ async def run_due_scheduled_scans() -> tuple[int, int]:
                     data=data,
                     last_scan=last_scan,
                     scan_alerts_enabled=getattr(scan, "scan_alerts_enabled", True),
+                    scheduled_scan_id=scan.id,
                 )
                 await _persist_result_and_schedule_next(scan, data, now)
                 success_count += 1

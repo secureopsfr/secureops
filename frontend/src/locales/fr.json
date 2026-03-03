@@ -416,7 +416,18 @@
     "alertsOn": "Alertes activées",
     "alertsOff": "Alertes désactivées",
     "alertsEnabled": "Alertes activées",
-    "alertsDisabled": "Alertes désactivées"
+    "alertsDisabled": "Alertes désactivées",
+    "alertHistoryTitle": "Historique des alertes",
+    "alertHistoryEmpty": "Aucune alerte déclenchée.",
+    "alertHistoryLoadError": "Erreur lors du chargement de l'historique des alertes.",
+    "alertHistoryUrl": "URL",
+    "alertHistoryType": "Type",
+    "alertHistoryEmailSent": "Email",
+    "alertHistoryDate": "Date",
+    "alertTypeRegression": "Régression score",
+    "alertTypeCriticalFinding": "Finding critique",
+    "yes": "Oui",
+    "no": "Non"
   },
   "profile": {
     "title": "Profil",

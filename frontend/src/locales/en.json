@@ -416,7 +416,18 @@
     "alertsOn": "Alerts enabled",
     "alertsOff": "Alerts disabled",
     "alertsEnabled": "Alerts enabled",
-    "alertsDisabled": "Alerts disabled"
+    "alertsDisabled": "Alerts disabled",
+    "alertHistoryTitle": "Alert history",
+    "alertHistoryEmpty": "No alerts triggered.",
+    "alertHistoryLoadError": "Error loading alert history.",
+    "alertHistoryUrl": "URL",
+    "alertHistoryType": "Type",
+    "alertHistoryEmailSent": "Email",
+    "alertHistoryDate": "Date",
+    "alertTypeRegression": "Score regression",
+    "alertTypeCriticalFinding": "Critical finding",
+    "yes": "Yes",
+    "no": "No"
   },
   "profile": {
     "title": "Profile",

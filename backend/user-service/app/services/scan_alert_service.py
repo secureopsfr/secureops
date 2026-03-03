@@ -1,13 +1,17 @@
 """Service d'alertes pour les scans planifiés (régression score, finding critical).
 
-Appelle l'admin-service pour l'envoi des emails.
+Appelle l'admin-service pour l'envoi des emails et persiste l'historique.
 """
 
 import os
+import uuid
 from typing import Any
 
 import httpx
 from common.logging_config import get_logger
+
+from app.db import get_async_session
+from app.services.scan_alert_repository import create_scan_alert_event
 
 logger = get_logger(__name__)
 
@@ -63,8 +67,12 @@ def _build_critical_finding_alert(data: dict, url: str) -> dict | None:
     }
 
 
-async def _send_alert(alert: dict, user_email: str, url: str) -> None:
-    """Envoie une alerte à l'admin-service."""
+async def _send_alert(alert: dict, user_email: str, url: str) -> bool:
+    """Envoie une alerte à l'admin-service.
+
+    Returns:
+        bool: True si l'email a été envoyé avec succès (status 200).
+    """
     try:
         payload = {
             "to_email": user_email.strip(),
@@ -82,19 +90,23 @@ async def _send_alert(alert: dict, user_email: str, url: str) -> None:
             )
         if resp.status_code != 200:
             logger.warning("Alert scan non envoyée: admin-service %s %s", resp.status_code, resp.text[:200])
+            return False
+        return True
     except Exception as e:
         logger.warning("Erreur envoi alerte scan: %s", e)
+        return False
 
 
 async def check_and_send_scan_alerts(
-    user_id,
+    user_id: uuid.UUID,
     user_email: str,
     url: str,
     data: dict,
     last_scan,
     scan_alerts_enabled: bool,
+    scheduled_scan_id: uuid.UUID | None = None,
 ) -> None:
-    """Vérifie les conditions d'alerte et envoie les emails via admin-service.
+    """Vérifie les conditions d'alerte, envoie les emails et persiste l'historique.
 
     Args:
         user_id: UUID de l'utilisateur.
@@ -103,6 +115,7 @@ async def check_and_send_scan_alerts(
         data: Réponse du scan-service (score, findings, etc.).
         last_scan: Dernier scan pour cette URL (ou None).
         scan_alerts_enabled: Si l'utilisateur a activé les alertes.
+        scheduled_scan_id: UUID du scan planifié (optionnel).
     """
     if not scan_alerts_enabled or not user_email or not user_email.strip():
         return
@@ -118,4 +131,13 @@ async def check_and_send_scan_alerts(
         alerts_to_send.append(crit)
 
     for alert in alerts_to_send:
-        await _send_alert(alert, user_email, url)
+        email_sent = await _send_alert(alert, user_email, url)
+        async with get_async_session() as session:
+            await create_scan_alert_event(
+                session=session,
+                user_id=user_id,
+                url=url,
+                alert_type=alert["alert_type"],
+                email_sent=email_sent,
+                scheduled_scan_id=scheduled_scan_id,
+            )

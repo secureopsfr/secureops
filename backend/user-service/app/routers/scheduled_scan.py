@@ -8,10 +8,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.db import get_async_session
 from app.schemas.scheduled_scan import (
+    ScanAlertEventResponse,
     ScheduledScanCreateRequest,
     ScheduledScanResponse,
     ScheduledScanUpdateRequest,
 )
+from app.services.scan_alert_repository import list_scan_alert_events_by_user
 from app.services.scheduled_scan_repository import (
     create_scheduled_scan,
     delete_scheduled_scan,
@@ -174,6 +176,35 @@ async def patch_scheduled_scan(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erreur lors de la modification du scan planifié",
+        )
+
+
+@router.get("/schedule/alerts/history", response_model=List[ScanAlertEventResponse])
+async def list_scan_alert_history(
+    current_user: Annotated[Dict, Depends(get_current_user)],
+) -> List[ScanAlertEventResponse]:
+    """Liste l'historique des alertes déclenchées pour l'utilisateur."""
+    try:
+        user_id = await _resolve_user_id(current_user)
+        async with get_async_session() as session:
+            events = await list_scan_alert_events_by_user(session, user_id)
+            return [
+                ScanAlertEventResponse(
+                    id=str(e.id),
+                    url=e.url,
+                    alert_type=e.alert_type,
+                    email_sent=e.email_sent,
+                    triggered_at=e.triggered_at,
+                )
+                for e in events
+            ]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Erreur lors de la récupération de l'historique des alertes: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de la récupération de l'historique des alertes",
         )
 
 

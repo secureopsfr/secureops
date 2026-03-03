@@ -60,3 +60,13 @@ class ScheduledScanResponse(BaseModel):
     enabled: bool = Field(..., description="Scan actif ou en pause")
     scan_alerts_enabled: bool = Field(True, description="Alertes email régression/finding critique")
     created_at: datetime = Field(..., description="Date de création")
+
+
+class ScanAlertEventResponse(BaseModel):
+    """Réponse pour un événement d'alerte déclenché."""
+
+    id: str = Field(..., description="UUID de l'événement")
+    url: str = Field(..., description="URL scannée")
+    alert_type: str = Field(..., description="Type : regression ou critical_finding")
+    email_sent: bool = Field(..., description="True si l'email a été envoyé avec succès")
+    triggered_at: datetime = Field(..., description="Date/heure du déclenchement")
