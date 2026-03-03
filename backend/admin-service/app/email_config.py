@@ -291,3 +291,58 @@ def send_alert_email(
     except Exception as e:
         logger.error("[Alerting] Erreur lors de l'envoi de l'email d'alerte: %s", e)
         return False
+
+
+def send_scan_alert_email(
+    to_email: str,
+    url: str,
+    subject: str,
+    message: str,
+    severity: str = "warning",
+    alert_type: str = "regression",
+) -> bool:
+    """Envoie un email d'alerte de scan planifié à un utilisateur.
+
+    Utilisé pour les alertes de régression (score) ou finding critical.
+
+    Args:
+        to_email: Adresse du destinataire.
+        url: URL scannée.
+        subject: Sujet de l'email.
+        message: Message descriptif.
+        severity: Gravité (warning, critical).
+        alert_type: Type d'alerte (regression, critical_finding).
+
+    Returns:
+        bool: True si l'envoi a réussi.
+    """
+    if not to_email or not to_email.strip():
+        logger.warning("[ScanAlert] Email destinataire vide. Notification ignorée.")
+        return False
+
+    severity_styles = {
+        "critical": {"color": "#dc2626", "bg": "#fef2f2"},
+        "warning": {"color": "#d97706", "bg": "#fffbeb"},
+    }
+    styles = severity_styles.get(severity.lower(), severity_styles["warning"])
+
+    try:
+        html_content = _load_template(
+            "scan_alert.html",
+            {
+                "subject": subject,
+                "severity": severity,
+                "severity_color": styles["color"],
+                "severity_bg": styles["bg"],
+                "url": url,
+                "message": message,
+                "alert_type": alert_type,
+                "frontend_url": FRONTEND_URL,
+            },
+        )
+        _send_graph_email(to_email=to_email.strip(), subject=subject, html_body=html_content, save_to_sent=False)
+        logger.info("[ScanAlert] Email envoyé à %s pour %s sur %s", to_email[:20], alert_type, url[:50])
+        return True
+    except Exception as e:
+        logger.error("[ScanAlert] Erreur envoi email: %s", e)
+        return False

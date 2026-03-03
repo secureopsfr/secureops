@@ -16,6 +16,7 @@ export interface ScheduledScan {
   schedule_day_of_month: number | null;
   next_run_at: string;
   enabled: boolean;
+  scan_alerts_enabled: boolean;
   created_at: string;
 }
 
@@ -28,6 +29,8 @@ export interface CreateScheduledScanInput {
   schedule_day_of_month?: number;
   /** Fuseau utilisateur (ex. Europe/Paris). Si absent, détecté automatiquement. */
   timezone?: string;
+  /** Recevoir des emails en cas de régression ou finding critique (défaut true). */
+  scan_alerts_enabled?: boolean;
 }
 
 /** Retourne le fuseau horaire du navigateur (ex. Europe/Paris). */
@@ -46,6 +49,7 @@ export interface UpdateScheduledScanInput {
   schedule_day_of_week?: number;
   schedule_day_of_month?: number;
   enabled?: boolean;
+  scan_alerts_enabled?: boolean;
 }
 
 export async function createScheduledScan(
@@ -63,6 +67,7 @@ export async function createScheduledScan(
         schedule_day_of_week: input.schedule_day_of_week ?? null,
         schedule_day_of_month: input.schedule_day_of_month ?? null,
         timezone: input.timezone ?? getUserTimezone(),
+        scan_alerts_enabled: input.scan_alerts_enabled ?? true,
       }),
     },
   );

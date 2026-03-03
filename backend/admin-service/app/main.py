@@ -23,6 +23,7 @@ from app.routers.contact_public import router as contact_public_router
 from app.routers.email_templates import router as email_templates_router
 from app.routers.health import router as health_router
 from app.routers.image_upload import router as image_upload_router
+from app.routers.internal_notifications import router as internal_notifications_router
 from app.routers.kpis import router as performance_router
 from app.routers.mailing_list import router as mailing_list_router
 from app.routers.newsletter import router as newsletter_router
@@ -174,6 +175,7 @@ def create_app() -> FastAPI:
     app.include_router(subscription_router, prefix=_API)
     app.include_router(audit_router, prefix=_API)
     app.include_router(alerting_router, prefix=_API)
+    app.include_router(internal_notifications_router)
 
     register_exception_handlers(app)
 

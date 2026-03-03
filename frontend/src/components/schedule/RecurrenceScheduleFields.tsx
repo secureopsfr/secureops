@@ -32,6 +32,8 @@ interface RecurrenceScheduleFieldsProps {
   onTimeChange: (time: string) => void;
   onDayOfWeekChange: (d: number) => void;
   onDayOfMonthChange: (d: number) => void;
+  /** Contenu optionnel affiché juste après le champ "heure d'exécution". */
+  afterTimeSlot?: React.ReactNode;
 }
 
 /**
@@ -53,6 +55,7 @@ export default function RecurrenceScheduleFields({
   onTimeChange,
   onDayOfWeekChange,
   onDayOfMonthChange,
+  afterTimeSlot,
 }: RecurrenceScheduleFieldsProps) {
   const { t } = useLanguage();
   const parts = (timeValue || "00:00").split(":");
@@ -106,6 +109,7 @@ export default function RecurrenceScheduleFields({
           aria-label={t(timeLabelKey)}
         />
       </div>
+      {afterTimeSlot}
       {frequency === "weekly" && (
         <div>
           <label className="block text-sm font-medium text-[var(--text)] mb-2">

@@ -159,9 +159,10 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - [x] `DELETE /user/api/scans/schedule/{id}` : supprimer
 - **Fait :** `app/routers/scheduled_scan.py`, schémas `app/schemas/scheduled_scan.py`
 
-### 4.4 Alertes (optionnel)
-- [ ] Détection de régression (score chute vs dernier scan)
-- [ ] Email ou notification si finding critical détecté
+### 4.4 Alertes (optionnel) ✅
+- [x] Détection de régression (score chute vs dernier scan)
+- [x] Email ou notification si finding critical détecté
+- **Fait :** admin-service endpoint `/api/internal/notifications/scan-alert`, user-service `scan_alert_service.py`, préférence `scan_alerts_enabled`, toggle dans Settings
 
 ### 4.5 Frontend ✅
 - [x] Bloc « Scans planifiés » sur la page Scanner (visible si connecté, comme l'historique)

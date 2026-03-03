@@ -56,6 +56,13 @@ class ScheduledScan(Base):
 
     enabled = Column(Boolean, nullable=False, default=True, comment="Scan actif ou en pause")
 
+    scan_alerts_enabled = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+        comment="Alertes email pour régression score ou finding critical (ce scan)",
+    )
+
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, comment="Date de création")
     updated_at = Column(
         DateTime(timezone=True),

@@ -59,6 +59,7 @@ def _to_response(scan) -> ScheduledScanResponse:
         timezone=getattr(scan, "timezone", None),
         next_run_at=scan.next_run_at,
         enabled=scan.enabled,
+        scan_alerts_enabled=getattr(scan, "scan_alerts_enabled", True),
         created_at=scan.created_at,
     )
 
@@ -82,6 +83,7 @@ async def create_scheduled_scan_entry(
                 schedule_day_of_week=body.schedule_day_of_week,
                 schedule_day_of_month=body.schedule_day_of_month,
                 timezone_name=body.timezone,
+                scan_alerts_enabled=body.scan_alerts_enabled,
             )
             return _to_response(scan)
     except HTTPException:
@@ -140,6 +142,7 @@ async def patch_scheduled_scan(
                 schedule_day_of_month=body.schedule_day_of_month,
                 timezone_name=body.timezone,
                 enabled=body.enabled,
+                scan_alerts_enabled=body.scan_alerts_enabled,
             )
             if not scan:
                 raise HTTPException(

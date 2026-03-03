@@ -8,10 +8,12 @@ import httpx
 from common.logging_config import get_logger
 
 from app.db import get_async_session
-from app.services.scan_repository import create_scan
+from app.services.scan_alert_service import check_and_send_scan_alerts
+from app.services.scan_repository import create_scan, get_last_scan_by_user_and_url
 from app.services.scheduled_scan_repository import get_scans_due_for_execution, update_next_run_at
 from app.services.scheduled_scan_utils import compute_next_run
 from app.services.subscription_repository import get_subscription_by_user_id
+from app.services.user_repository import get_user_by_id
 from app.utils.url_utils import URLValidationError, normalize_scan_url
 
 logger = get_logger(__name__)
@@ -134,6 +136,18 @@ async def run_due_scheduled_scans() -> tuple[int, int]:
                 continue
 
             if "score" in data and "findings" in data:
+                # Alertes (régression, finding critical) avant persistance
+                async with get_async_session() as session:
+                    user = await get_user_by_id(session, scan.user_id)
+                    last_scan = await get_last_scan_by_user_and_url(session, scan.user_id, url_to_scan)
+                await check_and_send_scan_alerts(
+                    user_id=scan.user_id,
+                    user_email=user.email if user else "",
+                    url=url_to_scan,
+                    data=data,
+                    last_scan=last_scan,
+                    scan_alerts_enabled=getattr(scan, "scan_alerts_enabled", True),
+                )
                 await _persist_result_and_schedule_next(scan, data, now)
                 success_count += 1
                 logger.info("Scan planifié exécuté: id=%s url=%s score=%s", scan.id, scan.url[:50], data.get("score"))

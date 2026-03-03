@@ -410,7 +410,13 @@
     "deleteConfirmBtn": "Supprimer",
     "createSuccess": "Scan planifié créé",
     "createError": "Erreur lors de la création",
-    "updateError": "Erreur lors de la modification"
+    "updateError": "Erreur lors de la modification",
+    "scanAlerts": "Alertes par email",
+    "scanAlertsDesc": "Recevoir un email en cas de régression de score ou de finding critique",
+    "alertsOn": "Alertes activées",
+    "alertsOff": "Alertes désactivées",
+    "alertsEnabled": "Alertes activées",
+    "alertsDisabled": "Alertes désactivées"
   },
   "profile": {
     "title": "Profil",
@@ -465,6 +471,10 @@
     "newFeatures": "Notifications de nouveautés",
     "newFeaturesDesc": "Soyez informé par email des nouvelles données et fonctionnalités (quelques fois par an)",
     "newFeaturesUpdated": "Préférence de notifications mise à jour",
+    "scanAlerts": "Alertes scans planifiés",
+    "scanAlertsDesc": "Recevez un email en cas de régression de score ou de finding critique sur vos scans planifiés",
+    "scanAlertsUpdated": "Préférence d'alertes scans mise à jour",
+    "scanAlertsError": "Erreur lors de la mise à jour des alertes scans",
     "newFeaturesError": "Erreur lors de la mise à jour de la préférence",
     "updateError": "Erreur lors de la mise à jour"
   },

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { CalendarClock, Plus, Pause, Play, Trash2 } from "lucide-react";
+import { CalendarClock, Mail, Plus, Pause, Play, Trash2 } from "lucide-react";
 import Card from "../cards/Card";
 import ConfirmModal from "../ConfirmModal";
 import LoadingScreen from "../LoadingScreen";
@@ -16,6 +16,7 @@ import {
   type ScheduledScan,
   type Frequency,
 } from "../../services/scheduledScanService";
+import { ToggleSwitch } from "../inputs";
 import { ScheduleFormPanel, RecurrenceScheduleFields } from "../schedule";
 import { formatDateTimeShort } from "../../utils/dateFormat";
 import { normalizeScanUrl } from "../../utils/scanUrl";
@@ -57,6 +58,7 @@ export default function ScheduledScansBlock() {
   const [formTime, setFormTime] = useState("02:00");
   const [formDayOfWeek, setFormDayOfWeek] = useState(0);
   const [formDayOfMonth, setFormDayOfMonth] = useState(15);
+  const [formScanAlertsEnabled, setFormScanAlertsEnabled] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,10 +95,12 @@ export default function ScheduledScansBlock() {
         schedule_day_of_month:
           formFrequency === "monthly" ? formDayOfMonth : undefined,
         timezone: getUserTimezone(),
+        scan_alerts_enabled: formScanAlertsEnabled,
       });
       setItems((prev) => [...prev, created]);
       setShowForm(false);
       setFormUrl("");
+      setFormScanAlertsEnabled(true);
       showSuccessToast(t("scheduledScans.createSuccess"));
     } catch (err) {
       showErrorToast(
@@ -104,6 +108,22 @@ export default function ScheduledScansBlock() {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleToggleAlerts = async (item: ScheduledScan) => {
+    try {
+      const updated = await updateScheduledScan(item.id, {
+        scan_alerts_enabled: !item.scan_alerts_enabled,
+      });
+      setItems((prev) => prev.map((i) => (i.id === item.id ? updated : i)));
+      showSuccessToast(
+        updated.scan_alerts_enabled !== false
+          ? t("scheduledScans.alertsEnabled")
+          : t("scheduledScans.alertsDisabled"),
+      );
+    } catch {
+      showErrorToast(t("scheduledScans.updateError"));
     }
   };
 
@@ -190,6 +210,27 @@ export default function ScheduledScansBlock() {
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
+                        onClick={() => handleToggleAlerts(item)}
+                        className={`p-2 shrink-0 cursor-pointer ${
+                          item.scan_alerts_enabled !== false
+                            ? "text-[rgb(var(--primary))]"
+                            : "text-[var(--muted)]"
+                        }`}
+                        aria-label={
+                          item.scan_alerts_enabled !== false
+                            ? t("scheduledScans.alertsOn")
+                            : t("scheduledScans.alertsOff")
+                        }
+                        title={
+                          item.scan_alerts_enabled !== false
+                            ? t("scheduledScans.alertsOn")
+                            : t("scheduledScans.alertsOff")
+                        }
+                      >
+                        <Mail className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleToggleEnabled(item)}
                         className="p-2 text-[var(--muted)] hover:text-[rgb(var(--primary))] shrink-0 cursor-pointer"
                         aria-label={
@@ -246,6 +287,22 @@ export default function ScheduledScansBlock() {
                   onTimeChange={setFormTime}
                   onDayOfWeekChange={setFormDayOfWeek}
                   onDayOfMonthChange={setFormDayOfMonth}
+                  afterTimeSlot={
+                    <div className="flex items-center justify-between py-2">
+                      <div>
+                        <p className="text-sm font-medium text-[var(--text)]">
+                          {t("scheduledScans.scanAlerts")}
+                        </p>
+                        <p className="text-xs text-[var(--muted)]">
+                          {t("scheduledScans.scanAlertsDesc")}
+                        </p>
+                      </div>
+                      <ToggleSwitch
+                        checked={formScanAlertsEnabled}
+                        onChange={() => setFormScanAlertsEnabled((v) => !v)}
+                      />
+                    </div>
+                  }
                 />
                 <div className="flex gap-2 pt-2">
                   <GenericButton
@@ -259,6 +316,7 @@ export default function ScheduledScansBlock() {
                     onClick={() => {
                       setShowForm(false);
                       setFormUrl("");
+                      setFormScanAlertsEnabled(true);
                     }}
                   />
                 </div>

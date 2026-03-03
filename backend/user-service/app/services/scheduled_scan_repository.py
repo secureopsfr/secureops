@@ -23,6 +23,7 @@ async def create_scheduled_scan(
     schedule_day_of_week: Optional[int] = None,
     schedule_day_of_month: Optional[int] = None,
     timezone_name: Optional[str] = None,
+    scan_alerts_enabled: bool = True,
 ) -> ScheduledScan:
     """Crée un scan planifié.
 
@@ -135,6 +136,7 @@ async def update_scheduled_scan(
     schedule_day_of_month: Optional[int] = None,
     timezone_name: Optional[str] = None,
     enabled: Optional[bool] = None,
+    scan_alerts_enabled: Optional[bool] = None,
 ) -> Optional[ScheduledScan]:
     """Met à jour un scan planifié.
 
@@ -170,6 +172,8 @@ async def update_scheduled_scan(
         scan.timezone = timezone_name
     if enabled is not None:
         scan.enabled = enabled
+    if scan_alerts_enabled is not None:
+        scan.scan_alerts_enabled = scan_alerts_enabled
 
     scan.updated_at = datetime.now(UTC)
     await session.commit()

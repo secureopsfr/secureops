@@ -20,6 +20,7 @@ class ScheduledScanCreateRequest(BaseModel):
     schedule_day_of_week: Optional[int] = Field(None, ge=0, le=6, description="Jour de la semaine pour weekly (0=lundi, 6=dimanche)")
     schedule_day_of_month: Optional[int] = Field(None, ge=1, le=31, description="Jour du mois pour monthly (1-31)")
     timezone: Optional[str] = Field(None, description="Fuseau utilisateur (ex. Europe/Paris). Si null, UTC.")
+    scan_alerts_enabled: bool = Field(True, description="Recevoir des emails en cas de régression ou finding critique")
 
     @field_validator("url")
     @classmethod
@@ -41,6 +42,7 @@ class ScheduledScanUpdateRequest(BaseModel):
     schedule_day_of_month: Optional[int] = Field(None, ge=1, le=31)
     timezone: Optional[str] = Field(None, description="Fuseau utilisateur (ex. Europe/Paris)")
     enabled: Optional[bool] = Field(None, description="Actif ou en pause")
+    scan_alerts_enabled: Optional[bool] = Field(None, description="Alertes email régression/finding critique")
 
 
 class ScheduledScanResponse(BaseModel):
@@ -56,4 +58,5 @@ class ScheduledScanResponse(BaseModel):
     timezone: Optional[str] = Field(None, description="Fuseau utilisateur (ex. Europe/Paris)")
     next_run_at: datetime = Field(..., description="Prochaine exécution planifiée")
     enabled: bool = Field(..., description="Scan actif ou en pause")
+    scan_alerts_enabled: bool = Field(True, description="Alertes email régression/finding critique")
     created_at: datetime = Field(..., description="Date de création")
