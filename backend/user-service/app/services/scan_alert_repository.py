@@ -3,7 +3,7 @@
 import uuid
 from typing import List
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scan_alert_event import ScanAlertEvent
@@ -62,3 +62,25 @@ async def list_scan_alert_events_by_user(
         select(ScanAlertEvent).where(ScanAlertEvent.user_id == user_id).order_by(ScanAlertEvent.triggered_at.desc()).limit(limit),
     )
     return list(result.scalars().all())
+
+
+async def delete_scan_alert_event(
+    session: AsyncSession,
+    event_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> bool:
+    """Supprime un événement d'alerte s'il appartient à l'utilisateur.
+
+    Args:
+        session: Session de base de données.
+        event_id: UUID de l'événement.
+        user_id: UUID de l'utilisateur (vérification propriété).
+
+    Returns:
+        True si supprimé, False si non trouvé.
+    """
+    result = await session.execute(
+        delete(ScanAlertEvent).where(ScanAlertEvent.id == event_id, ScanAlertEvent.user_id == user_id),
+    )
+    await session.commit()
+    return result.rowcount > 0

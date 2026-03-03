@@ -1,22 +1,27 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { Bell } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Bell, Trash2 } from "lucide-react";
 import Card from "../cards/Card";
+import ConfirmModal from "../ConfirmModal";
 import LoadingScreen from "../LoadingScreen";
-import Table from "../Table";
 import { useLanguage } from "../LanguageProvider";
 import {
   getScanAlertHistory,
+  deleteScanAlertEvent,
   type ScanAlertEvent,
 } from "../../services/scheduledScanService";
 import { formatDate } from "../../utils/dateFormat";
-import { showErrorToast } from "../../utils/toastNotifications";
+import {
+  showErrorToast,
+  showSuccessToast,
+} from "../../utils/toastNotifications";
 
 export default function AlertHistoryBlock() {
   const { t } = useLanguage();
   const [alertHistory, setAlertHistory] = useState<ScanAlertEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -45,34 +50,36 @@ export default function AlertHistoryBlock() {
   const formatUrlDisplay = (url: string) =>
     url.replace(/^https?:\/\//, "").replace(/\/$/, "") || url;
 
-  const alertHistoryColumns = [
-    {
-      key: "url" as const,
-      header: t("scheduledScans.alertHistoryUrl"),
-      sortable: true,
-      sticky: true,
-      render: (e: ScanAlertEvent) => formatUrlDisplay(e.url),
-    },
-    {
-      key: "alert_type" as const,
-      header: t("scheduledScans.alertHistoryType"),
-      sortable: true,
-      render: (e: ScanAlertEvent) => getAlertTypeLabel(e.alert_type),
-    },
-    {
-      key: "email_sent" as const,
-      header: t("scheduledScans.alertHistoryEmailSent"),
-      sortable: true,
-      render: (e: ScanAlertEvent) =>
-        e.email_sent ? t("scheduledScans.yes") : t("scheduledScans.no"),
-    },
-    {
-      key: "triggered_at" as const,
-      header: t("scheduledScans.alertHistoryDate"),
-      sortable: true,
-      render: (e: ScanAlertEvent) => formatDate(e.triggered_at),
-    },
-  ];
+  const sortedItems = useMemo(
+    () =>
+      [...alertHistory].sort(
+        (a, b) =>
+          new Date(b.triggered_at).getTime() -
+          new Date(a.triggered_at).getTime(),
+      ),
+    [alertHistory],
+  );
+
+  const handleDeleteClick = useCallback((id: string) => {
+    setDeleteTargetId(id);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    const id = deleteTargetId;
+    if (!id) return;
+    setDeleteTargetId(null);
+    try {
+      await deleteScanAlertEvent(id);
+      setAlertHistory((prev) => prev.filter((e) => e.id !== id));
+      showSuccessToast(t("scheduledScans.alertHistoryDeleteSuccess"));
+    } catch {
+      showErrorToast(t("scheduledScans.alertHistoryDeleteError"));
+    }
+  }, [deleteTargetId, t]);
+
+  const handleDeleteModalClose = useCallback(() => {
+    setDeleteTargetId(null);
+  }, []);
 
   return (
     <Card disableHover>
@@ -82,19 +89,60 @@ export default function AlertHistoryBlock() {
           {t("scheduledScans.alertHistoryTitle")}
         </h2>
       </div>
-      {loading ? (
-        <LoadingScreen
-          variant="section"
-          message={t("scheduledScans.loading")}
-        />
-      ) : (
-        <Table<ScanAlertEvent>
-          data={alertHistory}
-          columns={alertHistoryColumns}
-          emptyMessage={t("scheduledScans.alertHistoryEmpty")}
-          defaultSort={{ key: "triggered_at", direction: "desc" }}
-        />
-      )}
+      <div className="space-y-4">
+        {loading ? (
+          <LoadingScreen
+            variant="section"
+            message={t("scheduledScans.loading")}
+          />
+        ) : sortedItems.length === 0 ? (
+          <p className="text-muted-theme">
+            {t("scheduledScans.alertHistoryEmpty")}
+          </p>
+        ) : (
+          <ul className="divide-y divide-[var(--color-border)]">
+            {sortedItems.map((item) => (
+              <li
+                key={item.id}
+                className="py-3 flex items-center justify-between gap-4"
+              >
+                <div className="text-left flex-1 min-w-0">
+                  <span className="font-medium text-[var(--text)] block truncate break-all">
+                    {formatUrlDisplay(item.url)}
+                  </span>
+                  <span className="text-xs text-[var(--muted)]">
+                    {formatDate(item.triggered_at)} ·{" "}
+                    {getAlertTypeLabel(item.alert_type)} ·{" "}
+                    {item.email_sent
+                      ? t("scheduledScans.emailSent")
+                      : t("scheduledScans.no")}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteClick(item.id)}
+                  className="p-2 text-[var(--muted)] hover:text-[rgb(var(--danger))] shrink-0 cursor-pointer"
+                  aria-label={t("scheduledScans.alertHistoryDelete")}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <ConfirmModal
+        isOpen={deleteTargetId !== null}
+        onClose={handleDeleteModalClose}
+        onConfirm={handleDeleteConfirm}
+        title={t("scheduledScans.alertHistoryDeleteModalTitle")}
+        message={t("scheduledScans.alertHistoryDeleteConfirm")}
+        confirmText={t("scheduledScans.alertHistoryDeleteBtn")}
+        cancelText={t("common.cancel")}
+        variant="danger"
+        icon={Trash2}
+      />
     </Card>
   );
 }

@@ -171,3 +171,17 @@ export async function getScanAlertHistory(): Promise<ScanAlertEvent[]> {
   }
   return response.json();
 }
+
+export async function deleteScanAlertEvent(eventId: string): Promise<void> {
+  const response = await fetchWithAuth(
+    `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history/${eventId}`,
+    { method: "DELETE" },
+  );
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(
+      (err.detail as string) ||
+        "Erreur lors de la suppression de l'événement d'alerte",
+    );
+  }
+}

@@ -427,7 +427,14 @@
     "alertTypeRegression": "Régression score",
     "alertTypeCriticalFinding": "Finding critique",
     "yes": "Oui",
-    "no": "Non"
+    "no": "Non",
+    "emailSent": "Email envoyé",
+    "alertHistoryDelete": "Supprimer",
+    "alertHistoryDeleteModalTitle": "Supprimer cette alerte",
+    "alertHistoryDeleteConfirm": "Supprimer cet événement de l'historique des alertes ?",
+    "alertHistoryDeleteBtn": "Supprimer",
+    "alertHistoryDeleteError": "Erreur lors de la suppression",
+    "alertHistoryDeleteSuccess": "Alerte supprimée de l'historique"
   },
   "profile": {
     "title": "Profil",

@@ -13,7 +13,7 @@ from app.schemas.scheduled_scan import (
     ScheduledScanResponse,
     ScheduledScanUpdateRequest,
 )
-from app.services.scan_alert_repository import list_scan_alert_events_by_user
+from app.services.scan_alert_repository import delete_scan_alert_event, list_scan_alert_events_by_user
 from app.services.scheduled_scan_repository import (
     create_scheduled_scan,
     delete_scheduled_scan,
@@ -205,6 +205,36 @@ async def list_scan_alert_history(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erreur lors de la récupération de l'historique des alertes",
+        )
+
+
+@router.delete("/schedule/alerts/history/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_scan_alert_event_entry(
+    event_id: str,
+    current_user: Annotated[Dict, Depends(get_current_user)],
+) -> None:
+    """Supprime un événement d'alerte de l'historique."""
+    try:
+        user_id = await _resolve_user_id(current_user)
+        try:
+            event_uuid = uuid.UUID(event_id)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ID invalide")
+
+        async with get_async_session() as session:
+            deleted = await delete_scan_alert_event(session, event_uuid, user_id)
+            if not deleted:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Événement d'alerte non trouvé",
+                )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Erreur lors de la suppression de l'événement d'alerte: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de la suppression de l'événement d'alerte",
         )
 
 

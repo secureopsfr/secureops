@@ -427,7 +427,14 @@
     "alertTypeRegression": "Score regression",
     "alertTypeCriticalFinding": "Critical finding",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "emailSent": "Email sent",
+    "alertHistoryDelete": "Delete",
+    "alertHistoryDeleteModalTitle": "Delete this alert",
+    "alertHistoryDeleteConfirm": "Delete this event from alert history?",
+    "alertHistoryDeleteBtn": "Delete",
+    "alertHistoryDeleteError": "Error deleting",
+    "alertHistoryDeleteSuccess": "Alert removed from history"
   },
   "profile": {
     "title": "Profile",
