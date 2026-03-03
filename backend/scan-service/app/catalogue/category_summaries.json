@@ -2,8 +2,8 @@
   "tls": {
     "label_fr": "TLS / HTTPS",
     "label_en": "TLS / HTTPS",
-    "description_fr": "Le scan vérifie que le site est accessible en **HTTPS**, que le trafic HTTP redirige vers **HTTPS**, que le **certificat** est valide (non expiré, non auto-signé) et que les versions **TLS** obsolètes (1.0, 1.1) sont désactivées.",
-    "description_en": "The scan verifies that the site is accessible via **HTTPS**, that HTTP traffic redirects to **HTTPS**, that the **certificate** is valid (not expired, not self-signed), and that obsolete **TLS** versions (1.0, 1.1) are disabled.",
+    "description_fr": "Le scan vérifie que le site est accessible en **HTTPS**, que le trafic HTTP redirige vers **HTTPS**, que le **certificat** est valide (non expiré, non auto-signé), que la **chaîne de certificats** est complète (intermédiaires inclus), et que les versions **TLS** obsolètes (1.0, 1.1) sont désactivées. Une alerte est émise si le certificat expire dans moins de 30 jours.",
+    "description_en": "The scan verifies that the site is accessible via **HTTPS**, that HTTP traffic redirects to **HTTPS**, that the **certificate** is valid (not expired, not self-signed), that the **certificate chain** is complete (intermediates included), and that obsolete **TLS** versions (1.0, 1.1) are disabled. An alert is issued if the certificate expires in less than 30 days.",
     "checks_fr": ["**HTTPS** activé", "Redirection **HTTP→HTTPS**", "**Certificat** valide", "Pas de **TLS** 1.0/1.1"],
     "checks_en": ["**HTTPS** enabled", "**HTTP→HTTPS** redirect", "Valid **certificate**", "No **TLS** 1.0/1.1"]
   },

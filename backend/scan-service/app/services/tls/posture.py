@@ -42,4 +42,7 @@ def compute_tls_posture(result: TlsCheckResult) -> str:
     if cert_status == "expires_soon":
         return POSTURE_WARNING
 
+    if result.chain_incomplete:
+        return POSTURE_WARNING
+
     return POSTURE_OK

@@ -23,6 +23,10 @@
     "gravite": "Significative",
     "vraisemblance": "Faible"
   },
+  "tls-chain-incomplete": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
   "tls-versions-obsolete": {
     "gravite": "Importante",
     "vraisemblance": "Forte"

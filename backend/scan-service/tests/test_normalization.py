@@ -101,6 +101,53 @@ def test_normalize_tls_findings_versions_obsolete() -> None:
     assert findings[0].severity == "medium"
 
 
+def test_normalize_tls_expires_soon_severity_by_days() -> None:
+    """tls-cert-expires-soon : gravité low si >= 15 jours, medium si < 15 jours."""
+    result_15_days = TlsCheckResult(
+        https_enabled=True,
+        http_redirects_to_https=True,
+        certificate_status="expires_soon",
+        tls_versions_obsolete=(),
+        findings=("Certificat expire bientôt (dans 15 jour(s), notAfter: 2026-04-02). Renouveler avant expiration.",),
+        fetch_ok=True,
+    )
+    findings_15 = normalize_results({"tls": result_15_days})
+    assert len(findings_15) == 1
+    assert findings_15[0].id == "tls-cert-expires-soon"
+    assert findings_15[0].severity == "low"
+
+    result_7_days = TlsCheckResult(
+        https_enabled=True,
+        http_redirects_to_https=True,
+        certificate_status="expires_soon",
+        tls_versions_obsolete=(),
+        findings=("Certificat expire bientôt (dans 7 jour(s), notAfter: 2026-03-25). Renouveler avant expiration.",),
+        fetch_ok=True,
+    )
+    findings_7 = normalize_results({"tls": result_7_days})
+    assert len(findings_7) == 1
+    assert findings_7[0].severity == "medium"
+
+
+def test_normalize_tls_chain_incomplete() -> None:
+    """TLS finding chaîne incomplète produit tls-chain-incomplete."""
+    result = TlsCheckResult(
+        https_enabled=True,
+        http_redirects_to_https=True,
+        certificate_status="valid",
+        tls_versions_obsolete=(),
+        findings=(
+            "Chaîne de certificats incomplète : le serveur n'envoie que le certificat feuille, "
+            "sans les intermédiaires. Les navigateurs peuvent afficher des avertissements.",
+        ),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"tls": result})
+    assert len(findings) == 1
+    assert findings[0].id == "tls-chain-incomplete"
+    assert findings[0].severity == "medium"
+
+
 def test_normalize_tls_no_findings() -> None:
     """TLS sans findings retourne liste vide."""
     result = TlsCheckResult(

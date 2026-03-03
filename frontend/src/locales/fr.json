@@ -152,7 +152,7 @@
     "anomalies_one": "anomalie",
     "details": "Détails",
     "summarySectionTitle": "Résumé des résultats",
-    "summaryTlsOk": "**HTTPS**, redirection, **certificat** et versions **TLS** vérifiés.",
+    "summaryTlsOk": "**HTTPS**, redirection, **certificat**, **chaîne complète** et versions **TLS** vérifiés. Alerte si expiration < 30 jours.",
     "summaryHeadersOk": "**CSP**, **HSTS**, **X-Frame-Options**, **X-Content-Type-Options**, **Referrer-Policy**, **Permissions-Policy** vérifiés.",
     "summaryCookiesOk": "**Secure**, **HttpOnly**, **SameSite** vérifiés.",
     "summaryExposedFilesOk": "Chemins sensibles (**.env**, **.git**, etc.) non exposés.",

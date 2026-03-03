@@ -45,6 +45,16 @@
     "title_en": "Certificate expires soon",
     "references": ["https://letsencrypt.org/"]
   },
+  "tls-chain-incomplete": {
+    "recommendation": "Configurer le serveur pour envoyer la chaîne complète (certificat feuille + intermédiaires). Nginx : ssl_certificate ; Apache : SSLCertificateChainFile.",
+    "recommendation_en": "Configure the server to send the full chain (leaf + intermediates). Nginx: ssl_certificate; Apache: SSLCertificateChainFile.",
+    "title_fr": "Chaîne de certificats incomplète",
+    "title_en": "Incomplete certificate chain",
+    "references": [
+      "https://www.ssllabs.com/learn/faq",
+      "https://letsencrypt.org/docs/certificate-compatibility/"
+    ]
+  },
   "tls-versions-obsolete": {
     "recommendation": "Désactiver TLS 1.0 et TLS 1.1. Utiliser uniquement TLS 1.2 ou 1.3.",
     "recommendation_en": "Disable TLS 1.0 and TLS 1.1. Use only TLS 1.2 or 1.3.",

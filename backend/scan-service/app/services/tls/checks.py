@@ -9,7 +9,12 @@ import httpx
 from app.config_loader import ScanTimeoutsSettings, get_scan_timeouts
 from app.constants import MSG_HTTPS_UNAVAILABLE
 from app.errors.fetch_errors import classify_fetch_exception
-from app.services.tls.certificate import analyze_certificate, fetch_certificate_der
+from app.services.tls.certificate import (
+    analyze_certificate,
+    fetch_certificate_chain,
+    fetch_certificate_der,
+    verify_certificate_chain,
+)
 from app.services.tls.versions import check_tls_versions_obsolete, get_negotiated_tls_version
 from app.utils.http_fetch import get_with_client
 from app.utils.ssl_scan import ssl_context_for_scan
@@ -33,6 +38,7 @@ class TlsCheckResult:
         certificate_status (str | None): "valid", "expired" ou "self_signed". None si non vérifiable.
         tls_versions_obsolete (tuple[str, ...]): Versions TLS obsolètes supportées (ex. ("1.0", "1.1")).
         tls_version (str | None): Version TLS négociée (ex. "TLS 1.2", "TLS 1.3"). None si non détectable.
+        chain_incomplete (bool): True si la chaîne de certificats est incomplète (intermédiaires manquants).
         findings (tuple[str, ...]): Liste des findings.
         fetch_ok (bool): True si la requête HTTPS a abouti.
     """
@@ -44,6 +50,7 @@ class TlsCheckResult:
     findings: tuple[str, ...]
     fetch_ok: bool = True
     tls_version: str | None = None
+    chain_incomplete: bool = False
 
     def is_posture_valid(self) -> bool:
         """Indique si la posture TLS est acceptable (HTTPS OK, redirect OK, cert valide, pas de TLS obsolète).
@@ -93,16 +100,29 @@ async def _check_tls_versions(host: str, port: int, timeouts: ScanTimeoutsSettin
         return ()
 
 
-async def _check_certificate(host: str, port: int, timeouts: ScanTimeoutsSettings, findings: list[str]) -> str | None:
-    """Vérification 3 : récupère et analyse le certificat. Retourne le statut ou None."""
+async def _check_certificate(host: str, port: int, timeouts: ScanTimeoutsSettings, findings: list[str]) -> tuple[str | None, bool]:
+    """Vérification 3 : récupère et analyse le certificat et la chaîne.
+
+    Returns:
+        tuple[str | None, bool]: (certificate_status, chain_incomplete).
+    """
     try:
-        cert_der = await asyncio.to_thread(fetch_certificate_der, host, port, timeouts.connection)
+        # Tenter d'abord la chaîne complète (openssl) pour vérifier les intermédiaires
+        chain = await asyncio.to_thread(fetch_certificate_chain, host, port, timeouts.connection)
+        cert_der = chain[0] if chain else await asyncio.to_thread(fetch_certificate_der, host, port, timeouts.connection)
         status, cert_findings = analyze_certificate(cert_der, host)
         findings.extend(cert_findings)
-        return status
+
+        chain_incomplete = False
+        if chain and status != "self_signed":
+            chain_ok, chain_findings = verify_certificate_chain(chain, leaf_is_self_signed=False)
+            findings.extend(chain_findings)
+            chain_incomplete = not chain_ok
+
+        return status, chain_incomplete
     except Exception as e:
         findings.append(f"Impossible d'analyser le certificat : {e!s}")
-        return None
+        return None, False
 
 
 async def _fetch_https_when_unset(https_url: str, timeouts: ScanTimeoutsSettings, findings: list[str]) -> httpx.Response | None:
@@ -215,7 +235,7 @@ async def run_tls_checks(
     # Vérification 3 et 4 : certificat et versions TLS (utiliser le port de l'URL)
     host = get_host_from_url(url)
     port = get_https_port_from_url(url)
-    certificate_status = await _check_certificate(host, port, timeouts, findings)
+    certificate_status, chain_incomplete = await _check_certificate(host, port, timeouts, findings)
 
     # Vérification 4 : Versions TLS obsolètes (1.0, 1.1)
     tls_versions_obsolete = await _check_tls_versions(host, port, timeouts, findings)
@@ -230,4 +250,5 @@ async def run_tls_checks(
         tls_versions_obsolete=tls_versions_obsolete,
         findings=tuple(findings),
         tls_version=tls_version,
+        chain_incomplete=chain_incomplete,
     )

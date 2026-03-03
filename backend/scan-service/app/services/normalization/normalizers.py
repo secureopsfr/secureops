@@ -4,6 +4,7 @@ Chaque fonction prend un résultat brut et retourne une liste de Finding normali
 Sévérité en minuscules. Règles d'upgrade : .git/config, .env exposés = critical.
 """
 
+import re
 from typing import Callable, TypedDict
 
 from app.catalogue.recommendations import get_recommendation, get_references
@@ -38,6 +39,19 @@ def _finding(slug: str, category: str, title: str, severity: str, evidence: str)
     )
 
 
+def _extract_days_until_expiry(msg: str) -> int | None:
+    """Extrait le nombre de jours avant expiration depuis un message (ex. "dans 14 jour(s)").
+
+    Args:
+        msg: Message contenant potentiellement "dans X jour(s)" ou "in X days".
+
+    Returns:
+        int | None: Nombre de jours ou None si non trouvé.
+    """
+    m = re.search(r"(?:dans|in)\s+(\d+)\s+(?:jour|day)", msg, re.IGNORECASE)
+    return int(m.group(1)) if m else None
+
+
 def _tls_msg_to_finding(msg: str) -> tuple[str, str, str]:
     """Mappe un message TLS vers (slug, title, severity).
 
@@ -57,7 +71,12 @@ def _tls_msg_to_finding(msg: str) -> tuple[str, str, str]:
     if "pas encore valide" in msg_l or "notBefore" in msg_l:
         return ("tls-cert-not-yet-valid", "Certificat pas encore valide", "medium")
     if "expire bientôt" in msg_l or "expires soon" in msg_l:
-        return ("tls-cert-expires-soon", "Certificat expire bientôt", "medium")
+        # Gravité selon le délai : 15-29 jours → low, 0-14 jours → medium
+        days = _extract_days_until_expiry(msg)
+        severity = "low" if days is not None and days >= 15 else "medium"
+        return ("tls-cert-expires-soon", "Certificat expire bientôt", severity)
+    if "chaîne" in msg_l and ("incomplète" in msg_l or "invalide" in msg_l):
+        return ("tls-chain-incomplete", "Chaîne de certificats incomplète", "medium")
     if "TLS" in msg and ("1.0" in msg or "1.1" in msg):
         return ("tls-versions-obsolete", "Versions TLS obsolètes", "medium")
     if "connexion" in msg_l or "timeout" in msg_l:

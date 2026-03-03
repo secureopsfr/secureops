@@ -104,3 +104,16 @@ def test_posture_warning_cert_expires_soon() -> None:
         findings=("Certificat expire dans 15 jours",),
     )
     assert compute_tls_posture(result) == POSTURE_WARNING
+
+
+def test_posture_warning_chain_incomplete() -> None:
+    """Posture avertissement quand chaîne de certificats incomplète."""
+    result = TlsCheckResult(
+        https_enabled=True,
+        http_redirects_to_https=True,
+        certificate_status="valid",
+        tls_versions_obsolete=(),
+        findings=("Chaîne incomplète",),
+        chain_incomplete=True,
+    )
+    assert compute_tls_posture(result) == POSTURE_WARNING

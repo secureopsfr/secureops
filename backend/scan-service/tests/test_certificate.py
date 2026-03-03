@@ -11,6 +11,7 @@ from cryptography.x509.oid import NameOID
 from app.services.tls.certificate import (
     CertificateStatus,
     analyze_certificate,
+    verify_certificate_chain,
 )
 
 
@@ -64,4 +65,31 @@ def test_analyze_certificate_expires_soon() -> None:
     assert status == CertificateStatus.EXPIRES_SOON
     assert len(findings) == 1
     assert "expire bientôt" in findings[0]
-    assert "15" in findings[0]
+    assert "jour(s)" in findings[0]
+
+
+def test_verify_certificate_chain_self_signed_ok() -> None:
+    """Chaîne avec certificat auto-signé (1 seul) : OK."""
+    now = datetime.now(timezone.utc)
+    cert_der = _make_cert_der(
+        not_before=now - timedelta(days=1),
+        not_after=now + timedelta(days=365),
+        self_signed=True,
+    )
+    ok, findings = verify_certificate_chain([cert_der], leaf_is_self_signed=True)
+    assert ok is True
+    assert len(findings) == 0
+
+
+def test_verify_certificate_chain_single_non_self_signed_incomplete() -> None:
+    """Un seul certificat non auto-signé : chaîne incomplète."""
+    now = datetime.now(timezone.utc)
+    cert_der = _make_cert_der(
+        not_before=now - timedelta(days=1),
+        not_after=now + timedelta(days=365),
+        self_signed=False,
+    )
+    ok, findings = verify_certificate_chain([cert_der], leaf_is_self_signed=False)
+    assert ok is False
+    assert len(findings) == 1
+    assert "incomplète" in findings[0]
