@@ -42,6 +42,12 @@ class ScanRunError(Exception):
     """Erreur lors de l'exécution du scan (site inaccessible, timeout, etc.)."""
 
     def __init__(self, message: str, status_code: int = 500):
+        """Initialise l'exception avec un message et un code HTTP.
+
+        Args:
+            message: Message d'erreur descriptif.
+            status_code: Code HTTP associé (défaut 500).
+        """
         self.message = message
         self.status_code = status_code
         super().__init__(message)

@@ -19,9 +19,11 @@ from app.utils.url_validator import URLValidationError
 # Si définie, le header X-Internal-Api-Key doit correspondre.
 INTERNAL_API_KEY = os.getenv("SCAN_SERVICE_INTERNAL_API_KEY")
 
+_X_INTERNAL_API_KEY_HEADER = Header(default=None, alias="X-Internal-Api-Key")
+
 
 async def _verify_internal_api_key(
-    x_internal_api_key: str | None = Header(default=None, alias="X-Internal-Api-Key"),
+    x_internal_api_key: str | None = _X_INTERNAL_API_KEY_HEADER,
 ) -> None:
     """Vérifie la clé API interne si SCAN_SERVICE_INTERNAL_API_KEY est définie.
 
@@ -31,6 +33,9 @@ async def _verify_internal_api_key(
         return
     if x_internal_api_key != INTERNAL_API_KEY:
         raise HTTPException(status_code=401, detail="Clé API interne invalide ou manquante")
+
+
+_VERIFY_INTERNAL_API_KEY = Depends(_verify_internal_api_key)
 
 
 class ScanForPdfSchema(BaseModel):
@@ -122,7 +127,7 @@ class InternalScanRequest(BaseModel):
 )
 async def internal_run_scan(
     body: InternalScanRequest,
-    _: None = Depends(_verify_internal_api_key),
+    _: None = _VERIFY_INTERNAL_API_KEY,
 ) -> dict:
     """Exécute le scan et retourne le résultat en JSON (pas de SSE)."""
     try:

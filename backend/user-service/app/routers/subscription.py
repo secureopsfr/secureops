@@ -9,10 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_async_session
 from app.schemas.user import SubscriptionPreferencesUpdateRequest, SubscriptionResponse
-from app.services.scan_alert_repository import (
-    delete_alert_events_older_than_days,
-    delete_all_alert_events_by_user,
-)
+from app.services.scan_alert_repository import delete_alert_events_older_than_days, delete_all_alert_events_by_user
 from app.services.scan_repository import delete_all_user_scans, delete_scans_older_than_days
 from app.services.subscription_repository import get_subscription_by_user_id
 from app.utils.auth import get_current_user, resolve_user

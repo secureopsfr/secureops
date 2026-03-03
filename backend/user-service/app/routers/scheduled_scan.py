@@ -15,11 +15,7 @@ from app.schemas.scheduled_scan import (
     ScheduledScanResponse,
     ScheduledScanUpdateRequest,
 )
-from app.services.scan_alert_repository import (
-    count_scan_alert_events_by_user,
-    delete_scan_alert_event,
-    list_scan_alert_events_by_user,
-)
+from app.services.scan_alert_repository import count_scan_alert_events_by_user, delete_scan_alert_event, list_scan_alert_events_by_user
 from app.services.scheduled_scan_repository import (
     count_scheduled_scans_by_user,
     create_scheduled_scan,

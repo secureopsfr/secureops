@@ -15,9 +15,11 @@ logger = logging.getLogger(__name__)
 
 INTERNAL_API_KEY = os.getenv("ADMIN_SERVICE_INTERNAL_API_KEY")
 
+_X_INTERNAL_API_KEY_HEADER = Header(default=None, alias="X-Internal-Api-Key")
+
 
 async def _verify_internal_api_key(
-    x_internal_api_key: str | None = Header(default=None, alias="X-Internal-Api-Key"),
+    x_internal_api_key: str | None = _X_INTERNAL_API_KEY_HEADER,
 ) -> None:
     """Vérifie la clé API interne si ADMIN_SERVICE_INTERNAL_API_KEY est définie."""
     if not INTERNAL_API_KEY:
@@ -25,6 +27,8 @@ async def _verify_internal_api_key(
     if x_internal_api_key != INTERNAL_API_KEY:
         raise HTTPException(status_code=401, detail="Clé API interne invalide ou manquante")
 
+
+_VERIFY_INTERNAL_API_KEY = Depends(_verify_internal_api_key)
 
 router = APIRouter(prefix="/api/internal/notifications", tags=["internal"])
 
@@ -47,7 +51,7 @@ class ScanAlertRequest(BaseModel):
 )
 async def post_scan_alert(
     body: ScanAlertRequest,
-    _: None = Depends(_verify_internal_api_key),
+    _: None = _VERIFY_INTERNAL_API_KEY,
 ) -> dict:
     """Envoie l'email d'alerte scan au destinataire."""
     ok = send_scan_alert_email(
