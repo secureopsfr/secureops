@@ -366,14 +366,23 @@ export default function ScanResults({
                           {t("scanner.statusOk")}
                         </span>
                       ) : (
-                        <span className="font-medium text-[rgb(var(--warning))]">
+                        <a
+                          href={`#anomalies-${cat}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            document
+                              .getElementById(`anomalies-${cat}`)
+                              ?.scrollIntoView({ behavior: "smooth" });
+                          }}
+                          className="font-medium text-[rgb(var(--warning))] hover:underline cursor-pointer"
+                        >
                           {count}{" "}
                           {t(
                             count === 1
                               ? "scanner.anomalies_one"
                               : "scanner.anomalies",
                           )}
-                        </span>
+                        </a>
                       )}
                     </td>
                   </tr>

@@ -276,6 +276,13 @@ footer {
     color: #f59e0b;
     font-weight: 600;
 }
+.status-link {
+    color: #f59e0b;
+    text-decoration: underline;
+}
+.status-link:visited {
+    color: #f59e0b;
+}
 
 .finding-block {
     margin: 20px 0;

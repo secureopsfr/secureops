@@ -54,7 +54,7 @@ def build_synthese(
             status_html = f'<span class="status-ok">{status_ok}</span>'
         else:
             word = anomalies_one if anomaly_count == 1 else anomalies_word
-            status_html = f'<span class="status-warning">{anomaly_count} {word}</span>'
+            status_html = f'<a href="#sect-{escape(cat)}" class="status-warning status-link">' f"{anomaly_count} {word}</a>"
         synthese_rows.append(f"<tr><td>{escape(label)}</td><td class='tbl-num'>{checks_count}</td>" f"<td>{status_html}</td></tr>")
 
     circumference = 2 * 3.14159 * 42
