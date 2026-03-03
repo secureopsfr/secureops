@@ -29,7 +29,7 @@ async def test_run_sitemap_checks_no_sitemap_found() -> None:
         )
 
     assert result.sitemap_found is False
-    assert result.sitemap_undeclared is True
+    assert result.sitemap_undeclared is False  # Pas de sitemap trouvé → undeclared n'a pas de sens
     assert result.sensitive_urls == ()
     assert result.fetch_ok is True
 
