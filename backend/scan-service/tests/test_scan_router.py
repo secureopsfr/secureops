@@ -64,8 +64,9 @@ def test_post_scan_refuse_port_8080(client) -> None:
     assert "port" in error_events[0][1].get("message", "").lower()
 
 
-def test_post_scan_refuse_localhost_ssrf(client) -> None:
-    """POST /api/scan refuse localhost (SSRF) via événement error."""
+def test_post_scan_refuse_localhost_ssrf(client, monkeypatch: pytest.MonkeyPatch) -> None:
+    """POST /api/scan refuse localhost (SSRF) via événement error (sans SCAN_ALLOW_LOCALHOST)."""
+    monkeypatch.delenv("SCAN_ALLOW_LOCALHOST", raising=False)
     response = client.post("/api/scan", json={"url": "http://localhost/"})
     assert response.status_code == 200
     events = parse_sse_events(response)
@@ -75,8 +76,9 @@ def test_post_scan_refuse_localhost_ssrf(client) -> None:
     assert "localhost" in msg or "127.0.0.1" in msg or "autorisées" in msg
 
 
-def test_post_scan_refuse_127_0_0_1_ssrf(client) -> None:
-    """POST /api/scan refuse 127.0.0.1 (SSRF) via événement error."""
+def test_post_scan_refuse_127_0_0_1_ssrf(client, monkeypatch: pytest.MonkeyPatch) -> None:
+    """POST /api/scan refuse 127.0.0.1 (SSRF) via événement error (sans SCAN_ALLOW_LOCALHOST)."""
+    monkeypatch.delenv("SCAN_ALLOW_LOCALHOST", raising=False)
     response = client.post("/api/scan", json={"url": "http://127.0.0.1/"})
     assert response.status_code == 200
     events = parse_sse_events(response)

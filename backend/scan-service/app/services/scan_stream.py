@@ -41,7 +41,7 @@ from app.services.tls.posture import compute_tls_posture
 from app.utils.http_fetch import get_with_client_or_error, scan_client
 from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
-from app.utils.url_helpers import build_https_url
+from app.utils.url_helpers import get_scan_base_url
 from app.utils.url_validator import URLValidationError, validate_and_normalize_url
 
 logger = logging.getLogger(__name__)
@@ -235,7 +235,7 @@ async def _run_checks_with_client(
     authorization: str | None = None,
 ) -> AsyncGenerator[str, None]:
     """Exécute les étapes de vérification avec le client partagé."""
-    https_url = build_https_url(normalized_url)
+    https_url = get_scan_base_url(normalized_url)
     fetch_result = await get_with_client_or_error(client, https_url, follow_redirects=True)
 
     # Détection précoce : site inaccessible, timeout ou erreur TLS → événement error

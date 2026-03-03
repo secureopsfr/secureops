@@ -25,7 +25,7 @@ from app.services.tls import run_tls_checks
 from app.services.tls.posture import compute_tls_posture
 from app.utils.http_fetch import get_with_client_or_error, scan_client
 from app.utils.ssrf import check_ssrf
-from app.utils.url_helpers import build_https_url
+from app.utils.url_helpers import get_scan_base_url
 from app.utils.url_validator import validate_and_normalize_url
 
 logger = logging.getLogger(__name__)
@@ -116,7 +116,7 @@ async def run_scan_to_result(url: str) -> dict:
     if _over_global():
         raise ScanRunError("Timeout global dépassé", status_code=408)
 
-    https_url = build_https_url(normalized_url)
+    https_url = get_scan_base_url(normalized_url)
 
     async with scan_client() as client:
         fetch_result = await get_with_client_or_error(client, https_url, follow_redirects=True)
