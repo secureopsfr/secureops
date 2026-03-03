@@ -383,38 +383,120 @@ export default function ScanResults({
                     <h4 className="font-semibold text-[var(--text)]">
                       {label}
                     </h4>
-                    {hasAnomalies ? (
-                      <a
-                        href={`#anomalies-${entry.category}`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          document
-                            .getElementById(`anomalies-${entry.category}`)
-                            ?.scrollIntoView({ behavior: "smooth" });
-                        }}
-                        className="text-sm font-medium text-[rgb(var(--primary))] hover:underline"
-                      >
-                        {entry.anomaly_count}{" "}
-                        {t(
-                          entry.anomaly_count === 1
-                            ? "scanner.anomalies_one"
-                            : "scanner.anomalies",
-                        )}{" "}
-                        <span className="text-xs">
-                          ({t("scanner.details")})
+                    <div className="flex flex-wrap items-center gap-2">
+                      {entry.category === "tls" && entry.tls_posture ? (
+                        <span
+                          className={`text-sm font-medium ${
+                            entry.tls_posture === "ok"
+                              ? "text-[rgb(var(--success))]"
+                              : entry.tls_posture === "warning"
+                                ? "text-[rgb(var(--warning))]"
+                                : "text-[rgb(var(--danger))]"
+                          }`}
+                        >
+                          {t(
+                            `scanner.tlsPosture${entry.tls_posture.charAt(0).toUpperCase()}${entry.tls_posture.slice(1)}`,
+                          )}
                         </span>
-                      </a>
-                    ) : (
-                      <span className="text-sm font-medium text-[rgb(var(--success))]">
-                        {t("scanner.statusOk")}
-                      </span>
-                    )}
+                      ) : hasAnomalies ? (
+                        <a
+                          href={`#anomalies-${entry.category}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            document
+                              .getElementById(`anomalies-${entry.category}`)
+                              ?.scrollIntoView({ behavior: "smooth" });
+                          }}
+                          className="text-sm font-medium text-[rgb(var(--primary))] hover:underline"
+                        >
+                          {entry.anomaly_count}{" "}
+                          {t(
+                            entry.anomaly_count === 1
+                              ? "scanner.anomalies_one"
+                              : "scanner.anomalies",
+                          )}{" "}
+                          <span className="text-xs">
+                            ({t("scanner.details")})
+                          </span>
+                        </a>
+                      ) : (
+                        <span className="text-sm font-medium text-[rgb(var(--success))]">
+                          {t("scanner.statusOk")}
+                        </span>
+                      )}
+                      {entry.category === "tls" &&
+                        entry.tls_posture &&
+                        hasAnomalies && (
+                          <a
+                            href={`#anomalies-${entry.category}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              document
+                                .getElementById(`anomalies-${entry.category}`)
+                                ?.scrollIntoView({ behavior: "smooth" });
+                            }}
+                            className="text-sm font-medium text-[rgb(var(--primary))] hover:underline"
+                          >
+                            {entry.anomaly_count}{" "}
+                            {t(
+                              entry.anomaly_count === 1
+                                ? "scanner.anomalies_one"
+                                : "scanner.anomalies",
+                            )}{" "}
+                            <span className="text-xs">
+                              ({t("scanner.details")})
+                            </span>
+                          </a>
+                        )}
+                    </div>
                   </div>
                   {(desc || shortSummary) && (
                     <p className="mb-3 text-sm text-[var(--muted)] leading-relaxed">
                       {renderWithBold(desc || shortSummary)}
                     </p>
                   )}
+                  {entry.category === "tls" && entry.tls_version && (
+                    <p className="mb-3 text-sm text-[var(--muted)] leading-relaxed">
+                      {t("scanner.tlsVersionPhraseBefore")}
+                      <strong>{entry.tls_version}</strong>
+                      {t("scanner.tlsVersionPhraseAfter")}
+                    </p>
+                  )}
+                  <p className="text-sm text-[var(--muted)] leading-relaxed">
+                    {hasAnomalies ? (
+                      (() => {
+                        const categoryFindings = result.findings.filter(
+                          (f) => f.category === entry.category,
+                        );
+                        const titles = categoryFindings
+                          .map((f) => f.title)
+                          .join(", ");
+                        const boldPart =
+                          entry.anomaly_count === 1
+                            ? t("scanner.summaryOneAnomalyBold")
+                            : `${entry.anomaly_count} ${t("scanner.anomalies")}`;
+                        const afterKey =
+                          entry.anomaly_count === 1
+                            ? "scanner.summaryOneAnomalyAfter"
+                            : "scanner.summaryAnomaliesCountAfter";
+                        const afterParams: Record<string, string | number> =
+                          entry.anomaly_count === 1
+                            ? { titles }
+                            : { count: entry.anomaly_count, titles };
+                        return (
+                          <>
+                            <strong>{boldPart}</strong>
+                            {t(afterKey, afterParams)}
+                          </>
+                        );
+                      })()
+                    ) : (
+                      <>
+                        <strong>{t("scanner.summaryNoAnomaliesBold")}</strong>
+                        {t("scanner.summaryNoAnomaliesAfter")}
+                      </>
+                    )}
+                  </p>
                 </div>
               );
             })}

@@ -68,11 +68,18 @@ def _load_category_summaries() -> dict[str, dict]:
         return json.load(f)
 
 
-def build_category_summaries(findings: Iterable[object]) -> list[dict]:
+def build_category_summaries(
+    findings: Iterable[object],
+    *,
+    tls_posture: str | None = None,
+    tls_version: str | None = None,
+) -> list[dict]:
     """Construit la liste des résumés par catégorie pour la réponse du scan.
 
     Args:
         findings: Liste des Finding (doit avoir un attribut category).
+        tls_posture: Posture TLS ("ok", "warning", "critical") pour la catégorie tls.
+        tls_version: Version TLS négociée (ex. "TLS 1.2", "TLS 1.3") pour la catégorie tls.
 
     Returns:
         list[dict]: Liste de CategorySummaryEntry sérialisées, ordre fixe.
@@ -91,17 +98,21 @@ def build_category_summaries(findings: Iterable[object]) -> list[dict]:
         if entry is None:
             continue
         anomaly_count = by_category.get(cat, 0)
-        result.append(
-            CategorySummaryEntry(
-                category=cat,
-                label_fr=str(entry.get("label_fr", cat)),
-                label_en=str(entry.get("label_en", cat)),
-                description_fr=str(entry.get("description_fr", "")),
-                description_en=str(entry.get("description_en", "")),
-                checks_fr=list(entry.get("checks_fr", [])),
-                checks_en=list(entry.get("checks_en", [])),
-                anomaly_count=anomaly_count,
-            ).to_dict()
-        )
+        d = CategorySummaryEntry(
+            category=cat,
+            label_fr=str(entry.get("label_fr", cat)),
+            label_en=str(entry.get("label_en", cat)),
+            description_fr=str(entry.get("description_fr", "")),
+            description_en=str(entry.get("description_en", "")),
+            checks_fr=list(entry.get("checks_fr", [])),
+            checks_en=list(entry.get("checks_en", [])),
+            anomaly_count=anomaly_count,
+        ).to_dict()
+        if cat == "tls":
+            if tls_posture is not None:
+                d["tls_posture"] = tls_posture
+            if tls_version is not None:
+                d["tls_version"] = tls_version
+        result.append(d)
 
     return result

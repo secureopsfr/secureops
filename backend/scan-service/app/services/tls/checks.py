@@ -10,7 +10,7 @@ from app.config_loader import ScanTimeoutsSettings, get_scan_timeouts
 from app.constants import MSG_HTTPS_UNAVAILABLE
 from app.errors.fetch_errors import classify_fetch_exception
 from app.services.tls.certificate import analyze_certificate, fetch_certificate_der
-from app.services.tls.versions import check_tls_versions_obsolete
+from app.services.tls.versions import check_tls_versions_obsolete, get_negotiated_tls_version
 from app.utils.http_fetch import get_with_client
 from app.utils.ssl_scan import ssl_context_for_scan
 from app.utils.url_helpers import build_http_url, build_https_url, get_host_from_url, get_https_port_from_url, location_redirects_to_https
@@ -32,6 +32,7 @@ class TlsCheckResult:
             None si non vérifiable (HTTP inaccessible ou HTTPS non activé).
         certificate_status (str | None): "valid", "expired" ou "self_signed". None si non vérifiable.
         tls_versions_obsolete (tuple[str, ...]): Versions TLS obsolètes supportées (ex. ("1.0", "1.1")).
+        tls_version (str | None): Version TLS négociée (ex. "TLS 1.2", "TLS 1.3"). None si non détectable.
         findings (tuple[str, ...]): Liste des findings.
         fetch_ok (bool): True si la requête HTTPS a abouti.
     """
@@ -42,6 +43,7 @@ class TlsCheckResult:
     tls_versions_obsolete: tuple[str, ...]
     findings: tuple[str, ...]
     fetch_ok: bool = True
+    tls_version: str | None = None
 
     def is_posture_valid(self) -> bool:
         """Indique si la posture TLS est acceptable (HTTPS OK, redirect OK, cert valide, pas de TLS obsolète).
@@ -61,6 +63,7 @@ class TlsCheckResult:
             "http_redirects_to_https": self.http_redirects_to_https,
             "certificate_status": self.certificate_status,
             "tls_versions_obsolete": list(self.tls_versions_obsolete),
+            "tls_version": self.tls_version,
             "findings": list(self.findings),
             "fetch_ok": self.fetch_ok,
         }
@@ -217,10 +220,14 @@ async def run_tls_checks(
     # Vérification 4 : Versions TLS obsolètes (1.0, 1.1)
     tls_versions_obsolete = await _check_tls_versions(host, port, timeouts, findings)
 
+    # Version TLS négociée (ex. TLS 1.2, TLS 1.3) pour affichage dans le résumé
+    tls_version = await asyncio.to_thread(get_negotiated_tls_version, host, port, timeouts.connection)
+
     return TlsCheckResult(
         https_enabled=True,
         http_redirects_to_https=http_redirects_to_https,
         certificate_status=certificate_status,
         tls_versions_obsolete=tls_versions_obsolete,
         findings=tuple(findings),
+        tls_version=tls_version,
     )

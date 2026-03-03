@@ -32,6 +32,10 @@ export interface CategorySummary {
   checks_fr: string[];
   checks_en: string[];
   anomaly_count: number;
+  /** Posture TLS (catégorie tls uniquement) : ok, warning, critical. */
+  tls_posture?: "ok" | "warning" | "critical";
+  /** Version TLS négociée (catégorie tls uniquement), ex. "TLS 1.2", "TLS 1.3". */
+  tls_version?: string;
 }
 
 export interface ScanResult {

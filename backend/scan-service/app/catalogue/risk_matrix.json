@@ -19,6 +19,10 @@
     "gravite": "Significative",
     "vraisemblance": "Faible"
   },
+  "tls-cert-expires-soon": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
   "tls-versions-obsolete": {
     "gravite": "Importante",
     "vraisemblance": "Forte"

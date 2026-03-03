@@ -38,6 +38,33 @@ def _finding(slug: str, category: str, title: str, severity: str, evidence: str)
     )
 
 
+def _tls_msg_to_finding(msg: str) -> tuple[str, str, str]:
+    """Mappe un message TLS vers (slug, title, severity).
+
+    Args:
+        msg: Message du finding brut.
+
+    Returns:
+        tuple[str, str, str]: (slug, title, severity).
+    """
+    msg_l = msg.lower()
+    if "redirection" in msg_l or "redirect" in msg_l:
+        return ("tls-no-redirect", "Pas de redirection HTTP→HTTPS", "high")
+    if "expiré" in msg_l or "expired" in msg_l:
+        return ("tls-cert-expired", "Certificat expiré", "critical")
+    if "auto-signé" in msg_l or "self_signed" in msg_l:
+        return ("tls-cert-self-signed", "Certificat auto-signé", "high")
+    if "pas encore valide" in msg_l or "notBefore" in msg_l:
+        return ("tls-cert-not-yet-valid", "Certificat pas encore valide", "medium")
+    if "expire bientôt" in msg_l or "expires soon" in msg_l:
+        return ("tls-cert-expires-soon", "Certificat expire bientôt", "medium")
+    if "TLS" in msg and ("1.0" in msg or "1.1" in msg):
+        return ("tls-versions-obsolete", "Versions TLS obsolètes", "medium")
+    if "connexion" in msg_l or "timeout" in msg_l:
+        return ("tls-connection-failed", "Connexion HTTPS impossible", "high")
+    return ("tls-connection-failed", "Problème TLS", "medium")
+
+
 def _normalize_tls(result: TlsCheckResult) -> list[Finding]:
     """Convertit TlsCheckResult en list[Finding]."""
     findings: list[Finding] = []
@@ -56,20 +83,8 @@ def _normalize_tls(result: TlsCheckResult) -> list[Finding]:
         findings.append(_finding("tls-https-disabled", "tls", "HTTPS non activé", "critical", MSG_HTTPS_UNAVAILABLE))
         return findings
     for msg in result.findings:
-        if "redirection" in msg.lower() or "redirect" in msg.lower():
-            findings.append(_finding("tls-no-redirect", "tls", "Pas de redirection HTTP→HTTPS", "high", msg))
-        elif "expiré" in msg.lower() or "expired" in msg.lower():
-            findings.append(_finding("tls-cert-expired", "tls", "Certificat expiré", "critical", msg))
-        elif "auto-signé" in msg.lower() or "self_signed" in msg.lower():
-            findings.append(_finding("tls-cert-self-signed", "tls", "Certificat auto-signé", "high", msg))
-        elif "pas encore valide" in msg.lower() or "notBefore" in msg.lower():
-            findings.append(_finding("tls-cert-not-yet-valid", "tls", "Certificat pas encore valide", "medium", msg))
-        elif "TLS" in msg and ("1.0" in msg or "1.1" in msg):
-            findings.append(_finding("tls-versions-obsolete", "tls", "Versions TLS obsolètes", "medium", msg))
-        elif "connexion" in msg.lower() or "timeout" in msg.lower():
-            findings.append(_finding("tls-connection-failed", "tls", "Connexion HTTPS impossible", "high", msg))
-        else:
-            findings.append(_finding("tls-connection-failed", "tls", "Problème TLS", "medium", msg))
+        slug, title, severity = _tls_msg_to_finding(msg)
+        findings.append(_finding(slug, "tls", title, severity, msg))
     return findings
 
 

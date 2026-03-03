@@ -1,9 +1,35 @@
-"""Détection des versions TLS obsolètes (1.0, 1.1)."""
+"""Détection des versions TLS obsolètes (1.0, 1.1) et version négociée (1.2, 1.3)."""
 
 import socket
 import ssl
 
-from app.utils.ssl_scan import ssl_context_for_version_test
+from app.utils.ssl_scan import ssl_context_for_scan, ssl_context_for_version_test
+
+
+def get_negotiated_tls_version(host: str, port: int, timeout: float) -> str | None:
+    """Récupère la version TLS négociée avec le serveur (ex. TLS 1.2, TLS 1.3).
+
+    Tente une connexion avec le contexte de scan par défaut (TLS 1.0+).
+    La version retournée est celle choisie par la négociation (généralement la plus récente supportée).
+
+    Args:
+        host: Nom d'hôte.
+        port: Port (ex. 443).
+        timeout: Timeout en secondes.
+
+    Returns:
+        str | None: Version formatée ("TLS 1.2", "TLS 1.3") ou None si connexion impossible.
+    """
+    try:
+        context = ssl_context_for_scan()
+        with socket.create_connection((host, port), timeout=timeout) as sock:
+            with context.wrap_socket(sock, server_hostname=host) as ssock:
+                raw = ssock.version()
+                if raw:
+                    return raw.replace("v", " ").strip()
+                return None
+    except (ssl.SSLError, OSError):
+        return None
 
 
 def try_tls_version(host: str, port: int, timeout: float, min_ver: ssl.TLSVersion, max_ver: ssl.TLSVersion) -> bool:

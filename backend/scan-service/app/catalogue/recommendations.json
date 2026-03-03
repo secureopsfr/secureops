@@ -38,6 +38,13 @@
     "title_en": "Certificate not yet valid",
     "references": []
   },
+  "tls-cert-expires-soon": {
+    "recommendation": "Renouveler le certificat TLS avant expiration. Automatiser le renouvellement (Let's Encrypt, Certbot).",
+    "recommendation_en": "Renew TLS certificate before expiration. Automate renewal (Let's Encrypt, Certbot).",
+    "title_fr": "Certificat expire bientôt",
+    "title_en": "Certificate expires soon",
+    "references": ["https://letsencrypt.org/"]
+  },
   "tls-versions-obsolete": {
     "recommendation": "Désactiver TLS 1.0 et TLS 1.1. Utiliser uniquement TLS 1.2 ou 1.3.",
     "recommendation_en": "Disable TLS 1.0 and TLS 1.1. Use only TLS 1.2 or 1.3.",

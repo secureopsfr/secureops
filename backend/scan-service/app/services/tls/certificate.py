@@ -14,6 +14,7 @@ class CertificateStatus:
     EXPIRED = "expired"
     SELF_SIGNED = "self_signed"
     NOT_YET_VALID = "not_yet_valid"
+    EXPIRES_SOON = "expires_soon"
 
 
 def fetch_certificate_der(host: str, port: int, timeout: float) -> bytes:
@@ -63,6 +64,15 @@ def analyze_certificate(cert_der: bytes, host: str) -> tuple[str, list[str]]:
     if _is_self_signed(cert):
         findings.append("Certificat auto-signé (émetteur = sujet). " "Aucune confiance par défaut ; les utilisateurs peuvent accepter par habitude.")
         return CertificateStatus.SELF_SIGNED, findings
+
+    # Alerte si expiration dans moins de 30 jours
+    days_until_expiry = (cert.not_valid_after_utc - now).days
+    if 0 <= days_until_expiry < 30:
+        findings.append(
+            f"Certificat expire bientôt (dans {days_until_expiry} jour(s), "
+            f"notAfter: {cert.not_valid_after_utc.date()}). Renouveler avant expiration."
+        )
+        return CertificateStatus.EXPIRES_SOON, findings
 
     return CertificateStatus.VALID, findings
 

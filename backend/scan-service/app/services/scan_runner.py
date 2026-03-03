@@ -20,6 +20,7 @@ from app.services.scoring import compute_score
 from app.services.security_headers import check_security_headers_from_response
 from app.services.tech_fingerprinting import check_tech_fingerprinting_from_response
 from app.services.tls import run_tls_checks
+from app.services.tls.posture import compute_tls_posture
 from app.utils.http_fetch import get_with_client_or_error, scan_client
 from app.utils.ssrf import check_ssrf
 from app.utils.url_helpers import build_https_url
@@ -139,6 +140,9 @@ async def run_scan_to_result(url: str) -> dict:
         findings=findings_tuple,
     )
     payload = scan_result.to_dict()
-    payload["category_summaries"] = build_category_summaries(findings_tuple)
+    tls_result = ctx.results["tls"]
+    tls_posture = compute_tls_posture(tls_result)
+    tls_version = getattr(tls_result, "tls_version", None)
+    payload["category_summaries"] = build_category_summaries(findings_tuple, tls_posture=tls_posture, tls_version=tls_version)
     payload["status"] = "success"
     return payload
