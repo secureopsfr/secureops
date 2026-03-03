@@ -91,7 +91,11 @@ export default function ScannerContent() {
         setResult(pending);
         setState("success");
         // Sauvegarder dans l'historique (scan fait sans être connecté, puis connexion)
-        saveScan(pending).catch(() => showErrorToast(t("scanner.saveFailed")));
+        saveScan(pending)
+          .then((id) => {
+            if (id) setScanId(id);
+          })
+          .catch(() => showErrorToast(t("scanner.saveFailed")));
       }
     }
   }, [authLoading, isAuthenticated, t]);

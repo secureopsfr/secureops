@@ -1,3 +1,4 @@
+import { HeaderSkeleton } from "../../components/skeletons";
 import Skeleton from "../../components/skeletons/Skeleton";
 
 /**
@@ -8,28 +9,7 @@ import Skeleton from "../../components/skeletons/Skeleton";
 export default function Loading() {
   return (
     <>
-      {/* ─── Header skeleton ─── */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[var(--bg)] border-b border-[var(--border)]">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <Skeleton width="w-8" height="h-8" rounded="lg" />
-            <Skeleton width="w-24" height="h-5" />
-          </div>
-          {/* Nav links */}
-          <div className="hidden md:flex items-center gap-6">
-            <Skeleton width="w-16" height="h-4" />
-            <Skeleton width="w-12" height="h-4" />
-            <Skeleton width="w-16" height="h-4" />
-          </div>
-          {/* Actions */}
-          <div className="flex items-center gap-3">
-            <Skeleton width="w-8" height="h-8" rounded="full" />
-            <Skeleton width="w-8" height="h-8" rounded="full" />
-            <Skeleton width="w-24" height="h-9" rounded="full" />
-          </div>
-        </div>
-      </header>
+      <HeaderSkeleton />
 
       {/* ─── Hero section skeleton ─── */}
       <section className="hero-wrapper">

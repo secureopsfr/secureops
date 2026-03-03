@@ -30,8 +30,11 @@ export interface ScanHistoryDetail extends ScanResult {
 /**
  * Enregistre un scan dans l'historique.
  * Utilisé quand l'utilisateur se connecte après un scan (résultats restaurés depuis sessionStorage).
+ *
+ * Returns:
+ *   string | null: ID du scan créé, ou null si non enregistré (ex. retention "none").
  */
-export async function saveScan(result: ScanResult): Promise<void> {
+export async function saveScan(result: ScanResult): Promise<string | null> {
   const body: Record<string, unknown> = {
     url: result.url,
     status: "success",
@@ -43,7 +46,7 @@ export async function saveScan(result: ScanResult): Promise<void> {
   if (result.category_summaries?.length) {
     body.category_summaries = result.category_summaries;
   }
-  await fetchJsonWithAuth(
+  const data = await fetchJsonWithAuth<{ id?: string }>(
     `${getApiBaseUrl()}/user/api/scans/history`,
     {
       method: "POST",
@@ -51,6 +54,7 @@ export async function saveScan(result: ScanResult): Promise<void> {
     },
     "Erreur lors de la sauvegarde du scan",
   );
+  return data?.id && data.id.length > 0 ? data.id : null;
 }
 
 export async function getScanHistory(
