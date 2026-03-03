@@ -460,8 +460,13 @@ def test_normalize_tech_fingerprinting_fetch_ok_false() -> None:
     """tech_fingerprinting avec fetch_ok=False produit tech_fingerprinting-connection-failed (info)."""
     result = TechFingerprintingCheckResult(
         server=None,
+        server_version=None,
         runtime=None,
+        runtime_version=None,
         framework_cms=None,
+        framework_cms_version=None,
+        stack_entries=(),
+        vulnerable_versions=(),
         findings=("Impossible d'analyser les en-têtes.",),
         fetch_ok=False,
     )
@@ -475,8 +480,13 @@ def test_normalize_tech_fingerprinting_server_detected() -> None:
     """tech_fingerprinting avec serveur détecté produit tech_fingerprinting-server-detected."""
     result = TechFingerprintingCheckResult(
         server="nginx",
+        server_version=None,
         runtime=None,
+        runtime_version=None,
         framework_cms=None,
+        framework_cms_version=None,
+        stack_entries=(),
+        vulnerable_versions=(),
         findings=("Serveur détecté : nginx",),
         fetch_ok=True,
     )
@@ -486,12 +496,40 @@ def test_normalize_tech_fingerprinting_server_detected() -> None:
     assert findings[0].severity == "info"
 
 
+def test_normalize_tech_fingerprinting_vulnerable_version() -> None:
+    """tech_fingerprinting avec version vulnérable produit tech_fingerprinting-vulnerable-version."""
+    from app.services.tech_fingerprinting.checks import VulnerableVersion
+
+    result = TechFingerprintingCheckResult(
+        server="nginx/1.18.0",
+        server_version="1.18.0",
+        runtime=None,
+        runtime_version=None,
+        framework_cms=None,
+        framework_cms_version=None,
+        stack_entries=(),
+        vulnerable_versions=(VulnerableVersion("nginx", "1.18.0", "1.20.0"),),
+        findings=("Serveur détecté : nginx/1.18.0", "Version potentiellement vulnérable : nginx 1.18.0 ..."),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"tech_fingerprinting": result})
+    assert len(findings) >= 1
+    vuln_findings = [f for f in findings if f.id == "tech_fingerprinting-vulnerable-version"]
+    assert len(vuln_findings) == 1
+    assert vuln_findings[0].severity == "medium"
+
+
 def test_normalize_tech_fingerprinting_stack_unknown() -> None:
     """tech_fingerprinting sans stack produit tech_fingerprinting-stack-unknown."""
     result = TechFingerprintingCheckResult(
         server=None,
+        server_version=None,
         runtime=None,
+        runtime_version=None,
         framework_cms=None,
+        framework_cms_version=None,
+        stack_entries=(),
+        vulnerable_versions=(),
         findings=("Stack : non identifiée (ou masquée)",),
         fetch_ok=True,
     )

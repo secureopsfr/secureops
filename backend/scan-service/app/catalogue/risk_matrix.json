@@ -263,6 +263,10 @@
     "gravite": "Mineure",
     "vraisemblance": "Très forte"
   },
+  "tech_fingerprinting-vulnerable-version": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
   "tech_fingerprinting-stack-unknown": {
     "gravite": "Mineure",
     "vraisemblance": "Très faible"

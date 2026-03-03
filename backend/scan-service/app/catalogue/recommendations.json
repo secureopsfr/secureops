@@ -564,6 +564,13 @@
     "title_en": "Framework/CMS detected",
     "references": []
   },
+  "tech_fingerprinting-vulnerable-version": {
+    "recommendation": "Mettre à jour vers la version minimale recommandée ou une version plus récente. Consulter les CVE connues pour ce produit.",
+    "recommendation_en": "Update to the recommended minimum version or newer. Check known CVEs for this product.",
+    "title_fr": "Version potentiellement vulnérable",
+    "title_en": "Potentially vulnerable version",
+    "references": ["https://nvd.nist.gov/"]
+  },
   "tech_fingerprinting-stack-unknown": {
     "recommendation": "Information : stack non identifiée ou masquée. Pas d'action requise.",
     "recommendation_en": "Information: stack not identified or hidden. No action required.",

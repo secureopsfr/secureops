@@ -25,6 +25,7 @@ from app.config import (
     get_scoring_settings,
     get_security_headers_settings,
     get_ssrf_settings,
+    get_tech_fingerprinting_thresholds,
     get_url_validation_settings,
 )
 
@@ -45,6 +46,7 @@ __all__ = [
     "get_exposed_files_settings",
     "get_exposed_files_severity_upgrade",
     "get_robots_txt_settings",
+    "get_tech_fingerprinting_thresholds",
     "get_scoring_settings",
     "get_scan_timeouts",
     "get_security_headers_settings",

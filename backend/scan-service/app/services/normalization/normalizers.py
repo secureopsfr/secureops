@@ -343,7 +343,20 @@ def _normalize_tech_fingerprinting(result: TechFingerprintingCheckResult) -> lis
             )
         )
         return findings
+    for v in result.vulnerable_versions:
+        ev = f"{v.product} {v.version} (version minimale recommandée : {v.min_safe_version})"
+        findings.append(
+            _finding(
+                "tech_fingerprinting-vulnerable-version",
+                "tech_fingerprinting",
+                f"Version potentiellement vulnérable : {v.product} {v.version}",
+                "medium",
+                ev,
+            )
+        )
     for msg in result.findings:
+        if "Version potentiellement vulnérable" in msg:
+            continue
         if "Serveur détecté" in msg:
             findings.append(_finding("tech_fingerprinting-server-detected", "tech_fingerprinting", "Serveur détecté", "info", msg))
         elif "Runtime" in msg:
