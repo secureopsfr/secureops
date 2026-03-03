@@ -333,19 +333,20 @@ export default function ScannerContent() {
                         </>
                       )}
                       <div className="flex gap-2 flex-wrap">
-                        <GenericButton
-                          type="submit"
-                          label={t("scanner.cta")}
-                          variant="primary"
-                          disabled={!url.trim()}
-                        />
-                        {isAuthenticated && !authLoading && scheduleEnabled && (
+                        {scheduleEnabled && isAuthenticated && !authLoading ? (
                           <GenericButton
                             type="button"
-                            label={t("scheduledScans.addBtn")}
-                            variant="outline"
+                            label={t("scheduledScans.scheduleBtn")}
+                            variant="primary"
                             onClick={handleAddScheduledScan}
                             loading={saving}
+                            disabled={!url.trim()}
+                          />
+                        ) : (
+                          <GenericButton
+                            type="submit"
+                            label={t("scanner.cta")}
+                            variant="primary"
                             disabled={!url.trim()}
                           />
                         )}

@@ -392,6 +392,7 @@
     "empty": "No scheduled scans. Add a URL to get started.",
     "addNew": "Add scheduled scan",
     "addBtn": "Add",
+    "scheduleBtn": "Schedule",
     "cancelBtn": "Cancel",
     "urlLabel": "URL to scan",
     "newScheduledScanTitle": "New scan",
