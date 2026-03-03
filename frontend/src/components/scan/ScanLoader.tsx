@@ -14,29 +14,31 @@ export default function ScanLoader({ steps }: ScanLoaderProps) {
   const { t } = useLanguage();
 
   return (
-    <Card disableHover className="p-6">
-      <h3 className="section-title !text-left -mt-2 mb-4">
+    <Card disableHover className="mx-auto max-w-4xl p-14 text-center">
+      <h3 className="section-title -mt-2 mb-8 text-center text-2xl">
         {t("scanner.loading")}
       </h3>
       {steps.length === 0 ? (
-        <div className="flex items-center gap-3 text-sm text-muted-theme">
-          <LoadingSpinner size="sm" />
+        <div className="flex items-center justify-center gap-4 text-base text-muted-theme">
+          <LoadingSpinner size="md" />
           <span>{t("scanner.loading")}</span>
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="mx-auto flex w-full max-w-md flex-col items-stretch space-y-4">
           {steps.map((s, i) => (
             <li
               key={`${s.step}-${i}`}
-              className="flex items-center gap-3 text-sm"
+              className="flex items-center gap-4 text-base"
             >
-              {s.done ? (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(var(--success),0.2)] text-[rgb(var(--success))]">
-                  <Check className="h-3 w-3" strokeWidth={3} />
-                </span>
-              ) : (
-                <LoadingSpinner size="sm" />
-              )}
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center">
+                {s.done ? (
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[rgba(var(--success),0.2)] text-[rgb(var(--success))]">
+                    <Check className="h-4 w-4" strokeWidth={3} />
+                  </span>
+                ) : (
+                  <LoadingSpinner size="md" />
+                )}
+              </span>
               <span className={s.done ? "" : "text-muted-theme"}>
                 {s.message}
               </span>
