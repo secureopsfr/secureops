@@ -33,7 +33,7 @@ def build_sommaire(
 
     sommaire_label = t("sommaire", lang)
     synthese_label = t("synthese", lang)
-    annexes_label = t("annexes", lang)
+    references_label = t("references_section", lang)
     category_labels = get_category_labels(lang)
     settings = get_pdf_settings()
     cats_to_toc = [c for c in settings.categories.checked if c in settings.categories.order] or list(settings.categories.order)
@@ -80,7 +80,9 @@ def build_sommaire(
                 f'<span class="toc-num">{section_num}.{sub_num}</span> {escape(label)}</a></li>'
             )
         section_num += 1
-    items.append(f'<li class="toc-item"><a href="#annexes" class="toc-link"><span class="toc-num">{section_num}</span> {annexes_label}</a></li>')
+    items.append(
+        f'<li class="toc-item"><a href="#references" class="toc-link"><span class="toc-num">{section_num}</span> {escape(references_label)}</a></li>'
+    )
     return f"""
     <div class="report-section sommaire" id="sommaire">
         <h2 class="section-title">{sommaire_label}</h2>

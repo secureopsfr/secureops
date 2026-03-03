@@ -270,7 +270,7 @@ footer {
 }
 a.status-ok.status-link {
     color: #10b981;
-    text-decoration: underline;
+    text-decoration: none;
 }
 a.status-ok.status-link:visited {
     color: #10b981;
@@ -285,7 +285,7 @@ a.status-ok.status-link:visited {
 }
 .status-link {
     color: #f59e0b;
-    text-decoration: underline;
+    text-decoration: none;
 }
 .status-link:visited {
     color: #f59e0b;
@@ -443,4 +443,25 @@ a.status-ok.status-link:visited {
     font-size: 11px;
     color: #6b7280;
     line-height: 1.5;
+}
+.references-list {
+    margin: 12px 0 0 0;
+    padding-left: 24px;
+    font-size: 11px;
+    line-height: 1.8;
+    color: #4b5563;
+}
+.references-item {
+    margin-bottom: 4px;
+    word-break: break-all;
+}
+.references-link {
+    color: #2563eb;
+    text-decoration: underline;
+}
+.references-empty {
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.5;
+    margin: 12px 0 0 0;
 }

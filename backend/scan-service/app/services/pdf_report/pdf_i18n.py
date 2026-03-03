@@ -21,6 +21,8 @@ _PDF_STRINGS: dict[str, dict[str, str]] = {
     "sommaire": {"fr": "Sommaire", "en": "Table of contents"},
     "synthese": {"fr": "Synthèse du scan", "en": "Scan summary"},
     "annexes": {"fr": "Annexes", "en": "Appendix"},
+    "references_section": {"fr": "Références", "en": "References"},
+    "references_empty": {"fr": "Aucun lien référencé dans ce rapport.", "en": "No links referenced in this report."},
     "score": {"fr": "Score", "en": "Score"},
     "tests_performed": {"fr": "Tests effectués", "en": "Tests performed"},
     "test": {"fr": "Test", "en": "Test"},
