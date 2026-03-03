@@ -352,3 +352,32 @@ Les développeurs sur Mac copient parfois des projets complets vers un serveur s
 
 - [OWASP – Sensitive Data Exposure](https://owasp.org/www-project-top-ten/2017/A3_2017-Sensitive_Data_Exposure)
 - [DS_Store structure](https://en.wikipedia.org/wiki/.DS_Store)
+
+---
+
+## Améliorations prévues (v0.2.0)
+
+Les vérifications suivantes seront ajoutées ou étendues dans la version 0.2.0 du scanner :
+
+### Liste étendue de chemins
+
+| Chemin | Gravité typique |
+|--------|-----------------|
+| `/.htaccess` | Moyenne (règles Apache exposées) |
+| `/web.config` | Moyenne (config IIS exposée) |
+| `/.svn/entries` | Élevée (dépôt Subversion) |
+| `/composer.json` | Faible à moyenne (dépendances PHP) |
+| `/package.json` | Faible à moyenne (dépendances Node.js) |
+| `/.npmrc` | Élevée (config NPM, tokens possibles) |
+
+### Signatures améliorées
+
+Utiliser des **regex plus précises** pour réduire les faux positifs. Par exemple : distinguer un vrai `.env` (lignes `KEY=value` avec motifs `=`) d’une page 404 personnalisée contenant le mot « env ». Validation du format des fichiers binaires (ZIP, .DS_Store) plus stricte.
+
+### Fichiers de backup
+
+Détecter les extensions de sauvegarde : **`.bak`**, **`.old`**, **`.swp`**, **`~`**. Par exemple : `/config.php.bak`, `/database.sql.old`, `/.env.swp`. Ces fichiers sont souvent laissés par erreur et peuvent contenir des versions obsolètes avec des vulnérabilités ou des secrets.
+
+### Endpoints API docs exposés
+
+Tester les chemins courants de documentation d’API : **`/swagger`**, **`/api-docs`**, **`/graphql`** (introspection). Une API documentée sans authentification peut révéler la structure complète des endpoints, les schémas et faciliter l’exploitation. Gravité : Medium à High selon le contenu exposé.

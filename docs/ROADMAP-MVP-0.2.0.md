@@ -239,10 +239,10 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Signatures par chemin (KEY=value, [core], PK, etc.) ✅
 
 **En plus (v0.2.0) :**
-- [ ] Liste étendue : `/.htaccess`, `/web.config`, `/.svn/entries`, `/composer.json`, `/package.json`, `/.npmrc`
-- [ ] Signatures améliorées (regex plus précises, faux positifs réduits)
-- [ ] Détection de fichiers de backup (`.bak`, `.old`, `.swp`, `~`)
-- [ ] Endpoints API docs exposés : `/swagger`, `/api-docs`, `/graphql` (introspection)
+- [x] Liste étendue : `/.htaccess`, `/web.config`, `/.svn/entries`, `/composer.json`, `/package.json`, `/.npmrc`
+- [x] Signatures améliorées (regex plus précises, faux positifs réduits)
+- [x] Détection de fichiers de backup (`.bak`, `.old`, `.swp`, `~`)
+- [x] Endpoints API docs exposés : `/swagger`, `/api-docs`, `/graphql` (introspection)
 
 #### 5.1.5 Directory listing
 
