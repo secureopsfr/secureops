@@ -373,3 +373,25 @@ Chaque version de TLS a ses algorithmes et forces. TLS 1.0 et 1.1 ont des faible
 
 - [Mozilla – SSL/TLS Configuration](https://wiki.mozilla.org/Security/Server_Side_TLS)
 - [SSL Labs – Server Test](https://www.ssllabs.com/ssltest/)
+
+---
+
+## Améliorations prévues (v0.2.0)
+
+Les vérifications suivantes seront ajoutées ou étendues dans la version 0.2.0 du scanner :
+
+### 5. Résumé « TLS posture »
+
+Synthèse lisible de l’état TLS : **OK** (tout conforme), **avertissements** (certificat expire bientôt, chaîne incomplète), **critique** (TLS 1.0/1.1, certificat expiré/auto-signé). Permet une lecture rapide sans entrer dans le détail de chaque check.
+
+### 6. Vérification de la chaîne de certificats
+
+Détecter les **intermédiaires manquants** dans la chaîne de confiance. Une chaîne incomplète peut provoquer des erreurs de validation côté client ou des avertissements dans certains navigateurs. Le scan vérifie que la chaîne complète (serveur → intermédiaires → racine) est présentée correctement.
+
+### 7. Alerte expiration imminente (< 30 jours)
+
+Si le certificat expire dans **moins de 30 jours**, générer une alerte préventive. Les certificats Let’s Encrypt ont une durée de 90 jours ; un oubli de renouvellement automatique peut provoquer une expiration inattendue. Gravité : **Low** ou **Medium** selon le délai restant.
+
+### 8. Support TLS 1.3
+
+Détecter si le serveur propose **TLS 1.3**. TLS 1.3 est la version la plus récente et la plus sûre ; sa présence est une bonne pratique. Le scan peut indiquer « TLS 1.3 proposé » comme information positive dans le rapport.

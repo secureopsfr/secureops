@@ -190,11 +190,14 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Version TLS (détection 1.0/1.1) ✅
 
 **En plus (v0.2.0) :**
-- [ ] Résumé « TLS posture » (synthèse lisible : OK / avertissements / critique)
-- [ ] Vérification de la chaîne de certificats (intermédiaires manquants)
-- [ ] Détection OCSP stapling (présent ou non)
-- [ ] Alerte si certificat expire dans < 30 jours
-- [ ] Support TLS 1.3 (détection si proposé)
+- [x] Résumé « TLS posture » (synthèse lisible : OK / avertissements / critique)
+  - **Fait :** Badge dans le résumé des résultats (OK / Avertissements / Critique) selon `compute_tls_posture`. Critères : HTTPS, redirect, certificat valide, pas de TLS obsolète, chaîne complète.
+- [x] Vérification de la chaîne de certificats (intermédiaires manquants)
+  - **Fait :** `openssl s_client -showcerts` pour récupérer la chaîne complète, `verify_certificate_chain` détecte les intermédiaires manquants. Finding `tls-chain-incomplete` si chaîne incomplète.
+- [x] Alerte si certificat expire dans < 30 jours
+  - **Fait :** Finding `tls-cert-expires-soon` avec gravité low (15–29 jours) ou medium (0–14 jours). Extraction du délai via `_extract_days_until_expiry` dans le message du certificat.
+- [x] Support TLS 1.3 (détection si proposé)
+  - **Fait :** `get_negotiated_tls_version` récupère la version TLS négociée (TLS 1.2 ou TLS 1.3). Affichée dans le résumé : « La connexion a été établie en **TLS 1.3**. »
 
 #### 5.1.2 Security Headers
 
