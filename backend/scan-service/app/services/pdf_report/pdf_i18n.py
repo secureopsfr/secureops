@@ -38,6 +38,24 @@ _PDF_STRINGS: dict[str, dict[str, str]] = {
         "fr": "Tests effectués n'ayant détecté aucune anomalie.",
         "en": "Tests performed that detected no anomalies.",
     },
+    "other_tests_summary": {
+        "fr": "Cette section regroupe les {nb_ok_cats} {ok_cats_label} sur {nb_total_cats} au total "
+        "qui n'ont pas relevé d'erreur, soit {nb_ok_tests} {ok_tests_label} sur {nb_total_tests} effectués.",
+        "en": "This section lists the {nb_ok_cats} {ok_cats_label} (out of {nb_total_cats} total) "
+        "that did not detect any errors, i.e. {nb_ok_tests} {ok_tests_label} out of {nb_total_tests} performed.",
+    },
+    "other_tests_cat_singular": {"fr": "catégorie", "en": "category"},
+    "other_tests_cat_plural": {"fr": "catégories", "en": "categories"},
+    "other_tests_test_singular": {"fr": "test", "en": "test"},
+    "other_tests_test_plural": {"fr": "tests", "en": "tests"},
+    "other_tests_nb_tests_singular": {
+        "fr": "**Un** test a été effectué dans cette catégorie.",
+        "en": "**One** test was performed in this category.",
+    },
+    "other_tests_nb_tests_plural": {
+        "fr": "**{nb}** tests ont été effectués dans cette catégorie.",
+        "en": "**{nb}** tests were performed in this category.",
+    },
     "repartition": {"fr": "Répartition des tests effectués par catégorie", "en": "Breakdown of tests performed by category"},
     "category": {"fr": "Catégorie", "en": "Category"},
     "count": {"fr": "Nb", "en": "Count"},

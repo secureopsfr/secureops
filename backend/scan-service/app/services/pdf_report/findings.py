@@ -4,7 +4,7 @@ import re
 from html import escape
 from typing import Any
 
-from app.catalogue.category_summaries import get_category_description
+from app.catalogue.category_summaries import get_category_description, get_checks_count
 from app.catalogue.recommendations import get_detail, get_evidence, get_recommendation, get_title
 from app.catalogue.risk_matrix import get_gravite, get_vraisemblance
 from app.config.pdf import get_category_labels, get_pdf_settings
@@ -222,16 +222,18 @@ def _build_ok_category_subsection(
         str: HTML de la sous-section.
     """
     description = get_category_description(cat, lang)
-    no_anomaly = t("no_anomaly_detected", lang)
-    description_html = ""
+    nb_tests = get_checks_count(cat)
+    nb_tests_phrase = t("other_tests_nb_tests_singular", lang) if nb_tests <= 1 else t("other_tests_nb_tests_plural", lang).format(nb=nb_tests)
     if description:
-        desc_escaped = _markdown_bold_to_html(escape(description))
-        description_html = f'<p class="category-intro-desc">{desc_escaped}</p>'
+        full_text = f"{description} {nb_tests_phrase}"
+    else:
+        full_text = nb_tests_phrase
+    desc_escaped = _markdown_bold_to_html(escape(full_text))
+    description_html = f'<p class="category-intro-desc">{desc_escaped}</p>'
     return f"""
     <div class="other-test-subsection" id="other-{cat}">
         <h3 class="subsection-title">{section_num}.{sub_num} {escape(cat_label)}</h3>
         {description_html}
-        <p class="category-intro-summary">{escape(no_anomaly)}</p>
     </div>
     """
 
@@ -301,16 +303,35 @@ def build_other_tests_section(
         return "", section_num
 
     section_label = t("other_tests_section", lang)
-    intro_text = t("other_tests_intro", lang)
+    summary_label = t("summary", lang)
+    nb_ok_cats = len(ok_cats)
+    nb_total_cats = len(checked_cats)
+    nb_ok_tests = sum(get_checks_count(c) for c in ok_cats)
+    nb_total_tests = sum(get_checks_count(c) for c in checked_cats)
+    ok_cats_label = t("other_tests_cat_singular", lang) if nb_ok_cats <= 1 else t("other_tests_cat_plural", lang)
+    ok_tests_label = t("other_tests_test_singular", lang) if nb_ok_tests <= 1 else t("other_tests_test_plural", lang)
+    summary_text = t("other_tests_summary", lang).format(
+        nb_ok_cats=f"<strong>{nb_ok_cats}</strong>",
+        nb_total_cats=f"<strong>{nb_total_cats}</strong>",
+        nb_ok_tests=f"<strong>{nb_ok_tests}</strong>",
+        nb_total_tests=f"<strong>{nb_total_tests}</strong>",
+        ok_cats_label=ok_cats_label,
+        ok_tests_label=ok_tests_label,
+    )
     subsections_html: list[str] = []
-    for sub_num, cat in enumerate(ok_cats, start=1):
+    subsections_html.append(f"""
+    <div class="category-intro" id="sect-other-tests-intro">
+        <h3 class="category-intro-title">{section_num}.1 {escape(summary_label)}</h3>
+        <p class="category-intro-summary">{summary_text}</p>
+    </div>
+    """)
+    for sub_num, cat in enumerate(ok_cats, start=2):
         cat_label = category_labels.get(cat, cat)
         subsections_html.append(_build_ok_category_subsection(section_num, sub_num, cat, cat_label, lang))
 
     html = f"""
     <div class="report-section" id="sect-other-tests">
         <h2 class="section-title">{section_num}. {escape(section_label)}</h2>
-        <p class="other-tests-intro">{escape(intro_text)}</p>
         {"".join(subsections_html)}
     </div>
     """

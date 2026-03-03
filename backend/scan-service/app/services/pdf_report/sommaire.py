@@ -68,7 +68,12 @@ def build_sommaire(
             f'<li class="toc-item"><a href="#sect-other-tests" class="toc-link">'
             f'<span class="toc-num">{section_num}</span> {escape(other_tests_label)}</a></li>'
         )
-        for sub_num, cat in enumerate(ok_cats, start=1):
+        other_summary_label = t("summary", lang)
+        items.append(
+            f'<li class="toc-item toc-sub"><a href="#sect-other-tests-intro" class="toc-link">'
+            f'<span class="toc-num">{section_num}.1</span> {escape(other_summary_label)}</a></li>'
+        )
+        for sub_num, cat in enumerate(ok_cats, start=2):
             label = category_labels.get(cat, cat)
             items.append(
                 f'<li class="toc-item toc-sub"><a href="#other-{cat}" class="toc-link">'
