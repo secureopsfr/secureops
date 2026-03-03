@@ -57,6 +57,7 @@ services:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
       - ADMIN_METRICS_API_KEY=${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}
+      - ADMIN_SERVICE_INTERNAL_API_KEY=${ADMIN_SERVICE_INTERNAL_API_KEY:-}
     networks:
       - app-network
     healthcheck:
@@ -78,6 +79,12 @@ services:
     environment:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - SCAN_SERVICE_URL=http://scan-service:8012
+      - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
+      - ADMIN_SERVICE_URL=http://admin-service:8010
+      - ADMIN_SERVICE_INTERNAL_API_KEY=${ADMIN_SERVICE_INTERNAL_API_KEY:-}
+      - SCHEDULED_SCAN_INITIAL_DELAY_SECONDS=${SCHEDULED_SCAN_INITIAL_DELAY_SECONDS:-60}
+      - SCHEDULED_SCAN_INTERVAL_SECONDS=${SCHEDULED_SCAN_INTERVAL_SECONDS:-300}
     networks:
       - app-network
     healthcheck:
@@ -99,6 +106,7 @@ services:
     environment:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
     networks:
       - app-network
     healthcheck:

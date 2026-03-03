@@ -81,6 +81,25 @@ async def get_scan_by_id(session: AsyncSession, scan_id: uuid.UUID, user_id: uui
     return result.scalar_one_or_none()
 
 
+async def get_last_scan_by_user_and_url(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    url: str,
+) -> Optional[Scan]:
+    """Récupère le dernier scan d'un utilisateur pour une URL donnée.
+
+    Args:
+        session: Session de base de données.
+        user_id: UUID de l'utilisateur.
+        url: URL scannée (normalisée).
+
+    Returns:
+        Scan ou None si aucun scan trouvé.
+    """
+    result = await session.execute(select(Scan).where(Scan.user_id == user_id, Scan.url == url).order_by(desc(Scan.created_at)).limit(1))
+    return result.scalar_one_or_none()
+
+
 async def list_scans_by_user_id(
     session: AsyncSession,
     user_id: uuid.UUID,

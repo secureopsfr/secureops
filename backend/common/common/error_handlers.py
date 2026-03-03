@@ -38,6 +38,7 @@ def _build_error_payload(
     payload: Dict[str, Any] = {
         "success": False,
         "error": message,
+        "detail": message,  # Alias pour compatibilité frontend (err.detail)
         "status_code": status_code,
         "path": request.url.path,
         "timestamp": datetime.now(UTC).isoformat(),

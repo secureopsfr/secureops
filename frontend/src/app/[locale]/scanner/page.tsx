@@ -54,8 +54,13 @@ export default async function ScannerPage({
   return (
     <>
       <Header />
-      <main id="main" className="min-h-screen px-4 py-12 md:px-6 lg:px-8">
-        <ScannerContent />
+      <main
+        id="main"
+        className="min-h-screen py-6 w-full flex justify-center scanner-page"
+      >
+        <div className="w-full max-w-[1400px] px-8">
+          <ScannerContent />
+        </div>
       </main>
       <Footer locale={locale} />
     </>

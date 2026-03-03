@@ -15,6 +15,20 @@ from app.services.subscription_repository import get_or_create_subscription
 logger = logging.getLogger(__name__)
 
 
+async def get_user_by_id(session: AsyncSession, user_id) -> Optional[User]:
+    """Récupère un utilisateur par son ID.
+
+    Args:
+        session: Session de base de données.
+        user_id: UUID de l'utilisateur.
+
+    Returns:
+        User ou None.
+    """
+    result = await session.execute(select(User).where(User.id == user_id))
+    return result.scalar_one_or_none()
+
+
 async def get_user_by_cognito_sub(session: AsyncSession, cognito_sub: str) -> Optional[User]:
     """Récupère un utilisateur par son cognito_sub.
 

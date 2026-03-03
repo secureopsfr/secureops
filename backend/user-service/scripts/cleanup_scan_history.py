@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Script de nettoyage périodique de l'historique des scans.
+Script de nettoyage périodique de l'historique des scans et des alertes.
 
-Supprime les scans plus anciens que la durée configurée par chaque utilisateur.
+Supprime les scans et les événements d'alerte plus anciens que la durée configurée
+par chaque utilisateur (history_retention).
 À exécuter via cron (ex. quotidiennement).
 
 Usage:
@@ -29,6 +30,7 @@ from sqlalchemy.orm import sessionmaker  # noqa: E402
 
 import app.models  # noqa: E402, F401 — enregistre les modèles
 from app.models.scan import Scan  # noqa: E402
+from app.models.scan_alert_event import ScanAlertEvent  # noqa: E402
 from app.models.subscription import Subscription  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -46,7 +48,7 @@ def get_async_url() -> str:
 
 
 async def run_cleanup() -> None:
-    """Exécute le nettoyage pour tous les utilisateurs."""
+    """Exécute le nettoyage pour tous les utilisateurs (scans + historique des alertes)."""
     url = get_async_url()
     engine = create_async_engine(url, echo=False)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -54,7 +56,8 @@ async def run_cleanup() -> None:
     async with async_session() as session:
         result = await session.execute(select(Subscription).where(Subscription.history_retention != "none"))
         subscriptions = result.scalars().all()
-        total_deleted = 0
+        total_scans_deleted = 0
+        total_alerts_deleted = 0
 
         for sub in subscriptions:
             try:
@@ -62,15 +65,28 @@ async def run_cleanup() -> None:
             except (ValueError, TypeError):
                 continue
             cutoff = datetime.now(UTC) - timedelta(days=days)
-            stmt = delete(Scan).where(Scan.user_id == sub.user_id, Scan.created_at < cutoff)
-            r = await session.execute(stmt)
-            deleted = r.rowcount or 0
-            if deleted > 0:
-                total_deleted += deleted
-                logger.info("User %s: %s scans supprimés (rétention %s jours)", sub.user_id, deleted, days)
+
+            # Supprimer les scans plus anciens que la rétention
+            stmt_scans = delete(Scan).where(Scan.user_id == sub.user_id, Scan.created_at < cutoff)
+            r_scans = await session.execute(stmt_scans)
+            deleted_scans = r_scans.rowcount or 0
+            if deleted_scans > 0:
+                total_scans_deleted += deleted_scans
+                logger.info("User %s: %s scans supprimés (rétention %s jours)", sub.user_id, deleted_scans, days)
+
+            # Supprimer les événements d'alerte plus anciens que la rétention
+            stmt_alerts = delete(ScanAlertEvent).where(
+                ScanAlertEvent.user_id == sub.user_id,
+                ScanAlertEvent.triggered_at < cutoff,
+            )
+            r_alerts = await session.execute(stmt_alerts)
+            deleted_alerts = r_alerts.rowcount or 0
+            if deleted_alerts > 0:
+                total_alerts_deleted += deleted_alerts
+                logger.info("User %s: %s alertes supprimées (rétention %s jours)", sub.user_id, deleted_alerts, days)
 
         await session.commit()
-        logger.info("Nettoyage terminé: %s scans supprimés au total", total_deleted)
+        logger.info("Nettoyage terminé: %s scans et %s alertes supprimés au total", total_scans_deleted, total_alerts_deleted)
 
 
 def main() -> None:

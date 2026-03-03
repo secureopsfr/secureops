@@ -5,13 +5,37 @@ import os
 from urllib.parse import urljoin
 
 import httpx
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.schemas.scan import ScanRequest
 from app.services.pdf_report import generate_pdf
+from app.services.scan_runner import ScanRunError, run_scan_to_result
 from app.services.scan_stream import scan_stream_generator
+from app.utils.url_validator import URLValidationError
+
+# Clé API pour les appels service-to-service (endpoint interne).
+# Si définie, le header X-Internal-Api-Key doit correspondre.
+INTERNAL_API_KEY = os.getenv("SCAN_SERVICE_INTERNAL_API_KEY")
+
+_X_INTERNAL_API_KEY_HEADER = Header(default=None, alias="X-Internal-Api-Key")
+
+
+async def _verify_internal_api_key(
+    x_internal_api_key: str | None = _X_INTERNAL_API_KEY_HEADER,
+) -> None:
+    """Vérifie la clé API interne si SCAN_SERVICE_INTERNAL_API_KEY est définie.
+
+    En dev (variable non définie), l'accès est autorisé sans clé.
+    """
+    if not INTERNAL_API_KEY:
+        return
+    if x_internal_api_key != INTERNAL_API_KEY:
+        raise HTTPException(status_code=401, detail="Clé API interne invalide ou manquante")
+
+
+_VERIFY_INTERNAL_API_KEY = Depends(_verify_internal_api_key)
 
 
 class ScanForPdfSchema(BaseModel):
@@ -88,6 +112,33 @@ async def export_scan_pdf(
             "Content-Disposition": f'attachment; filename="{filename}"',
         },
     )
+
+
+class InternalScanRequest(BaseModel):
+    """Requête pour l'endpoint interne (scheduler)."""
+
+    url: str = Field(..., description="URL à scanner")
+
+
+@router.post(
+    "/internal/scan/run",
+    summary="[Interne] Exécuter un scan et retourner le résultat en JSON",
+    description="Utilisé par le scheduler user-service. Si SCAN_SERVICE_INTERNAL_API_KEY est définie, " "le header X-Internal-Api-Key est requis.",
+)
+async def internal_run_scan(
+    body: InternalScanRequest,
+    _: None = _VERIFY_INTERNAL_API_KEY,
+) -> dict:
+    """Exécute le scan et retourne le résultat en JSON (pas de SSE)."""
+    try:
+        return await run_scan_to_result(body.url)
+    except URLValidationError as e:
+        return {"status": "error", "message": str(e), "status_code": 400}
+    except ScanRunError as e:
+        return {"status": "error", "message": e.message, "status_code": e.status_code}
+    except Exception as e:
+        logger.exception("Erreur inattendue lors du scan interne: %s", e)
+        return {"status": "error", "message": str(e), "status_code": 500}
 
 
 @router.post(

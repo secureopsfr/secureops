@@ -16,6 +16,7 @@ from common.health import create_health_router
 from common.logging_config import get_logger, mask_email, setup_logging
 from common.middleware import CorrelationIdMiddleware
 from common.schemas import DeleteResponse, ErrorResponse, PaginatedResponse, SuccessResponse
+from common.url_utils import URLValidationError, normalize_scan_url
 
 __all__ = [
     # config_base
@@ -40,4 +41,7 @@ __all__ = [
     "ErrorResponse",
     "PaginatedResponse",
     "SuccessResponse",
+    # url_utils
+    "URLValidationError",
+    "normalize_scan_url",
 ]

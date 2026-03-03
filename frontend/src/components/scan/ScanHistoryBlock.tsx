@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { FileDown, History, Trash2 } from "lucide-react";
-import Card from "../cards/Card";
-import ConfirmModal from "../ConfirmModal";
+import { SectionCard } from "../cards";
 import LoadingScreen from "../LoadingScreen";
-import { GenericButton } from "../buttons";
+import PaginationBar from "../PaginationBar";
+import { IconActionButton } from "../buttons";
 import { useLanguage } from "../LanguageProvider";
 import {
   getScanHistory,
@@ -16,8 +16,11 @@ import {
 } from "../../services/scanHistoryService";
 import type { ScanResult } from "../../services/scanService";
 import { getScoreBadge } from "./scanConstants";
+import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
+import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 import { showErrorToast } from "../../utils/toastNotifications";
 import { formatDate } from "../../utils/dateFormat";
+import { formatUrlDisplay } from "../../utils/urlFormat";
 
 interface ScanHistoryBlockProps {
   onSelectScan: (result: ScanResult, scanId?: string) => void;
@@ -27,48 +30,42 @@ export default function ScanHistoryBlock({
   onSelectScan,
 }: ScanHistoryBlockProps) {
   const { t, language } = useLanguage();
-  const [items, setItems] = useState<ScanHistoryItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const perPage = 20;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getScanHistory(page, perPage);
-      setItems(res.items);
-      setTotal(res.total);
-    } catch {
-      showErrorToast(t("scanner.historyLoadError"));
-    } finally {
-      setLoading(false);
-    }
-  }, [page, t]);
+  const onError = useCallback(
+    () => showErrorToast(t("scanner.historyLoadError")),
+    [t],
+  );
+  const { items, setItems, setTotal, page, setPage, loading, totalPages } =
+    usePaginatedFetch<ScanHistoryItem>({
+      fetchFn: (p, perPage) => getScanHistory(p, perPage),
+      perPage: 10,
+      onError,
+    });
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const handleDeleteConfirm = useCallback(
+    async (id: string) => {
+      try {
+        await deleteScan(id);
+        setItems((prev) => prev.filter((item) => item.id !== id));
+        setTotal((prev) => Math.max(0, prev - 1));
+      } catch {
+        showErrorToast(t("scanner.historyDeleteError"));
+      }
+    },
+    [setItems, setTotal, t],
+  );
 
-  const handleDeleteClick = useCallback((id: string) => {
-    setDeleteTargetId(id);
-  }, []);
-
-  const handleDeleteConfirm = useCallback(async () => {
-    const id = deleteTargetId;
-    if (!id) return;
-    setDeleteTargetId(null);
-    try {
-      await deleteScan(id);
-      setItems((prev) => prev.filter((item) => item.id !== id));
-      setTotal((prev) => Math.max(0, prev - 1));
-    } catch {
-      showErrorToast(t("scanner.historyDeleteError"));
-    }
-  }, [deleteTargetId, t]);
+  const { openDeleteModal, ConfirmDeleteModal } = useConfirmDelete(
+    handleDeleteConfirm,
+    {
+      title: t("scanner.historyDeleteModalTitle"),
+      message: t("scanner.historyDeleteConfirm"),
+      confirmText: t("scanner.historyDeleteBtn"),
+      cancelText: t("common.cancel"),
+    },
+  );
 
   const handleSelectScan = useCallback(
     async (item: ScanHistoryItem) => {
@@ -92,10 +89,6 @@ export default function ScanHistoryBlock({
     [onSelectScan, t],
   );
 
-  const handleDeleteModalClose = useCallback(() => {
-    setDeleteTargetId(null);
-  }, []);
-
   const handlePdfClick = useCallback(
     async (e: React.MouseEvent, item: ScanHistoryItem) => {
       e.stopPropagation();
@@ -111,17 +104,9 @@ export default function ScanHistoryBlock({
     [language, t],
   );
 
-  const totalPages = Math.max(1, Math.ceil(total / perPage));
-
   return (
     <>
-      <Card disableHover className="mt-6">
-        <div className="flex items-center gap-3 mb-4">
-          <History className="w-6 h-6 text-[rgb(var(--primary))]" />
-          <h2 className="text-xl font-bold text-[var(--text)]">
-            {t("scanner.historyTitle")}
-          </h2>
-        </div>
+      <SectionCard icon={History} title={t("scanner.historyTitle")}>
         <div className="space-y-4">
           {loading ? (
             <LoadingScreen
@@ -134,9 +119,6 @@ export default function ScanHistoryBlock({
             <>
               <ul className="divide-y divide-[var(--color-border)]">
                 {items.map((item) => {
-                  const displayUrl =
-                    item.url.replace(/^https?:\/\//, "").replace(/\/$/, "") ||
-                    item.url;
                   const badge = getScoreBadge(item.score ?? 0);
                   const isLoading = loadingDetailId === item.id;
                   const isPdfLoading = pdfLoadingId === item.id;
@@ -152,7 +134,7 @@ export default function ScanHistoryBlock({
                         className="text-left flex-1 min-w-0 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                       >
                         <span className="font-medium text-[var(--text)] block truncate break-all">
-                          {displayUrl}
+                          {formatUrlDisplay(item.url)}
                         </span>
                         <span className="text-xs text-[var(--muted)]">
                           {formatDate(item.created_at)} · {item.score ?? "—"}
@@ -160,67 +142,34 @@ export default function ScanHistoryBlock({
                         </span>
                       </button>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
+                        <IconActionButton
+                          icon={FileDown}
+                          ariaLabel={t("scanner.exportPdfDownload")}
                           onClick={(e) => handlePdfClick(e, item)}
                           disabled={isPdfLoading}
-                          className="p-2 text-[var(--muted)] hover:text-[rgb(var(--primary))] shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
-                          aria-label={t("scanner.exportPdfDownload")}
-                        >
-                          <FileDown className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteClick(item.id)}
-                          className="p-2 text-[var(--muted)] hover:text-[rgb(var(--danger))] shrink-0 cursor-pointer"
-                          aria-label={t("scanner.historyDelete")}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        />
+                        <IconActionButton
+                          icon={Trash2}
+                          ariaLabel={t("scanner.historyDelete")}
+                          onClick={() => openDeleteModal(item.id)}
+                          variant="danger"
+                        />
                       </div>
                     </li>
                   );
                 })}
               </ul>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-sm text-[var(--muted)]">
-                    {t("scanner.historyPageOf", { page, total: totalPages })}
-                  </span>
-                  <div className="flex gap-2">
-                    <GenericButton
-                      label="←"
-                      variant="outline"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page <= 1}
-                    />
-                    <GenericButton
-                      label="→"
-                      variant="outline"
-                      onClick={() =>
-                        setPage((p) => Math.min(totalPages, p + 1))
-                      }
-                      disabled={page >= totalPages}
-                    />
-                  </div>
-                </div>
-              )}
+              <PaginationBar
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
             </>
           )}
         </div>
-      </Card>
+      </SectionCard>
 
-      <ConfirmModal
-        isOpen={deleteTargetId !== null}
-        onClose={handleDeleteModalClose}
-        onConfirm={handleDeleteConfirm}
-        title={t("scanner.historyDeleteModalTitle")}
-        message={t("scanner.historyDeleteConfirm")}
-        confirmText={t("scanner.historyDeleteBtn")}
-        cancelText={t("common.cancel")}
-        variant="danger"
-        icon={Trash2}
-      />
+      {ConfirmDeleteModal}
     </>
   );
 }

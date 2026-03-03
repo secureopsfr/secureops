@@ -138,29 +138,38 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 
 ## 4) Monitoring continu (scans planifiés)
 
-### 4.1 Modèle de données
-- [ ] Schéma : `scheduled_scans` (id, user_id, url, frequency, next_run_at, enabled)
-- [ ] Fréquences : daily, weekly, monthly
+### 4.1 Modèle de données ✅
+- [x] Schéma : `scheduled_scans` (id, user_id, url, frequency, next_run_at, enabled)
+  - **Fait :** `app/models/scheduled_scan.py`, migration `0004_add_scheduled_scans_table.py`
+  - Colonnes étendues : `schedule_hour`, `schedule_minute`, `schedule_day_of_week`, `schedule_day_of_month` pour paramétrer l'heure (daily), le jour (weekly) et le jour du mois (monthly)
+- [x] Fréquences : daily, weekly, monthly
 
-### 4.2 Scheduler
-- [ ] Job cron (ou EventBridge) : réveille les scans à exécuter
-- [ ] Appel direct du scan (synchrone) ou intégration future avec queue
-- [ ] Mise à jour `next_run_at` après exécution
+### 4.2 Scheduler ✅
+- [x] Boucle asyncio dans user-service : réveille les scans à exécuter toutes les 5 min (configurable via `SCHEDULED_SCAN_INTERVAL_SECONDS`)
+  - **Fait :** `app/services/scheduled_scan_scheduler.py`, intégré dans `main.py` lifespan
+- [x] Appel du scan : user-service appelle scan-service `POST /api/internal/scan/run` (retourne JSON, pas SSE)
+  - **Fait :** `scan-service/app/services/scan_runner.py` + endpoint interne dans `routers/scan.py`
+- [x] Mise à jour `next_run_at` après exécution **réussie** uniquement
+  - En cas d'échec (site down, timeout) : pas de mise à jour → retry au prochain passage du scheduler
 
-### 4.3 API
-- [ ] `POST /api/scan/schedule` : créer un scan planifié
-- [ ] `GET /api/scan/schedule` : liste des scans planifiés
-- [ ] `PATCH /api/scan/schedule/{id}` : modifier (fréquence, pause)
-- [ ] `DELETE /api/scan/schedule/{id}` : supprimer
+### 4.3 API ✅
+- [x] `POST /user/api/scans/schedule` : créer un scan planifié
+- [x] `GET /user/api/scans/schedule` : liste des scans planifiés
+- [x] `PATCH /user/api/scans/schedule/{id}` : modifier (fréquence, horaire, pause)
+- [x] `DELETE /user/api/scans/schedule/{id}` : supprimer
+- **Fait :** `app/routers/scheduled_scan.py`, schémas `app/schemas/scheduled_scan.py`
 
-### 4.4 Alertes (optionnel)
-- [ ] Détection de régression (score chute vs dernier scan)
-- [ ] Email ou notification si finding critical détecté
+### 4.4 Alertes (optionnel) ✅
+- [x] Détection de régression (score chute vs dernier scan)
+- [x] Email ou notification si finding critical détecté
+- **Fait :** admin-service endpoint `/api/internal/notifications/scan-alert`, user-service `scan_alert_service.py`, préférence `scan_alerts_enabled`, toggle dans Settings
 
-### 4.5 Frontend
-- [ ] Page « Scans planifiés » : liste, CRUD
-- [ ] Formulaire : URL, fréquence (daily/weekly/monthly)
-- [ ] Indicateur : prochain scan prévu
+### 4.5 Frontend ✅
+- [x] Bloc « Scans planifiés » sur la page Scanner (visible si connecté, comme l'historique)
+  - **Fait :** `ScheduledScansBlock.tsx`, `scheduledScanService.ts`
+- [x] Formulaire : URL, fréquence (daily/weekly/monthly), heure, minute, jour (weekly/monthly)
+- [x] Indicateur : prochain scan prévu (`next_run_at` formaté)
+- [x] Boutons : pause/reprise, suppression
 
 ---
 

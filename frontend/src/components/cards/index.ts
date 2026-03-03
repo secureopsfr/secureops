@@ -3,5 +3,6 @@
  */
 
 export { default as Card } from "./Card";
+export { default as SectionCard } from "./SectionCard";
 export { default as TestimonialCard } from "./TestimonialCard";
 export { default as FeatureCard } from "./FeatureCard";

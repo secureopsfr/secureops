@@ -15,8 +15,7 @@ from app.services.favorite_repository import (
     delete_user_favorites,
     get_user_favorites,
 )
-from app.services.user_repository import get_user_by_cognito_sub
-from app.utils.auth import get_current_user
+from app.utils.auth import get_current_user, resolve_user
 
 logger = logging.getLogger(__name__)
 
@@ -30,21 +29,8 @@ async def create_favorite_entry(
 ) -> FavoriteResponse:
     """Crée une nouvelle entrée de favori."""
     try:
-        cognito_sub = current_user.get("sub")
-        if not cognito_sub:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Impossible d'identifier l'utilisateur",
-            )
-
         async with get_async_session() as session:
-            user = await get_user_by_cognito_sub(session, cognito_sub)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Utilisateur non trouvé en base de données",
-                )
-
+            user = await resolve_user(session, current_user)
             favorite = await create_or_update_favorite(
                 session=session,
                 user_id=user.id,
@@ -78,21 +64,8 @@ async def get_favorites(
 ) -> FavoriteListResponse:
     """Récupère les favoris avec pagination."""
     try:
-        cognito_sub = current_user.get("sub")
-        if not cognito_sub:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Impossible d'identifier l'utilisateur",
-            )
-
         async with get_async_session() as session:
-            user = await get_user_by_cognito_sub(session, cognito_sub)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Utilisateur non trouvé en base de données",
-                )
-
+            user = await resolve_user(session, current_user)
             total = await count_user_favorites(session, user.id)
             favorites = await get_user_favorites(session, user.id, limit=limit, offset=offset)
 
@@ -134,21 +107,8 @@ async def delete_favorite(
 ) -> None:
     """Supprime un favori par son ID."""
     try:
-        cognito_sub = current_user.get("sub")
-        if not cognito_sub:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Impossible d'identifier l'utilisateur",
-            )
-
         async with get_async_session() as session:
-            user = await get_user_by_cognito_sub(session, cognito_sub)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Utilisateur non trouvé en base de données",
-                )
-
+            user = await resolve_user(session, current_user)
             try:
                 favorite_uuid = uuid.UUID(favorite_id)
             except ValueError:
@@ -180,21 +140,8 @@ async def delete_all_favorites(
 ) -> Dict[str, int]:
     """Supprime tous les favoris de l'utilisateur."""
     try:
-        cognito_sub = current_user.get("sub")
-        if not cognito_sub:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Impossible d'identifier l'utilisateur",
-            )
-
         async with get_async_session() as session:
-            user = await get_user_by_cognito_sub(session, cognito_sub)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Utilisateur non trouvé en base de données",
-                )
-
+            user = await resolve_user(session, current_user)
             deleted_count = await delete_user_favorites(session, user.id)
             return {"deleted_count": deleted_count}
 
