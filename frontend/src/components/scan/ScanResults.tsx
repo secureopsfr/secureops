@@ -24,6 +24,7 @@ import {
   getCategorySummaryOkKey,
   severitySort,
   CHECKED_CATEGORIES_ORDER,
+  CHECKS_COUNT_FALLBACK,
 } from "./scanConstants";
 import type { CategorySummary } from "../../services/scanService";
 import { exportScanResult, type ExportFormat } from "../../utils/exportScan";
@@ -31,6 +32,7 @@ import { formatUrlDisplay } from "../../utils/urlFormat";
 import { downloadScanPdf } from "../../services/scanHistoryService";
 import { showErrorToast } from "../../utils/toastNotifications";
 import { renderWithBold } from "../../utils/renderWithBold";
+import { LoadingSpinner } from "../LoadingScreen";
 
 interface ScanResultsProps {
   result: ScanResult;
@@ -189,6 +191,26 @@ export default function ScanResults({
     return acc;
   }, {});
 
+  const summaries =
+    result.category_summaries ?? buildFallbackSummaries(byCategory);
+  const checksCountByCategory = summaries.reduce<Record<string, number>>(
+    (acc, entry) => {
+      acc[entry.category] =
+        entry.checks_count ??
+        (language === "en" ? entry.checks_en : entry.checks_fr)?.length ??
+        CHECKS_COUNT_FALLBACK[entry.category] ??
+        0;
+      return acc;
+    },
+    {},
+  );
+  const totalTestsCount =
+    result.total_tests_count ??
+    CHECKED_CATEGORIES_ORDER.reduce(
+      (sum, cat) => sum + (checksCountByCategory[cat] ?? 0),
+      0,
+    );
+
   const displayUrl = formatUrlDisplay(result.url);
 
   const domain = (() => {
@@ -305,13 +327,19 @@ export default function ScanResults({
       >
         <Card disableHover className="scanner-block p-4 overflow-x-auto">
           <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wider text-[var(--text)]">
-            {t("scanner.testsPerformed")}
+            {t("scanner.testsPerformed")}{" "}
+            <span className="font-normal normal-case">
+              ({totalTestsCount} {t("scanner.auTotal")})
+            </span>
           </h3>
           <table className="w-full min-w-[280px] text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)]">
                 <th className="py-3 px-4 text-left font-semibold text-[var(--text)]">
                   {t("scanner.test")}
+                </th>
+                <th className="py-3 px-4 text-center font-semibold text-[var(--text)]">
+                  {t("scanner.testsCount")}
                 </th>
                 <th className="py-3 px-4 text-right font-semibold text-[var(--text)]">
                   {t("scanner.status")}
@@ -321,6 +349,7 @@ export default function ScanResults({
             <tbody>
               {CHECKED_CATEGORIES_ORDER.map((cat) => {
                 const count = byCategory[cat] ?? 0;
+                const nbChecks = checksCountByCategory[cat] ?? 0;
                 return (
                   <tr
                     key={cat}
@@ -329,20 +358,32 @@ export default function ScanResults({
                     <td className="py-3 px-4 text-[var(--text)]">
                       {t(getCategoryKey(cat))}
                     </td>
+                    <td className="py-3 px-4 text-center text-[var(--muted)]">
+                      {nbChecks}
+                    </td>
                     <td className="py-3 px-4 text-right">
                       {count === 0 ? (
                         <span className="font-medium text-[rgb(var(--success))]">
                           {t("scanner.statusOk")}
                         </span>
                       ) : (
-                        <span className="font-medium text-[rgb(var(--warning))]">
+                        <a
+                          href={`#anomalies-${cat}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            document
+                              .getElementById(`anomalies-${cat}`)
+                              ?.scrollIntoView({ behavior: "smooth" });
+                          }}
+                          className="font-medium text-[rgb(var(--warning))] hover:underline cursor-pointer"
+                        >
                           {count}{" "}
                           {t(
                             count === 1
                               ? "scanner.anomalies_one"
                               : "scanner.anomalies",
                           )}
-                        </span>
+                        </a>
                       )}
                     </td>
                   </tr>
@@ -362,9 +403,7 @@ export default function ScanResults({
             {t("scanner.summarySectionTitle")}
           </h3>
           <div className="space-y-6">
-            {(
-              result.category_summaries ?? buildFallbackSummaries(byCategory)
-            ).map((entry) => {
+            {summaries.map((entry) => {
               const desc =
                 language === "en" ? entry.description_en : entry.description_fr;
               const label =
@@ -597,15 +636,16 @@ export default function ScanResults({
                 title={disabled ? t("scanner.exportPdfUnavailable") : undefined}
                 className="flex items-center gap-3 w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[var(--color-surface-hover)] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--color-surface-input)]"
               >
-                {icon}
-                <span className="font-medium">{t(labelKey)}</span>
-                {disabled && (
+                {isPdf && pdfLoading ? <LoadingSpinner size="sm" /> : icon}
+                <span className="font-medium">
+                  {isPdf && pdfLoading
+                    ? t("scanner.exportPdfGenerating")
+                    : t(labelKey)}
+                </span>
+                {disabled && !pdfLoading && (
                   <span className="text-xs text-muted-theme ml-auto">
                     {t("scanner.exportPdfUnavailable")}
                   </span>
-                )}
-                {isPdf && scanId && pdfLoading && (
-                  <span className="text-xs text-muted-theme ml-auto">...</span>
                 )}
               </button>
             );

@@ -55,7 +55,10 @@ async def create_scan_entry(
                 findings=body.findings,
                 timestamp=body.timestamp,
                 duration=body.duration,
+                category_summaries=body.category_summaries,
             )
+            summaries = scan.category_summaries_json or []
+            total_tests = sum(s.get("checks_count", 0) for s in summaries) if summaries else None
             return ScanDetailResponse(
                 id=str(scan.id),
                 url=scan.url,
@@ -65,6 +68,8 @@ async def create_scan_entry(
                 timestamp=scan.timestamp.isoformat(),
                 duration=scan.duration,
                 created_at=scan.created_at,
+                category_summaries=summaries or None,
+                total_tests_count=total_tests,
             )
     except HTTPException:
         raise
@@ -140,6 +145,8 @@ async def get_scan_detail(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Scan non trouvé ou n'appartient pas à l'utilisateur",
                 )
+            summaries = scan.category_summaries_json or []
+            total_tests = sum(s.get("checks_count", 0) for s in summaries) if summaries else None
             return ScanDetailResponse(
                 id=str(scan.id),
                 url=scan.url,
@@ -149,6 +156,8 @@ async def get_scan_detail(
                 timestamp=scan.timestamp.isoformat(),
                 duration=scan.duration,
                 created_at=scan.created_at,
+                category_summaries=summaries or None,
+                total_tests_count=total_tests,
             )
     except HTTPException:
         raise

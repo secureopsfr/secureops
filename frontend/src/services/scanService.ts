@@ -32,6 +32,8 @@ export interface CategorySummary {
   checks_fr: string[];
   checks_en: string[];
   anomaly_count: number;
+  /** Nombre de tests effectués dans cette catégorie (calculé par le backend). */
+  checks_count?: number;
   /** Posture TLS (catégorie tls uniquement) : ok, warning, critical. */
   tls_posture?: "ok" | "warning" | "critical";
   /** Version TLS négociée (catégorie tls uniquement), ex. "TLS 1.2", "TLS 1.3". */
@@ -45,6 +47,8 @@ export interface ScanResult {
   score: number;
   findings: ScanFinding[];
   category_summaries?: CategorySummary[];
+  /** Nombre total de tests effectués (calculé par le backend). */
+  total_tests_count?: number;
 }
 
 export interface ScanError {

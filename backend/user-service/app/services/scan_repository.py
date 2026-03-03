@@ -34,6 +34,7 @@ async def create_scan(
     findings: List[dict[str, Any]],
     timestamp: str,
     duration: float,
+    category_summaries: Optional[List[dict[str, Any]]] = None,
 ) -> Scan:
     """Crée un scan dans l'historique.
 
@@ -46,6 +47,7 @@ async def create_scan(
         findings: Liste des findings (dicts sérialisables).
         timestamp: Horodatage ISO du scan.
         duration: Durée en secondes.
+        category_summaries: Résumés par catégorie (checks_count, etc.), optionnel.
 
     Returns:
         Scan: Le scan créé.
@@ -58,6 +60,7 @@ async def create_scan(
         findings_json=findings,
         timestamp=_parse_timestamp(timestamp),
         duration=duration,
+        category_summaries_json=category_summaries,
     )
     session.add(scan)
     await session.commit()

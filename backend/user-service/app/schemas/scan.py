@@ -15,6 +15,10 @@ class ScanCreateRequest(BaseModel):
     findings: List[dict[str, Any]] = Field(default_factory=list, description="Liste des findings")
     timestamp: str = Field(..., description="Horodatage ISO du scan")
     duration: float = Field(..., ge=0, description="Durée en secondes")
+    category_summaries: Optional[List[dict[str, Any]]] = Field(
+        default=None,
+        description="Résumés par catégorie (checks_count, etc.)",
+    )
 
 
 class ScanListItem(BaseModel):
@@ -55,3 +59,11 @@ class ScanDetailResponse(BaseModel):
     timestamp: str = Field(..., description="Horodatage ISO")
     duration: float = Field(..., description="Durée en secondes")
     created_at: Optional[datetime] = Field(None, description="Date de création (None si non enregistré)")
+    category_summaries: Optional[List[dict[str, Any]]] = Field(
+        default=None,
+        description="Résumés par catégorie (checks_count, etc.)",
+    )
+    total_tests_count: Optional[int] = Field(
+        default=None,
+        description="Nombre total de tests effectués",
+    )
