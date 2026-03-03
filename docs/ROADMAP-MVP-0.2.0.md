@@ -282,10 +282,10 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Formulations indicatives (« probable », « détecté ») ✅
 
 **En plus (v0.2.0) :**
-- [ ] Extraire versions dans `Server`, `X-Powered-By` (ex. `nginx/1.18.0`)
-- [ ] Base de données CPE/CVE : alerter si version connue vulnérable (lecture seule)
-- [ ] Détection de technologies via balises HTML (`<meta generator>`, scripts)
-- [ ] Rapport « stack probable » avec niveaux de confiance
+- [x] Extraire versions dans `Server`, `X-Powered-By` (ex. `nginx/1.18.0`)
+- [x] Base de données CPE/CVE : alerter si version connue vulnérable (lecture seule, seuils configurables)
+- [x] Détection de technologies via balises HTML (`<meta generator>`, scripts)
+- [x] Rapport « stack probable » avec niveaux de confiance
 
 ---
 

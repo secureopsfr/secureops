@@ -275,3 +275,25 @@ La remontée « stack info » est un finding de type **Info** : elle n’indique
 
 - [OWASP – Security Misconfiguration](https://owasp.org/www-project-top-ten/2017/A6_2017-Security_Misconfiguration)
 - [CWE – Information Exposure](https://cwe.mitre.org/data/definitions/200.html)
+
+---
+
+## Améliorations prévues (v0.2.0)
+
+Les vérifications suivantes seront ajoutées ou étendues dans la version 0.2.0 du scanner :
+
+### 4. Extraction des versions dans Server et X-Powered-By
+
+Parser les en-têtes pour extraire les **versions** (ex. `nginx/1.18.0`, `PHP/8.2.1`). Une version précise permet de rechercher des CVE connues. Le scan peut alerter si une version vulnérable est détectée (nécessite une base de référence, lecture seule).
+
+### 5. Base de données CPE/CVE
+
+Croiser les versions détectées avec une **base CPE/CVE** (NVD, etc.) pour alerter si une version connue vulnérable est exposée. Lecture seule, pas d’exploitation. Gravité selon la criticité des CVE associées.
+
+### 6. Détection via balises HTML
+
+Analyser le **corps HTML** : balise `<meta name="generator">`, attributs `data-*`, scripts chargés (`/wp-includes/`, `/node_modules/`), etc. Complète la détection par en-têtes pour les CMS et frameworks qui ne révèlent pas tout dans les headers.
+
+### 7. Rapport « stack probable » avec niveaux de confiance
+
+Produire un rapport structuré avec des **niveaux de confiance** : « certain » (en-tête explicite), « probable » (heuristique forte), « possible » (heuristique faible). Éviter les affirmations catégoriques ; permettre à l’utilisateur de juger la fiabilité des détections.
