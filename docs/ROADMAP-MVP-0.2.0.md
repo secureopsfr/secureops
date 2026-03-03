@@ -205,11 +205,16 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Vérifier présence : `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options` (nosniff), `Referrer-Policy`, `Permissions-Policy` ✅
 
 **En plus (v0.2.0) :**
-- [ ] Vérifier `Content-Security-Policy` : présence de `report-uri` ou `report-to`
-- [ ] Vérifier directives CSP strictes (pas de `unsafe-inline`, `unsafe-eval` si possible)
-- [ ] Headers COEP/COOP (`Cross-Origin-Embedder-Policy`, `Cross-Origin-Opener-Policy`)
-- [ ] `Clear-Site-Data` pour déconnexion sécurisée
-- [ ] Sévérité différenciée selon le header manquant
+- [x] Vérifier `Content-Security-Policy` : présence de `report-uri` ou `report-to`
+  - **Fait :** `_analyze_csp_header` détecte l'absence ; finding `headers-csp-no-report-uri` (low).
+- [x] Vérifier directives CSP strictes (pas de `unsafe-inline`, `unsafe-eval` si possible)
+  - **Fait :** `_analyze_csp_header` détecte unsafe-inline/unsafe-eval ; finding `headers-csp-unsafe-directives` (low).
+- [x] Headers COEP/COOP (`Cross-Origin-Embedder-Policy`, `Cross-Origin-Opener-Policy`)
+  - **Fait :** Ajoutés dans settings.yml ; slugs `headers-coep-absent`, `headers-coop-absent` (low).
+- [x] `Clear-Site-Data` pour déconnexion sécurisée
+  - **Fait :** Ajouté dans settings.yml ; slug `headers-clear-site-data-absent` (low).
+- [x] Sévérité différenciée selon le header manquant
+  - **Fait :** `SecurityHeaderConfig.severity` ; CSP/HSTS=high, XFO/XCTO/Referrer/Permissions=medium, COEP/COOP/Clear-Site-Data=low.
 
 #### 5.1.3 Cookies
 
