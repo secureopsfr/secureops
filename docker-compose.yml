@@ -147,4 +147,3 @@ networks:
 
 volumes:
   pgdata:
-    external: true
