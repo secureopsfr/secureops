@@ -2,9 +2,14 @@
 
 Résolution DNS (A/AAAA) et refus si une IP résolue est dans une plage interdite.
 Configuration chargée depuis config/settings.yml (section ssrf).
+
+En production (`IS_PROD=true`), localhost et les IP privées sont bloqués.
+En environnement non prod (`IS_PROD=false`), localhost/127.0.0.1/::1 sont
+autorisés pour tester un serveur local (ex. bad_cache_server sur 127.0.0.1:8001).
 """
 
 import asyncio
+import os
 import socket
 from functools import lru_cache
 from ipaddress import ip_address, ip_network
@@ -26,8 +31,22 @@ def _ipv6_networks() -> tuple:
     return tuple(ip_network(n) for n in get_ssrf_settings().blocked_ipv6_networks)
 
 
+def _is_prod_env() -> bool:
+    """Indique si l'environnement est en mode production.
+
+    La variable d'environnement IS_PROD est considérée vraie si elle vaut
+    "1", "true" ou "yes" (insensible à la casse). Si elle est absente,
+    le comportement par défaut est conservateur (prod).
+    """
+    value = os.getenv("IS_PROD", "true").lower().strip()
+    return value in ("1", "true", "yes")
+
+
 def is_hostname_blocked(hostname: str | None) -> bool:
     """Indique si le hostname est dans la liste des hostnames interdits (localhost, etc.).
+
+    En environnement non prod (`IS_PROD=false`), localhost/127.0.0.1/::1 ne sont
+    pas bloqués pour permettre les tests locaux.
 
     Args:
         hostname: Host extrait de l'URL (peut être None).
@@ -38,11 +57,23 @@ def is_hostname_blocked(hostname: str | None) -> bool:
     if not hostname:
         return False
     normalized = hostname.lower().strip()
+    if not _is_prod_env() and normalized in {
+        "localhost",
+        "localhost.",
+        "127.0.0.1",
+        "::1",
+        "[::1]",
+    }:
+        return False
     return normalized in get_ssrf_settings().blocked_hostnames
 
 
 def is_ip_blocked(ip_str: str) -> bool:
     """Indique si l'IP (IPv4 ou IPv6) est dans une plage interdite.
+
+    En environnement non prod (`IS_PROD=false`), les IP loopback (127.x, ::1)
+    ne sont pas bloquées pour les tests locaux. Les autres IP privées restent
+    interdites.
 
     Args:
         ip_str: Adresse IP en chaîne.
@@ -54,6 +85,8 @@ def is_ip_blocked(ip_str: str) -> bool:
         addr = ip_address(ip_str)
     except ValueError:
         return True
+    if not _is_prod_env() and addr.is_loopback:
+        return False
     if addr.version == 4:
         return any(addr in net for net in _ipv4_networks())
     return any(addr in net for net in _ipv6_networks())
@@ -74,8 +107,8 @@ def _resolve_host(host: str, port: int | None) -> list[str]:
         results = socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_STREAM)
     except socket.gaierror:
         return []
-    ips = []
-    seen = set()
+    ips: list[str] = []
+    seen: set[str] = set()
     for _family, _type, _proto, _canon, sockaddr in results:
         ip = sockaddr[0]
         if ip not in seen:
@@ -101,7 +134,9 @@ async def check_ssrf(url: str, timeout: float = 5.0) -> None:
     if not host:
         raise URLValidationError("URL sans host.")
     if is_hostname_blocked(host):
-        raise URLValidationError("Les adresses localhost / 127.0.0.1 / ::1 ne sont pas autorisées.")
+        raise URLValidationError(
+            "Les adresses localhost / 127.0.0.1 / ::1 ne sont pas autorisées.",
+        )
 
     port = extract_port_from_url(url)
     try:
@@ -116,4 +151,6 @@ async def check_ssrf(url: str, timeout: float = 5.0) -> None:
 
     blocked = [ip for ip in ips if is_ip_blocked(ip)]
     if blocked:
-        raise URLValidationError("L'URL pointe vers une adresse IP privée ou locale (interdit pour des raisons de sécurité).")
+        raise URLValidationError(
+            "L'URL pointe vers une adresse IP privée ou locale (interdit pour des raisons de sécurité).",
+        )

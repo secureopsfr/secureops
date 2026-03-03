@@ -16,6 +16,7 @@ export const SEVERITY_ORDER = [
 export const CHECKS_COUNT_FALLBACK: Record<string, number> = {
   tls: 4,
   headers: 6,
+  cache: 5,
   cookies: 7,
   exposed_files: 13,
   directory_listing: 9,
@@ -27,6 +28,7 @@ export const CHECKS_COUNT_FALLBACK: Record<string, number> = {
 export const CHECKED_CATEGORIES_ORDER: readonly string[] = [
   "tls",
   "headers",
+  "cache",
   "cookies",
   "exposed_files",
   "directory_listing",
@@ -37,6 +39,7 @@ export const CHECKED_CATEGORIES_ORDER: readonly string[] = [
 export const CATEGORY_I18N_MAP: Record<string, string> = {
   tls: "scanner.categoryTls",
   headers: "scanner.categoryHeaders",
+  cache: "scanner.categoryCache",
   cookies: "scanner.categoryCookies",
   exposed_files: "scanner.categoryExposedFiles",
   directory_listing: "scanner.categoryDirectoryListing",
@@ -60,6 +63,7 @@ export function getCategoryKey(category: string): string {
 export const CATEGORY_SUMMARY_OK_I18N: Record<string, string> = {
   tls: "scanner.summaryTlsOk",
   headers: "scanner.summaryHeadersOk",
+  cache: "scanner.summaryCacheOk",
   cookies: "scanner.summaryCookiesOk",
   exposed_files: "scanner.summaryExposedFilesOk",
   directory_listing: "scanner.summaryDirectoryListingOk",

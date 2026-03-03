@@ -537,6 +537,55 @@
     "evidence_en": "Directory listing enabled on /data/: data exposed.",
     "references": []
   },
+  "cache-sensitive-page-public": {
+    "recommendation": "Configurer des directives de cache strictes sur les pages sensibles (login, admin, API) : utiliser Cache-Control: no-store ou private, no-cache et éviter tout cache public ou partagé.",
+    "recommendation_en": "Configure strict cache directives on sensitive pages (login, admin, API): use Cache-Control: no-store or private, no-cache and avoid any public or shared cache.",
+    "title_fr": "Page sensible cacheable publiquement",
+    "title_en": "Sensitive page publicly cacheable",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Web_Service_Security_Cheat_Sheet.html#caching",
+      "https://cwe.mitre.org/data/definitions/524.html"
+    ]
+  },
+  "cache-no-cache-control": {
+    "recommendation": "Ajouter un en-tête Cache-Control explicite sur les pages sensibles (login, admin, API) pour empêcher toute mise en cache non désirée (no-store ou private, no-cache).",
+    "recommendation_en": "Add an explicit Cache-Control header on sensitive pages (login, admin, API) to prevent unintended caching (no-store or private, no-cache).",
+    "title_fr": "Absence de Cache-Control sur page sensible",
+    "title_en": "Missing Cache-Control on sensitive page",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control",
+      "https://cheatsheetseries.owasp.org/cheatsheets/Web_Service_Security_Cheat_Sheet.html#caching"
+    ]
+  },
+  "cache-pragma-incoherent": {
+    "recommendation": "Supprimer Pragma: no-cache ou aligner Cache-Control pour éviter les comportements ambigus. Privilégier Cache-Control comme source de vérité et conserver une configuration cohérente.",
+    "recommendation_en": "Remove Pragma: no-cache or align Cache-Control to avoid ambiguous behaviors. Prefer Cache-Control as the source of truth and keep a consistent configuration.",
+    "title_fr": "Incohérence Pragma / Cache-Control",
+    "title_en": "Inconsistent Pragma / Cache-Control",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Pragma",
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control"
+    ]
+  },
+  "cache-immutable-no-long-cache": {
+    "recommendation": "Pour les assets immuables (fichiers avec hash dans l'URL), configurer un cache long côté serveur, par exemple Cache-Control: public, max-age=31536000, immutable.",
+    "recommendation_en": "For immutable assets (files with a hash in the URL), configure a long cache on the server, e.g. Cache-Control: public, max-age=31536000, immutable.",
+    "title_fr": "Asset immuable sans cache long",
+    "title_en": "Immutable asset without long cache",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching",
+      "https://web.dev/uses-long-cache-ttl/"
+    ]
+  },
+  "cache-generic-issue": {
+    "recommendation": "Revoir la configuration des en-têtes de cache pour s'assurer qu'elle est cohérente avec la sensibilité des pages et le type de ressources servies. Appliquer des directives strictes sur les pages sensibles et des caches longs sur les assets immuables.",
+    "recommendation_en": "Review cache header configuration to ensure it matches page sensitivity and resource types. Apply strict directives on sensitive pages and long-lived caches on immutable assets.",
+    "title_fr": "Problème générique de configuration de cache",
+    "title_en": "Generic cache configuration issue",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Web_Service_Security_Cheat_Sheet.html#caching"
+    ]
+  },
   "directory_listing-sensitive-403": {
     "recommendation": "Un 403 sur un répertoire sensible révèle son existence. Retourner 404 ou masquer l'existence du chemin.",
     "recommendation_en": "A 403 on a sensitive directory reveals its existence. Return 404 or hide the path existence.",

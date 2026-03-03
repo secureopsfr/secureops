@@ -47,12 +47,20 @@ def test_refuse_credentials_dans_url() -> None:
         validate_and_normalize_url("https://admin@example.com")
 
 
-def test_refuse_port_non_autorise() -> None:
-    """Refuse les ports non autorisés (ex. 8080, 8443)."""
+def test_refuse_port_non_autorise_en_prod(monkeypatch: pytest.MonkeyPatch) -> None:
+    """En prod (IS_PROD=true), refuse les ports non autorisés (ex. 8080, 8443)."""
+    monkeypatch.setenv("IS_PROD", "true")
     with pytest.raises(URLValidationError, match="ports .+ sont autorisés"):
         validate_and_normalize_url("http://example.com:8080")
     with pytest.raises(URLValidationError, match="ports .+ sont autorisés"):
         validate_and_normalize_url("https://example.com:8443")
+
+
+def test_accepte_port_arbitraire_en_dev(monkeypatch: pytest.MonkeyPatch) -> None:
+    """En non prod (IS_PROD=false), tout port est accepté (ex. 8001 pour tests locaux)."""
+    monkeypatch.setenv("IS_PROD", "false")
+    assert "://example.com:8001/" in validate_and_normalize_url("http://example.com:8001")
+    assert "://127.0.0.1:8001/" in validate_and_normalize_url("http://127.0.0.1:8001/login")
 
 
 def test_refuse_url_trop_longue() -> None:

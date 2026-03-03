@@ -1,6 +1,27 @@
-"""Helpers pour extraction et construction d'URLs (host, port, build http/https)."""
+"""Helpers pour extraction et construction d'URLs (host, port, build http/https).
 
+Inclut aussi la construction de l'URL de base utilisée pour le scan principal.
+En production, on force systématiquement une URL HTTPS canonique. En
+environnement non prod, on garde l'URL d'origine pour les cas localhost /
+127.0.0.1 avec port explicite afin de faciliter les tests locaux.
+"""
+
+import os
 from urllib.parse import urljoin, urlparse, urlunparse
+
+
+def _is_prod_env() -> bool:
+    """Indique si l'environnement est en mode production.
+
+    La variable d'environnement IS_PROD est considérée vraie si elle vaut
+    "1", "true" ou "yes" (insensible à la casse). Si elle est absente,
+    le comportement par défaut est conservateur (prod).
+
+    Returns:
+        bool: True si l'environnement est considéré comme production.
+    """
+    value = os.getenv("IS_PROD", "true").lower().strip()
+    return value in ("1", "true", "yes")
 
 
 def extract_host_from_url(url: str) -> str:
@@ -30,7 +51,7 @@ def extract_port_from_url(url: str) -> int | None:
 
 
 def build_https_url(url: str) -> str:
-    """Construit l'URL HTTPS à tester à partir de l'URL fournie.
+    """Construit l'URL HTTPS canonique à tester à partir de l'URL fournie.
 
     Préserve le port explicite non standard pour HTTPS (ex. badssl.com:1010 pour tests TLS 1.0).
     Pour http://host:80, produit https://host/ (port 443 implicite).
@@ -74,6 +95,34 @@ def get_https_port_from_url(url: str) -> int:
         if port is not None:
             return port
     return 443
+
+
+def get_scan_base_url(url: str) -> str:
+    """Construit l'URL de base utilisée pour le scan principal.
+
+    En production (`IS_PROD=true`), on utilise toujours l'URL HTTPS canonique
+    (upgrade éventuel depuis http → https, port 443 par défaut).
+
+    En environnement non prod (`IS_PROD=false`), pour les URLs locales de test
+    (localhost ou 127.0.0.1 avec port explicite), on conserve l'URL d'origine
+    afin d'éviter un upgrade vers https://host/ sur le port 443 qui échouerait
+    (cas typique d'un petit serveur HTTP de test sur 127.0.0.1:8001).
+
+    Args:
+        url: URL normalisée (http ou https).
+
+    Returns:
+        str: URL de base à utiliser pour le fetch principal.
+    """
+    parsed = urlparse(url)
+    scheme = (parsed.scheme or "").lower()
+    host = extract_host_from_url(url)
+    port = extract_port_from_url(url)
+
+    if not _is_prod_env() and scheme == "http" and port is not None and host in ("127.0.0.1", "localhost"):
+        return url
+
+    return build_https_url(url)
 
 
 def build_url_with_path(base_url: str, path: str) -> str:

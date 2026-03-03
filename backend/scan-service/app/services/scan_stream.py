@@ -26,6 +26,7 @@ from app.errors.fetch_errors import (
     build_validation_error_payload,
 )
 from app.models.scan_result import ScanResult
+from app.services.cache import checks as cache_checks
 from app.services.cookies import check_cookies_from_response
 from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
@@ -40,7 +41,7 @@ from app.services.tls.posture import compute_tls_posture
 from app.utils.http_fetch import get_with_client_or_error, scan_client
 from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
-from app.utils.url_helpers import build_https_url
+from app.utils.url_helpers import get_scan_base_url
 from app.utils.url_validator import URLValidationError, validate_and_normalize_url
 
 logger = logging.getLogger(__name__)
@@ -171,6 +172,16 @@ _SCAN_STEPS: list[tuple[str, str, str, Callable]] = [
         lambda ctx: check_security_headers_from_response(ctx.https_response),
     ),
     (
+        "cache",
+        "Vérification Cache et performances…",
+        "Cache et performances vérifiés.",
+        lambda ctx: cache_checks.check_cache_from_response(
+            ctx.https_response,
+            ctx.https_url,
+            ctx.client,
+        ),
+    ),
+    (
         "cookies",
         "Vérification Cookies…",
         "Cookies vérifiés.",
@@ -224,7 +235,7 @@ async def _run_checks_with_client(
     authorization: str | None = None,
 ) -> AsyncGenerator[str, None]:
     """Exécute les étapes de vérification avec le client partagé."""
-    https_url = build_https_url(normalized_url)
+    https_url = get_scan_base_url(normalized_url)
     fetch_result = await get_with_client_or_error(client, https_url, follow_redirects=True)
 
     # Détection précoce : site inaccessible, timeout ou erreur TLS → événement error
