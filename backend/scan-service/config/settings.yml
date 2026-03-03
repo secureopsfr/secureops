@@ -262,6 +262,10 @@ robots_txt:
 tech_fingerprinting:
   vulnerable_thresholds: {}  # ex: {nginx: "1.20.0", php: "8.0.0"}
 
+# Information disclosure (roadmap §5.2) : limite de taille du corps analysé pour fuites.
+information_disclosure:
+  max_body_bytes: 1048576  # 1 Mo
+
 # Timeouts scan (roadmap §2.3) : connexion, lecture, durée max du scan.
 timeouts:
   connection: 3    # secondes pour établir la connexion
@@ -280,6 +284,7 @@ scoring:
     robots_txt: 5
     sitemap: 5
     tech_fingerprinting: 5
+    information_disclosure: 5
   severity_penalties:
     critical: 100
     high: 50
@@ -301,6 +306,7 @@ pdf:
       - robots_txt
       - sitemap
       - tech_fingerprinting
+      - information_disclosure
       - other
     checked:
       - tls
@@ -312,6 +318,7 @@ pdf:
       - robots_txt
       - sitemap
       - tech_fingerprinting
+      - information_disclosure
     labels_fr:
       tls: "TLS / HTTPS"
       headers: "Security Headers"
@@ -322,6 +329,7 @@ pdf:
       robots_txt: "robots.txt"
       sitemap: "Sitemap"
       tech_fingerprinting: "Tech fingerprinting"
+      information_disclosure: "Fuites d'information"
       other: "Autres"
     labels_en:
       tls: "TLS / HTTPS"
@@ -333,4 +341,5 @@ pdf:
       robots_txt: "robots.txt"
       sitemap: "Sitemap"
       tech_fingerprinting: "Tech fingerprinting"
+      information_disclosure: "Information disclosure"
       other: "Other"

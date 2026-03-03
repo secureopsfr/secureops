@@ -291,31 +291,39 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 
 ### 5.2 Nouveaux tests — Information disclosure
 
+> **Fait :** module `app/services/information_disclosure/checks.py` ; étape `information_disclosure` dans la pipeline (après tech_fingerprinting). Analyse du corps (limite `information_disclosure.max_body_bytes` dans settings.yml) et des en-têtes. Findings : stack traces, mode debug, secrets (snippet masqué), headers de debug, Server/X-Powered-By/X-AspNet-Version avec version, X-Generator/X-Version/X-Drupal-Cache. Normalisation et catalogue i18n.
+
 #### 5.2.1 Fuites dans les réponses
-- [ ] Détection de stack traces (PHP, Python, Java, .NET, Node) dans le body
-- [ ] Détection de messages d’erreur debug (mode dev activé)
-- [ ] Patterns sensibles : mots de passe, tokens, clés API dans le HTML/JSON
-- [ ] Headers révélant des infos : `X-AspNet-Version`, `X-Powered-By` avec version
+- [x] Détection de stack traces (PHP, Python, Java, .NET, Node) dans le body
+- [x] Détection de messages d'erreur debug (mode dev activé)
+- [x] Patterns sensibles : mots de passe, tokens, clés API dans le HTML/JSON
+- [x] Headers révélant des infos : `X-AspNet-Version`, `X-Powered-By` avec version
 
 #### 5.2.2 Headers de débogage
-- [ ] `X-Debug`, `X-Debug-Token`, `X-Runtime` (exposition temps d’exécution)
-- [ ] `Server` avec version complète (ex. `Apache/2.4.41`)
-- [ ] Headers custom révélant stack (ex. `X-Generator`)
+- [x] `X-Debug`, `X-Debug-Token`, `X-Runtime` (exposition temps d’exécution)
+- [x] `Server` avec version complète (ex. `Apache/2.4.41`)
+- [x] Headers custom révélant stack (ex. `X-Generator`)
 
 ---
 
 ### 5.3 Nouveaux tests — Cache et performances
 
 #### 5.3.1 Headers de cache
-- [ ] `Cache-Control` : présence, directives (`max-age`, `no-store`, `private` pour données sensibles)
-- [ ] `Pragma: no-cache` (legacy, cohérence avec Cache-Control)
-- [ ] `ETag` et `Last-Modified` (validation conditionnelle)
-- [ ] `Vary` pour contenu négocié
-- [ ] Alerte si page sensible (login, admin) cacheable publiquement
+#### 5.3.1 Headers de cache
+- [x] `Cache-Control` : présence, directives (`max-age`, `no-store`, `private` pour données sensibles)
+- [x] `Pragma: no-cache` (legacy, cohérence avec Cache-Control)
+- [x] `ETag` et `Last-Modified` (validation conditionnelle)
+- [x] `Vary` pour contenu négocié
+- [x] Alerte si page sensible (login, admin) cacheable publiquement
+
+> **Fait :** module `app/services/cache/checks.py` analysant les en-têtes de la **page principale** (`Cache-Control`, `Pragma`, `ETag`, `Last-Modified`, `Vary`). Les pages sensibles sont identifiées par leur **URL** (patterns configurables dans `cache.sensitive_paths`) et un finding de sévérité High est généré si elles sont cacheables publiquement (`public` ou `max-age` supérieur au seuil `cache.sensitive_max_age` sans `no-store`/`private`). Une absence de `Cache-Control` sur page sensible génère un finding Medium, et une incohérence `Pragma: no-cache` / `Cache-Control` permissif un finding Low.
 
 #### 5.3.2 Cache des ressources statiques
-- [ ] Analyse des sous-requêtes (scripts, CSS, images) : headers Cache-Control
-- [ ] Recommandation : cache long pour assets immuables
+#### 5.3.2 Cache des ressources statiques
+- [x] Analyse des sous-requêtes (scripts, CSS, images) : headers Cache-Control
+- [x] Recommandation : cache long pour assets immuables
+
+> **Fait :** utilitaire générique `app/services/subresources.py` pour extraire les sous-ressources déclarées dans le HTML (`<script src>`, `<link rel="stylesheet" href>`, `<img src>`), normalisées par rapport à l’URL scannée et limitées à `cache.max_sub_resources`. Le check cache réutilise le **client HTTPX partagé** pour effectuer des requêtes `HEAD` (puis `GET` en fallback si nécessaire) et vérifie que les assets immuables (pattern `cache.immutable_pattern`, ex. `main.abc123.js`) bénéficient d’un cache long (`max-age >= cache.immutable_max_age` et présence de `immutable`). Un finding Info est émis (`cache-immutable-no-long-cache`) lorsque ce n’est pas le cas.
 
 ---
 

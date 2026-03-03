@@ -11,6 +11,7 @@ from app.errors.fetch_errors import FetchResult
 from app.main import app
 from app.services.directory_listing import DirectoryListingCheckResult
 from app.services.exposed_files import ExposedFilesCheckResult
+from app.services.information_disclosure.checks import InformationDisclosureCheckResult
 from app.services.robots_txt import RobotsTxtCheckResult
 from app.services.sitemap import SitemapCheckResult
 from app.services.tech_fingerprinting.checks import TechFingerprintingCheckResult
@@ -66,6 +67,9 @@ def patch_scan_checks(**overrides):
         findings=(),
         fetch_ok=True,
     )
+    information_disclosure_result = overrides.pop("information_disclosure_result", None) or InformationDisclosureCheckResult(
+        findings=(), fetch_ok=True
+    )
 
     @asynccontextmanager
     async def _fake_scan_client():
@@ -104,6 +108,11 @@ def patch_scan_checks(**overrides):
             "app.services.scan_stream.check_tech_fingerprinting_from_response",
             new_callable=MagicMock,
             return_value=tech_fingerprinting_result,
+        ),
+        patch(
+            "app.services.scan_stream.check_information_disclosure_from_response",
+            new_callable=MagicMock,
+            return_value=information_disclosure_result,
         ),
     ):
         yield

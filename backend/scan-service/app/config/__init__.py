@@ -5,6 +5,7 @@ settings reste dans config_loader (caller_file pour create_simple_settings).
 """
 
 from app.config.cache import CacheSettings, get_cache_settings
+from app.config.information_disclosure import InformationDisclosureSettings, get_information_disclosure_max_body, get_information_disclosure_settings
 from app.config.path_checks import (
     DirectoryListingConfig,
     ExposedFileConfig,
@@ -28,6 +29,7 @@ __all__ = [
     "CacheSettings",
     "DirectoryListingConfig",
     "ExposedFileConfig",
+    "InformationDisclosureSettings",
     "PathCheckConfig",
     "PdfSettings",
     "ScanTimeoutsSettings",
@@ -36,12 +38,14 @@ __all__ = [
     "SsrfSettings",
     "UrlValidationSettings",
     "get_cache_settings",
-    "get_pdf_settings",
     "get_directory_listing_max_body",
     "get_directory_listing_settings",
     "get_exposed_files_max_body",
     "get_exposed_files_settings",
     "get_exposed_files_severity_upgrade",
+    "get_information_disclosure_max_body",
+    "get_information_disclosure_settings",
+    "get_pdf_settings",
     "get_robots_txt_settings",
     "get_tech_fingerprinting_thresholds",
     "get_scoring_settings",

@@ -162,6 +162,7 @@
     "summaryDirectoryListingOk": "Listing désactivé sur **/uploads/**, **/assets/**, **/static/** et répertoires sensibles (**/tmp/**, **/logs/**, **/config/**, **/backup/**, **/data/**).",
     "summaryRobotsTxtOk": "**Disallow** analysé, pas de route sensible révélée.",
     "summaryTechFingerprintingOk": "En-têtes **Server**, **X-Powered-By** analysés.",
+    "summaryInformationDisclosureOk": "Corps et en-têtes analysés : pas de **stack trace**, **mode debug**, **secret** ni en-têtes de débogage exposés.",
     "tlsVersionPhraseBefore": "La connexion a été établie en ",
     "tlsVersionPhraseAfter": ".",
     "summaryNoAnomaliesBold": "Aucune anomalie",
@@ -219,7 +220,8 @@
     "categoryExposedFiles": "Fichiers exposés",
     "categoryDirectoryListing": "Directory listing",
     "categoryRobotsTxt": "robots.txt",
-    "categoryTechFingerprinting": "Tech fingerprinting"
+    "categoryTechFingerprinting": "Tech fingerprinting",
+    "categoryInformationDisclosure": "Fuites d'information"
   },
   "auth": {
     "login": {
