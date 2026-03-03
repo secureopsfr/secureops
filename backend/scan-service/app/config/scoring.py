@@ -24,6 +24,7 @@ _DEFAULT_WEIGHTS: dict[str, int] = {
     "sitemap": 5,
     "tech_fingerprinting": 5,
     "information_disclosure": 5,
+    "cors_cross_origin": 5,
 }
 _DEFAULT_PENALTIES: dict[str, int] = {
     "critical": 100,

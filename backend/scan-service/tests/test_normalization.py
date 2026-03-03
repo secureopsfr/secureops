@@ -1,6 +1,7 @@
 """Tests unitaires pour la normalisation des résultats (app.services.normalization)."""
 
 from app.services.cookies.checks import CookieCheckResult, CookieInfo
+from app.services.cors_cross_origin.checks import CorsCrossOriginCheckResult
 from app.services.normalization import normalize_results
 from app.services.path_checks.core import PathCheckResult, PathFinding
 from app.services.robots_txt.checks import RobotsTxtCheckResult, SensitiveRoute
@@ -547,6 +548,45 @@ def test_normalize_tech_fingerprinting_stack_unknown() -> None:
     findings = normalize_results({"tech_fingerprinting": result})
     assert len(findings) == 1
     assert findings[0].id == "tech_fingerprinting-stack-unknown"
+
+
+def test_normalize_cors_cross_origin_fetch_ok_false() -> None:
+    """CORS avec fetch_ok=False produit cors-connection-failed."""
+    result = CorsCrossOriginCheckResult(
+        findings=("CORS et cross-origin inaccessibles : réponse HTTPS indisponible.",),
+        fetch_ok=False,
+    )
+    findings = normalize_results({"cors_cross_origin": result})
+    assert len(findings) == 1
+    assert findings[0].id == "cors-connection-failed"
+    assert findings[0].category == "cors_cross_origin"
+    assert findings[0].severity == "high"
+
+
+def test_normalize_cors_cross_origin_mixed_content() -> None:
+    """CORS finding mixed content produit mixed-content-http-on-https."""
+    result = CorsCrossOriginCheckResult(
+        findings=("Mixed content : ressource chargée en HTTP sur page HTTPS : http://evil.com/lib.js.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"cors_cross_origin": result})
+    assert len(findings) == 1
+    assert findings[0].id == "mixed-content-http-on-https"
+    assert findings[0].category == "cors_cross_origin"
+    assert findings[0].severity == "high"
+
+
+def test_normalize_cors_cross_origin_acao_star_sensitive() -> None:
+    """CORS finding ACAO * sur endpoint sensible produit cors-allow-origin-star-sensitive."""
+    result = CorsCrossOriginCheckResult(
+        findings=("Access-Control-Allow-Origin: * sur endpoint sensible : https://example.com/api/.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"cors_cross_origin": result})
+    assert len(findings) == 1
+    assert findings[0].id == "cors-allow-origin-star-sensitive"
+    assert findings[0].category == "cors_cross_origin"
+    assert findings[0].severity == "high"
 
 
 def test_normalize_results_full_pipeline() -> None:

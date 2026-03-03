@@ -266,6 +266,24 @@ tech_fingerprinting:
 information_disclosure:
   max_body_bytes: 1048576  # 1 Mo
 
+# CORS et cross-origin (roadmap §5.4). Vérifications sur la page principale et sur des
+# URLs dérivées (chemins sensibles). Requêtes GET et OPTIONS avec en-tête Origin.
+# Référence : docs/verifications/cors-et-cross-origin.md
+cors_cross_origin:
+  sensitive_paths:       # Chemins à tester en plus de la page principale (base_url + path)
+    - "/api/"
+    - "/user/"
+    - "/admin/"
+    - "/auth/"
+    - "/login"
+  test_origin: "https://evil.example.com"  # Origine fictive pour détecter réflexion non validée
+  expose_headers_sensitive:   # En-têtes considérés sensibles si exposés via Access-Control-Expose-Headers
+    - "X-Auth-Token"
+    - "X-Request-ID"
+    - "Authorization"
+  max_sub_resources: 50   # Limite pour détection mixed content (réutilise même logique que cache)
+  subresource_timeout: 3.0
+
 # Timeouts scan (roadmap §2.3) : connexion, lecture, durée max du scan.
 timeouts:
   connection: 3    # secondes pour établir la connexion
@@ -285,6 +303,7 @@ scoring:
     sitemap: 5
     tech_fingerprinting: 5
     information_disclosure: 5
+    cors_cross_origin: 5
   severity_penalties:
     critical: 100
     high: 50
@@ -307,6 +326,7 @@ pdf:
       - sitemap
       - tech_fingerprinting
       - information_disclosure
+      - cors_cross_origin
       - other
     checked:
       - tls
@@ -319,6 +339,7 @@ pdf:
       - sitemap
       - tech_fingerprinting
       - information_disclosure
+      - cors_cross_origin
     labels_fr:
       tls: "TLS / HTTPS"
       headers: "Security Headers"
@@ -330,6 +351,7 @@ pdf:
       sitemap: "Sitemap"
       tech_fingerprinting: "Tech fingerprinting"
       information_disclosure: "Fuites d'information"
+      cors_cross_origin: "CORS et cross-origin"
       other: "Autres"
     labels_en:
       tls: "TLS / HTTPS"
@@ -342,4 +364,5 @@ pdf:
       sitemap: "Sitemap"
       tech_fingerprinting: "Tech fingerprinting"
       information_disclosure: "Information disclosure"
+      cors_cross_origin: "CORS and cross-origin"
       other: "Other"

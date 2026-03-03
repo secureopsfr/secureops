@@ -13,6 +13,7 @@ from app.errors.fetch_errors import build_sse_error_payload
 from app.models.scan_result import ScanResult
 from app.services.cache import checks as cache_checks
 from app.services.cookies import check_cookies_from_response
+from app.services.cors_cross_origin import run_cors_cross_origin_checks
 from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
 from app.services.information_disclosure import check_information_disclosure_from_response
@@ -84,6 +85,14 @@ _SCAN_STEPS: list[tuple[str, Callable]] = [
     ),
     ("tech_fingerprinting", lambda ctx: check_tech_fingerprinting_from_response(ctx.https_response)),
     ("information_disclosure", lambda ctx: check_information_disclosure_from_response(ctx.https_response)),
+    (
+        "cors_cross_origin",
+        lambda ctx: run_cors_cross_origin_checks(
+            ctx.https_response,
+            ctx.https_url,
+            ctx.client,
+        ),
+    ),
 ]
 
 

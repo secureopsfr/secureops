@@ -23,6 +23,7 @@ export const CHECKS_COUNT_FALLBACK: Record<string, number> = {
   robots_txt: 5,
   tech_fingerprinting: 6,
   information_disclosure: 6,
+  cors_cross_origin: 8,
 };
 
 /** Ordre des catégories de tests (aligné avec le PDF). */
@@ -36,6 +37,7 @@ export const CHECKED_CATEGORIES_ORDER: readonly string[] = [
   "robots_txt",
   "tech_fingerprinting",
   "information_disclosure",
+  "cors_cross_origin",
 ];
 
 export const CATEGORY_I18N_MAP: Record<string, string> = {
@@ -48,6 +50,7 @@ export const CATEGORY_I18N_MAP: Record<string, string> = {
   robots_txt: "scanner.categoryRobotsTxt",
   tech_fingerprinting: "scanner.categoryTechFingerprinting",
   information_disclosure: "scanner.categoryInformationDisclosure",
+  cors_cross_origin: "scanner.categoryCorsCrossOrigin",
 };
 
 export const SEVERITY_I18N_MAP: Record<string, string> = {
@@ -73,6 +76,7 @@ export const CATEGORY_SUMMARY_OK_I18N: Record<string, string> = {
   robots_txt: "scanner.summaryRobotsTxtOk",
   tech_fingerprinting: "scanner.summaryTechFingerprintingOk",
   information_disclosure: "scanner.summaryInformationDisclosureOk",
+  cors_cross_origin: "scanner.summaryCorsCrossOriginOk",
 };
 
 export function getCategorySummaryOkKey(category: string): string {

@@ -163,6 +163,7 @@
     "summaryRobotsTxtOk": "**Disallow** analyzed, no sensitive route revealed.",
     "summaryTechFingerprintingOk": "**Server**, **X-Powered-By** headers analyzed.",
     "summaryInformationDisclosureOk": "Body and headers analyzed: no **stack trace**, **debug mode**, **secret** or debug headers exposed.",
+    "summaryCorsCrossOriginOk": "**CORS** and **cross-origin** checked (GET/OPTIONS with Origin, mixed content, CORP). Referrer-Policy checked in Security Headers.",
     "tlsVersionPhraseBefore": "The connection was established using ",
     "tlsVersionPhraseAfter": ".",
     "summaryNoAnomaliesBold": "No issues",
@@ -221,7 +222,8 @@
     "categoryDirectoryListing": "Directory listing",
     "categoryRobotsTxt": "robots.txt",
     "categoryTechFingerprinting": "Tech fingerprinting",
-    "categoryInformationDisclosure": "Information disclosure"
+    "categoryInformationDisclosure": "Information disclosure",
+    "categoryCorsCrossOrigin": "CORS and cross-origin"
   },
   "auth": {
     "login": {

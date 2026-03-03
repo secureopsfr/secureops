@@ -5,6 +5,7 @@ settings reste dans config_loader (caller_file pour create_simple_settings).
 """
 
 from app.config.cache import CacheSettings, get_cache_settings
+from app.config.cors_cross_origin import CorsCrossOriginSettings, get_cors_cross_origin_settings
 from app.config.information_disclosure import InformationDisclosureSettings, get_information_disclosure_max_body, get_information_disclosure_settings
 from app.config.path_checks import (
     DirectoryListingConfig,
@@ -27,6 +28,7 @@ from app.config.url_validation import UrlValidationSettings, get_url_validation_
 
 __all__ = [
     "CacheSettings",
+    "CorsCrossOriginSettings",
     "DirectoryListingConfig",
     "ExposedFileConfig",
     "InformationDisclosureSettings",
@@ -38,6 +40,7 @@ __all__ = [
     "SsrfSettings",
     "UrlValidationSettings",
     "get_cache_settings",
+    "get_cors_cross_origin_settings",
     "get_directory_listing_max_body",
     "get_directory_listing_settings",
     "get_exposed_files_max_body",
