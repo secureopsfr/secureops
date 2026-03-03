@@ -33,6 +33,7 @@ from app.services.normalization import normalize_results
 from app.services.robots_txt import run_robots_txt_checks
 from app.services.scoring import compute_score
 from app.services.security_headers import check_security_headers_from_response
+from app.services.sitemap import run_sitemap_checks
 from app.services.tech_fingerprinting import check_tech_fingerprinting_from_response
 from app.services.tls import run_tls_checks
 from app.services.tls.posture import compute_tls_posture
@@ -193,6 +194,16 @@ _SCAN_STEPS: list[tuple[str, str, str, Callable]] = [
         "Vérification robots.txt…",
         "robots.txt vérifié.",
         lambda ctx: run_robots_txt_checks(ctx.https_url, client=ctx.client),
+    ),
+    (
+        "sitemap",
+        "Vérification sitemap…",
+        "Sitemap vérifié.",
+        lambda ctx: run_sitemap_checks(
+            ctx.https_url,
+            robots_txt_result=ctx.results.get("robots_txt"),
+            client=ctx.client,
+        ),
     ),
     (
         "tech_fingerprinting",

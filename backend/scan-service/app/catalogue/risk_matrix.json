@@ -231,6 +231,22 @@
     "gravite": "Significative",
     "vraisemblance": "Faible"
   },
+  "robots_txt-crawl-delay": {
+    "gravite": "Mineure",
+    "vraisemblance": "Très forte"
+  },
+  "sitemap-not-found": {
+    "gravite": "Mineure",
+    "vraisemblance": "Très forte"
+  },
+  "sitemap-undeclared": {
+    "gravite": "Mineure",
+    "vraisemblance": "Très forte"
+  },
+  "sitemap-sensitive-url": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
   "tech_fingerprinting-connection-failed": {
     "gravite": "Mineure",
     "vraisemblance": "Forte"

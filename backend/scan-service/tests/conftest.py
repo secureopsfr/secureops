@@ -12,6 +12,7 @@ from app.main import app
 from app.services.directory_listing import DirectoryListingCheckResult
 from app.services.exposed_files import ExposedFilesCheckResult
 from app.services.robots_txt import RobotsTxtCheckResult
+from app.services.sitemap import SitemapCheckResult
 from app.services.tls.checks import TlsCheckResult
 
 
@@ -37,7 +38,19 @@ def patch_scan_checks(**overrides):
     exposed_result = overrides.pop("exposed_result", None) or ExposedFilesCheckResult(exposed=(), findings=(), fetch_ok=True)
     directory_listing_result = overrides.pop("directory_listing_result", None) or DirectoryListingCheckResult(exposed=(), findings=(), fetch_ok=True)
     robots_txt_result = overrides.pop("robots_txt_result", None) or RobotsTxtCheckResult(
-        disallow_paths=(), sensitive_routes=(), findings=(), fetch_ok=True
+        disallow_paths=(),
+        allow_paths=(),
+        sensitive_routes=(),
+        findings=(),
+        fetch_ok=True,
+        crawl_delay=None,
+        sitemap_urls=(),
+    )
+    sitemap_result = overrides.pop("sitemap_result", None) or SitemapCheckResult(
+        sitemap_found=False,
+        sitemap_undeclared=False,
+        sensitive_urls=(),
+        fetch_ok=True,
     )
 
     @asynccontextmanager
@@ -67,6 +80,11 @@ def patch_scan_checks(**overrides):
             "app.services.scan_stream.run_robots_txt_checks",
             new_callable=AsyncMock,
             return_value=robots_txt_result,
+        ),
+        patch(
+            "app.services.scan_stream.run_sitemap_checks",
+            new_callable=AsyncMock,
+            return_value=sitemap_result,
         ),
     ):
         yield

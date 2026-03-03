@@ -21,6 +21,7 @@ from app.services.cookies.checks import CookieCheckResult
 from app.services.path_checks.core import PathCheckResult
 from app.services.robots_txt.checks import RobotsTxtCheckResult
 from app.services.security_headers.checks import SecurityHeadersCheckResult
+from app.services.sitemap.checks import SitemapCheckResult
 from app.services.tech_fingerprinting.checks import TechFingerprintingCheckResult
 from app.services.tls.checks import TlsCheckResult
 
@@ -283,6 +284,48 @@ def _normalize_robots_txt(result: RobotsTxtCheckResult) -> list[Finding]:
     for route in result.sensitive_routes:
         ev = f"Disallow: {route.path} (motif : {route.pattern}). Vérifier la protection."
         findings.append(_finding("robots_txt-sensitive-route", "robots_txt", f"Route sensible : {route.path}", route.severity.lower(), ev))
+    if result.crawl_delay is not None:
+        ev = f"Crawl-delay: {result.crawl_delay}s (directive non standard, certains moteurs l'ignorent)."
+        findings.append(_finding("robots_txt-crawl-delay", "robots_txt", "Crawl-delay détecté", "info", ev))
+    return findings
+
+
+def _normalize_sitemap(result: SitemapCheckResult) -> list[Finding]:
+    """Convertit SitemapCheckResult en list[Finding]."""
+    findings: list[Finding] = []
+    if not result.sitemap_found:
+        if result.fetch_ok:
+            findings.append(
+                _finding(
+                    "sitemap-not-found",
+                    "sitemap",
+                    "Sitemap non trouvé",
+                    "info",
+                    "Aucun sitemap trouvé (ni dans robots.txt, ni à /sitemap.xml). Recommandation : créer et déclarer un sitemap.",
+                )
+            )
+        return findings
+    if result.sitemap_undeclared:
+        findings.append(
+            _finding(
+                "sitemap-undeclared",
+                "sitemap",
+                "Sitemap présent mais non déclaré dans robots.txt",
+                "info",
+                "Sitemap trouvé à /sitemap.xml mais absent de robots.txt. Recommandation : ajouter Sitemap: dans robots.txt.",
+            )
+        )
+    for su in result.sensitive_urls:
+        ev = f"URL sensible dans sitemap : {su.url} (motif : {su.pattern})."
+        findings.append(
+            _finding(
+                "sitemap-sensitive-url",
+                "sitemap",
+                f"URL sensible exposée dans sitemap : {su.path}",
+                su.severity.lower(),
+                ev,
+            )
+        )
     return findings
 
 
@@ -323,6 +366,7 @@ class ScanResultsDict(TypedDict, total=False):
     exposed_files: PathCheckResult
     directory_listing: PathCheckResult
     robots_txt: RobotsTxtCheckResult
+    sitemap: SitemapCheckResult
     tech_fingerprinting: TechFingerprintingCheckResult
 
 
@@ -333,6 +377,7 @@ _NORMALIZERS: list[tuple[str, Callable[[object], list[Finding]]]] = [
     ("exposed_files", _normalize_exposed_files),
     ("directory_listing", _normalize_directory_listing),
     ("robots_txt", _normalize_robots_txt),
+    ("sitemap", _normalize_sitemap),
     ("tech_fingerprinting", _normalize_tech_fingerprinting),
 ]
 

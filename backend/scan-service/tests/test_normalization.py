@@ -376,9 +376,12 @@ def test_normalize_robots_txt_fetch_ok_false() -> None:
     """robots_txt avec fetch_ok=False produit robots_txt-connection-failed."""
     result = RobotsTxtCheckResult(
         disallow_paths=(),
+        allow_paths=(),
         sensitive_routes=(),
         findings=("Impossible de récupérer robots.txt.",),
         fetch_ok=False,
+        crawl_delay=None,
+        sitemap_urls=(),
     )
     findings = normalize_results({"robots_txt": result})
     assert len(findings) == 1
@@ -390,15 +393,67 @@ def test_normalize_robots_txt_sensitive_routes() -> None:
     route = SensitiveRoute(path="/admin/", pattern="admin", severity="high")
     result = RobotsTxtCheckResult(
         disallow_paths=("/admin/",),
+        allow_paths=(),
         sensitive_routes=(route,),
         findings=("Disallow: /admin/ (route potentiellement sensible : admin).",),
         fetch_ok=True,
+        crawl_delay=None,
+        sitemap_urls=(),
     )
     findings = normalize_results({"robots_txt": result})
     assert len(findings) == 1
     assert findings[0].id == "robots_txt-sensitive-route"
     assert findings[0].severity == "high"
     assert "admin" in findings[0].evidence
+
+
+def test_normalize_robots_txt_crawl_delay() -> None:
+    """robots_txt avec crawl_delay produit robots_txt-crawl-delay (info)."""
+    result = RobotsTxtCheckResult(
+        disallow_paths=(),
+        allow_paths=(),
+        sensitive_routes=(),
+        findings=(),
+        fetch_ok=True,
+        crawl_delay=5,
+        sitemap_urls=(),
+    )
+    findings = normalize_results({"robots_txt": result})
+    assert len(findings) == 1
+    assert findings[0].id == "robots_txt-crawl-delay"
+    assert findings[0].severity == "info"
+
+
+def test_normalize_sitemap_not_found() -> None:
+    """sitemap avec sitemap_found=False produit sitemap-not-found (info)."""
+    from app.services.sitemap.checks import SitemapCheckResult
+
+    result = SitemapCheckResult(
+        sitemap_found=False,
+        sitemap_undeclared=False,
+        sensitive_urls=(),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"sitemap": result})
+    assert len(findings) == 1
+    assert findings[0].id == "sitemap-not-found"
+    assert findings[0].severity == "info"
+
+
+def test_normalize_sitemap_sensitive_url() -> None:
+    """sitemap avec URL sensible produit sitemap-sensitive-url."""
+    from app.services.sitemap.checks import SensitiveSitemapUrl, SitemapCheckResult
+
+    result = SitemapCheckResult(
+        sitemap_found=True,
+        sitemap_undeclared=False,
+        sensitive_urls=(SensitiveSitemapUrl("https://ex.com/admin", "/admin", "admin", "high"),),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"sitemap": result})
+    assert len(findings) == 1
+    assert findings[0].id == "sitemap-sensitive-url"
+    assert findings[0].severity == "high"
 
 
 def test_normalize_tech_fingerprinting_fetch_ok_false() -> None:

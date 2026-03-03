@@ -508,6 +508,34 @@
       "https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt"
     ]
   },
+  "robots_txt-crawl-delay": {
+    "recommendation": "Crawl-delay est une directive non standard (Google l'ignore). Pour limiter la charge, utiliser d'autres moyens (rate limiting, etc.).",
+    "recommendation_en": "Crawl-delay is a non-standard directive (Google ignores it). To limit load, use other means (rate limiting, etc.).",
+    "title_fr": "Crawl-delay détecté",
+    "title_en": "Crawl-delay detected",
+    "references": []
+  },
+  "sitemap-not-found": {
+    "recommendation": "Créer un sitemap XML et le déclarer dans robots.txt via Sitemap: <URL>.",
+    "recommendation_en": "Create an XML sitemap and declare it in robots.txt via Sitemap: <URL>.",
+    "title_fr": "Sitemap non trouvé",
+    "title_en": "Sitemap not found",
+    "references": ["https://www.sitemaps.org/"]
+  },
+  "sitemap-undeclared": {
+    "recommendation": "Ajouter la directive Sitemap: dans robots.txt pour indiquer l'emplacement du sitemap aux moteurs de recherche.",
+    "recommendation_en": "Add the Sitemap: directive in robots.txt to indicate the sitemap location to search engines.",
+    "title_fr": "Sitemap présent mais non déclaré dans robots.txt",
+    "title_en": "Sitemap present but not declared in robots.txt",
+    "references": ["https://www.sitemaps.org/"]
+  },
+  "sitemap-sensitive-url": {
+    "recommendation": "Exclure les URLs sensibles (admin, api, config, etc.) du sitemap. Ces chemins ne doivent pas être proposés à l'indexation.",
+    "recommendation_en": "Exclude sensitive URLs (admin, api, config, etc.) from the sitemap. These paths should not be offered for indexing.",
+    "title_fr": "URL sensible exposée dans le sitemap",
+    "title_en": "Sensitive URL exposed in sitemap",
+    "references": ["https://www.sitemaps.org/"]
+  },
   "tech_fingerprinting-connection-failed": {
     "recommendation": "Vérifier la connectivité. Impossible d'analyser les en-têtes.",
     "recommendation_en": "Check connectivity. Unable to analyze headers.",

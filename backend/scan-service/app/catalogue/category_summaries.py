@@ -18,6 +18,7 @@ _CATEGORY_ORDER = (
     "exposed_files",
     "directory_listing",
     "robots_txt",
+    "sitemap",
     "tech_fingerprinting",
 )
 

@@ -42,10 +42,18 @@
   "robots_txt": {
     "label_fr": "robots.txt",
     "label_en": "robots.txt",
-    "description_fr": "Le scan lit le fichier **/robots.txt**, extrait les directives **Disallow** et signale les routes potentiellement sensibles (admin, api, backup, config, etc.). Ces chemins sont révélés publiquement et doivent être protégés par d'autres moyens.",
-    "description_en": "The scan reads **/robots.txt**, extracts **Disallow** directives and reports potentially sensitive routes (admin, api, backup, config, etc.). These paths are publicly revealed and must be protected by other means.",
-    "checks_fr": ["Lecture **robots.txt**", "Extraction **Disallow**", "Détection routes sensibles"],
-    "checks_en": ["Read **robots.txt**", "Extract **Disallow**", "Detect sensitive routes"]
+    "description_fr": "Le scan lit le fichier **/robots.txt**, extrait les directives **Disallow**, **Allow**, **Sitemap** et **Crawl-delay**, et signale les routes potentiellement sensibles (admin, api, backup, config, etc.).",
+    "description_en": "The scan reads **/robots.txt**, extracts **Disallow**, **Allow**, **Sitemap** and **Crawl-delay** directives, and reports potentially sensitive routes (admin, api, backup, config, etc.).",
+    "checks_fr": ["Lecture **robots.txt**", "Extraction **Disallow**/**Allow**", "**Sitemap**", "**Crawl-delay**", "Détection routes sensibles"],
+    "checks_en": ["Read **robots.txt**", "Extract **Disallow**/**Allow**", "**Sitemap**", "**Crawl-delay**", "Detect sensitive routes"]
+  },
+  "sitemap": {
+    "label_fr": "Sitemap",
+    "label_en": "Sitemap",
+    "description_fr": "Le scan vérifie la présence de **Sitemap:** dans robots.txt, cherche un sitemap à l'emplacement classique (/sitemap.xml) si absent, et analyse le contenu pour détecter des **URLs sensibles** (admin, api, config, etc.) exposées aux crawlers.",
+    "description_en": "The scan checks for **Sitemap:** in robots.txt, looks for a sitemap at the standard location (/sitemap.xml) if absent, and analyzes the content to detect **sensitive URLs** (admin, api, config, etc.) exposed to crawlers.",
+    "checks_fr": ["**Sitemap:** dans robots.txt", "Fallback **/sitemap.xml**", "Analyse URLs sensibles"],
+    "checks_en": ["**Sitemap:** in robots.txt", "Fallback **/sitemap.xml**", "Analyze sensitive URLs"]
   },
   "tech_fingerprinting": {
     "label_fr": "Tech fingerprinting",

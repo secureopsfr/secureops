@@ -18,6 +18,7 @@ from app.services.normalization import normalize_results
 from app.services.robots_txt import run_robots_txt_checks
 from app.services.scoring import compute_score
 from app.services.security_headers import check_security_headers_from_response
+from app.services.sitemap import run_sitemap_checks
 from app.services.tech_fingerprinting import check_tech_fingerprinting_from_response
 from app.services.tls import run_tls_checks
 from app.services.tls.posture import compute_tls_posture
@@ -63,6 +64,14 @@ _SCAN_STEPS: list[tuple[str, Callable]] = [
     ("exposed_files", lambda ctx: run_exposed_files_checks(ctx.https_url, client=ctx.client)),
     ("directory_listing", lambda ctx: run_directory_listing_checks(ctx.https_url, client=ctx.client)),
     ("robots_txt", lambda ctx: run_robots_txt_checks(ctx.https_url, client=ctx.client)),
+    (
+        "sitemap",
+        lambda ctx: run_sitemap_checks(
+            ctx.https_url,
+            robots_txt_result=ctx.results.get("robots_txt"),
+            client=ctx.client,
+        ),
+    ),
     ("tech_fingerprinting", lambda ctx: check_tech_fingerprinting_from_response(ctx.https_response)),
 ]
 
