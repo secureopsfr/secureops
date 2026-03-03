@@ -35,6 +35,7 @@ _DEFAULT_ORDER = (
     "sitemap",
     "tech_fingerprinting",
     "information_disclosure",
+    "cors_cross_origin",
     "other",
 )
 _DEFAULT_CHECKED = (
@@ -48,6 +49,7 @@ _DEFAULT_CHECKED = (
     "sitemap",
     "tech_fingerprinting",
     "information_disclosure",
+    "cors_cross_origin",
 )
 _DEFAULT_LABELS_FR = {
     "tls": "TLS / HTTPS",
@@ -60,6 +62,7 @@ _DEFAULT_LABELS_FR = {
     "sitemap": "Sitemap",
     "tech_fingerprinting": "Tech fingerprinting",
     "information_disclosure": "Fuites d'information",
+    "cors_cross_origin": "CORS et cross-origin",
     "other": "Autres",
 }
 _DEFAULT_LABELS_EN = {
@@ -73,6 +76,7 @@ _DEFAULT_LABELS_EN = {
     "sitemap": "Sitemap",
     "tech_fingerprinting": "Tech fingerprinting",
     "information_disclosure": "Information disclosure",
+    "cors_cross_origin": "CORS and cross-origin",
     "other": "Other",
 }
 

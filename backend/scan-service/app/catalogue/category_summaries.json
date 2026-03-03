@@ -90,5 +90,31 @@
     "description_en": "The scan analyzes the response **body** and **headers** for leaks: **stack traces**, **debug** error messages, **secrets** (tokens, API keys), debug headers (**X-Debug**, **X-Debug-Token**, **X-Runtime**) and stack-revealing headers (**Server**, **X-Powered-By**, **X-AspNet-Version**, **X-Generator**).",
     "checks_fr": ["**Stack traces**", "**Mode debug**", "**Secrets/tokens**", "**Headers débogage**", "**Server/X-Powered-By** avec version", "**Headers custom**"],
     "checks_en": ["**Stack traces**", "**Debug mode**", "**Secrets/tokens**", "**Debug headers**", "**Server/X-Powered-By** with version", "**Custom headers**"]
+  },
+  "cors_cross_origin": {
+    "label_fr": "CORS et cross-origin",
+    "label_en": "CORS and cross-origin",
+    "description_fr": "Le scan envoie des requêtes **GET et OPTIONS** avec l'en-tête **Origin** vers la page principale et vers des URLs dérivées (chemins sensibles : /api/, /user/, /admin/, etc.). Il vérifie **Access-Control-Allow-Origin** (* sur endpoint sensible), **Access-Control-Allow-Credentials** avec réflexion d'origine, **Access-Control-Allow-Methods** (PUT/DELETE/PATCH), **Access-Control-Expose-Headers** (en-têtes sensibles), **Cross-Origin-Resource-Policy** (CORP), et la détection du **mixed content** (ressources HTTP sur page HTTPS). Le finding « CORP manquant sur endpoint sensible » n'est émis que si la réponse ressemble à une API (JSON, XML, etc.), et non pour une page HTML (ex. « Cette page n'existe pas »). **Referrer-Policy** est vérifié dans la catégorie **Security Headers**.",
+    "description_en": "The scan sends **GET and OPTIONS** requests with the **Origin** header to the main page and to derived URLs (sensitive paths: /api/, /user/, /admin/, etc.). It checks **Access-Control-Allow-Origin** (* on sensitive endpoint), **Access-Control-Allow-Credentials** with origin reflection, **Access-Control-Allow-Methods** (PUT/DELETE/PATCH), **Access-Control-Expose-Headers** (sensitive headers), **Cross-Origin-Resource-Policy** (CORP), and **mixed content** detection (HTTP resources on HTTPS page). The « CORP missing on sensitive endpoint » finding is only reported when the response looks like an API (JSON, XML, etc.), not for HTML pages (e.g. « Page not found »). **Referrer-Policy** is verified in the **Security Headers** category.",
+    "checks_fr": [
+      "**GET/OPTIONS** avec Origin (page + chemins sensibles)",
+      "**ACAO *** sur endpoint sensible",
+      "**Credentials** + réflexion d'origine",
+      "**Allow-Methods** (PUT/DELETE/PATCH)",
+      "**Expose-Headers** sensibles",
+      "**CORP** manquant",
+      "**Mixed content** (HTTP sur HTTPS)",
+      "**Referrer-Policy** (vérifié dans Security Headers)"
+    ],
+    "checks_en": [
+      "**GET/OPTIONS** with Origin (page + sensitive paths)",
+      "**ACAO *** on sensitive endpoint",
+      "**Credentials** + origin reflection",
+      "**Allow-Methods** (PUT/DELETE/PATCH)",
+      "**Expose-Headers** sensitive",
+      "**CORP** missing",
+      "**Mixed content** (HTTP on HTTPS)",
+      "**Referrer-Policy** (checked in Security Headers)"
+    ]
   }
 }

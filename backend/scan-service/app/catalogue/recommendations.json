@@ -752,5 +752,75 @@
     "title_fr": "Fuite d'information",
     "title_en": "Information disclosure",
     "references": ["https://cwe.mitre.org/data/definitions/200.html"]
+  },
+  "cors-connection-failed": {
+    "recommendation": "Vérifier que la réponse HTTPS est accessible pour permettre l'analyse CORS et cross-origin.",
+    "recommendation_en": "Ensure HTTPS response is accessible to allow CORS and cross-origin analysis.",
+    "title_fr": "CORS et cross-origin inaccessibles",
+    "title_en": "CORS and cross-origin analysis unavailable",
+    "references": []
+  },
+  "cors-allow-origin-star-sensitive": {
+    "recommendation": "Restreindre Access-Control-Allow-Origin à une liste blanche d'origines de confiance. Ne jamais utiliser * pour des endpoints sensibles (API, auth, données utilisateur).",
+    "recommendation_en": "Restrict Access-Control-Allow-Origin to a whitelist of trusted origins. Never use * for sensitive endpoints (API, auth, user data).",
+    "title_fr": "Access-Control-Allow-Origin: * sur endpoint sensible",
+    "title_en": "Access-Control-Allow-Origin: * on sensitive endpoint",
+    "references": ["https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing", "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"]
+  },
+  "cors-credentials-origin-star": {
+    "recommendation": "Avec Access-Control-Allow-Credentials: true, le serveur ne peut pas renvoyer Access-Control-Allow-Origin: *. Refléter l'origine uniquement si elle figure dans une liste blanche validée.",
+    "recommendation_en": "With Access-Control-Allow-Credentials: true, the server cannot return Access-Control-Allow-Origin: *. Reflect the origin only if it is in a validated whitelist.",
+    "title_fr": "Incohérence CORS (Credentials + Allow-Origin: *)",
+    "title_en": "CORS inconsistency (Credentials + Allow-Origin: *)",
+    "references": ["https://portswigger.net/web-security/cors"]
+  },
+  "cors-credentials-origin-reflection": {
+    "recommendation": "Valider strictement l'origine : n'accepter que les domaines de confiance dans une liste blanche. Ne jamais refléter l'origine sans validation.",
+    "recommendation_en": "Strictly validate the origin: only accept trusted domains in a whitelist. Never reflect the origin without validation.",
+    "title_fr": "Réflexion d'origine non validée (CORS)",
+    "title_en": "Unvalidated origin reflection (CORS)",
+    "references": ["https://portswigger.net/web-security/cors"]
+  },
+  "cors-allow-methods-dangerous": {
+    "recommendation": "N'autoriser en CORS que les méthodes réellement utilisées par l'API. Réviser régulièrement la liste Access-Control-Allow-Methods.",
+    "recommendation_en": "Only allow CORS methods that are actually used by the API. Regularly review the Access-Control-Allow-Methods list.",
+    "title_fr": "Méthodes CORS dangereuses exposées (PUT/DELETE/PATCH)",
+    "title_en": "Dangerous CORS methods exposed (PUT/DELETE/PATCH)",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods"]
+  },
+  "cors-expose-headers-sensitive": {
+    "recommendation": "Ne pas exposer d'en-têtes contenant des tokens ou des informations sensibles dans Access-Control-Expose-Headers.",
+    "recommendation_en": "Do not expose headers containing tokens or sensitive information in Access-Control-Expose-Headers.",
+    "title_fr": "En-tête sensible exposé (Access-Control-Expose-Headers)",
+    "title_en": "Sensitive header exposed (Access-Control-Expose-Headers)",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers"]
+  },
+  "corp-missing": {
+    "recommendation": "Utiliser Cross-Origin-Resource-Policy (same-origin ou same-site) pour les APIs sensibles ; cross-origin uniquement si nécessaire.",
+    "recommendation_en": "Use Cross-Origin-Resource-Policy (same-origin or same-site) for sensitive APIs; cross-origin only if needed.",
+    "title_fr": "Cross-Origin-Resource-Policy manquant",
+    "title_en": "Cross-Origin-Resource-Policy missing",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Resource-Policy"]
+  },
+  "corp-missing-main": {
+    "recommendation": "Ajouter Cross-Origin-Resource-Policy sur la page principale pour renforcer l'isolation (same-origin ou same-site selon le cas).",
+    "recommendation_en": "Add Cross-Origin-Resource-Policy on the main page to strengthen isolation (same-origin or same-site as appropriate).",
+    "title_fr": "Cross-Origin-Resource-Policy manquant (page principale)",
+    "title_en": "Cross-Origin-Resource-Policy missing (main page)",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Resource-Policy"]
+  },
+  "mixed-content-http-on-https": {
+    "recommendation": "Utiliser des URLs relatives ou HTTPS pour toutes les ressources (scripts, CSS, images). Configurer les redirections HTTP vers HTTPS côté CDN et serveurs.",
+    "recommendation_en": "Use relative or HTTPS URLs for all resources (scripts, CSS, images). Configure HTTP to HTTPS redirects on CDN and servers.",
+    "title_fr": "Mixed content (HTTP sur page HTTPS)",
+    "title_en": "Mixed content (HTTP on HTTPS page)",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content"]
+  },
+  "cors-generic": {
+    "recommendation": "Consulter la documentation CORS et cross-origin (OWASP, MDN) pour corriger la configuration.",
+    "recommendation_en": "Consult CORS and cross-origin documentation (OWASP, MDN) to fix the configuration.",
+    "title_fr": "Problème CORS ou cross-origin",
+    "title_en": "CORS or cross-origin issue",
+    "references": ["https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing"]
   }
 }

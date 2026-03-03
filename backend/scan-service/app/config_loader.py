@@ -8,6 +8,7 @@ from common.config_base import create_simple_settings
 
 from app.config import (
     CacheSettings,
+    CorsCrossOriginSettings,
     DirectoryListingConfig,
     ExposedFileConfig,
     InformationDisclosureSettings,
@@ -18,6 +19,7 @@ from app.config import (
     SsrfSettings,
     UrlValidationSettings,
     get_cache_settings,
+    get_cors_cross_origin_settings,
     get_directory_listing_max_body,
     get_directory_listing_settings,
     get_exposed_files_max_body,
@@ -38,6 +40,7 @@ settings = create_simple_settings("scan-service", default_port=8012, caller_file
 
 __all__ = [
     "CacheSettings",
+    "CorsCrossOriginSettings",
     "DirectoryListingConfig",
     "ExposedFileConfig",
     "InformationDisclosureSettings",
@@ -48,6 +51,7 @@ __all__ = [
     "SsrfSettings",
     "UrlValidationSettings",
     "get_cache_settings",
+    "get_cors_cross_origin_settings",
     "get_directory_listing_max_body",
     "get_directory_listing_settings",
     "get_exposed_files_max_body",

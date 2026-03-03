@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.errors.fetch_errors import FetchResult
 from app.main import app
+from app.services.cors_cross_origin.checks import CorsCrossOriginCheckResult
 from app.services.directory_listing import DirectoryListingCheckResult
 from app.services.exposed_files import ExposedFilesCheckResult
 from app.services.information_disclosure.checks import InformationDisclosureCheckResult
@@ -70,6 +71,7 @@ def patch_scan_checks(**overrides):
     information_disclosure_result = overrides.pop("information_disclosure_result", None) or InformationDisclosureCheckResult(
         findings=(), fetch_ok=True
     )
+    cors_cross_origin_result = overrides.pop("cors_cross_origin_result", None) or CorsCrossOriginCheckResult(findings=(), fetch_ok=True)
 
     @asynccontextmanager
     async def _fake_scan_client():
@@ -113,6 +115,11 @@ def patch_scan_checks(**overrides):
             "app.services.scan_stream.check_information_disclosure_from_response",
             new_callable=MagicMock,
             return_value=information_disclosure_result,
+        ),
+        patch(
+            "app.services.scan_stream.run_cors_cross_origin_checks",
+            new_callable=AsyncMock,
+            return_value=cors_cross_origin_result,
         ),
     ):
         yield

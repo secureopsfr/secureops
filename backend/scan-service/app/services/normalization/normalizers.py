@@ -19,6 +19,7 @@ from app.constants import (
 from app.models.finding import Finding
 from app.services.cache.checks import CacheCheckResult
 from app.services.cookies.checks import CookieCheckResult
+from app.services.cors_cross_origin.checks import CorsCrossOriginCheckResult
 from app.services.information_disclosure.checks import InformationDisclosureCheckResult
 from app.services.path_checks.core import PathCheckResult
 from app.services.robots_txt.checks import RobotsTxtCheckResult
@@ -507,6 +508,50 @@ def _normalize_information_disclosure(result: InformationDisclosureCheckResult) 
     return findings
 
 
+def _cors_cross_origin_msg_to_finding(msg: str) -> tuple[str, str, str]:
+    """Mappe un message CORS/cross-origin vers (slug, title, severity)."""
+    msg_l = msg.lower()
+    if "inaccessibles" in msg_l or "réponse https indisponible" in msg_l:
+        return ("cors-connection-failed", "CORS et cross-origin inaccessibles", "high")
+    if "allow-origin: *" in msg_l and "endpoint sensible" in msg_l:
+        return ("cors-allow-origin-star-sensitive", "Access-Control-Allow-Origin: * sur endpoint sensible", "high")
+    if "incohérence cors" in msg_l and "credentials" in msg_l and "allow-origin: *" in msg_l:
+        return ("cors-credentials-origin-star", "Incohérence CORS (Credentials + Allow-Origin: *)", "critical")
+    if "réflexion d'origine non validée" in msg_l:
+        return ("cors-credentials-origin-reflection", "Réflexion d'origine non validée (CORS)", "critical")
+    if "méthodes cors" in msg_l and "dangereuses" in msg_l:
+        return ("cors-allow-methods-dangerous", "Méthodes CORS dangereuses exposées (PUT/DELETE/PATCH)", "info")
+    if "en-tête sensible exposé" in msg_l or "expose-headers" in msg_l:
+        return ("cors-expose-headers-sensitive", "En-tête sensible exposé (Access-Control-Expose-Headers)", "medium")
+    if "cross-origin-resource-policy manquant" in msg_l and "page principale" in msg_l:
+        return ("corp-missing-main", "Cross-Origin-Resource-Policy manquant (page principale)", "low")
+    if "cross-origin-resource-policy manquant" in msg_l:
+        return ("corp-missing", "Cross-Origin-Resource-Policy manquant", "low")
+    if "mixed content" in msg_l and "http" in msg_l:
+        return ("mixed-content-http-on-https", "Mixed content (HTTP sur page HTTPS)", "high")
+    return ("cors-generic", "Problème CORS ou cross-origin", "medium")
+
+
+def _normalize_cors_cross_origin(result: CorsCrossOriginCheckResult) -> list[Finding]:
+    """Convertit CorsCrossOriginCheckResult en list[Finding]."""
+    findings: list[Finding] = []
+    if not result.fetch_ok:
+        findings.append(
+            _finding(
+                "cors-connection-failed",
+                "cors_cross_origin",
+                "CORS et cross-origin inaccessibles",
+                "high",
+                "CORS et cross-origin inaccessibles : réponse HTTPS indisponible.",
+            ),
+        )
+        return findings
+    for msg in result.findings:
+        slug, title, severity = _cors_cross_origin_msg_to_finding(msg)
+        findings.append(_finding(slug, "cors_cross_origin", title, severity, msg))
+    return findings
+
+
 class ScanResultsDict(TypedDict, total=False):
     """Structure des résultats de checks passés à normalize_results."""
 
@@ -520,6 +565,7 @@ class ScanResultsDict(TypedDict, total=False):
     tech_fingerprinting: TechFingerprintingCheckResult
     cache: CacheCheckResult
     information_disclosure: InformationDisclosureCheckResult
+    cors_cross_origin: CorsCrossOriginCheckResult
 
 
 _NORMALIZERS: list[tuple[str, Callable[[object], list[Finding]]]] = [
@@ -533,6 +579,7 @@ _NORMALIZERS: list[tuple[str, Callable[[object], list[Finding]]]] = [
     ("sitemap", _normalize_sitemap),
     ("tech_fingerprinting", _normalize_tech_fingerprinting),
     ("information_disclosure", _normalize_information_disclosure),
+    ("cors_cross_origin", _normalize_cors_cross_origin),
 ]
 
 

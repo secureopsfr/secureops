@@ -22,6 +22,7 @@ _CATEGORY_ORDER = (
     "sitemap",
     "tech_fingerprinting",
     "information_disclosure",
+    "cors_cross_origin",
 )
 
 
