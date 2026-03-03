@@ -223,10 +223,14 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Détecter cookies sans `Secure` si site HTTPS ✅
 
 **En plus (v0.2.0) :**
-- [ ] Détecter préfixes `__Host-` et `__Secure-` (bonnes pratiques)
-- [ ] Cookie `Partitioned` (CHIPS) pour cookies tiers
-- [ ] Alerte si cookie de session sans `HttpOnly` + `Secure` + `SameSite=Strict`
-- [ ] Détection de cookies avec `Expires` trop lointain pour session
+- [x] Détecter préfixes `__Host-` et `__Secure-` (bonnes pratiques)
+  - **Fait :** Finding `cookies-no-host-secure-prefix` (info) pour cookies sensibles sans préfixe.
+- [x] Cookie `Partitioned` (CHIPS) pour cookies tiers
+  - **Fait :** Finding `cookies-no-partitioned` (low) pour cookies analytics/tiers (`_ga`, `_gid`, etc.) sans Partitioned.
+- [x] Alerte si cookie de session sans `HttpOnly` + `Secure` + `SameSite=Strict`
+  - **Fait :** Finding `cookies-session-incomplete` (high) ; heuristique sur noms (session, auth, token, phpsessid, etc.).
+- [x] Détection de cookies avec `Expires` trop lointain pour session
+  - **Fait :** Finding `cookies-session-expires-long` (low) si Expires/Max-Age > 24h pour cookie session.
 
 #### 5.1.4 Exposition fichiers
 
