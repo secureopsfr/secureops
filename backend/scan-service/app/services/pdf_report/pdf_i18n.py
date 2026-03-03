@@ -49,12 +49,12 @@ _PDF_STRINGS: dict[str, dict[str, str]] = {
     "other_tests_test_singular": {"fr": "test", "en": "test"},
     "other_tests_test_plural": {"fr": "tests", "en": "tests"},
     "other_tests_nb_tests_singular": {
-        "fr": "**Un** test a été effectué dans cette catégorie.",
-        "en": "**One** test was performed in this category.",
+        "fr": "**Un test** a été effectué dans cette catégorie.",
+        "en": "**One test** was performed in this category.",
     },
     "other_tests_nb_tests_plural": {
-        "fr": "**{nb}** tests ont été effectués dans cette catégorie.",
-        "en": "**{nb}** tests were performed in this category.",
+        "fr": "**{nb} tests** ont été effectués dans cette catégorie.",
+        "en": "**{nb} tests** were performed in this category.",
     },
     "repartition": {"fr": "Répartition des tests effectués par catégorie", "en": "Breakdown of tests performed by category"},
     "category": {"fr": "Catégorie", "en": "Category"},
