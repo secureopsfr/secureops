@@ -51,10 +51,10 @@ def build_synthese(
         checks_count = get_checks_count(cat)
         label = category_labels.get(cat, cat)
         if anomaly_count == 0:
-            status_html = f'<span class="status-ok">{status_ok}</span>'
+            status_html = f'<a href="#other-{cat}" class="status-ok status-link">{status_ok}</a>'
         else:
             word = anomalies_one if anomaly_count == 1 else anomalies_word
-            status_html = f'<a href="#sect-{escape(cat)}" class="status-warning status-link">' f"{anomaly_count} {word}</a>"
+            status_html = f'<a href="#sect-{cat}" class="status-warning status-link">{anomaly_count} {word}</a>'
         synthese_rows.append(f"<tr><td>{escape(label)}</td><td class='tbl-num'>{checks_count}</td>" f"<td>{status_html}</td></tr>")
 
     circumference = 2 * 3.14159 * 42

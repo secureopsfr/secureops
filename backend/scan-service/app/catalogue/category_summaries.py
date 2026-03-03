@@ -72,6 +72,24 @@ def _load_category_summaries() -> dict[str, dict]:
         return json.load(f)
 
 
+def get_category_description(cat: str, lang: str) -> str:
+    """Retourne la description d'une catégorie (depuis le catalogue).
+
+    Args:
+        cat: Identifiant de catégorie (tls, headers, etc.).
+        lang: Code langue (fr/en).
+
+    Returns:
+        str: Description ou chaîne vide si absent.
+    """
+    catalogue = _load_category_summaries()
+    entry = catalogue.get(cat)
+    if not entry:
+        return ""
+    key = "description_en" if lang == "en" else "description_fr"
+    return str(entry.get(key, ""))
+
+
 def get_checks_count(cat: str) -> int:
     """Retourne le nombre de tests pour une catégorie (depuis le catalogue).
 

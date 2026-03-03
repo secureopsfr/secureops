@@ -6,7 +6,11 @@ from typing import Any
 
 from app.config.pdf import get_pdf_settings
 from app.services.pdf_report.cover import build_cover_page
-from app.services.pdf_report.findings import _group_findings_by_category, build_category_sections
+from app.services.pdf_report.findings import (
+    _group_findings_by_category,
+    build_category_sections,
+    build_other_tests_section,
+)
 from app.services.pdf_report.pdf_i18n import t
 from app.services.pdf_report.sommaire import build_sommaire
 from app.services.pdf_report.synthese import build_synthese
@@ -71,13 +75,13 @@ def build_html(
     cover_page = build_cover_page(url, date_str, lang, report_title, subtitle)
     sommaire_html = build_sommaire(by_category, ordered_cats, lang)
     synthese_html = build_synthese(by_category, ordered_cats, findings, score_val, score_color, lang)
-    sections_html = build_category_sections(by_category, ordered_cats, include_matrices, lang)
+    sections_html, next_section_num = build_category_sections(by_category, ordered_cats, include_matrices, lang)
+    other_tests_html, next_section_num = build_other_tests_section(by_category, next_section_num, lang)
 
-    section_num = 2 + sum(1 for c in ordered_cats if by_category.get(c))
     annexes_label = t("annexes", lang)
     annexes_html = f"""
     <div class="report-section" id="annexes">
-        <h2 class="section-title">{section_num}. {annexes_label}</h2>
+        <h2 class="section-title">{next_section_num}. {annexes_label}</h2>
         <p class="annexes-text">{disclaimer}</p>
     </div>
     """
@@ -99,6 +103,7 @@ def build_html(
         {sommaire_html}
         {synthese_html}
         {"".join(sections_html)}
+        {other_tests_html}
         {annexes_html}
         <footer>
             <p>{disclaimer}</p>
