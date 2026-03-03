@@ -5,16 +5,13 @@ et détecte si le serveur renvoie une page de listing (signatures Apache/Nginx o
 Gère aussi les 403 sur chemins sensibles (existence révélée).
 """
 
-import asyncio
 import re
 
 from app.config_loader import get_directory_listing_max_body, get_directory_listing_settings
-from app.services.path_checks import PathCheckResult, PathFinding
-from app.utils.http_fetch import fetch_url, get_with_client
-from app.utils.url_helpers import build_url_with_path
+from app.services.path_checks import PathCheckResult, PathFinding, run_path_checks
 
 # Chemins sensibles : un 403 indique l'existence du répertoire (protection active).
-_SENSITIVE_FOR_403 = ("/config/", "/backup/", "/logs/", "/tmp/", "/data/")
+_SENSITIVE_FOR_403 = frozenset(("/config/", "/backup/", "/logs/", "/tmp/", "/data/"))
 
 # Extensions de fichiers typiques dans un listing partiel.
 _PARTIAL_LISTING_EXTENSIONS = (
@@ -49,6 +46,22 @@ _PARTIAL_LISTING_EXTENSIONS = (
 
 # Seuil minimum de liens pour considérer un listing partiel (éviter faux positifs).
 _PARTIAL_LISTING_MIN_LINKS = 3
+
+
+def _make_on_403_handler():
+    """Retourne le callback pour les 403 sur chemins sensibles."""
+
+    def handler(path: str) -> PathFinding | None:
+        path_norm = (path.rstrip("/") + "/") if path else "/"
+        if path_norm in _SENSITIVE_FOR_403:
+            return PathFinding(
+                path=path,
+                severity="medium",
+                message=f"Répertoire sensible {path} retourne 403 : existence révélée.",
+            )
+        return None
+
+    return handler
 
 
 def _is_listing_body(body: bytes, _path: str) -> bool:
@@ -113,51 +126,6 @@ def _is_partial_listing_body(text: str) -> bool:
     return count >= _PARTIAL_LISTING_MIN_LINKS
 
 
-async def _check_single_directory_path(
-    base_url: str,
-    path: str,
-    severity: str,
-    message: str,
-    max_body: int,
-    *,
-    client=None,
-) -> tuple[PathFinding | None, PathFinding | None, bool]:
-    """Teste un chemin. Retourne (finding si listing 200, finding si 403 sensible, got_response).
-
-    Args:
-        base_url: URL de base.
-        path: Chemin à tester.
-        severity: Sévérité du finding.
-        message: Message du finding.
-        max_body: Limite de lecture du corps.
-        client: Client httpx optionnel.
-
-    Returns:
-        tuple: (PathFinding si 200+listing, PathFinding si 403 sensible, got_response).
-    """
-    full_url = build_url_with_path(base_url, path)
-    if client is not None:
-        response = await get_with_client(client, full_url, follow_redirects=False)
-    else:
-        response = await fetch_url(full_url, follow_redirects=False)
-    if response is None:
-        return None, None, False
-    if response.status_code == 403:
-        path_norm = (path.rstrip("/") + "/") if path else "/"
-        if path_norm in _SENSITIVE_FOR_403:
-            msg_403 = f"Répertoire sensible {path} retourne 403 : existence révélée."
-            return None, PathFinding(path=path, severity="medium", message=msg_403), True
-        return None, None, True
-    if response.status_code != 200:
-        return None, None, True
-    body = response.content[:max_body]
-    if len(body) == 0:
-        return None, None, True
-    if _is_listing_body(body, path):
-        return PathFinding(path=path, severity=severity, message=message), None, True
-    return None, None, True
-
-
 async def run_directory_listing_checks(
     base_url: str,
     *,
@@ -179,27 +147,11 @@ async def run_directory_listing_checks(
     """
     configs = get_directory_listing_settings()
     max_body = get_directory_listing_max_body()
-    tasks = [_check_single_directory_path(base_url, c.path, c.severity, c.message, max_body, client=client) for c in configs]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    exposed: list[PathFinding] = []
-    exposed_403: list[PathFinding] = []
-    fetch_ok = False
-    for r in results:
-        if isinstance(r, Exception):
-            continue
-        finding_200, finding_403, got_response = r
-        if got_response:
-            fetch_ok = True
-        if finding_200 is not None:
-            exposed.append(finding_200)
-        if finding_403 is not None:
-            exposed_403.append(finding_403)
-
-    findings = tuple(e.message for e in exposed) + tuple(e.message for e in exposed_403)
-    return PathCheckResult(
-        exposed=tuple(exposed),
-        findings=findings,
-        fetch_ok=fetch_ok,
-        exposed_403=tuple(exposed_403),
+    return await run_path_checks(
+        base_url,
+        configs,
+        _is_listing_body,
+        max_body,
+        client=client,
+        on_403=_make_on_403_handler(),
     )

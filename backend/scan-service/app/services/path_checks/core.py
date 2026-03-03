@@ -69,25 +69,32 @@ async def _check_single_path(
     body_checker_fn: Callable[[bytes, str], bool],
     *,
     client: "httpx.AsyncClient | None" = None,
-) -> tuple[PathFinding | None, bool]:
-    """Teste un chemin. Retourne (PathFinding si match, None sinon, got_response)."""
+    on_403: Callable[[str], PathFinding | None] | None = None,
+) -> tuple[PathFinding | None, PathFinding | None, bool]:
+    """Teste un chemin. Retourne (finding 200, finding 403, got_response).
+
+    Si on_403 est fourni et status 403, appelle on_403(path) pour un éventuel finding.
+    """
     full_url = build_url_with_path(base_url, path)
     if client is not None:
         response = await get_with_client(client, full_url, follow_redirects=False)
     else:
         response = await fetch_url(full_url, follow_redirects=False)
     if response is None:
-        return None, False
+        return None, None, False
+    if response.status_code == 403:
+        finding_403 = on_403(path) if on_403 is not None else None
+        return None, finding_403, True
     if response.status_code != 200:
-        return None, True
+        return None, None, True
 
     body = response.content[:max_body]
     if len(body) == 0:
-        return None, True
+        return None, None, True
 
     if body_checker_fn(body, path):
-        return PathFinding(path=path, severity=severity, message=message), True
-    return None, True
+        return PathFinding(path=path, severity=severity, message=message), None, True
+    return None, None, True
 
 
 async def run_path_checks(
@@ -97,11 +104,13 @@ async def run_path_checks(
     max_body: int,
     *,
     client: "httpx.AsyncClient | None" = None,
+    on_403: Callable[[str], PathFinding | None] | None = None,
 ) -> PathCheckResult:
     """Exécute les vérifications par chemin en parallèle.
 
     Pour chaque config (path, severity, message), effectue GET, vérifie status 200
     et applique body_checker_fn(body, path). Si True → finding.
+    Si on_403 est fourni et status 403, appelle on_403(path) pour un finding optionnel.
 
     Args:
         base_url: URL de base (ex. https://example.com/).
@@ -109,28 +118,44 @@ async def run_path_checks(
         body_checker_fn: (body: bytes, path: str) -> bool.
         max_body: Limite de lecture du corps (octets).
         client: Client httpx optionnel pour réutilisation.
+        on_403: Callback optionnel pour 403 (path -> PathFinding | None).
 
     Returns:
-        PathCheckResult: Findings et fetch_ok.
+        PathCheckResult: Findings, fetch_ok et exposed_403.
     """
-    tasks = [_check_single_path(base_url, c.path, c.severity, c.message, max_body, body_checker_fn, client=client) for c in configs]
+    tasks = [
+        _check_single_path(
+            base_url,
+            c.path,
+            c.severity,
+            c.message,
+            max_body,
+            body_checker_fn,
+            client=client,
+            on_403=on_403,
+        )
+        for c in configs
+    ]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     exposed: list[PathFinding] = []
+    exposed_403: list[PathFinding] = []
     fetch_ok = False
     for r in results:
         if isinstance(r, Exception):
             continue
-        finding, got_response = r
+        finding_200, finding_403, got_response = r
         if got_response:
             fetch_ok = True
-        if finding is not None:
-            exposed.append(finding)
+        if finding_200 is not None:
+            exposed.append(finding_200)
+        if finding_403 is not None:
+            exposed_403.append(finding_403)
 
-    findings = tuple(e.message for e in exposed)
-
+    findings = tuple(e.message for e in exposed) + tuple(e.message for e in exposed_403)
     return PathCheckResult(
         exposed=tuple(exposed),
         findings=findings,
         fetch_ok=fetch_ok,
+        exposed_403=tuple(exposed_403),
     )

@@ -108,6 +108,36 @@ def _content_matches_graphql(body: bytes, _path: str) -> bool:
     return '"data"' in text or '"errors"' in text or '"__schema"' in text or '"querytype"' in text
 
 
+def _content_matches_generic_sensitive(body: bytes, _path: str) -> bool:
+    """Checker générique pour chemins non mappés : détecte contenu sensible typique.
+
+    Utilisé en fallback quand un chemin de settings.yml n'a pas de signature dédiée.
+    Recherche des motifs courants (secrets, config, credentials).
+    """
+    if len(body) < 20:
+        return False
+    text = body.decode("utf-8", errors="replace").lower()
+    sensitive_keywords = (
+        "database_url",
+        "secret_key",
+        "api_key",
+        "password",
+        "db_password",
+        "aws_secret",
+        "private_key",
+        "token",
+        "credential",
+    )
+    if any(kw in text for kw in sensitive_keywords):
+        return True
+    if "=" in text and re.search(r"^[a-z0-9_]+=.*$", text[:500], re.MULTILINE | re.IGNORECASE):
+        if any(kw in text[:1000] for kw in ("secret", "pass", "key", "token")):
+            return True
+    if "{" in text and "}" in text and ('"password"' in text or '"secret"' in text or '"api_key"' in text):
+        return True
+    return False
+
+
 def _get_signature_checker(path: str):
     """Retourne le checker de signature pour un chemin (normalisé)."""
     path_norm = path.rstrip("/") if path != "/" else path
@@ -138,17 +168,15 @@ def _get_signature_checker(path: str):
     return checkers.get(key)
 
 
-def _get_checker_for_path(path: str):
-    """Retourne le checker de signature pour un chemin (normalisé)."""
-    return _get_signature_checker(path)
-
-
 def _body_checker(body: bytes, path: str) -> bool:
-    """Dispatcher vers le checker approprié pour exposed_files."""
-    checker = _get_checker_for_path(path)
-    if checker is None:
-        return False
-    return checker(body, path)
+    """Dispatcher vers le checker approprié pour exposed_files.
+
+    Utilise le mapping par chemin si disponible, sinon le checker générique.
+    """
+    checker = _get_signature_checker(path)
+    if checker is not None:
+        return checker(body, path)
+    return _content_matches_generic_sensitive(body, path)
 
 
 async def run_exposed_files_checks(
