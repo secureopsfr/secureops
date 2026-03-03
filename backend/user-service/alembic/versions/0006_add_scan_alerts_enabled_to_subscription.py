@@ -6,11 +6,14 @@ Create Date: 2026-03-02
 
 Colonne scan_alerts_enabled : si True, envoi d'emails pour régression score
 ou finding critical sur les scans planifiés.
+
+Idempotent : si la colonne existe déjà (créée par 0001 via create_all), on ne fait rien.
 """
 
 from typing import Optional, Sequence
 
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 from alembic import op
 
@@ -22,7 +25,11 @@ depends_on: Optional[Sequence[str]] = None
 
 
 def upgrade() -> None:
-    """Ajoute la colonne scan_alerts_enabled à subscriptions."""
+    """Ajoute la colonne scan_alerts_enabled à subscriptions (idempotent)."""
+    bind = op.get_bind()
+    cols = [c["name"] for c in inspect(bind).get_columns("subscriptions")]
+    if "scan_alerts_enabled" in cols:
+        return
     op.add_column(
         "subscriptions",
         sa.Column(
@@ -36,5 +43,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Supprime la colonne scan_alerts_enabled."""
-    op.drop_column("subscriptions", "scan_alerts_enabled")
+    """Supprime la colonne scan_alerts_enabled (idempotent)."""
+    bind = op.get_bind()
+    cols = [c["name"] for c in inspect(bind).get_columns("subscriptions")]
+    if "scan_alerts_enabled" in cols:
+        op.drop_column("subscriptions", "scan_alerts_enabled")

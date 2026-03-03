@@ -6,11 +6,14 @@ Create Date: 2026-03-02
 
 Colonne timezone : fuseau de l'utilisateur pour interpréter schedule_hour/minute.
 Ex. Europe/Paris. Si null/UTC, comportement inchangé (heure UTC).
+
+Idempotent : si la colonne existe déjà (créée par 0001 via create_all), on ne fait rien.
 """
 
 from typing import Optional, Sequence
 
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 from alembic import op
 
@@ -22,7 +25,11 @@ depends_on: Optional[Sequence[str]] = None
 
 
 def upgrade() -> None:
-    """Ajoute la colonne timezone à scheduled_scans."""
+    """Ajoute la colonne timezone à scheduled_scans (idempotent)."""
+    bind = op.get_bind()
+    cols = [c["name"] for c in inspect(bind).get_columns("scheduled_scans")]
+    if "timezone" in cols:
+        return
     op.add_column(
         "scheduled_scans",
         sa.Column(
@@ -35,5 +42,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Supprime la colonne timezone."""
-    op.drop_column("scheduled_scans", "timezone")
+    """Supprime la colonne timezone (idempotent)."""
+    bind = op.get_bind()
+    cols = [c["name"] for c in inspect(bind).get_columns("scheduled_scans")]
+    if "timezone" in cols:
+        op.drop_column("scheduled_scans", "timezone")
