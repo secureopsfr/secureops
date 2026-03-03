@@ -32,18 +32,22 @@ export interface ScanHistoryDetail extends ScanResult {
  * Utilisé quand l'utilisateur se connecte après un scan (résultats restaurés depuis sessionStorage).
  */
 export async function saveScan(result: ScanResult): Promise<void> {
+  const body: Record<string, unknown> = {
+    url: result.url,
+    status: "success",
+    score: result.score,
+    findings: result.findings,
+    timestamp: result.timestamp,
+    duration: result.duration,
+  };
+  if (result.category_summaries?.length) {
+    body.category_summaries = result.category_summaries;
+  }
   await fetchJsonWithAuth(
     `${getApiBaseUrl()}/user/api/scans/history`,
     {
       method: "POST",
-      body: JSON.stringify({
-        url: result.url,
-        status: "success",
-        score: result.score,
-        findings: result.findings,
-        timestamp: result.timestamp,
-        duration: result.duration,
-      }),
+      body: JSON.stringify(body),
     },
     "Erreur lors de la sauvegarde du scan",
   );

@@ -45,6 +45,12 @@ class Scan(Base):
 
     findings_json = Column(JSONB, nullable=False, comment="Findings normalisés (liste de dicts)")
 
+    category_summaries_json = Column(
+        JSONB,
+        nullable=True,
+        comment="Résumés par catégorie (checks_count, label, etc.)",
+    )
+
     timestamp = Column(DateTime(timezone=True), nullable=False, comment="Horodatage ISO du scan")
 
     duration = Column(Float, nullable=False, comment="Durée du scan en secondes")

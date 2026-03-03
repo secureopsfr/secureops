@@ -41,6 +41,8 @@ async def save_scan_to_history(
         "timestamp": payload["timestamp"],
         "duration": payload["duration"],
     }
+    if "category_summaries" in payload and payload["category_summaries"]:
+        body["category_summaries"] = payload["category_summaries"]
     headers = {
         "Content-Type": "application/json",
         "Authorization": authorization,

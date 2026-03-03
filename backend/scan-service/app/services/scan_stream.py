@@ -146,7 +146,9 @@ def _build_result_payload(
     tls_result = results["tls"]
     tls_posture = compute_tls_posture(tls_result)
     tls_version = getattr(tls_result, "tls_version", None)
-    payload["category_summaries"] = build_category_summaries(findings_tuple, tls_posture=tls_posture, tls_version=tls_version)
+    category_summaries = build_category_summaries(findings_tuple, tls_posture=tls_posture, tls_version=tls_version)
+    payload["category_summaries"] = category_summaries
+    payload["total_tests_count"] = sum(s.get("checks_count", 0) for s in category_summaries)
     return payload
 
 

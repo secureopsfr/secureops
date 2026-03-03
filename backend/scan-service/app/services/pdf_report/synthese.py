@@ -3,6 +3,7 @@
 from html import escape
 from typing import Any
 
+from app.catalogue.category_summaries import get_checks_count
 from app.config.pdf import get_category_labels, get_pdf_settings
 from app.services.pdf_report.pdf_i18n import t
 
@@ -30,36 +31,31 @@ def build_synthese(
     """
     synthese_label = t("synthese", lang)
     score_synthese = t("score", lang)
-    tests_label = t("tests_performed", lang)
-    test_label = t("test", lang)
     status_label = t("status", lang)
     status_ok = t("status_ok", lang)
     anomalies_word = t("anomalies", lang)
+    anomalies_one = t("anomalies_one", lang)
     repartition_label = t("repartition", lang)
     cat_label = t("category", lang)
-    nb_label = t("count", lang)
+    nb_tests_label = t("nb_tests", lang)
     anomalies_label = t("anomalies_detected", lang)
+    anomaly_label = t("anomaly_detected", lang)
 
     settings = get_pdf_settings()
     checked_cats = settings.categories.checked
     category_labels = get_category_labels(lang)
 
-    test_rows = []
+    synthese_rows = []
     for cat in checked_cats:
-        count = len(by_category.get(cat, []))
+        anomaly_count = len(by_category.get(cat, []))
+        checks_count = get_checks_count(cat)
         label = category_labels.get(cat, cat)
-        if count == 0:
+        if anomaly_count == 0:
             status_html = f'<span class="status-ok">{status_ok}</span>'
         else:
-            status_html = f'<span class="status-fail">{count} {anomalies_word}</span>'
-        test_rows.append(f"<tr><td>{escape(label)}</td><td>{status_html}</td></tr>")
-
-    synthese_rows = []
-    for cat in ordered_cats:
-        count = len(by_category.get(cat, []))
-        if count > 0:
-            label = category_labels.get(cat, cat)
-            synthese_rows.append(f"<tr><td>{escape(label)}</td><td class='tbl-num'>{count}</td></tr>")
+            word = anomalies_one if anomaly_count == 1 else anomalies_word
+            status_html = f'<span class="status-warning">{anomaly_count} {word}</span>'
+        synthese_rows.append(f"<tr><td>{escape(label)}</td><td class='tbl-num'>{checks_count}</td>" f"<td>{status_html}</td></tr>")
 
     circumference = 2 * 3.14159 * 42
     stroke_dashoffset = circumference * (1 - score_val / 100)
@@ -80,17 +76,12 @@ def build_synthese(
         </div>
         <div class="synthese-anomalies-block">
             <span class="synthese-anomalies-value">{len(findings)}</span>
-            <span class="synthese-anomalies-label">{anomalies_label}</span>
+            <span class="synthese-anomalies-label">{anomaly_label if len(findings) == 1 else anomalies_label}</span>
         </div>
-        <h3 class="subsection-title">{tests_label}</h3>
-        <table class="data-table">
-            <thead><tr><th>{test_label}</th><th>{status_label}</th></tr></thead>
-            <tbody>{"".join(test_rows)}</tbody>
-        </table>
         <h3 class="subsection-title">{repartition_label}</h3>
         <table class="data-table">
-            <thead><tr><th>{cat_label}</th><th>{nb_label}</th></tr></thead>
-            <tbody>{"".join(synthese_rows) if synthese_rows else "<tr><td colspan='2'>—</td></tr>"}</tbody>
+            <thead><tr><th>{cat_label}</th><th>{nb_tests_label}</th><th>{status_label}</th></tr></thead>
+            <tbody>{"".join(synthese_rows) if synthese_rows else "<tr><td colspan='3'>—</td></tr>"}</tbody>
         </table>
     </div>
     """

@@ -12,6 +12,17 @@ export const SEVERITY_ORDER = [
   "info",
 ] as const;
 
+/** Nombre de checks par catégorie (fallback quand category_summaries absent, ex. historique). */
+export const CHECKS_COUNT_FALLBACK: Record<string, number> = {
+  tls: 4,
+  headers: 6,
+  cookies: 7,
+  exposed_files: 13,
+  directory_listing: 9,
+  robots_txt: 5,
+  tech_fingerprinting: 6,
+};
+
 /** Ordre des catégories de tests (aligné avec le PDF). */
 export const CHECKED_CATEGORIES_ORDER: readonly string[] = [
   "tls",

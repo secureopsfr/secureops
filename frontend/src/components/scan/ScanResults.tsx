@@ -24,6 +24,7 @@ import {
   getCategorySummaryOkKey,
   severitySort,
   CHECKED_CATEGORIES_ORDER,
+  CHECKS_COUNT_FALLBACK,
 } from "./scanConstants";
 import type { CategorySummary } from "../../services/scanService";
 import { exportScanResult, type ExportFormat } from "../../utils/exportScan";
@@ -189,6 +190,26 @@ export default function ScanResults({
     return acc;
   }, {});
 
+  const summaries =
+    result.category_summaries ?? buildFallbackSummaries(byCategory);
+  const checksCountByCategory = summaries.reduce<Record<string, number>>(
+    (acc, entry) => {
+      acc[entry.category] =
+        entry.checks_count ??
+        (language === "en" ? entry.checks_en : entry.checks_fr)?.length ??
+        CHECKS_COUNT_FALLBACK[entry.category] ??
+        0;
+      return acc;
+    },
+    {},
+  );
+  const totalTestsCount =
+    result.total_tests_count ??
+    CHECKED_CATEGORIES_ORDER.reduce(
+      (sum, cat) => sum + (checksCountByCategory[cat] ?? 0),
+      0,
+    );
+
   const displayUrl = formatUrlDisplay(result.url);
 
   const domain = (() => {
@@ -305,13 +326,19 @@ export default function ScanResults({
       >
         <Card disableHover className="scanner-block p-4 overflow-x-auto">
           <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wider text-[var(--text)]">
-            {t("scanner.testsPerformed")}
+            {t("scanner.testsPerformed")}{" "}
+            <span className="font-normal normal-case">
+              ({totalTestsCount} {t("scanner.auTotal")})
+            </span>
           </h3>
           <table className="w-full min-w-[280px] text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)]">
                 <th className="py-3 px-4 text-left font-semibold text-[var(--text)]">
                   {t("scanner.test")}
+                </th>
+                <th className="py-3 px-4 text-center font-semibold text-[var(--text)]">
+                  {t("scanner.testsCount")}
                 </th>
                 <th className="py-3 px-4 text-right font-semibold text-[var(--text)]">
                   {t("scanner.status")}
@@ -321,6 +348,7 @@ export default function ScanResults({
             <tbody>
               {CHECKED_CATEGORIES_ORDER.map((cat) => {
                 const count = byCategory[cat] ?? 0;
+                const nbChecks = checksCountByCategory[cat] ?? 0;
                 return (
                   <tr
                     key={cat}
@@ -328,6 +356,9 @@ export default function ScanResults({
                   >
                     <td className="py-3 px-4 text-[var(--text)]">
                       {t(getCategoryKey(cat))}
+                    </td>
+                    <td className="py-3 px-4 text-center text-[var(--muted)]">
+                      {nbChecks}
                     </td>
                     <td className="py-3 px-4 text-right">
                       {count === 0 ? (
@@ -362,9 +393,7 @@ export default function ScanResults({
             {t("scanner.summarySectionTitle")}
           </h3>
           <div className="space-y-6">
-            {(
-              result.category_summaries ?? buildFallbackSummaries(byCategory)
-            ).map((entry) => {
+            {summaries.map((entry) => {
               const desc =
                 language === "en" ? entry.description_en : entry.description_fr;
               const label =
