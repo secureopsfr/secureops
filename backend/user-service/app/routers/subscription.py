@@ -9,6 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_async_session
 from app.schemas.user import SubscriptionPreferencesUpdateRequest, SubscriptionResponse
+from app.services.scan_alert_repository import (
+    delete_alert_events_older_than_days,
+    delete_all_alert_events_by_user,
+)
 from app.services.scan_repository import delete_all_user_scans, delete_scans_older_than_days
 from app.services.subscription_repository import get_subscription_by_user_id
 from app.services.user_repository import get_user_by_cognito_sub
@@ -75,12 +79,14 @@ async def get_subscription(
 
 
 async def _apply_history_retention_cleanup(session: AsyncSession, user_id: uuid.UUID, retention: str) -> None:
-    """Applique le nettoyage des scans selon la nouvelle durée de rétention."""
+    """Applique le nettoyage des scans et alertes selon la nouvelle durée de rétention."""
     if retention == "none":
         await delete_all_user_scans(session, user_id)
+        await delete_all_alert_events_by_user(session, user_id)
     else:
         days = int(retention)
         await delete_scans_older_than_days(session, user_id, days)
+        await delete_alert_events_older_than_days(session, user_id, days)
 
 
 def _subscription_to_response(subscription) -> SubscriptionResponse:
