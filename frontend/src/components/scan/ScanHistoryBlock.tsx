@@ -37,20 +37,12 @@ export default function ScanHistoryBlock({
     () => showErrorToast(t("scanner.historyLoadError")),
     [t],
   );
-  const {
-    items,
-    setItems,
-    total,
-    setTotal,
-    page,
-    setPage,
-    loading,
-    totalPages,
-  } = usePaginatedFetch<ScanHistoryItem>({
-    fetchFn: (p, perPage) => getScanHistory(p, perPage),
-    perPage: 10,
-    onError,
-  });
+  const { items, setItems, setTotal, page, setPage, loading, totalPages } =
+    usePaginatedFetch<ScanHistoryItem>({
+      fetchFn: (p, perPage) => getScanHistory(p, perPage),
+      perPage: 10,
+      onError,
+    });
 
   const handleDeleteConfirm = useCallback(
     async (id: string) => {
@@ -127,9 +119,6 @@ export default function ScanHistoryBlock({
             <>
               <ul className="divide-y divide-[var(--color-border)]">
                 {items.map((item) => {
-                  const displayUrl =
-                    item.url.replace(/^https?:\/\//, "").replace(/\/$/, "") ||
-                    item.url;
                   const badge = getScoreBadge(item.score ?? 0);
                   const isLoading = loadingDetailId === item.id;
                   const isPdfLoading = pdfLoadingId === item.id;

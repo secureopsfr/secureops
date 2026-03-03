@@ -338,7 +338,7 @@ export default function ScanResults({
           {t("scanner.exportDesc")}
         </p>
         <div className="flex flex-col gap-2">
-          {EXPORT_FORMATS.map(({ value, labelKey, icon, requiresScanId }) => {
+          {EXPORT_FORMATS.map(({ value, labelKey, icon }) => {
             const isPdf = value === "pdf";
             const disabled = (isPdf && !scanId) || (isPdf && pdfLoading);
             return (
