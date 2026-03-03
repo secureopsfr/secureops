@@ -6,6 +6,7 @@ export {
   SkeletonToggleRow,
   SkeletonTableRow,
 } from "./Skeleton";
+export { default as HeaderSkeleton } from "./HeaderSkeleton";
 export {
   default as AccountPageSkeleton,
   ProfileSectionSkeleton,
