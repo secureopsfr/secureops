@@ -63,6 +63,26 @@
     "gravite": "Significative",
     "vraisemblance": "Faible"
   },
+  "headers-coep-absent": {
+    "gravite": "Mineure",
+    "vraisemblance": "Faible"
+  },
+  "headers-coop-absent": {
+    "gravite": "Mineure",
+    "vraisemblance": "Faible"
+  },
+  "headers-clear-site-data-absent": {
+    "gravite": "Mineure",
+    "vraisemblance": "Faible"
+  },
+  "headers-csp-no-report-uri": {
+    "gravite": "Mineure",
+    "vraisemblance": "Faible"
+  },
+  "headers-csp-unsafe-directives": {
+    "gravite": "Mineure",
+    "vraisemblance": "Faible"
+  },
   "headers-connection-failed": {
     "gravite": "Significative",
     "vraisemblance": "Forte"

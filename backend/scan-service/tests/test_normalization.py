@@ -177,7 +177,7 @@ def test_normalize_headers_fetch_ok_false() -> None:
 
 
 def test_normalize_headers_missing_csp() -> None:
-    """Headers manquants produisent les slugs attendus."""
+    """Headers manquants produisent les slugs attendus avec sévérité différenciée."""
     result = SecurityHeadersCheckResult(
         headers_present=(),
         headers_missing=("Content-Security-Policy", "X-Frame-Options"),
@@ -192,6 +192,10 @@ def test_normalize_headers_missing_csp() -> None:
     ids = {f.id for f in findings}
     assert "headers-csp-absent" in ids
     assert "headers-xfo-absent" in ids
+    csp_f = next(f for f in findings if f.id == "headers-csp-absent")
+    xfo_f = next(f for f in findings if f.id == "headers-xfo-absent")
+    assert csp_f.severity == "high"
+    assert xfo_f.severity == "medium"
 
 
 def test_normalize_headers_xcto_wrong_value() -> None:
@@ -205,6 +209,60 @@ def test_normalize_headers_xcto_wrong_value() -> None:
     findings = normalize_results({"headers": result})
     assert len(findings) == 1
     assert findings[0].id == "headers-xcto-wrong-value"
+
+
+def test_normalize_headers_csp_no_report_uri() -> None:
+    """CSP sans report-uri ni report-to produit headers-csp-no-report-uri."""
+    result = SecurityHeadersCheckResult(
+        headers_present=("Content-Security-Policy",),
+        headers_missing=(),
+        findings=("CSP présent mais sans report-uri ni report-to : violations non détectables.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"headers": result})
+    assert len(findings) == 1
+    assert findings[0].id == "headers-csp-no-report-uri"
+    assert findings[0].severity == "low"
+
+
+def test_normalize_headers_csp_unsafe_directives() -> None:
+    """CSP avec unsafe-inline/unsafe-eval produit headers-csp-unsafe-directives."""
+    result = SecurityHeadersCheckResult(
+        headers_present=("Content-Security-Policy",),
+        headers_missing=(),
+        findings=("CSP contient unsafe-inline ou unsafe-eval : risque XSS accru.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"headers": result})
+    assert len(findings) == 1
+    assert findings[0].id == "headers-csp-unsafe-directives"
+    assert findings[0].severity == "low"
+
+
+def test_normalize_headers_coep_coop_clear_site_data() -> None:
+    """COEP, COOP, Clear-Site-Data absents produisent les slugs attendus."""
+    result = SecurityHeadersCheckResult(
+        headers_present=(),
+        headers_missing=(
+            "Cross-Origin-Embedder-Policy",
+            "Cross-Origin-Opener-Policy",
+            "Clear-Site-Data",
+        ),
+        findings=(
+            "Cross-Origin-Embedder-Policy absent : isolation cross-origin limitée.",
+            "Cross-Origin-Opener-Policy absent : isolation cross-origin limitée.",
+            "Clear-Site-Data absent : déconnexion sans purge des données.",
+        ),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"headers": result})
+    assert len(findings) == 3
+    ids = {f.id for f in findings}
+    assert "headers-coep-absent" in ids
+    assert "headers-coop-absent" in ids
+    assert "headers-clear-site-data-absent" in ids
+    for f in findings:
+        assert f.severity == "low"
 
 
 def test_normalize_cookies_fetch_ok_false() -> None:

@@ -1,6 +1,7 @@
 """Vérifications des en-têtes de sécurité HTTP (roadmap §3.2).
 
 Vérifie la présence des en-têtes configurés dans security_headers (settings.yml).
+Analyse CSP : report-uri/report-to, directives unsafe-inline/unsafe-eval.
 """
 
 from dataclasses import dataclass
@@ -10,6 +11,27 @@ import httpx
 from app.config_loader import get_security_headers_settings
 from app.constants import MSG_HEADERS_UNAVAILABLE
 from app.utils.headers import get_header_insensitive
+
+
+def _analyze_csp_header(response: httpx.Response) -> list[str]:
+    """Analyse CSP présent : report-uri/report-to, unsafe-inline/unsafe-eval.
+
+    Args:
+        response: Réponse HTTP contenant potentiellement Content-Security-Policy.
+
+    Returns:
+        list[str]: Findings supplémentaires (ex. absence report-uri, directives unsafe).
+    """
+    findings: list[str] = []
+    value = get_header_insensitive(response, "Content-Security-Policy")
+    if value is None or not value.strip():
+        return findings
+    val_lower = value.lower()
+    if "report-uri" not in val_lower and "report-to" not in val_lower:
+        findings.append("CSP présent mais sans report-uri ni report-to : violations non détectables.")
+    if "unsafe-inline" in val_lower or "unsafe-eval" in val_lower:
+        findings.append("CSP contient unsafe-inline ou unsafe-eval : risque XSS accru.")
+    return findings
 
 
 @dataclass
@@ -77,6 +99,10 @@ def check_security_headers_from_response(response: httpx.Response | None) -> Sec
         else:
             missing.append(header_name)
             findings.append(msg_absent)
+
+    # Analyse CSP si présent : report-uri/report-to, unsafe-inline/unsafe-eval
+    if "Content-Security-Policy" in present:
+        findings.extend(_analyze_csp_header(response))
 
     return SecurityHeadersCheckResult(
         headers_present=tuple(present),

@@ -121,7 +121,9 @@ def _normalize_headers(result: SecurityHeadersCheckResult) -> list[Finding]:
             )
         )
         return findings
-    header_to_slug = {cfg.name: cfg.slug for cfg in get_security_headers_settings()}
+    headers_config = get_security_headers_settings()
+    header_to_slug = {cfg.name: cfg.slug for cfg in headers_config}
+    header_to_severity = {cfg.name: cfg.severity for cfg in headers_config}
     for msg in result.findings:
         if "valeur incorrecte" in msg.lower() or "incorrecte" in msg.lower():
             findings.append(
@@ -133,11 +135,32 @@ def _normalize_headers(result: SecurityHeadersCheckResult) -> list[Finding]:
                     msg,
                 )
             )
+        elif "report-uri" in msg and "report-to" in msg and "sans" in msg:
+            findings.append(
+                _finding(
+                    "headers-csp-no-report-uri",
+                    "headers",
+                    "CSP sans report-uri ni report-to",
+                    "low",
+                    msg,
+                )
+            )
+        elif "unsafe-inline" in msg or "unsafe-eval" in msg:
+            findings.append(
+                _finding(
+                    "headers-csp-unsafe-directives",
+                    "headers",
+                    "CSP avec directives unsafe",
+                    "low",
+                    msg,
+                )
+            )
         else:
             for h in sorted(header_to_slug, key=len, reverse=True):
                 if h in msg and h in result.headers_missing:
                     slug = header_to_slug[h]
-                    findings.append(_finding(slug, "headers", f"{h} absent", "medium", msg))
+                    severity = header_to_severity.get(h, "medium")
+                    findings.append(_finding(slug, "headers", f"{h} absent", severity, msg))
                     break
             else:
                 findings.append(_finding("headers-connection-failed", "headers", "En-tête manquant", "medium", msg))

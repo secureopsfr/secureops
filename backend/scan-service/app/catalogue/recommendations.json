@@ -159,6 +159,51 @@
     "detail_fr": "Sans Permissions-Policy, les APIs sensibles du navigateur (géolocalisation, caméra, microphone, etc.) restent accessibles par défaut pour la page et ses iframes, augmentant la surface d'attaque.",
     "detail_en": "Without Permissions-Policy, sensitive browser APIs (geolocation, camera, microphone, etc.) remain accessible by default for the page and its iframes, increasing the attack surface."
   },
+  "headers-coep-absent": {
+    "recommendation": "Ajouter Cross-Origin-Embedder-Policy (credentialless ou require-corp) pour l'isolation cross-origin.",
+    "recommendation_en": "Add Cross-Origin-Embedder-Policy (credentialless or require-corp) for cross-origin isolation.",
+    "title_fr": "Cross-Origin-Embedder-Policy absent",
+    "title_en": "Cross-Origin-Embedder-Policy absent",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy"
+    ]
+  },
+  "headers-coop-absent": {
+    "recommendation": "Ajouter Cross-Origin-Opener-Policy (same-origin) pour isoler la fenêtre et limiter les attaques cross-origin.",
+    "recommendation_en": "Add Cross-Origin-Opener-Policy (same-origin) to isolate the window and limit cross-origin attacks.",
+    "title_fr": "Cross-Origin-Opener-Policy absent",
+    "title_en": "Cross-Origin-Opener-Policy absent",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy"
+    ]
+  },
+  "headers-clear-site-data-absent": {
+    "recommendation": "Ajouter Clear-Site-Data sur la page de déconnexion pour purger cookies et stockage local.",
+    "recommendation_en": "Add Clear-Site-Data on logout page to purge cookies and local storage.",
+    "title_fr": "Clear-Site-Data absent",
+    "title_en": "Clear-Site-Data absent",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Clear-Site-Data"
+    ]
+  },
+  "headers-csp-no-report-uri": {
+    "recommendation": "Ajouter report-uri ou report-to dans CSP pour détecter les violations en production.",
+    "recommendation_en": "Add report-uri or report-to in CSP to detect violations in production.",
+    "title_fr": "CSP sans report-uri ni report-to",
+    "title_en": "CSP without report-uri or report-to",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-uri"
+    ]
+  },
+  "headers-csp-unsafe-directives": {
+    "recommendation": "Éviter unsafe-inline et unsafe-eval dans CSP ; privilégier nonces ou hashes pour les scripts.",
+    "recommendation_en": "Avoid unsafe-inline and unsafe-eval in CSP; prefer nonces or hashes for scripts.",
+    "title_fr": "CSP avec directives unsafe",
+    "title_en": "CSP with unsafe directives",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy"
+    ]
+  },
   "headers-connection-failed": {
     "recommendation": "Vérifier la connectivité au serveur. Impossible de récupérer les en-têtes.",
     "recommendation_en": "Check server connectivity. Unable to retrieve headers.",
