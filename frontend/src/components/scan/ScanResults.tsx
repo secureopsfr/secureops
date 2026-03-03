@@ -18,7 +18,12 @@ import Badge from "../Badge";
 import Modal from "../Modal";
 import FindingCard from "./FindingCard";
 import type { ScanResult } from "../../services/scanService";
-import { getScoreBadge, getCategoryKey, severitySort } from "./scanConstants";
+import {
+  getScoreBadge,
+  getCategoryKey,
+  severitySort,
+  CHECKED_CATEGORIES_ORDER,
+} from "./scanConstants";
 import { exportScanResult, type ExportFormat } from "../../utils/exportScan";
 import { formatUrlDisplay } from "../../utils/urlFormat";
 import { downloadScanPdf } from "../../services/scanHistoryService";
@@ -272,6 +277,55 @@ export default function ScanResults({
               </div>
             )}
           </div>
+        </Card>
+      </AnimateInView>
+
+      <AnimateInView
+        className="landing-section landing-reveal-scanner"
+        as="div"
+      >
+        <Card disableHover className="scanner-block p-4 overflow-x-auto">
+          <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wider text-[var(--text)]">
+            {t("scanner.testsPerformed")}
+          </h3>
+          <table className="w-full min-w-[280px] text-sm">
+            <thead>
+              <tr className="border-b border-[var(--color-border)]">
+                <th className="py-3 px-4 text-left font-semibold text-[var(--text)]">
+                  {t("scanner.test")}
+                </th>
+                <th className="py-3 px-4 text-right font-semibold text-[var(--text)]">
+                  {t("scanner.status")}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {CHECKED_CATEGORIES_ORDER.map((cat) => {
+                const count = byCategory[cat] ?? 0;
+                return (
+                  <tr
+                    key={cat}
+                    className="border-b border-[var(--color-border)] last:border-b-0"
+                  >
+                    <td className="py-3 px-4 text-[var(--text)]">
+                      {t(getCategoryKey(cat))}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      {count === 0 ? (
+                        <span className="font-medium text-[rgb(var(--success))]">
+                          {t("scanner.statusOk")}
+                        </span>
+                      ) : (
+                        <span className="font-medium text-[rgb(var(--warning))]">
+                          {count} {t("scanner.anomalies")}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </Card>
       </AnimateInView>
 

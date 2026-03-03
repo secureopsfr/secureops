@@ -12,6 +12,17 @@ export const SEVERITY_ORDER = [
   "info",
 ] as const;
 
+/** Ordre des catégories de tests (aligné avec le PDF). */
+export const CHECKED_CATEGORIES_ORDER: readonly string[] = [
+  "tls",
+  "headers",
+  "cookies",
+  "exposed_files",
+  "directory_listing",
+  "robots_txt",
+  "tech_fingerprinting",
+];
+
 export const CATEGORY_I18N_MAP: Record<string, string> = {
   tls: "scanner.categoryTls",
   headers: "scanner.categoryHeaders",
