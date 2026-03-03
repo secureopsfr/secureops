@@ -38,6 +38,23 @@
     "title_en": "Certificate not yet valid",
     "references": []
   },
+  "tls-cert-expires-soon": {
+    "recommendation": "Renouveler le certificat TLS avant expiration. Automatiser le renouvellement (Let's Encrypt, Certbot).",
+    "recommendation_en": "Renew TLS certificate before expiration. Automate renewal (Let's Encrypt, Certbot).",
+    "title_fr": "Certificat expire bientôt",
+    "title_en": "Certificate expires soon",
+    "references": ["https://letsencrypt.org/"]
+  },
+  "tls-chain-incomplete": {
+    "recommendation": "Configurer le serveur pour envoyer la chaîne complète (certificat feuille + intermédiaires). Nginx : ssl_certificate ; Apache : SSLCertificateChainFile.",
+    "recommendation_en": "Configure the server to send the full chain (leaf + intermediates). Nginx: ssl_certificate; Apache: SSLCertificateChainFile.",
+    "title_fr": "Chaîne de certificats incomplète",
+    "title_en": "Incomplete certificate chain",
+    "references": [
+      "https://www.ssllabs.com/learn/faq",
+      "https://letsencrypt.org/docs/certificate-compatibility/"
+    ]
+  },
   "tls-versions-obsolete": {
     "recommendation": "Désactiver TLS 1.0 et TLS 1.1. Utiliser uniquement TLS 1.2 ou 1.3.",
     "recommendation_en": "Disable TLS 1.0 and TLS 1.1. Use only TLS 1.2 or 1.3.",
@@ -142,6 +159,51 @@
     "detail_fr": "Sans Permissions-Policy, les APIs sensibles du navigateur (géolocalisation, caméra, microphone, etc.) restent accessibles par défaut pour la page et ses iframes, augmentant la surface d'attaque.",
     "detail_en": "Without Permissions-Policy, sensitive browser APIs (geolocation, camera, microphone, etc.) remain accessible by default for the page and its iframes, increasing the attack surface."
   },
+  "headers-coep-absent": {
+    "recommendation": "Ajouter Cross-Origin-Embedder-Policy (credentialless ou require-corp) pour l'isolation cross-origin.",
+    "recommendation_en": "Add Cross-Origin-Embedder-Policy (credentialless or require-corp) for cross-origin isolation.",
+    "title_fr": "Cross-Origin-Embedder-Policy absent",
+    "title_en": "Cross-Origin-Embedder-Policy absent",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy"
+    ]
+  },
+  "headers-coop-absent": {
+    "recommendation": "Ajouter Cross-Origin-Opener-Policy (same-origin) pour isoler la fenêtre et limiter les attaques cross-origin.",
+    "recommendation_en": "Add Cross-Origin-Opener-Policy (same-origin) to isolate the window and limit cross-origin attacks.",
+    "title_fr": "Cross-Origin-Opener-Policy absent",
+    "title_en": "Cross-Origin-Opener-Policy absent",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy"
+    ]
+  },
+  "headers-clear-site-data-absent": {
+    "recommendation": "Ajouter Clear-Site-Data sur la page de déconnexion pour purger cookies et stockage local.",
+    "recommendation_en": "Add Clear-Site-Data on logout page to purge cookies and local storage.",
+    "title_fr": "Clear-Site-Data absent",
+    "title_en": "Clear-Site-Data absent",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Clear-Site-Data"
+    ]
+  },
+  "headers-csp-no-report-uri": {
+    "recommendation": "Ajouter report-uri ou report-to dans CSP pour détecter les violations en production.",
+    "recommendation_en": "Add report-uri or report-to in CSP to detect violations in production.",
+    "title_fr": "CSP sans report-uri ni report-to",
+    "title_en": "CSP without report-uri or report-to",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-uri"
+    ]
+  },
+  "headers-csp-unsafe-directives": {
+    "recommendation": "Éviter unsafe-inline et unsafe-eval dans CSP ; privilégier nonces ou hashes pour les scripts.",
+    "recommendation_en": "Avoid unsafe-inline and unsafe-eval in CSP; prefer nonces or hashes for scripts.",
+    "title_fr": "CSP avec directives unsafe",
+    "title_en": "CSP with unsafe directives",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy"
+    ]
+  },
   "headers-connection-failed": {
     "recommendation": "Vérifier la connectivité au serveur. Impossible de récupérer les en-têtes.",
     "recommendation_en": "Check server connectivity. Unable to retrieve headers.",
@@ -197,6 +259,43 @@
     "title_en": "SameSite=None without Secure",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite"
+    ]
+  },
+  "cookies-session-incomplete": {
+    "recommendation": "Configurer HttpOnly, Secure et SameSite=Strict pour les cookies de session.",
+    "recommendation_en": "Configure HttpOnly, Secure and SameSite=Strict for session cookies.",
+    "title_fr": "Cookie de session sans triple protection",
+    "title_en": "Session cookie without triple protection",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie",
+      "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    ]
+  },
+  "cookies-no-host-secure-prefix": {
+    "recommendation": "Utiliser le préfixe __Host- (Path=/, pas de Domain, Secure) ou __Secure- pour les cookies sensibles.",
+    "recommendation_en": "Use __Host- prefix (Path=/, no Domain, Secure) or __Secure- for sensitive cookies.",
+    "title_fr": "Cookie sensible sans préfixe __Host-/__Secure-",
+    "title_en": "Sensitive cookie without __Host-/__Secure- prefix",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#cookie_prefixes"
+    ]
+  },
+  "cookies-no-partitioned": {
+    "recommendation": "Ajouter l'attribut Partitioned pour les cookies tiers (CHIPS) afin d'isoler le stockage par site.",
+    "recommendation_en": "Add Partitioned attribute for third-party cookies (CHIPS) to isolate storage per site.",
+    "title_fr": "Cookie tiers sans Partitioned (CHIPS)",
+    "title_en": "Third-party cookie without Partitioned (CHIPS)",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/Partitioned"
+    ]
+  },
+  "cookies-session-expires-long": {
+    "recommendation": "Limiter la durée des cookies de session (Max-Age < 24h) ou utiliser des cookies de session (sans Expires).",
+    "recommendation_en": "Limit session cookie duration (Max-Age < 24h) or use session cookies (no Expires).",
+    "title_fr": "Cookie de session avec durée trop longue",
+    "title_en": "Session cookie with excessive duration",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
     ]
   },
   "exposed_files-env": {
@@ -266,6 +365,104 @@
     "evidence_en": "File .DS_Store exposed: directory structure revealed.",
     "references": []
   },
+  "exposed_files-htaccess": {
+    "recommendation": "Bloquer l'accès à .htaccess. Exclure du document root ou configurer deny.",
+    "recommendation_en": "Block access to .htaccess. Exclude from document root or configure deny.",
+    "title_fr": "Fichier .htaccess exposé",
+    "title_en": "File .htaccess exposed",
+    "references": []
+  },
+  "exposed_files-web-config": {
+    "recommendation": "Bloquer l'accès à web.config. Ne pas exposer la configuration IIS en production.",
+    "recommendation_en": "Block access to web.config. Do not expose IIS configuration in production.",
+    "title_fr": "Fichier web.config exposé",
+    "title_en": "File web.config exposed",
+    "references": []
+  },
+  "exposed_files-svn-entries": {
+    "recommendation": "Bloquer l'accès au répertoire .svn. Ne jamais exposer Subversion en production.",
+    "recommendation_en": "Block access to .svn directory. Never expose Subversion in production.",
+    "title_fr": "Fichier .svn/entries exposé",
+    "title_en": "File .svn/entries exposed",
+    "references": []
+  },
+  "exposed_files-composer-json": {
+    "recommendation": "Exclure composer.json du document root ou restreindre l'accès.",
+    "recommendation_en": "Exclude composer.json from document root or restrict access.",
+    "title_fr": "Fichier composer.json exposé",
+    "title_en": "File composer.json exposed",
+    "references": []
+  },
+  "exposed_files-package-json": {
+    "recommendation": "Exclure package.json du document root ou restreindre l'accès.",
+    "recommendation_en": "Exclude package.json from document root or restrict access.",
+    "title_fr": "Fichier package.json exposé",
+    "title_en": "File package.json exposed",
+    "references": []
+  },
+  "exposed_files-npmrc": {
+    "recommendation": "Bloquer l'accès à .npmrc. Peut contenir des tokens de registry.",
+    "recommendation_en": "Block access to .npmrc. May contain registry tokens.",
+    "title_fr": "Fichier .npmrc exposé",
+    "title_en": "File .npmrc exposed",
+    "references": []
+  },
+  "exposed_files-config-bak": {
+    "recommendation": "Supprimer les fichiers de backup ou les déplacer hors de la racine web.",
+    "recommendation_en": "Remove backup files or move outside web root.",
+    "title_fr": "Fichier de backup config.bak exposé",
+    "title_en": "Backup file config.bak exposed",
+    "references": []
+  },
+  "exposed_files-web-config-bak": {
+    "recommendation": "Supprimer les fichiers de backup ou les déplacer hors de la racine web.",
+    "recommendation_en": "Remove backup files or move outside web root.",
+    "title_fr": "Fichier de backup web.config.bak exposé",
+    "title_en": "Backup file web.config.bak exposed",
+    "references": []
+  },
+  "exposed_files-env-bak": {
+    "recommendation": "Supprimer immédiatement .env.bak. Contient des credentials.",
+    "recommendation_en": "Remove .env.bak immediately. Contains credentials.",
+    "title_fr": "Fichier de backup .env.bak exposé",
+    "title_en": "Backup file .env.bak exposed",
+    "references": []
+  },
+  "exposed_files-swagger": {
+    "recommendation": "Protéger Swagger/OpenAPI par authentification ou le désactiver en production.",
+    "recommendation_en": "Protect Swagger/OpenAPI with authentication or disable in production.",
+    "title_fr": "Swagger/OpenAPI exposé",
+    "title_en": "Swagger/OpenAPI exposed",
+    "references": ["https://swagger.io/docs/specification/about/"]
+  },
+  "exposed_files-swagger-json": {
+    "recommendation": "Protéger swagger.json par authentification ou le désactiver en production.",
+    "recommendation_en": "Protect swagger.json with authentication or disable in production.",
+    "title_fr": "swagger.json exposé",
+    "title_en": "swagger.json exposed",
+    "references": []
+  },
+  "exposed_files-api-docs": {
+    "recommendation": "Protéger la documentation API par authentification ou la désactiver en production.",
+    "recommendation_en": "Protect API documentation with authentication or disable in production.",
+    "title_fr": "Documentation API exposée",
+    "title_en": "API documentation exposed",
+    "references": []
+  },
+  "exposed_files-api-docs-json": {
+    "recommendation": "Protéger api-docs.json par authentification ou le désactiver en production.",
+    "recommendation_en": "Protect api-docs.json with authentication or disable in production.",
+    "title_fr": "api-docs.json exposé",
+    "title_en": "api-docs.json exposed",
+    "references": []
+  },
+  "exposed_files-graphql": {
+    "recommendation": "Désactiver l'introspection GraphQL en production ou protéger l'endpoint.",
+    "recommendation_en": "Disable GraphQL introspection in production or protect the endpoint.",
+    "title_fr": "Endpoint GraphQL exposé",
+    "title_en": "GraphQL endpoint exposed",
+    "references": ["https://graphql.org/learn/introspection/"]
+  },
   "directory_listing-uploads": {
     "recommendation": "Désactiver le directory listing sur /uploads/. Configurer Options -Indexes (Apache) ou autoindex off (Nginx).",
     "recommendation_en": "Disable directory listing on /uploads/. Configure Options -Indexes (Apache) or autoindex off (Nginx).",
@@ -295,6 +492,58 @@
     "evidence_en": "Directory listing enabled on /static/: structure revealed.",
     "references": []
   },
+  "directory_listing-tmp": {
+    "recommendation": "Désactiver le directory listing sur /tmp/ ou restreindre l'accès.",
+    "recommendation_en": "Disable directory listing on /tmp/ or restrict access.",
+    "title_fr": "Directory listing sur /tmp/",
+    "title_en": "Directory listing on /tmp/",
+    "evidence_fr": "Directory listing activé sur /tmp/ : fichiers temporaires énumérables.",
+    "evidence_en": "Directory listing enabled on /tmp/: temporary files enumerable.",
+    "references": []
+  },
+  "directory_listing-logs": {
+    "recommendation": "Désactiver le directory listing sur /logs/ et protéger l'accès aux journaux.",
+    "recommendation_en": "Disable directory listing on /logs/ and protect log access.",
+    "title_fr": "Directory listing sur /logs/",
+    "title_en": "Directory listing on /logs/",
+    "evidence_fr": "Directory listing activé sur /logs/ : journaux accessibles.",
+    "evidence_en": "Directory listing enabled on /logs/: logs accessible.",
+    "references": []
+  },
+  "directory_listing-config": {
+    "recommendation": "Désactiver le directory listing sur /config/ et restreindre l'accès aux fichiers de configuration.",
+    "recommendation_en": "Disable directory listing on /config/ and restrict access to configuration files.",
+    "title_fr": "Directory listing sur /config/",
+    "title_en": "Directory listing on /config/",
+    "evidence_fr": "Directory listing activé sur /config/ : configuration exposée.",
+    "evidence_en": "Directory listing enabled on /config/: configuration exposed.",
+    "references": []
+  },
+  "directory_listing-backup": {
+    "recommendation": "Désactiver le directory listing sur /backup/ et protéger les sauvegardes.",
+    "recommendation_en": "Disable directory listing on /backup/ and protect backups.",
+    "title_fr": "Directory listing sur /backup/",
+    "title_en": "Directory listing on /backup/",
+    "evidence_fr": "Directory listing activé sur /backup/ : sauvegardes énumérables.",
+    "evidence_en": "Directory listing enabled on /backup/: backups enumerable.",
+    "references": []
+  },
+  "directory_listing-data": {
+    "recommendation": "Désactiver le directory listing sur /data/ et restreindre l'accès aux données.",
+    "recommendation_en": "Disable directory listing on /data/ and restrict data access.",
+    "title_fr": "Directory listing sur /data/",
+    "title_en": "Directory listing on /data/",
+    "evidence_fr": "Directory listing activé sur /data/ : données exposées.",
+    "evidence_en": "Directory listing enabled on /data/: data exposed.",
+    "references": []
+  },
+  "directory_listing-sensitive-403": {
+    "recommendation": "Un 403 sur un répertoire sensible révèle son existence. Retourner 404 ou masquer l'existence du chemin.",
+    "recommendation_en": "A 403 on a sensitive directory reveals its existence. Return 404 or hide the path existence.",
+    "title_fr": "Répertoire sensible révélé (403)",
+    "title_en": "Sensitive directory revealed (403)",
+    "references": []
+  },
   "robots_txt-connection-failed": {
     "recommendation": "Vérifier la connectivité. Impossible de récupérer robots.txt.",
     "recommendation_en": "Check connectivity. Unable to retrieve robots.txt.",
@@ -310,6 +559,34 @@
     "references": [
       "https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt"
     ]
+  },
+  "robots_txt-crawl-delay": {
+    "recommendation": "Crawl-delay est une directive non standard (Google l'ignore). Pour limiter la charge, utiliser d'autres moyens (rate limiting, etc.).",
+    "recommendation_en": "Crawl-delay is a non-standard directive (Google ignores it). To limit load, use other means (rate limiting, etc.).",
+    "title_fr": "Crawl-delay détecté",
+    "title_en": "Crawl-delay detected",
+    "references": []
+  },
+  "sitemap-not-found": {
+    "recommendation": "Créer un sitemap XML et le déclarer dans robots.txt via Sitemap: <URL>.",
+    "recommendation_en": "Create an XML sitemap and declare it in robots.txt via Sitemap: <URL>.",
+    "title_fr": "Sitemap non trouvé",
+    "title_en": "Sitemap not found",
+    "references": ["https://www.sitemaps.org/"]
+  },
+  "sitemap-undeclared": {
+    "recommendation": "Ajouter la directive Sitemap: dans robots.txt pour indiquer l'emplacement du sitemap aux moteurs de recherche.",
+    "recommendation_en": "Add the Sitemap: directive in robots.txt to indicate the sitemap location to search engines.",
+    "title_fr": "Sitemap présent mais non déclaré dans robots.txt",
+    "title_en": "Sitemap present but not declared in robots.txt",
+    "references": ["https://www.sitemaps.org/"]
+  },
+  "sitemap-sensitive-url": {
+    "recommendation": "Exclure les URLs sensibles (admin, api, config, etc.) du sitemap. Ces chemins ne doivent pas être proposés à l'indexation.",
+    "recommendation_en": "Exclude sensitive URLs (admin, api, config, etc.) from the sitemap. These paths should not be offered for indexing.",
+    "title_fr": "URL sensible exposée dans le sitemap",
+    "title_en": "Sensitive URL exposed in sitemap",
+    "references": ["https://www.sitemaps.org/"]
   },
   "tech_fingerprinting-connection-failed": {
     "recommendation": "Vérifier la connectivité. Impossible d'analyser les en-têtes.",
@@ -338,6 +615,13 @@
     "title_fr": "Framework/CMS détecté",
     "title_en": "Framework/CMS detected",
     "references": []
+  },
+  "tech_fingerprinting-vulnerable-version": {
+    "recommendation": "Mettre à jour vers la version minimale recommandée ou une version plus récente. Consulter les CVE connues pour ce produit.",
+    "recommendation_en": "Update to the recommended minimum version or newer. Check known CVEs for this product.",
+    "title_fr": "Version potentiellement vulnérable",
+    "title_en": "Potentially vulnerable version",
+    "references": ["https://nvd.nist.gov/"]
   },
   "tech_fingerprinting-stack-unknown": {
     "recommendation": "Information : stack non identifiée ou masquée. Pas d'action requise.",

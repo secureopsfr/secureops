@@ -4,6 +4,7 @@ Chaque fonction prend un résultat brut et retourne une liste de Finding normali
 Sévérité en minuscules. Règles d'upgrade : .git/config, .env exposés = critical.
 """
 
+import re
 from typing import Callable, TypedDict
 
 from app.catalogue.recommendations import get_recommendation, get_references
@@ -20,6 +21,7 @@ from app.services.cookies.checks import CookieCheckResult
 from app.services.path_checks.core import PathCheckResult
 from app.services.robots_txt.checks import RobotsTxtCheckResult
 from app.services.security_headers.checks import SecurityHeadersCheckResult
+from app.services.sitemap.checks import SitemapCheckResult
 from app.services.tech_fingerprinting.checks import TechFingerprintingCheckResult
 from app.services.tls.checks import TlsCheckResult
 
@@ -36,6 +38,51 @@ def _finding(slug: str, category: str, title: str, severity: str, evidence: str)
         recommendation=get_recommendation(slug),
         references=get_references(slug),
     )
+
+
+def _extract_days_until_expiry(msg: str) -> int | None:
+    """Extrait le nombre de jours avant expiration depuis un message (ex. "dans 14 jour(s)").
+
+    Args:
+        msg: Message contenant potentiellement "dans X jour(s)" ou "in X days".
+
+    Returns:
+        int | None: Nombre de jours ou None si non trouvé.
+    """
+    m = re.search(r"(?:dans|in)\s+(\d+)\s+(?:jour|day)", msg, re.IGNORECASE)
+    return int(m.group(1)) if m else None
+
+
+def _tls_msg_to_finding(msg: str) -> tuple[str, str, str]:
+    """Mappe un message TLS vers (slug, title, severity).
+
+    Args:
+        msg: Message du finding brut.
+
+    Returns:
+        tuple[str, str, str]: (slug, title, severity).
+    """
+    msg_l = msg.lower()
+    if "redirection" in msg_l or "redirect" in msg_l:
+        return ("tls-no-redirect", "Pas de redirection HTTP→HTTPS", "high")
+    if "expiré" in msg_l or "expired" in msg_l:
+        return ("tls-cert-expired", "Certificat expiré", "critical")
+    if "auto-signé" in msg_l or "self_signed" in msg_l:
+        return ("tls-cert-self-signed", "Certificat auto-signé", "high")
+    if "pas encore valide" in msg_l or "notBefore" in msg_l:
+        return ("tls-cert-not-yet-valid", "Certificat pas encore valide", "medium")
+    if "expire bientôt" in msg_l or "expires soon" in msg_l:
+        # Gravité selon le délai : 15-29 jours → low, 0-14 jours → medium
+        days = _extract_days_until_expiry(msg)
+        severity = "low" if days is not None and days >= 15 else "medium"
+        return ("tls-cert-expires-soon", "Certificat expire bientôt", severity)
+    if "chaîne" in msg_l and ("incomplète" in msg_l or "invalide" in msg_l):
+        return ("tls-chain-incomplete", "Chaîne de certificats incomplète", "medium")
+    if "TLS" in msg and ("1.0" in msg or "1.1" in msg):
+        return ("tls-versions-obsolete", "Versions TLS obsolètes", "medium")
+    if "connexion" in msg_l or "timeout" in msg_l:
+        return ("tls-connection-failed", "Connexion HTTPS impossible", "high")
+    return ("tls-connection-failed", "Problème TLS", "medium")
 
 
 def _normalize_tls(result: TlsCheckResult) -> list[Finding]:
@@ -56,20 +103,8 @@ def _normalize_tls(result: TlsCheckResult) -> list[Finding]:
         findings.append(_finding("tls-https-disabled", "tls", "HTTPS non activé", "critical", MSG_HTTPS_UNAVAILABLE))
         return findings
     for msg in result.findings:
-        if "redirection" in msg.lower() or "redirect" in msg.lower():
-            findings.append(_finding("tls-no-redirect", "tls", "Pas de redirection HTTP→HTTPS", "high", msg))
-        elif "expiré" in msg.lower() or "expired" in msg.lower():
-            findings.append(_finding("tls-cert-expired", "tls", "Certificat expiré", "critical", msg))
-        elif "auto-signé" in msg.lower() or "self_signed" in msg.lower():
-            findings.append(_finding("tls-cert-self-signed", "tls", "Certificat auto-signé", "high", msg))
-        elif "pas encore valide" in msg.lower() or "notBefore" in msg.lower():
-            findings.append(_finding("tls-cert-not-yet-valid", "tls", "Certificat pas encore valide", "medium", msg))
-        elif "TLS" in msg and ("1.0" in msg or "1.1" in msg):
-            findings.append(_finding("tls-versions-obsolete", "tls", "Versions TLS obsolètes", "medium", msg))
-        elif "connexion" in msg.lower() or "timeout" in msg.lower():
-            findings.append(_finding("tls-connection-failed", "tls", "Connexion HTTPS impossible", "high", msg))
-        else:
-            findings.append(_finding("tls-connection-failed", "tls", "Problème TLS", "medium", msg))
+        slug, title, severity = _tls_msg_to_finding(msg)
+        findings.append(_finding(slug, "tls", title, severity, msg))
     return findings
 
 
@@ -87,7 +122,9 @@ def _normalize_headers(result: SecurityHeadersCheckResult) -> list[Finding]:
             )
         )
         return findings
-    header_to_slug = {cfg.name: cfg.slug for cfg in get_security_headers_settings()}
+    headers_config = get_security_headers_settings()
+    header_to_slug = {cfg.name: cfg.slug for cfg in headers_config}
+    header_to_severity = {cfg.name: cfg.severity for cfg in headers_config}
     for msg in result.findings:
         if "valeur incorrecte" in msg.lower() or "incorrecte" in msg.lower():
             findings.append(
@@ -99,22 +136,63 @@ def _normalize_headers(result: SecurityHeadersCheckResult) -> list[Finding]:
                     msg,
                 )
             )
+        elif "report-uri" in msg and "report-to" in msg and "sans" in msg:
+            findings.append(
+                _finding(
+                    "headers-csp-no-report-uri",
+                    "headers",
+                    "CSP sans report-uri ni report-to",
+                    "low",
+                    msg,
+                )
+            )
+        elif "unsafe-inline" in msg or "unsafe-eval" in msg:
+            findings.append(
+                _finding(
+                    "headers-csp-unsafe-directives",
+                    "headers",
+                    "CSP avec directives unsafe",
+                    "low",
+                    msg,
+                )
+            )
         else:
             for h in sorted(header_to_slug, key=len, reverse=True):
                 if h in msg and h in result.headers_missing:
                     slug = header_to_slug[h]
-                    findings.append(_finding(slug, "headers", f"{h} absent", "medium", msg))
+                    severity = header_to_severity.get(h, "medium")
+                    findings.append(_finding(slug, "headers", f"{h} absent", severity, msg))
                     break
             else:
                 findings.append(_finding("headers-connection-failed", "headers", "En-tête manquant", "medium", msg))
     return findings
 
 
+def _cookie_msg_to_finding(msg: str) -> tuple[str, str, str]:
+    """Mappe un message cookie vers (slug, title, severity)."""
+    if "Cookie de session" in msg and "HttpOnly + Secure + SameSite=Strict" in msg:
+        return ("cookies-session-incomplete", "Cookie de session sans triple protection", "high")
+    if "sans préfixe __Host-" in msg or "sans préfixe __Secure-" in msg:
+        return ("cookies-no-host-secure-prefix", "Cookie sensible sans préfixe __Host-/__Secure-", "info")
+    if "sans Partitioned" in msg:
+        return ("cookies-no-partitioned", "Cookie tiers sans Partitioned (CHIPS)", "low")
+    if "Expires/Max-Age > 24h" in msg or "session persistante" in msg:
+        return ("cookies-session-expires-long", "Cookie de session avec durée trop longue", "low")
+    if "Secure" in msg and "HTTPS" in msg:
+        return ("cookies-no-secure", "Cookie sans Secure", "high")
+    if "HttpOnly" in msg:
+        return ("cookies-no-httponly", "Cookie sans HttpOnly", "medium")
+    if "SameSite" in msg and "requiert" in msg:
+        return ("cookies-samesite-none-requires-secure", "SameSite=None sans Secure", "high")
+    if "SameSite" in msg:
+        return ("cookies-no-samesite", "Cookie sans SameSite", "medium")
+    return ("cookies-connection-failed", "Problème cookie", "medium")
+
+
 def _normalize_cookies(result: CookieCheckResult) -> list[Finding]:
     """Convertit CookieCheckResult en list[Finding]."""
-    findings: list[Finding] = []
     if not result.fetch_ok:
-        findings.append(
+        return [
             _finding(
                 "cookies-connection-failed",
                 "cookies",
@@ -122,19 +200,11 @@ def _normalize_cookies(result: CookieCheckResult) -> list[Finding]:
                 "high",
                 MSG_COOKIES_UNAVAILABLE,
             )
-        )
-        return findings
+        ]
+    findings: list[Finding] = []
     for msg in result.findings:
-        if "Secure" in msg and "HTTPS" in msg:
-            findings.append(_finding("cookies-no-secure", "cookies", "Cookie sans Secure", "high", msg))
-        elif "HttpOnly" in msg:
-            findings.append(_finding("cookies-no-httponly", "cookies", "Cookie sans HttpOnly", "medium", msg))
-        elif "SameSite" in msg and "requiert" in msg:
-            findings.append(_finding("cookies-samesite-none-requires-secure", "cookies", "SameSite=None sans Secure", "high", msg))
-        elif "SameSite" in msg:
-            findings.append(_finding("cookies-no-samesite", "cookies", "Cookie sans SameSite", "medium", msg))
-        else:
-            findings.append(_finding("cookies-connection-failed", "cookies", "Problème cookie", "medium", msg))
+        slug, title, severity = _cookie_msg_to_finding(msg)
+        findings.append(_finding(slug, "cookies", title, severity, msg))
     return findings
 
 
@@ -188,13 +258,27 @@ def _normalize_exposed_files(result: PathCheckResult) -> list[Finding]:
 
 
 def _normalize_directory_listing(result: PathCheckResult) -> list[Finding]:
-    """Convertit PathCheckResult (directory_listing) en list[Finding]."""
-    return _normalize_path_check_result(
+    """Convertit PathCheckResult (directory_listing) en list[Finding].
+
+    Gère exposed (listing 200) et exposed_403 (chemins sensibles retournant 403).
+    """
+    findings = _normalize_path_check_result(
         result,
         "directory_listing",
         title_fn=lambda pf: f"Directory listing : {pf.path}",
         severity_fn=lambda pf: pf.severity.lower(),
     )
+    for pf in result.exposed_403:
+        findings.append(
+            _finding(
+                "directory_listing-sensitive-403",
+                "directory_listing",
+                f"Répertoire sensible révélé : {pf.path}",
+                pf.severity.lower(),
+                pf.message,
+            )
+        )
+    return findings
 
 
 def _normalize_robots_txt(result: RobotsTxtCheckResult) -> list[Finding]:
@@ -214,6 +298,48 @@ def _normalize_robots_txt(result: RobotsTxtCheckResult) -> list[Finding]:
     for route in result.sensitive_routes:
         ev = f"Disallow: {route.path} (motif : {route.pattern}). Vérifier la protection."
         findings.append(_finding("robots_txt-sensitive-route", "robots_txt", f"Route sensible : {route.path}", route.severity.lower(), ev))
+    if result.crawl_delay is not None:
+        ev = f"Crawl-delay: {result.crawl_delay}s (directive non standard, certains moteurs l'ignorent)."
+        findings.append(_finding("robots_txt-crawl-delay", "robots_txt", "Crawl-delay détecté", "info", ev))
+    return findings
+
+
+def _normalize_sitemap(result: SitemapCheckResult) -> list[Finding]:
+    """Convertit SitemapCheckResult en list[Finding]."""
+    findings: list[Finding] = []
+    if not result.sitemap_found:
+        if result.fetch_ok:
+            findings.append(
+                _finding(
+                    "sitemap-not-found",
+                    "sitemap",
+                    "Sitemap non trouvé",
+                    "info",
+                    "Aucun sitemap trouvé (ni dans robots.txt, ni à /sitemap.xml). Recommandation : créer et déclarer un sitemap.",
+                )
+            )
+        return findings
+    if result.sitemap_undeclared:
+        findings.append(
+            _finding(
+                "sitemap-undeclared",
+                "sitemap",
+                "Sitemap présent mais non déclaré dans robots.txt",
+                "info",
+                "Sitemap trouvé à /sitemap.xml mais absent de robots.txt. Recommandation : ajouter Sitemap: dans robots.txt.",
+            )
+        )
+    for su in result.sensitive_urls:
+        ev = f"URL sensible dans sitemap : {su.url} (motif : {su.pattern})."
+        findings.append(
+            _finding(
+                "sitemap-sensitive-url",
+                "sitemap",
+                f"URL sensible exposée dans sitemap : {su.path}",
+                su.severity.lower(),
+                ev,
+            )
+        )
     return findings
 
 
@@ -231,7 +357,20 @@ def _normalize_tech_fingerprinting(result: TechFingerprintingCheckResult) -> lis
             )
         )
         return findings
+    for v in result.vulnerable_versions:
+        ev = f"{v.product} {v.version} (version minimale recommandée : {v.min_safe_version})"
+        findings.append(
+            _finding(
+                "tech_fingerprinting-vulnerable-version",
+                "tech_fingerprinting",
+                f"Version potentiellement vulnérable : {v.product} {v.version}",
+                "medium",
+                ev,
+            )
+        )
     for msg in result.findings:
+        if "Version potentiellement vulnérable" in msg:
+            continue
         if "Serveur détecté" in msg:
             findings.append(_finding("tech_fingerprinting-server-detected", "tech_fingerprinting", "Serveur détecté", "info", msg))
         elif "Runtime" in msg:
@@ -254,6 +393,7 @@ class ScanResultsDict(TypedDict, total=False):
     exposed_files: PathCheckResult
     directory_listing: PathCheckResult
     robots_txt: RobotsTxtCheckResult
+    sitemap: SitemapCheckResult
     tech_fingerprinting: TechFingerprintingCheckResult
 
 
@@ -264,6 +404,7 @@ _NORMALIZERS: list[tuple[str, Callable[[object], list[Finding]]]] = [
     ("exposed_files", _normalize_exposed_files),
     ("directory_listing", _normalize_directory_listing),
     ("robots_txt", _normalize_robots_txt),
+    ("sitemap", _normalize_sitemap),
     ("tech_fingerprinting", _normalize_tech_fingerprinting),
 ]
 

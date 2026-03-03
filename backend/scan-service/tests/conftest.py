@@ -12,6 +12,8 @@ from app.main import app
 from app.services.directory_listing import DirectoryListingCheckResult
 from app.services.exposed_files import ExposedFilesCheckResult
 from app.services.robots_txt import RobotsTxtCheckResult
+from app.services.sitemap import SitemapCheckResult
+from app.services.tech_fingerprinting.checks import TechFingerprintingCheckResult
 from app.services.tls.checks import TlsCheckResult
 
 
@@ -26,6 +28,7 @@ def patch_scan_checks(**overrides):
     mock_response.status_code = 200
     mock_response.headers = {}
     mock_response.content = b""
+    mock_response.text = ""
 
     tls_result = overrides.pop("tls_result", None) or TlsCheckResult(
         https_enabled=True,
@@ -37,7 +40,31 @@ def patch_scan_checks(**overrides):
     exposed_result = overrides.pop("exposed_result", None) or ExposedFilesCheckResult(exposed=(), findings=(), fetch_ok=True)
     directory_listing_result = overrides.pop("directory_listing_result", None) or DirectoryListingCheckResult(exposed=(), findings=(), fetch_ok=True)
     robots_txt_result = overrides.pop("robots_txt_result", None) or RobotsTxtCheckResult(
-        disallow_paths=(), sensitive_routes=(), findings=(), fetch_ok=True
+        disallow_paths=(),
+        allow_paths=(),
+        sensitive_routes=(),
+        findings=(),
+        fetch_ok=True,
+        crawl_delay=None,
+        sitemap_urls=(),
+    )
+    sitemap_result = overrides.pop("sitemap_result", None) or SitemapCheckResult(
+        sitemap_found=False,
+        sitemap_undeclared=False,
+        sensitive_urls=(),
+        fetch_ok=True,
+    )
+    tech_fingerprinting_result = overrides.pop("tech_fingerprinting_result", None) or TechFingerprintingCheckResult(
+        server=None,
+        server_version=None,
+        runtime=None,
+        runtime_version=None,
+        framework_cms=None,
+        framework_cms_version=None,
+        stack_entries=(),
+        vulnerable_versions=(),
+        findings=(),
+        fetch_ok=True,
     )
 
     @asynccontextmanager
@@ -67,6 +94,16 @@ def patch_scan_checks(**overrides):
             "app.services.scan_stream.run_robots_txt_checks",
             new_callable=AsyncMock,
             return_value=robots_txt_result,
+        ),
+        patch(
+            "app.services.scan_stream.run_sitemap_checks",
+            new_callable=AsyncMock,
+            return_value=sitemap_result,
+        ),
+        patch(
+            "app.services.scan_stream.check_tech_fingerprinting_from_response",
+            new_callable=MagicMock,
+            return_value=tech_fingerprinting_result,
         ),
     ):
         yield

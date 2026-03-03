@@ -1,5 +1,15 @@
-"""Vérifications tech fingerprinting (roadmap §3.7)."""
+"""Vérifications Tech fingerprinting (roadmap §3.7, §5.1.7)."""
 
-from app.services.tech_fingerprinting.checks import TechFingerprintingCheckResult, check_tech_fingerprinting_from_response
+from app.services.tech_fingerprinting.checks import (
+    StackEntry,
+    TechFingerprintingCheckResult,
+    VulnerableVersion,
+    check_tech_fingerprinting_from_response,
+)
 
-__all__ = ["TechFingerprintingCheckResult", "check_tech_fingerprinting_from_response"]
+__all__ = [
+    "StackEntry",
+    "TechFingerprintingCheckResult",
+    "VulnerableVersion",
+    "check_tech_fingerprinting_from_response",
+]

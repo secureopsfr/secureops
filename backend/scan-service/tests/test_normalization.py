@@ -101,6 +101,53 @@ def test_normalize_tls_findings_versions_obsolete() -> None:
     assert findings[0].severity == "medium"
 
 
+def test_normalize_tls_expires_soon_severity_by_days() -> None:
+    """tls-cert-expires-soon : gravité low si >= 15 jours, medium si < 15 jours."""
+    result_15_days = TlsCheckResult(
+        https_enabled=True,
+        http_redirects_to_https=True,
+        certificate_status="expires_soon",
+        tls_versions_obsolete=(),
+        findings=("Certificat expire bientôt (dans 15 jour(s), notAfter: 2026-04-02). Renouveler avant expiration.",),
+        fetch_ok=True,
+    )
+    findings_15 = normalize_results({"tls": result_15_days})
+    assert len(findings_15) == 1
+    assert findings_15[0].id == "tls-cert-expires-soon"
+    assert findings_15[0].severity == "low"
+
+    result_7_days = TlsCheckResult(
+        https_enabled=True,
+        http_redirects_to_https=True,
+        certificate_status="expires_soon",
+        tls_versions_obsolete=(),
+        findings=("Certificat expire bientôt (dans 7 jour(s), notAfter: 2026-03-25). Renouveler avant expiration.",),
+        fetch_ok=True,
+    )
+    findings_7 = normalize_results({"tls": result_7_days})
+    assert len(findings_7) == 1
+    assert findings_7[0].severity == "medium"
+
+
+def test_normalize_tls_chain_incomplete() -> None:
+    """TLS finding chaîne incomplète produit tls-chain-incomplete."""
+    result = TlsCheckResult(
+        https_enabled=True,
+        http_redirects_to_https=True,
+        certificate_status="valid",
+        tls_versions_obsolete=(),
+        findings=(
+            "Chaîne de certificats incomplète : le serveur n'envoie que le certificat feuille, "
+            "sans les intermédiaires. Les navigateurs peuvent afficher des avertissements.",
+        ),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"tls": result})
+    assert len(findings) == 1
+    assert findings[0].id == "tls-chain-incomplete"
+    assert findings[0].severity == "medium"
+
+
 def test_normalize_tls_no_findings() -> None:
     """TLS sans findings retourne liste vide."""
     result = TlsCheckResult(
@@ -130,7 +177,7 @@ def test_normalize_headers_fetch_ok_false() -> None:
 
 
 def test_normalize_headers_missing_csp() -> None:
-    """Headers manquants produisent les slugs attendus."""
+    """Headers manquants produisent les slugs attendus avec sévérité différenciée."""
     result = SecurityHeadersCheckResult(
         headers_present=(),
         headers_missing=("Content-Security-Policy", "X-Frame-Options"),
@@ -145,6 +192,10 @@ def test_normalize_headers_missing_csp() -> None:
     ids = {f.id for f in findings}
     assert "headers-csp-absent" in ids
     assert "headers-xfo-absent" in ids
+    csp_f = next(f for f in findings if f.id == "headers-csp-absent")
+    xfo_f = next(f for f in findings if f.id == "headers-xfo-absent")
+    assert csp_f.severity == "high"
+    assert xfo_f.severity == "medium"
 
 
 def test_normalize_headers_xcto_wrong_value() -> None:
@@ -160,6 +211,60 @@ def test_normalize_headers_xcto_wrong_value() -> None:
     assert findings[0].id == "headers-xcto-wrong-value"
 
 
+def test_normalize_headers_csp_no_report_uri() -> None:
+    """CSP sans report-uri ni report-to produit headers-csp-no-report-uri."""
+    result = SecurityHeadersCheckResult(
+        headers_present=("Content-Security-Policy",),
+        headers_missing=(),
+        findings=("CSP présent mais sans report-uri ni report-to : violations non détectables.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"headers": result})
+    assert len(findings) == 1
+    assert findings[0].id == "headers-csp-no-report-uri"
+    assert findings[0].severity == "low"
+
+
+def test_normalize_headers_csp_unsafe_directives() -> None:
+    """CSP avec unsafe-inline/unsafe-eval produit headers-csp-unsafe-directives."""
+    result = SecurityHeadersCheckResult(
+        headers_present=("Content-Security-Policy",),
+        headers_missing=(),
+        findings=("CSP contient unsafe-inline ou unsafe-eval : risque XSS accru.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"headers": result})
+    assert len(findings) == 1
+    assert findings[0].id == "headers-csp-unsafe-directives"
+    assert findings[0].severity == "low"
+
+
+def test_normalize_headers_coep_coop_clear_site_data() -> None:
+    """COEP, COOP, Clear-Site-Data absents produisent les slugs attendus."""
+    result = SecurityHeadersCheckResult(
+        headers_present=(),
+        headers_missing=(
+            "Cross-Origin-Embedder-Policy",
+            "Cross-Origin-Opener-Policy",
+            "Clear-Site-Data",
+        ),
+        findings=(
+            "Cross-Origin-Embedder-Policy absent : isolation cross-origin limitée.",
+            "Cross-Origin-Opener-Policy absent : isolation cross-origin limitée.",
+            "Clear-Site-Data absent : déconnexion sans purge des données.",
+        ),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"headers": result})
+    assert len(findings) == 3
+    ids = {f.id for f in findings}
+    assert "headers-coep-absent" in ids
+    assert "headers-coop-absent" in ids
+    assert "headers-clear-site-data-absent" in ids
+    for f in findings:
+        assert f.severity == "low"
+
+
 def test_normalize_cookies_fetch_ok_false() -> None:
     """Cookies avec fetch_ok=False produit cookies-connection-failed."""
     result = CookieCheckResult(cookies=(), findings=("Impossible d'analyser les cookies.",), fetch_ok=False)
@@ -171,14 +276,66 @@ def test_normalize_cookies_fetch_ok_false() -> None:
 def test_normalize_cookies_no_secure() -> None:
     """Cookie sans Secure produit cookies-no-secure."""
     result = CookieCheckResult(
-        cookies=(CookieInfo(name="session", secure=False, httponly=True, samesite="Lax"),),
-        findings=("Cookie 'session' sans Secure sur site HTTPS : risque d'interception.",),
+        cookies=(CookieInfo(name="lang", secure=False, httponly=True, samesite="Lax"),),
+        findings=("Cookie 'lang' sans Secure sur site HTTPS : risque d'interception.",),
         fetch_ok=True,
     )
     findings = normalize_results({"cookies": result})
     assert len(findings) == 1
     assert findings[0].id == "cookies-no-secure"
     assert findings[0].severity == "high"
+
+
+def test_normalize_cookies_session_incomplete() -> None:
+    """Cookie de session sans triple protection produit cookies-session-incomplete."""
+    result = CookieCheckResult(
+        cookies=(),
+        findings=("Cookie de session 'session_id' sans HttpOnly + Secure + SameSite=Strict : risque élevé.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"cookies": result})
+    assert len(findings) == 1
+    assert findings[0].id == "cookies-session-incomplete"
+    assert findings[0].severity == "high"
+
+
+def test_normalize_cookies_no_host_secure_prefix() -> None:
+    """Cookie sensible sans préfixe produit cookies-no-host-secure-prefix."""
+    result = CookieCheckResult(
+        cookies=(),
+        findings=("Cookie sensible 'session_id' sans préfixe __Host- ou __Secure- : bonne pratique recommandée.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"cookies": result})
+    assert len(findings) == 1
+    assert findings[0].id == "cookies-no-host-secure-prefix"
+    assert findings[0].severity == "info"
+
+
+def test_normalize_cookies_no_partitioned() -> None:
+    """Cookie tiers sans Partitioned produit cookies-no-partitioned."""
+    result = CookieCheckResult(
+        cookies=(),
+        findings=("Cookie '_ga' (analytics/tiers probable) sans Partitioned : recommandation CHIPS.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"cookies": result})
+    assert len(findings) == 1
+    assert findings[0].id == "cookies-no-partitioned"
+    assert findings[0].severity == "low"
+
+
+def test_normalize_cookies_session_expires_long() -> None:
+    """Cookie session avec Expires long produit cookies-session-expires-long."""
+    result = CookieCheckResult(
+        cookies=(),
+        findings=("Cookie de session 'session_id' avec Expires/Max-Age > 24h : session persistante non recommandée.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"cookies": result})
+    assert len(findings) == 1
+    assert findings[0].id == "cookies-session-expires-long"
+    assert findings[0].severity == "low"
 
 
 def test_normalize_exposed_files_upgrade_critical() -> None:
@@ -215,13 +372,27 @@ def test_normalize_directory_listing() -> None:
     assert findings[0].severity == "high"
 
 
+def test_normalize_directory_listing_exposed_403() -> None:
+    """directory_listing : exposed_403 produit finding directory_listing-sensitive-403."""
+    pf_403 = PathFinding(path="/config/", severity="medium", message="Répertoire sensible /config/ retourne 403.")
+    result = PathCheckResult(exposed=(), findings=(), fetch_ok=True, exposed_403=(pf_403,))
+    findings = normalize_results({"directory_listing": result})
+    assert len(findings) == 1
+    assert findings[0].id == "directory_listing-sensitive-403"
+    assert findings[0].title == "Répertoire sensible révélé : /config/"
+    assert findings[0].severity == "medium"
+
+
 def test_normalize_robots_txt_fetch_ok_false() -> None:
     """robots_txt avec fetch_ok=False produit robots_txt-connection-failed."""
     result = RobotsTxtCheckResult(
         disallow_paths=(),
+        allow_paths=(),
         sensitive_routes=(),
         findings=("Impossible de récupérer robots.txt.",),
         fetch_ok=False,
+        crawl_delay=None,
+        sitemap_urls=(),
     )
     findings = normalize_results({"robots_txt": result})
     assert len(findings) == 1
@@ -233,9 +404,12 @@ def test_normalize_robots_txt_sensitive_routes() -> None:
     route = SensitiveRoute(path="/admin/", pattern="admin", severity="high")
     result = RobotsTxtCheckResult(
         disallow_paths=("/admin/",),
+        allow_paths=(),
         sensitive_routes=(route,),
         findings=("Disallow: /admin/ (route potentiellement sensible : admin).",),
         fetch_ok=True,
+        crawl_delay=None,
+        sitemap_urls=(),
     )
     findings = normalize_results({"robots_txt": result})
     assert len(findings) == 1
@@ -244,12 +418,66 @@ def test_normalize_robots_txt_sensitive_routes() -> None:
     assert "admin" in findings[0].evidence
 
 
+def test_normalize_robots_txt_crawl_delay() -> None:
+    """robots_txt avec crawl_delay produit robots_txt-crawl-delay (info)."""
+    result = RobotsTxtCheckResult(
+        disallow_paths=(),
+        allow_paths=(),
+        sensitive_routes=(),
+        findings=(),
+        fetch_ok=True,
+        crawl_delay=5,
+        sitemap_urls=(),
+    )
+    findings = normalize_results({"robots_txt": result})
+    assert len(findings) == 1
+    assert findings[0].id == "robots_txt-crawl-delay"
+    assert findings[0].severity == "info"
+
+
+def test_normalize_sitemap_not_found() -> None:
+    """Sitemap avec sitemap_found=False produit sitemap-not-found (info)."""
+    from app.services.sitemap.checks import SitemapCheckResult
+
+    result = SitemapCheckResult(
+        sitemap_found=False,
+        sitemap_undeclared=False,
+        sensitive_urls=(),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"sitemap": result})
+    assert len(findings) == 1
+    assert findings[0].id == "sitemap-not-found"
+    assert findings[0].severity == "info"
+
+
+def test_normalize_sitemap_sensitive_url() -> None:
+    """Sitemap avec URL sensible produit sitemap-sensitive-url."""
+    from app.services.sitemap.checks import SensitiveSitemapUrl, SitemapCheckResult
+
+    result = SitemapCheckResult(
+        sitemap_found=True,
+        sitemap_undeclared=False,
+        sensitive_urls=(SensitiveSitemapUrl("https://ex.com/admin", "/admin", "admin", "high"),),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"sitemap": result})
+    assert len(findings) == 1
+    assert findings[0].id == "sitemap-sensitive-url"
+    assert findings[0].severity == "high"
+
+
 def test_normalize_tech_fingerprinting_fetch_ok_false() -> None:
     """tech_fingerprinting avec fetch_ok=False produit tech_fingerprinting-connection-failed (info)."""
     result = TechFingerprintingCheckResult(
         server=None,
+        server_version=None,
         runtime=None,
+        runtime_version=None,
         framework_cms=None,
+        framework_cms_version=None,
+        stack_entries=(),
+        vulnerable_versions=(),
         findings=("Impossible d'analyser les en-têtes.",),
         fetch_ok=False,
     )
@@ -263,8 +491,13 @@ def test_normalize_tech_fingerprinting_server_detected() -> None:
     """tech_fingerprinting avec serveur détecté produit tech_fingerprinting-server-detected."""
     result = TechFingerprintingCheckResult(
         server="nginx",
+        server_version=None,
         runtime=None,
+        runtime_version=None,
         framework_cms=None,
+        framework_cms_version=None,
+        stack_entries=(),
+        vulnerable_versions=(),
         findings=("Serveur détecté : nginx",),
         fetch_ok=True,
     )
@@ -274,12 +507,40 @@ def test_normalize_tech_fingerprinting_server_detected() -> None:
     assert findings[0].severity == "info"
 
 
+def test_normalize_tech_fingerprinting_vulnerable_version() -> None:
+    """tech_fingerprinting avec version vulnérable produit tech_fingerprinting-vulnerable-version."""
+    from app.services.tech_fingerprinting.checks import VulnerableVersion
+
+    result = TechFingerprintingCheckResult(
+        server="nginx/1.18.0",
+        server_version="1.18.0",
+        runtime=None,
+        runtime_version=None,
+        framework_cms=None,
+        framework_cms_version=None,
+        stack_entries=(),
+        vulnerable_versions=(VulnerableVersion("nginx", "1.18.0", "1.20.0"),),
+        findings=("Serveur détecté : nginx/1.18.0", "Version potentiellement vulnérable : nginx 1.18.0 ..."),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"tech_fingerprinting": result})
+    assert len(findings) >= 1
+    vuln_findings = [f for f in findings if f.id == "tech_fingerprinting-vulnerable-version"]
+    assert len(vuln_findings) == 1
+    assert vuln_findings[0].severity == "medium"
+
+
 def test_normalize_tech_fingerprinting_stack_unknown() -> None:
     """tech_fingerprinting sans stack produit tech_fingerprinting-stack-unknown."""
     result = TechFingerprintingCheckResult(
         server=None,
+        server_version=None,
         runtime=None,
+        runtime_version=None,
         framework_cms=None,
+        framework_cms_version=None,
+        stack_entries=(),
+        vulnerable_versions=(),
         findings=("Stack : non identifiée (ou masquée)",),
         fetch_ok=True,
     )

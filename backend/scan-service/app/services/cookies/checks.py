@@ -2,13 +2,43 @@
 
 Parse les en-têtes Set-Cookie et vérifie Secure, HttpOnly, SameSite.
 Détecte les cookies sans Secure sur site HTTPS.
+Extensions v0.2.0 : préfixes __Host-/__Secure-, Partitioned (CHIPS),
+cookie de session sans triple protection, Expires trop lointain.
 """
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import httpx
 
 from app.constants import MSG_COOKIES_UNAVAILABLE
+
+# Noms de cookies suggérant une session ou authentification (heuristique).
+_SESSION_LIKE_NAMES = (
+    "session",
+    "sess",
+    "auth",
+    "token",
+    "csrf",
+    "_token",
+    "phpsessid",
+    "jsessionid",
+    "connect.sid",
+    "asp.net_sessionid",
+    "laravel_session",
+    "symfony",
+    "wordpress_logged_in",
+    "wp-settings",
+    "sid",
+    "jwt",
+    "access_token",
+    "refresh_token",
+)
+# Noms de cookies tiers/analytics (pour recommandation Partitioned).
+_THIRD_PARTY_LIKE_NAMES = ("_ga", "_gid", "_gat", "_fbp", "_gcl_au", "_gac_", "_dc")
+# Seuil : session avec Expires/Max-Age > 24h = persistante non recommandée.
+_SESSION_MAX_AGE_SECONDS = 86400  # 24 heures
 
 
 @dataclass
@@ -16,16 +46,26 @@ class CookieInfo:
     """Informations sur un cookie analysé.
 
     Attributes:
-        name (str): Nom du cookie.
-        secure (bool): True si le flag Secure est présent.
-        httponly (bool): True si le flag HttpOnly est présent.
-        samesite (str | None): Valeur SameSite (Strict, Lax, None) ou None si absent.
+        name: Nom du cookie.
+        secure: True si le flag Secure est présent.
+        httponly: True si le flag HttpOnly est présent.
+        samesite: Valeur SameSite (Strict, Lax, None) ou None si absent.
+        has_host_prefix: True si le nom commence par __Host-.
+        has_secure_prefix: True si le nom commence par __Secure-.
+        partitioned: True si l'attribut Partitioned est présent.
+        expires_at: Date d'expiration (Expires) ou None.
+        max_age_seconds: Max-Age en secondes ou None.
     """
 
     name: str
     secure: bool
     httponly: bool
     samesite: str | None
+    has_host_prefix: bool = False
+    has_secure_prefix: bool = False
+    partitioned: bool = False
+    expires_at: datetime | None = None
+    max_age_seconds: int | None = None
 
 
 @dataclass
@@ -33,9 +73,9 @@ class CookieCheckResult:
     """Résultat des vérifications cookies.
 
     Attributes:
-        cookies (tuple[CookieInfo, ...]): Liste des cookies analysés.
-        findings (tuple[str, ...]): Liste des findings.
-        fetch_ok (bool): True si la réponse a pu être analysée.
+        cookies: Liste des cookies analysés.
+        findings: Liste des findings.
+        fetch_ok: True si la réponse a pu être analysée.
     """
 
     cookies: tuple[CookieInfo, ...]
@@ -44,12 +84,61 @@ class CookieCheckResult:
 
     def to_dict(self) -> dict:
         """Sérialise le résultat pour l'événement SSE result."""
-        cookies_serialized = [{"name": c.name, "secure": c.secure, "httponly": c.httponly, "samesite": c.samesite} for c in self.cookies]
+        cookies_serialized = [
+            {
+                "name": c.name,
+                "secure": c.secure,
+                "httponly": c.httponly,
+                "samesite": c.samesite,
+                "has_host_prefix": c.has_host_prefix,
+                "has_secure_prefix": c.has_secure_prefix,
+                "partitioned": c.partitioned,
+            }
+            for c in self.cookies
+        ]
         return {
             "cookies": cookies_serialized,
             "findings": list(self.findings),
             "fetch_ok": self.fetch_ok,
         }
+
+
+def _is_session_like(name: str) -> bool:
+    """Indique si le nom du cookie suggère une session ou authentification."""
+    name_lower = name.lower()
+    return any(pat in name_lower for pat in _SESSION_LIKE_NAMES)
+
+
+def _is_third_party_like(name: str) -> bool:
+    """Indique si le nom du cookie suggère un cookie tiers (analytics, etc.)."""
+    name_lower = name.lower()
+    return any(pat in name_lower for pat in _THIRD_PARTY_LIKE_NAMES)
+
+
+def _parse_samesite(part: str) -> str | None:
+    """Extrait la valeur SameSite d'un attribut (ex. SameSite=Strict)."""
+    val = part.split("=", 1)[1].strip().lower()
+    if val in ("strict", "lax", "none"):
+        return val.capitalize() if val != "none" else "None"
+    return None
+
+
+def _parse_expires(part: str) -> datetime | None:
+    """Parse l'attribut Expires (RFC 2822)."""
+    val = part.split("=", 1)[1].strip()
+    try:
+        dt = parsedate_to_datetime(val)
+        return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_max_age(part: str) -> int | None:
+    """Extrait Max-Age en secondes."""
+    try:
+        return int(part.split("=", 1)[1].strip().split()[0])
+    except (ValueError, IndexError):
+        return None
 
 
 def _parse_set_cookie_header(header_value: str) -> CookieInfo | None:
@@ -68,26 +157,57 @@ def _parse_set_cookie_header(header_value: str) -> CookieInfo | None:
     if not name:
         return None
 
-    secure = False
-    httponly = False
-    samesite: str | None = None
+    attrs = {"secure": False, "httponly": False, "samesite": None, "partitioned": False}
+    expires_at: datetime | None = None
+    max_age_seconds: int | None = None
 
     for part in parts[1:]:
         part_lower = part.lower()
         if part_lower == "secure":
-            secure = True
+            attrs["secure"] = True
         elif part_lower == "httponly":
-            httponly = True
+            attrs["httponly"] = True
+        elif part_lower == "partitioned":
+            attrs["partitioned"] = True
         elif part_lower.startswith("samesite="):
-            val = part.split("=", 1)[1].strip().lower()
-            if val in ("strict", "lax", "none"):
-                samesite = val.capitalize() if val != "none" else "None"
+            attrs["samesite"] = _parse_samesite(part)
+        elif part_lower.startswith("expires="):
+            expires_at = _parse_expires(part)
+        elif part_lower.startswith("max-age="):
+            max_age_seconds = _parse_max_age(part)
 
-    return CookieInfo(name=name, secure=secure, httponly=httponly, samesite=samesite)
+    return CookieInfo(
+        name=name,
+        secure=attrs["secure"],
+        httponly=attrs["httponly"],
+        samesite=attrs["samesite"],
+        has_host_prefix=name.startswith("__Host-"),
+        has_secure_prefix=name.startswith("__Secure-"),
+        partitioned=attrs["partitioned"],
+        expires_at=expires_at,
+        max_age_seconds=max_age_seconds,
+    )
 
 
-def _findings_for_cookie(parsed: CookieInfo, is_https: bool) -> list[str]:
-    """Génère les findings pour un cookie analysé."""
+def _session_has_triple_protection(parsed: CookieInfo) -> bool:
+    """Indique si le cookie a HttpOnly + Secure + SameSite=Strict."""
+    return parsed.httponly and parsed.secure and parsed.samesite == "Strict"
+
+
+def _session_expires_too_long(parsed: CookieInfo) -> bool:
+    """Indique si un cookie session a Expires/Max-Age > 24h."""
+    if parsed.max_age_seconds is not None and parsed.max_age_seconds > _SESSION_MAX_AGE_SECONDS:
+        return True
+    if parsed.expires_at is None:
+        return False
+    now = datetime.now(timezone.utc)
+    if parsed.expires_at <= now:
+        return False
+    return (parsed.expires_at - now).total_seconds() > _SESSION_MAX_AGE_SECONDS
+
+
+def _findings_base_flags(parsed: CookieInfo, is_https: bool) -> list[str]:
+    """Findings pour Secure, HttpOnly, SameSite (flags de base)."""
     findings: list[str] = []
     if is_https and not parsed.secure:
         findings.append(f"Cookie '{parsed.name}' sans Secure sur site HTTPS : risque d'interception.")
@@ -100,6 +220,26 @@ def _findings_for_cookie(parsed: CookieInfo, is_https: bool) -> list[str]:
     return findings
 
 
+def _findings_for_cookie(parsed: CookieInfo, is_https: bool) -> list[str]:
+    """Génère les findings pour un cookie analysé."""
+    session_like = _is_session_like(parsed.name)
+    third_party_like = _is_third_party_like(parsed.name)
+
+    if session_like and not _session_has_triple_protection(parsed):
+        return [f"Cookie de session '{parsed.name}' sans HttpOnly + Secure + SameSite=Strict : risque élevé."]
+
+    findings = _findings_base_flags(parsed, is_https)
+
+    if session_like and not parsed.has_host_prefix and not parsed.has_secure_prefix:
+        findings.append(f"Cookie sensible '{parsed.name}' sans préfixe __Host- ou __Secure- : bonne pratique recommandée.")
+    if third_party_like and not parsed.partitioned:
+        findings.append(f"Cookie '{parsed.name}' (analytics/tiers probable) sans Partitioned : recommandation CHIPS.")
+    if session_like and _session_expires_too_long(parsed):
+        findings.append(f"Cookie de session '{parsed.name}' avec Expires/Max-Age > 24h : session persistante non recommandée.")
+
+    return findings
+
+
 def check_cookies_from_response(response: httpx.Response | None, *, is_https: bool = True) -> CookieCheckResult:
     """Vérifie les flags de sécurité des cookies sur une réponse HTTPS.
 
@@ -107,6 +247,10 @@ def check_cookies_from_response(response: httpx.Response | None, *, is_https: bo
     - Cookies sans Secure sur site HTTPS
     - Cookies sans HttpOnly
     - Cookies sans SameSite (recommandation explicite)
+    - Cookies de session sans HttpOnly + Secure + SameSite=Strict
+    - Préfixes __Host- / __Secure- (bonnes pratiques)
+    - Partitioned (CHIPS) pour cookies tiers
+    - Expires/Max-Age trop long pour session
 
     Args:
         response: Réponse HTTP (ou None si fetch échoué).

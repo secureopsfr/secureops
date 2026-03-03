@@ -12,6 +12,17 @@ export const SEVERITY_ORDER = [
   "info",
 ] as const;
 
+/** Ordre des catégories de tests (aligné avec le PDF). */
+export const CHECKED_CATEGORIES_ORDER: readonly string[] = [
+  "tls",
+  "headers",
+  "cookies",
+  "exposed_files",
+  "directory_listing",
+  "robots_txt",
+  "tech_fingerprinting",
+];
+
 export const CATEGORY_I18N_MAP: Record<string, string> = {
   tls: "scanner.categoryTls",
   headers: "scanner.categoryHeaders",
@@ -32,6 +43,21 @@ export const SEVERITY_I18N_MAP: Record<string, string> = {
 
 export function getCategoryKey(category: string): string {
   return CATEGORY_I18N_MAP[category] ?? category;
+}
+
+/** Clés i18n pour le résumé « ce qui a été vérifié » quand tout est OK. */
+export const CATEGORY_SUMMARY_OK_I18N: Record<string, string> = {
+  tls: "scanner.summaryTlsOk",
+  headers: "scanner.summaryHeadersOk",
+  cookies: "scanner.summaryCookiesOk",
+  exposed_files: "scanner.summaryExposedFilesOk",
+  directory_listing: "scanner.summaryDirectoryListingOk",
+  robots_txt: "scanner.summaryRobotsTxtOk",
+  tech_fingerprinting: "scanner.summaryTechFingerprintingOk",
+};
+
+export function getCategorySummaryOkKey(category: string): string {
+  return CATEGORY_SUMMARY_OK_I18N[category] ?? "";
 }
 
 export function getSeverityKey(severity: string): string {

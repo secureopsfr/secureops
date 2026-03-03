@@ -31,6 +31,7 @@ _DEFAULT_ORDER = (
     "exposed_files",
     "directory_listing",
     "robots_txt",
+    "sitemap",
     "tech_fingerprinting",
     "other",
 )
@@ -41,6 +42,7 @@ _DEFAULT_CHECKED = (
     "exposed_files",
     "directory_listing",
     "robots_txt",
+    "sitemap",
     "tech_fingerprinting",
 )
 _DEFAULT_LABELS_FR = {
@@ -50,6 +52,7 @@ _DEFAULT_LABELS_FR = {
     "exposed_files": "Fichiers exposés",
     "directory_listing": "Directory listing",
     "robots_txt": "robots.txt",
+    "sitemap": "Sitemap",
     "tech_fingerprinting": "Tech fingerprinting",
     "other": "Autres",
 }
@@ -60,6 +63,7 @@ _DEFAULT_LABELS_EN = {
     "exposed_files": "Exposed files",
     "directory_listing": "Directory listing",
     "robots_txt": "robots.txt",
+    "sitemap": "Sitemap",
     "tech_fingerprinting": "Tech fingerprinting",
     "other": "Other",
 }

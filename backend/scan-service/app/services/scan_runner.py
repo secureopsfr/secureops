@@ -7,6 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+from app.catalogue.category_summaries import build_category_summaries
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
 from app.errors.fetch_errors import build_sse_error_payload
 from app.models.scan_result import ScanResult
@@ -17,8 +18,10 @@ from app.services.normalization import normalize_results
 from app.services.robots_txt import run_robots_txt_checks
 from app.services.scoring import compute_score
 from app.services.security_headers import check_security_headers_from_response
+from app.services.sitemap import run_sitemap_checks
 from app.services.tech_fingerprinting import check_tech_fingerprinting_from_response
 from app.services.tls import run_tls_checks
+from app.services.tls.posture import compute_tls_posture
 from app.utils.http_fetch import get_with_client_or_error, scan_client
 from app.utils.ssrf import check_ssrf
 from app.utils.url_helpers import build_https_url
@@ -61,6 +64,14 @@ _SCAN_STEPS: list[tuple[str, Callable]] = [
     ("exposed_files", lambda ctx: run_exposed_files_checks(ctx.https_url, client=ctx.client)),
     ("directory_listing", lambda ctx: run_directory_listing_checks(ctx.https_url, client=ctx.client)),
     ("robots_txt", lambda ctx: run_robots_txt_checks(ctx.https_url, client=ctx.client)),
+    (
+        "sitemap",
+        lambda ctx: run_sitemap_checks(
+            ctx.https_url,
+            robots_txt_result=ctx.results.get("robots_txt"),
+            client=ctx.client,
+        ),
+    ),
     ("tech_fingerprinting", lambda ctx: check_tech_fingerprinting_from_response(ctx.https_response)),
 ]
 
@@ -138,5 +149,9 @@ async def run_scan_to_result(url: str) -> dict:
         findings=findings_tuple,
     )
     payload = scan_result.to_dict()
+    tls_result = ctx.results["tls"]
+    tls_posture = compute_tls_posture(tls_result)
+    tls_version = getattr(tls_result, "tls_version", None)
+    payload["category_summaries"] = build_category_summaries(findings_tuple, tls_posture=tls_posture, tls_version=tls_version)
     payload["status"] = "success"
     return payload

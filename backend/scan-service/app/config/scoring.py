@@ -21,6 +21,7 @@ _DEFAULT_WEIGHTS: dict[str, int] = {
     "exposed_files": 10,
     "directory_listing": 10,
     "robots_txt": 5,
+    "sitemap": 5,
     "tech_fingerprinting": 5,
 }
 _DEFAULT_PENALTIES: dict[str, int] = {

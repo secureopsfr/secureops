@@ -190,11 +190,14 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Version TLS (détection 1.0/1.1) ✅
 
 **En plus (v0.2.0) :**
-- [ ] Résumé « TLS posture » (synthèse lisible : OK / avertissements / critique)
-- [ ] Vérification de la chaîne de certificats (intermédiaires manquants)
-- [ ] Détection OCSP stapling (présent ou non)
-- [ ] Alerte si certificat expire dans < 30 jours
-- [ ] Support TLS 1.3 (détection si proposé)
+- [x] Résumé « TLS posture » (synthèse lisible : OK / avertissements / critique)
+  - **Fait :** Badge dans le résumé des résultats (OK / Avertissements / Critique) selon `compute_tls_posture`. Critères : HTTPS, redirect, certificat valide, pas de TLS obsolète, chaîne complète.
+- [x] Vérification de la chaîne de certificats (intermédiaires manquants)
+  - **Fait :** `openssl s_client -showcerts` pour récupérer la chaîne complète, `verify_certificate_chain` détecte les intermédiaires manquants. Finding `tls-chain-incomplete` si chaîne incomplète.
+- [x] Alerte si certificat expire dans < 30 jours
+  - **Fait :** Finding `tls-cert-expires-soon` avec gravité low (15–29 jours) ou medium (0–14 jours). Extraction du délai via `_extract_days_until_expiry` dans le message du certificat.
+- [x] Support TLS 1.3 (détection si proposé)
+  - **Fait :** `get_negotiated_tls_version` récupère la version TLS négociée (TLS 1.2 ou TLS 1.3). Affichée dans le résumé : « La connexion a été établie en **TLS 1.3**. »
 
 #### 5.1.2 Security Headers
 
@@ -202,11 +205,16 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Vérifier présence : `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options` (nosniff), `Referrer-Policy`, `Permissions-Policy` ✅
 
 **En plus (v0.2.0) :**
-- [ ] Vérifier `Content-Security-Policy` : présence de `report-uri` ou `report-to`
-- [ ] Vérifier directives CSP strictes (pas de `unsafe-inline`, `unsafe-eval` si possible)
-- [ ] Headers COEP/COOP (`Cross-Origin-Embedder-Policy`, `Cross-Origin-Opener-Policy`)
-- [ ] `Clear-Site-Data` pour déconnexion sécurisée
-- [ ] Sévérité différenciée selon le header manquant
+- [x] Vérifier `Content-Security-Policy` : présence de `report-uri` ou `report-to`
+  - **Fait :** `_analyze_csp_header` détecte l'absence ; finding `headers-csp-no-report-uri` (low).
+- [x] Vérifier directives CSP strictes (pas de `unsafe-inline`, `unsafe-eval` si possible)
+  - **Fait :** `_analyze_csp_header` détecte unsafe-inline/unsafe-eval ; finding `headers-csp-unsafe-directives` (low).
+- [x] Headers COEP/COOP (`Cross-Origin-Embedder-Policy`, `Cross-Origin-Opener-Policy`)
+  - **Fait :** Ajoutés dans settings.yml ; slugs `headers-coep-absent`, `headers-coop-absent` (low).
+- [x] `Clear-Site-Data` pour déconnexion sécurisée
+  - **Fait :** Ajouté dans settings.yml ; slug `headers-clear-site-data-absent` (low).
+- [x] Sévérité différenciée selon le header manquant
+  - **Fait :** `SecurityHeaderConfig.severity` ; CSP/HSTS=high, XFO/XCTO/Referrer/Permissions=medium, COEP/COOP/Clear-Site-Data=low.
 
 #### 5.1.3 Cookies
 
@@ -215,10 +223,14 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Détecter cookies sans `Secure` si site HTTPS ✅
 
 **En plus (v0.2.0) :**
-- [ ] Détecter préfixes `__Host-` et `__Secure-` (bonnes pratiques)
-- [ ] Cookie `Partitioned` (CHIPS) pour cookies tiers
-- [ ] Alerte si cookie de session sans `HttpOnly` + `Secure` + `SameSite=Strict`
-- [ ] Détection de cookies avec `Expires` trop lointain pour session
+- [x] Détecter préfixes `__Host-` et `__Secure-` (bonnes pratiques)
+  - **Fait :** Finding `cookies-no-host-secure-prefix` (info) pour cookies sensibles sans préfixe.
+- [x] Cookie `Partitioned` (CHIPS) pour cookies tiers
+  - **Fait :** Finding `cookies-no-partitioned` (low) pour cookies analytics/tiers (`_ga`, `_gid`, etc.) sans Partitioned.
+- [x] Alerte si cookie de session sans `HttpOnly` + `Secure` + `SameSite=Strict`
+  - **Fait :** Finding `cookies-session-incomplete` (high) ; heuristique sur noms (session, auth, token, phpsessid, etc.).
+- [x] Détection de cookies avec `Expires` trop lointain pour session
+  - **Fait :** Finding `cookies-session-expires-long` (low) si Expires/Max-Age > 24h pour cookie session.
 
 #### 5.1.4 Exposition fichiers
 
@@ -227,10 +239,10 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Signatures par chemin (KEY=value, [core], PK, etc.) ✅
 
 **En plus (v0.2.0) :**
-- [ ] Liste étendue : `/.htaccess`, `/web.config`, `/.svn/entries`, `/composer.json`, `/package.json`, `/.npmrc`
-- [ ] Signatures améliorées (regex plus précises, faux positifs réduits)
-- [ ] Détection de fichiers de backup (`.bak`, `.old`, `.swp`, `~`)
-- [ ] Endpoints API docs exposés : `/swagger`, `/api-docs`, `/graphql` (introspection)
+- [x] Liste étendue : `/.htaccess`, `/web.config`, `/.svn/entries`, `/composer.json`, `/package.json`, `/.npmrc`
+- [x] Signatures améliorées (regex plus précises, faux positifs réduits)
+- [x] Détection de fichiers de backup (`.bak`, `.old`, `.swp`, `~`)
+- [x] Endpoints API docs exposés : `/swagger`, `/api-docs`, `/graphql` (introspection)
 
 #### 5.1.5 Directory listing
 
@@ -250,10 +262,17 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Extraire `Disallow` et signaler routes potentiellement sensibles (admin, api, backup, etc.) ✅
 
 **En plus (v0.2.0) :**
-- [ ] Vérifier présence de `Sitemap:` (bonne pratique SEO/sécurité)
-- [ ] Détecter `Crawl-delay` (non standard, info)
-- [ ] Analyser `Allow` en complément de `Disallow`
-- [ ] Comparer chemins Disallow avec endpoints sensibles connus
+- [x] Détecter `Crawl-delay` (non standard, info)
+- [x] Analyser `Allow` en complément de `Disallow`
+
+#### 5.1.6bis Sitemap
+
+**Existant (v0.1.0) :** Aucun.
+
+**En plus (v0.2.0) :**
+- [x] Vérifier présence de `Sitemap:` dans robots.txt (bonne pratique SEO/sécurité)
+- [x] Fallback : chercher sitemap à l'emplacement classique (`/sitemap.xml`, `/sitemap_index.xml`) si non déclaré
+- [x] Analyser le contenu du sitemap : détecter URLs sensibles (admin, api, config, etc.) exposées dans le sitemap → finding
 
 #### 5.1.7 Tech fingerprinting
 
@@ -263,10 +282,10 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Formulations indicatives (« probable », « détecté ») ✅
 
 **En plus (v0.2.0) :**
-- [ ] Extraire versions dans `Server`, `X-Powered-By` (ex. `nginx/1.18.0`)
-- [ ] Base de données CPE/CVE : alerter si version connue vulnérable (lecture seule)
-- [ ] Détection de technologies via balises HTML (`<meta generator>`, scripts)
-- [ ] Rapport « stack probable » avec niveaux de confiance
+- [x] Extraire versions dans `Server`, `X-Powered-By` (ex. `nginx/1.18.0`)
+- [x] Base de données CPE/CVE : alerter si version connue vulnérable (lecture seule, seuils configurables)
+- [x] Détection de technologies via balises HTML (`<meta generator>`, scripts)
+- [x] Rapport « stack probable » avec niveaux de confiance
 
 ---
 

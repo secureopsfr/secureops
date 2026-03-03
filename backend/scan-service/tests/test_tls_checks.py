@@ -144,6 +144,7 @@ async def test_run_tls_checks_https_ok_et_redirect_ok() -> None:
 
     with (
         patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.tls.checks.fetch_certificate_chain", return_value=[]),
         patch("app.services.tls.checks.fetch_certificate_der", return_value=valid_cert),
         patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
@@ -221,6 +222,7 @@ async def test_run_tls_checks_pas_redirection_http() -> None:
 
     with (
         patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.tls.checks.fetch_certificate_chain", return_value=[]),
         patch("app.services.tls.checks.fetch_certificate_der", return_value=valid_cert),
         patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
@@ -255,6 +257,7 @@ async def test_run_tls_checks_certificat_expire() -> None:
 
     with (
         patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.tls.checks.fetch_certificate_chain", return_value=[]),
         patch("app.services.tls.checks.fetch_certificate_der", return_value=expired_cert),
         patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
@@ -287,6 +290,7 @@ async def test_run_tls_checks_certificat_auto_signe() -> None:
 
     with (
         patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.tls.checks.fetch_certificate_chain", return_value=[]),
         patch("app.services.tls.checks.fetch_certificate_der", return_value=self_signed_cert),
         patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
@@ -320,6 +324,7 @@ async def test_run_tls_checks_avec_https_response_pre_fetchee() -> None:
 
     with (
         patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.tls.checks.fetch_certificate_chain", return_value=[]),
         patch("app.services.tls.checks.fetch_certificate_der", return_value=valid_cert),
         patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
@@ -369,6 +374,7 @@ async def test_run_tls_checks_tls_versions_obsoletes() -> None:
 
     with (
         patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.tls.checks.fetch_certificate_chain", return_value=[]),
         patch("app.services.tls.checks.fetch_certificate_der", return_value=valid_cert),
         patch(
             "app.services.tls.checks.check_tls_versions_obsolete",

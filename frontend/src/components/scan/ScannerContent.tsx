@@ -125,14 +125,27 @@ export default function ScannerContent() {
           urlToScan,
           (ev) => {
             if (ev.type === "step") {
-              setSteps((prev) => [
-                ...prev,
-                {
-                  step: ev.data.step,
-                  message: ev.data.message,
-                  done: ev.data.step.endsWith("_done"),
-                },
-              ]);
+              const done = ev.data.step.endsWith("_done");
+              setSteps((prev) => {
+                if (done && prev.length > 0) {
+                  // Remplace la dernière ligne (en chargement) par la version terminée
+                  const updated = [...prev];
+                  updated[updated.length - 1] = {
+                    step: ev.data.step,
+                    message: ev.data.message,
+                    done: true,
+                  };
+                  return updated;
+                }
+                return [
+                  ...prev,
+                  {
+                    step: ev.data.step,
+                    message: ev.data.message,
+                    done: false,
+                  },
+                ];
+              });
             } else if (ev.type === "result") {
               if (isAuthenticated) {
                 setResult(ev.data);
@@ -320,19 +333,20 @@ export default function ScannerContent() {
                         </>
                       )}
                       <div className="flex gap-2 flex-wrap">
-                        <GenericButton
-                          type="submit"
-                          label={t("scanner.cta")}
-                          variant="primary"
-                          disabled={!url.trim()}
-                        />
-                        {isAuthenticated && !authLoading && scheduleEnabled && (
+                        {scheduleEnabled && isAuthenticated && !authLoading ? (
                           <GenericButton
                             type="button"
-                            label={t("scheduledScans.addBtn")}
-                            variant="outline"
+                            label={t("scheduledScans.scheduleBtn")}
+                            variant="primary"
                             onClick={handleAddScheduledScan}
                             loading={saving}
+                            disabled={!url.trim()}
+                          />
+                        ) : (
+                          <GenericButton
+                            type="submit"
+                            label={t("scanner.cta")}
+                            variant="primary"
                             disabled={!url.trim()}
                           />
                         )}
