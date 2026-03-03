@@ -379,6 +379,8 @@
     "addBtn": "Ajouter",
     "cancelBtn": "Annuler",
     "urlLabel": "URL à scanner",
+    "newScheduledScanTitle": "Nouveau scan",
+    "scheduleScanCheckbox": "Ajouter aux scans planifiés",
     "urlPlaceholder": "https://exemple.com",
     "urlRequired": "L'URL est requise",
     "frequencyLabel": "Fréquence",

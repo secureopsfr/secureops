@@ -56,7 +56,7 @@ export default async function ScannerPage({
       <Header />
       <main
         id="main"
-        className="min-h-screen py-12 w-full flex justify-center scanner-page"
+        className="min-h-screen py-6 w-full flex justify-center scanner-page"
       >
         <div className="w-full max-w-[1400px] px-8">
           <ScannerContent />

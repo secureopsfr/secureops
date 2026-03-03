@@ -763,6 +763,15 @@
     max-width: 1400px;
   }
 
+  /* Page scanner : réduire l'espacement vertical */
+  .scanner-page .page-section {
+    padding: 1rem 0;
+  }
+
+  .scanner-page .page-header {
+    padding: 1rem 1rem;
+  }
+
   .section-title-block {
     text-align: center;
     margin-bottom: 3rem;

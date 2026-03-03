@@ -1,25 +1,18 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { CalendarClock, Mail, Plus, Pause, Play, Trash2 } from "lucide-react";
+import { CalendarClock, Mail, Pause, Play, Trash2 } from "lucide-react";
 import Card from "../cards/Card";
 import ConfirmModal from "../ConfirmModal";
 import LoadingScreen from "../LoadingScreen";
-import { GenericButton } from "../buttons";
 import { useLanguage } from "../LanguageProvider";
 import {
-  createScheduledScan,
   getScheduledScans,
   updateScheduledScan,
   deleteScheduledScan,
-  getUserTimezone,
   type ScheduledScan,
-  type Frequency,
 } from "../../services/scheduledScanService";
-import { ToggleSwitch } from "../inputs";
-import { ScheduleFormPanel, RecurrenceScheduleFields } from "../schedule";
 import { formatDateTimeShort } from "../../utils/dateFormat";
-import { normalizeScanUrl } from "../../utils/scanUrl";
 import {
   showErrorToast,
   showSuccessToast,
@@ -31,34 +24,17 @@ const FREQUENCY_OPTIONS = [
   { value: "monthly" as const, labelKey: "scheduledScans.frequencyMonthly" },
 ];
 
-const DAYS_OF_WEEK = [
-  { value: 0, labelKey: "scheduledScans.dayMonday" },
-  { value: 1, labelKey: "scheduledScans.dayTuesday" },
-  { value: 2, labelKey: "scheduledScans.dayWednesday" },
-  { value: 3, labelKey: "scheduledScans.dayThursday" },
-  { value: 4, labelKey: "scheduledScans.dayFriday" },
-  { value: 5, labelKey: "scheduledScans.daySaturday" },
-  { value: 6, labelKey: "scheduledScans.daySunday" },
-];
-
-function parseTimeToHourMinute(time: string): { hour: number; minute: number } {
-  const [h, m] = (time || "00:00").split(":").map(Number);
-  return { hour: h ?? 0, minute: m ?? 0 };
+interface ScheduledScansBlockProps {
+  refreshTrigger?: number;
 }
 
-export default function ScheduledScansBlock() {
+export default function ScheduledScansBlock({
+  refreshTrigger = 0,
+}: ScheduledScansBlockProps) {
   const { t } = useLanguage();
   const [items, setItems] = useState<ScheduledScan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [formUrl, setFormUrl] = useState("");
-  const [formFrequency, setFormFrequency] = useState<Frequency>("daily");
-  const [formTime, setFormTime] = useState("02:00");
-  const [formDayOfWeek, setFormDayOfWeek] = useState(0);
-  const [formDayOfMonth, setFormDayOfMonth] = useState(15);
-  const [formScanAlertsEnabled, setFormScanAlertsEnabled] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,42 +50,7 @@ export default function ScheduledScansBlock() {
 
   useEffect(() => {
     load();
-  }, [load]);
-
-  const handleCreate = async () => {
-    if (!formUrl.trim()) {
-      showErrorToast(t("scheduledScans.urlRequired"));
-      return;
-    }
-    const normalizedUrl = normalizeScanUrl(formUrl);
-    const { hour, minute } = parseTimeToHourMinute(formTime);
-    setSaving(true);
-    try {
-      const created = await createScheduledScan({
-        url: normalizedUrl,
-        frequency: formFrequency,
-        schedule_hour: hour,
-        schedule_minute: minute,
-        schedule_day_of_week:
-          formFrequency === "weekly" ? formDayOfWeek : undefined,
-        schedule_day_of_month:
-          formFrequency === "monthly" ? formDayOfMonth : undefined,
-        timezone: getUserTimezone(),
-        scan_alerts_enabled: formScanAlertsEnabled,
-      });
-      setItems((prev) => [...prev, created]);
-      setShowForm(false);
-      setFormUrl("");
-      setFormScanAlertsEnabled(true);
-      showSuccessToast(t("scheduledScans.createSuccess"));
-    } catch (err) {
-      showErrorToast(
-        err instanceof Error ? err.message : t("scheduledScans.createError"),
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+  }, [load, refreshTrigger]);
 
   const handleToggleAlerts = async (item: ScheduledScan) => {
     try {
@@ -170,9 +111,6 @@ export default function ScheduledScansBlock() {
             {t("scheduledScans.title")}
           </h2>
         </div>
-        <p className="text-sm text-[var(--muted)] mb-4">
-          {t("scheduledScans.description")}
-        </p>
 
         {loading ? (
           <LoadingScreen
@@ -181,7 +119,7 @@ export default function ScheduledScansBlock() {
           />
         ) : (
           <div className="space-y-4">
-            {items.length === 0 && !showForm ? (
+            {items.length === 0 ? (
               <p className="text-muted-theme">{t("scheduledScans.empty")}</p>
             ) : (
               <ul className="divide-y divide-[var(--color-border)]">
@@ -257,80 +195,6 @@ export default function ScheduledScansBlock() {
                   </li>
                 ))}
               </ul>
-            )}
-
-            {showForm ? (
-              <ScheduleFormPanel className="mt-4">
-                <label className="block text-sm font-medium text-[var(--text)]">
-                  {t("scheduledScans.urlLabel")}
-                </label>
-                <input
-                  type="text"
-                  inputMode="url"
-                  value={formUrl}
-                  onChange={(e) => setFormUrl(e.target.value)}
-                  placeholder={t("scheduledScans.urlPlaceholder")}
-                  className="auth-input w-full"
-                />
-                <RecurrenceScheduleFields
-                  frequencyLabelKey="scheduledScans.frequencyLabel"
-                  timeLabelKey="scheduledScans.timeLabel"
-                  dayOfWeekLabelKey="scheduledScans.dayOfWeekLabel"
-                  dayOfMonthLabelKey="scheduledScans.dayOfMonthLabel"
-                  frequencyOptions={FREQUENCY_OPTIONS}
-                  daysOfWeek={DAYS_OF_WEEK}
-                  frequency={formFrequency}
-                  timeValue={formTime}
-                  dayOfWeek={formDayOfWeek}
-                  dayOfMonth={formDayOfMonth}
-                  onFrequencyChange={setFormFrequency}
-                  onTimeChange={setFormTime}
-                  onDayOfWeekChange={setFormDayOfWeek}
-                  onDayOfMonthChange={setFormDayOfMonth}
-                  afterTimeSlot={
-                    <div className="flex items-center justify-between py-2">
-                      <div>
-                        <p className="text-sm font-medium text-[var(--text)]">
-                          {t("scheduledScans.scanAlerts")}
-                        </p>
-                        <p className="text-xs text-[var(--muted)]">
-                          {t("scheduledScans.scanAlertsDesc")}
-                        </p>
-                      </div>
-                      <ToggleSwitch
-                        checked={formScanAlertsEnabled}
-                        onChange={() => setFormScanAlertsEnabled((v) => !v)}
-                      />
-                    </div>
-                  }
-                />
-                <div className="flex gap-2 pt-2">
-                  <GenericButton
-                    label={t("scheduledScans.addBtn")}
-                    onClick={handleCreate}
-                    loading={saving}
-                  />
-                  <GenericButton
-                    label={t("scheduledScans.cancelBtn")}
-                    variant="outline"
-                    onClick={() => {
-                      setShowForm(false);
-                      setFormUrl("");
-                      setFormScanAlertsEnabled(true);
-                    }}
-                  />
-                </div>
-              </ScheduleFormPanel>
-            ) : (
-              <GenericButton
-                label={t("scheduledScans.addNew")}
-                variant="outline"
-                size="sm"
-                icon={<Plus className="w-4 h-4" />}
-                iconPosition="left"
-                onClick={() => setShowForm(true)}
-                className="mt-2"
-              />
             )}
           </div>
         )}
