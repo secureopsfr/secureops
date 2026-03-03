@@ -4,10 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.services.cors_cross_origin.checks import (
-    CorsCrossOriginCheckResult,
-    run_cors_cross_origin_checks,
-)
+from app.services.cors_cross_origin.checks import CorsCrossOriginCheckResult, run_cors_cross_origin_checks
 
 
 def _mock_response(
@@ -73,6 +70,7 @@ async def test_cors_acao_star_on_sensitive_endpoint() -> None:
     mock_cors_resp.status_code = 200
     mock_cors_resp.headers = {
         "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
     }
     mock_cors_resp.url = "https://example.com/api/"
     client.get = AsyncMock(return_value=mock_cors_resp)

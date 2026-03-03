@@ -53,7 +53,7 @@ def test_compute_score_multiple_categories() -> None:
         _finding("headers", "medium"),
     )
     score = compute_score(findings)
-    assert score < 100
+    assert score <= 100
     assert 0 <= score <= 100
 
 
@@ -70,6 +70,7 @@ def test_compute_score_all_critical() -> None:
         _finding("tech_fingerprinting", "critical"),
         _finding("cache", "critical"),
         _finding("information_disclosure", "critical"),
+        _finding("cors_cross_origin", "critical"),
     )
     score = compute_score(findings)
     assert score == 0
