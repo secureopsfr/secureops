@@ -28,7 +28,7 @@ def test_check_cookies_aucun_cookie() -> None:
 
 
 def test_check_cookies_secure_httponly_samesite_ok() -> None:
-    """Cookie avec Secure, HttpOnly, SameSite=Strict ne génère pas de finding."""
+    """Cookie avec Secure, HttpOnly, SameSite=Strict ne génère pas de finding session-incomplete."""
     mock_resp = MagicMock()
     mock_resp.headers.raw = [
         (b"set-cookie", b"session_id=abc; Secure; HttpOnly; SameSite=Strict"),
@@ -42,11 +42,12 @@ def test_check_cookies_secure_httponly_samesite_ok() -> None:
     assert result.cookies[0].secure is True
     assert result.cookies[0].httponly is True
     assert result.cookies[0].samesite == "Strict"
-    assert result.findings == ()
+    assert not any("HttpOnly + Secure + SameSite=Strict" in f for f in result.findings)
+    assert any("sans préfixe __Host-" in f for f in result.findings)
 
 
 def test_check_cookies_sans_secure_site_https() -> None:
-    """Cookie sans Secure sur site HTTPS génère un finding."""
+    """Cookie session sans Secure sur site HTTPS génère un finding session-incomplete."""
     mock_resp = MagicMock()
     mock_resp.headers.raw = [
         (b"set-cookie", b"session=xyz; HttpOnly; Path=/"),
@@ -57,11 +58,23 @@ def test_check_cookies_sans_secure_site_https() -> None:
     assert result.fetch_ok is True
     assert len(result.cookies) == 1
     assert result.cookies[0].secure is False
+    assert any("HttpOnly + Secure + SameSite=Strict" in f for f in result.findings)
+
+
+def test_check_cookies_non_session_sans_secure() -> None:
+    """Cookie non-session (ex. lang) sans Secure sur HTTPS génère finding Secure classique."""
+    mock_resp = MagicMock()
+    mock_resp.headers.raw = [
+        (b"set-cookie", b"lang=fr; HttpOnly; Path=/"),
+    ]
+
+    result = check_cookies_from_response(mock_resp, is_https=True)
+
     assert any("Secure" in f and "interception" in f for f in result.findings)
 
 
 def test_check_cookies_sans_httponly() -> None:
-    """Cookie sans HttpOnly génère un finding."""
+    """Cookie session sans HttpOnly génère un finding (session-incomplete ou HttpOnly)."""
     mock_resp = MagicMock()
     mock_resp.headers.raw = [
         (b"set-cookie", b"token=abc; Secure; Path=/"),
@@ -69,7 +82,7 @@ def test_check_cookies_sans_httponly() -> None:
 
     result = check_cookies_from_response(mock_resp)
 
-    assert any("HttpOnly" in f and "XSS" in f for f in result.findings)
+    assert any("HttpOnly" in f for f in result.findings)
 
 
 def test_check_cookies_sans_samesite() -> None:
@@ -110,3 +123,54 @@ def test_check_cookies_samesite_none_sans_secure() -> None:
     result = check_cookies_from_response(mock_resp)
 
     assert any("SameSite=None" in f and "Secure" in f for f in result.findings)
+
+
+def test_check_cookies_host_prefix_ok() -> None:
+    """Cookie __Host- avec triple protection ne génère pas de finding préfixe."""
+    mock_resp = MagicMock()
+    mock_resp.headers.raw = [
+        (b"set-cookie", b"__Host-session=abc; Secure; HttpOnly; SameSite=Strict; Path=/"),
+    ]
+
+    result = check_cookies_from_response(mock_resp, is_https=True)
+
+    assert result.fetch_ok is True
+    assert result.cookies[0].has_host_prefix is True
+    assert not any("sans préfixe __Host-" in f for f in result.findings)
+
+
+def test_check_cookies_third_party_sans_partitioned() -> None:
+    """Cookie _ga sans Partitioned génère un finding."""
+    mock_resp = MagicMock()
+    mock_resp.headers.raw = [
+        (b"set-cookie", b"_ga=GA1.2.123; Path=/; Max-Age=63072000; SameSite=Lax"),
+    ]
+
+    result = check_cookies_from_response(mock_resp)
+
+    assert any("sans Partitioned" in f for f in result.findings)
+    assert any("_ga" in f for f in result.findings)
+
+
+def test_check_cookies_third_party_avec_partitioned() -> None:
+    """Cookie _ga avec Partitioned ne génère pas de finding Partitioned."""
+    mock_resp = MagicMock()
+    mock_resp.headers.raw = [
+        (b"set-cookie", b"_ga=GA1.2.123; Path=/; Partitioned; SameSite=Lax"),
+    ]
+
+    result = check_cookies_from_response(mock_resp)
+
+    assert not any("sans Partitioned" in f for f in result.findings)
+
+
+def test_check_cookies_session_expires_long() -> None:
+    """Cookie de session avec Max-Age > 24h génère un finding."""
+    mock_resp = MagicMock()
+    mock_resp.headers.raw = [
+        (b"set-cookie", b"session_id=abc; Secure; HttpOnly; SameSite=Strict; Max-Age=31536000"),
+    ]
+
+    result = check_cookies_from_response(mock_resp)
+
+    assert any("Expires/Max-Age > 24h" in f or "session persistante" in f for f in result.findings)

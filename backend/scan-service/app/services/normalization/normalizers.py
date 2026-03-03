@@ -167,11 +167,31 @@ def _normalize_headers(result: SecurityHeadersCheckResult) -> list[Finding]:
     return findings
 
 
+def _cookie_msg_to_finding(msg: str) -> tuple[str, str, str]:
+    """Mappe un message cookie vers (slug, title, severity)."""
+    if "Cookie de session" in msg and "HttpOnly + Secure + SameSite=Strict" in msg:
+        return ("cookies-session-incomplete", "Cookie de session sans triple protection", "high")
+    if "sans préfixe __Host-" in msg or "sans préfixe __Secure-" in msg:
+        return ("cookies-no-host-secure-prefix", "Cookie sensible sans préfixe __Host-/__Secure-", "info")
+    if "sans Partitioned" in msg:
+        return ("cookies-no-partitioned", "Cookie tiers sans Partitioned (CHIPS)", "low")
+    if "Expires/Max-Age > 24h" in msg or "session persistante" in msg:
+        return ("cookies-session-expires-long", "Cookie de session avec durée trop longue", "low")
+    if "Secure" in msg and "HTTPS" in msg:
+        return ("cookies-no-secure", "Cookie sans Secure", "high")
+    if "HttpOnly" in msg:
+        return ("cookies-no-httponly", "Cookie sans HttpOnly", "medium")
+    if "SameSite" in msg and "requiert" in msg:
+        return ("cookies-samesite-none-requires-secure", "SameSite=None sans Secure", "high")
+    if "SameSite" in msg:
+        return ("cookies-no-samesite", "Cookie sans SameSite", "medium")
+    return ("cookies-connection-failed", "Problème cookie", "medium")
+
+
 def _normalize_cookies(result: CookieCheckResult) -> list[Finding]:
     """Convertit CookieCheckResult en list[Finding]."""
-    findings: list[Finding] = []
     if not result.fetch_ok:
-        findings.append(
+        return [
             _finding(
                 "cookies-connection-failed",
                 "cookies",
@@ -179,19 +199,11 @@ def _normalize_cookies(result: CookieCheckResult) -> list[Finding]:
                 "high",
                 MSG_COOKIES_UNAVAILABLE,
             )
-        )
-        return findings
+        ]
+    findings: list[Finding] = []
     for msg in result.findings:
-        if "Secure" in msg and "HTTPS" in msg:
-            findings.append(_finding("cookies-no-secure", "cookies", "Cookie sans Secure", "high", msg))
-        elif "HttpOnly" in msg:
-            findings.append(_finding("cookies-no-httponly", "cookies", "Cookie sans HttpOnly", "medium", msg))
-        elif "SameSite" in msg and "requiert" in msg:
-            findings.append(_finding("cookies-samesite-none-requires-secure", "cookies", "SameSite=None sans Secure", "high", msg))
-        elif "SameSite" in msg:
-            findings.append(_finding("cookies-no-samesite", "cookies", "Cookie sans SameSite", "medium", msg))
-        else:
-            findings.append(_finding("cookies-connection-failed", "cookies", "Problème cookie", "medium", msg))
+        slug, title, severity = _cookie_msg_to_finding(msg)
+        findings.append(_finding(slug, "cookies", title, severity, msg))
     return findings
 
 

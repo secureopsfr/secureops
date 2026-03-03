@@ -111,6 +111,22 @@
     "gravite": "Significative",
     "vraisemblance": "Faible"
   },
+  "cookies-session-incomplete": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "cookies-no-host-secure-prefix": {
+    "gravite": "Mineure",
+    "vraisemblance": "Faible"
+  },
+  "cookies-no-partitioned": {
+    "gravite": "Mineure",
+    "vraisemblance": "Faible"
+  },
+  "cookies-session-expires-long": {
+    "gravite": "Mineure",
+    "vraisemblance": "Faible"
+  },
   "exposed_files-env": {
     "gravite": "Majeure",
     "vraisemblance": "Forte"

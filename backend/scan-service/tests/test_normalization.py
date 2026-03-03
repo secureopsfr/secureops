@@ -276,14 +276,66 @@ def test_normalize_cookies_fetch_ok_false() -> None:
 def test_normalize_cookies_no_secure() -> None:
     """Cookie sans Secure produit cookies-no-secure."""
     result = CookieCheckResult(
-        cookies=(CookieInfo(name="session", secure=False, httponly=True, samesite="Lax"),),
-        findings=("Cookie 'session' sans Secure sur site HTTPS : risque d'interception.",),
+        cookies=(CookieInfo(name="lang", secure=False, httponly=True, samesite="Lax"),),
+        findings=("Cookie 'lang' sans Secure sur site HTTPS : risque d'interception.",),
         fetch_ok=True,
     )
     findings = normalize_results({"cookies": result})
     assert len(findings) == 1
     assert findings[0].id == "cookies-no-secure"
     assert findings[0].severity == "high"
+
+
+def test_normalize_cookies_session_incomplete() -> None:
+    """Cookie de session sans triple protection produit cookies-session-incomplete."""
+    result = CookieCheckResult(
+        cookies=(),
+        findings=("Cookie de session 'session_id' sans HttpOnly + Secure + SameSite=Strict : risque élevé.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"cookies": result})
+    assert len(findings) == 1
+    assert findings[0].id == "cookies-session-incomplete"
+    assert findings[0].severity == "high"
+
+
+def test_normalize_cookies_no_host_secure_prefix() -> None:
+    """Cookie sensible sans préfixe produit cookies-no-host-secure-prefix."""
+    result = CookieCheckResult(
+        cookies=(),
+        findings=("Cookie sensible 'session_id' sans préfixe __Host- ou __Secure- : bonne pratique recommandée.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"cookies": result})
+    assert len(findings) == 1
+    assert findings[0].id == "cookies-no-host-secure-prefix"
+    assert findings[0].severity == "info"
+
+
+def test_normalize_cookies_no_partitioned() -> None:
+    """Cookie tiers sans Partitioned produit cookies-no-partitioned."""
+    result = CookieCheckResult(
+        cookies=(),
+        findings=("Cookie '_ga' (analytics/tiers probable) sans Partitioned : recommandation CHIPS.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"cookies": result})
+    assert len(findings) == 1
+    assert findings[0].id == "cookies-no-partitioned"
+    assert findings[0].severity == "low"
+
+
+def test_normalize_cookies_session_expires_long() -> None:
+    """Cookie session avec Expires long produit cookies-session-expires-long."""
+    result = CookieCheckResult(
+        cookies=(),
+        findings=("Cookie de session 'session_id' avec Expires/Max-Age > 24h : session persistante non recommandée.",),
+        fetch_ok=True,
+    )
+    findings = normalize_results({"cookies": result})
+    assert len(findings) == 1
+    assert findings[0].id == "cookies-session-expires-long"
+    assert findings[0].severity == "low"
 
 
 def test_normalize_exposed_files_upgrade_critical() -> None:

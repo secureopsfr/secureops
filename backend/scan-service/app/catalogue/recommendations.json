@@ -261,6 +261,43 @@
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite"
     ]
   },
+  "cookies-session-incomplete": {
+    "recommendation": "Configurer HttpOnly, Secure et SameSite=Strict pour les cookies de session.",
+    "recommendation_en": "Configure HttpOnly, Secure and SameSite=Strict for session cookies.",
+    "title_fr": "Cookie de session sans triple protection",
+    "title_en": "Session cookie without triple protection",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie",
+      "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    ]
+  },
+  "cookies-no-host-secure-prefix": {
+    "recommendation": "Utiliser le préfixe __Host- (Path=/, pas de Domain, Secure) ou __Secure- pour les cookies sensibles.",
+    "recommendation_en": "Use __Host- prefix (Path=/, no Domain, Secure) or __Secure- for sensitive cookies.",
+    "title_fr": "Cookie sensible sans préfixe __Host-/__Secure-",
+    "title_en": "Sensitive cookie without __Host-/__Secure- prefix",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#cookie_prefixes"
+    ]
+  },
+  "cookies-no-partitioned": {
+    "recommendation": "Ajouter l'attribut Partitioned pour les cookies tiers (CHIPS) afin d'isoler le stockage par site.",
+    "recommendation_en": "Add Partitioned attribute for third-party cookies (CHIPS) to isolate storage per site.",
+    "title_fr": "Cookie tiers sans Partitioned (CHIPS)",
+    "title_en": "Third-party cookie without Partitioned (CHIPS)",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/Partitioned"
+    ]
+  },
+  "cookies-session-expires-long": {
+    "recommendation": "Limiter la durée des cookies de session (Max-Age < 24h) ou utiliser des cookies de session (sans Expires).",
+    "recommendation_en": "Limit session cookie duration (Max-Age < 24h) or use session cookies (no Expires).",
+    "title_fr": "Cookie de session avec durée trop longue",
+    "title_en": "Session cookie with excessive duration",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    ]
+  },
   "exposed_files-env": {
     "recommendation": "Bloquer l'accès à /.env (deny dans nginx/apache, ou déplacer hors de la racine web).",
     "recommendation_en": "Block access to /.env (deny in nginx/apache, or move outside web root).",

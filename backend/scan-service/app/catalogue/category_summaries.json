@@ -18,10 +18,10 @@
   "cookies": {
     "label_fr": "Cookies",
     "label_en": "Cookies",
-    "description_fr": "Le scan analyse les en-têtes Set-Cookie et vérifie les flags de sécurité : **Secure** (obligatoire sur HTTPS), **HttpOnly** (protection XSS) et **SameSite** (protection CSRF). Les cookies de session sans ces flags sont signalés.",
-    "description_en": "The scan analyzes Set-Cookie headers and verifies security flags: **Secure** (required on HTTPS), **HttpOnly** (XSS protection) and **SameSite** (CSRF protection). Session cookies without these flags are reported.",
-    "checks_fr": ["**Secure**", "**HttpOnly**", "**SameSite**"],
-    "checks_en": ["**Secure**", "**HttpOnly**", "**SameSite**"]
+    "description_fr": "Le scan analyse les en-têtes Set-Cookie et vérifie les flags de sécurité : **Secure** (obligatoire sur HTTPS), **HttpOnly** (protection XSS) et **SameSite** (protection CSRF). Il détecte les cookies de session sans triple protection (HttpOnly+Secure+SameSite=Strict), recommande les préfixes **__Host-**/**__Secure-** pour les cookies sensibles, signale les cookies tiers sans **Partitioned** (CHIPS) et alerte si un cookie de session a une durée **Expires/Max-Age** > 24h.",
+    "description_en": "The scan analyzes Set-Cookie headers and verifies security flags: **Secure** (required on HTTPS), **HttpOnly** (XSS protection) and **SameSite** (CSRF protection). It detects session cookies without triple protection (HttpOnly+Secure+SameSite=Strict), recommends **__Host-**/**__Secure-** prefixes for sensitive cookies, reports third-party cookies without **Partitioned** (CHIPS), and alerts if a session cookie has **Expires/Max-Age** > 24h.",
+    "checks_fr": ["**Secure**", "**HttpOnly**", "**SameSite**", "Session : triple protection", "Préfixes **__Host-**/**__Secure-**", "**Partitioned** (CHIPS)", "**Expires** session < 24h"],
+    "checks_en": ["**Secure**", "**HttpOnly**", "**SameSite**", "Session: triple protection", "**__Host-**/**__Secure-** prefixes", "**Partitioned** (CHIPS)", "Session **Expires** < 24h"]
   },
   "exposed_files": {
     "label_fr": "Fichiers exposés",
