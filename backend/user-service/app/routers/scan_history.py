@@ -17,30 +17,11 @@ from app.services.scan_repository import (
     list_scans_by_user_id,
 )
 from app.services.subscription_repository import get_subscription_by_user_id
-from app.services.user_repository import get_user_by_cognito_sub
-from app.utils.auth import get_current_user
+from app.utils.auth import get_current_user, resolve_user_id
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/scans", tags=["scans – historique"])
-
-
-async def _resolve_user_id(current_user: Dict) -> uuid.UUID:
-    """Résout cognito_sub → user_id en base."""
-    cognito_sub = current_user.get("sub")
-    if not cognito_sub:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Impossible d'identifier l'utilisateur",
-        )
-    async with get_async_session() as session:
-        user = await get_user_by_cognito_sub(session, cognito_sub)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Utilisateur non trouvé en base de données",
-            )
-        return user.id
 
 
 @router.post("/history", response_model=ScanDetailResponse)
@@ -50,7 +31,7 @@ async def create_scan_entry(
 ) -> ScanDetailResponse:
     """Enregistre un scan dans l'historique (appelé par scan-service ou frontend)."""
     try:
-        user_id = await _resolve_user_id(current_user)
+        user_id = await resolve_user_id(current_user)
         async with get_async_session() as session:
             subscription = await get_subscription_by_user_id(session, user_id)
             retention = (subscription.history_retention if subscription else None) or "30"
@@ -104,7 +85,7 @@ async def list_scans(
 ) -> ScanListResponse:
     """Liste les scans de l'utilisateur (pagination)."""
     try:
-        user_id = await _resolve_user_id(current_user)
+        user_id = await resolve_user_id(current_user)
         limit = min(max(limit, 1), 100)
         offset = (page - 1) * limit
 
@@ -149,7 +130,7 @@ async def get_scan_detail(
 ) -> ScanDetailResponse:
     """Récupère le détail d'un scan."""
     try:
-        user_id = await _resolve_user_id(current_user)
+        user_id = await resolve_user_id(current_user)
         try:
             scan_uuid = uuid.UUID(scan_id)
         except ValueError:
@@ -188,7 +169,7 @@ async def delete_all_scans(
 ) -> dict:
     """Supprime tous les scans de l'historique de l'utilisateur."""
     try:
-        user_id = await _resolve_user_id(current_user)
+        user_id = await resolve_user_id(current_user)
         async with get_async_session() as session:
             deleted_count = await delete_all_user_scans(session, user_id)
             return {"deleted_count": deleted_count}
@@ -209,7 +190,7 @@ async def delete_scan(
 ) -> None:
     """Supprime un scan de l'historique."""
     try:
-        user_id = await _resolve_user_id(current_user)
+        user_id = await resolve_user_id(current_user)
         try:
             scan_uuid = uuid.UUID(scan_id)
         except ValueError:

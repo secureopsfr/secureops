@@ -3,6 +3,7 @@
  */
 
 import { fetchWithAuth, getApiBaseUrl } from "../utils/apiClient";
+import type { PaginatedListResponse } from "../types/api";
 import type { ScanResult } from "./scanService";
 
 export interface ScanHistoryItem {
@@ -15,13 +16,7 @@ export interface ScanHistoryItem {
   created_at: string;
 }
 
-export interface ScanHistoryListResponse {
-  items: ScanHistoryItem[];
-  total: number;
-  page: number;
-  per_page: number;
-  total_pages: number;
-}
+export type ScanHistoryListResponse = PaginatedListResponse<ScanHistoryItem>;
 
 export interface ScanHistoryDetail extends ScanResult {
   id: string;

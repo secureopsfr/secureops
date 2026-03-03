@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { CalendarClock, Mail, Pause, Play, Trash2 } from "lucide-react";
 import Card from "../cards/Card";
 import ConfirmModal from "../ConfirmModal";
 import LoadingScreen from "../LoadingScreen";
-import { GenericButton } from "../buttons";
+import PaginationBar from "../PaginationBar";
+import { IconActionButton } from "../buttons";
 import { useLanguage } from "../LanguageProvider";
 import {
   getScheduledScans,
@@ -13,7 +14,9 @@ import {
   deleteScheduledScan,
   type ScheduledScan,
 } from "../../services/scheduledScanService";
+import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
 import { formatDateTimeShort } from "../../utils/dateFormat";
+import { formatUrlDisplay } from "../../utils/urlFormat";
 import {
   showErrorToast,
   showSuccessToast,
@@ -33,34 +36,19 @@ export default function ScheduledScansBlock({
   refreshTrigger = 0,
 }: ScheduledScansBlockProps) {
   const { t } = useLanguage();
-  const [items, setItems] = useState<ScheduledScan[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const perPage = 10;
 
-  const load = useCallback(
-    async (pageOverride?: number) => {
-      const p = pageOverride ?? page;
-      setLoading(true);
-      try {
-        const res = await getScheduledScans(p, perPage);
-        setItems(res.items);
-        setTotal(res.total);
-        if (pageOverride !== undefined) setPage(pageOverride);
-      } catch {
-        showErrorToast(t("scheduledScans.loadError"));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [page, perPage, t],
+  const onError = useCallback(
+    () => showErrorToast(t("scheduledScans.loadError")),
+    [t],
   );
-
-  useEffect(() => {
-    load();
-  }, [load, refreshTrigger]);
+  const { items, setItems, page, setPage, loading, load, totalPages } =
+    usePaginatedFetch<ScheduledScan>({
+      fetchFn: (p, perPage) => getScheduledScans(p, perPage),
+      perPage: 10,
+      onError,
+      refreshTrigger,
+    });
 
   const handleToggleAlerts = async (item: ScheduledScan) => {
     try {
@@ -112,8 +100,6 @@ export default function ScheduledScansBlock({
     return opt ? t(opt.labelKey) : freq;
   };
 
-  const totalPages = Math.max(1, Math.ceil(total / perPage));
-
   return (
     <>
       <Card disableHover className="mt-6">
@@ -143,9 +129,7 @@ export default function ScheduledScansBlock({
                     >
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-[var(--text)] truncate">
-                          {item.url
-                            .replace(/^https?:\/\//, "")
-                            .replace(/\/$/, "") || item.url}
+                          {formatUrlDisplay(item.url)}
                         </p>
                         <p className="text-xs text-[var(--muted)] mt-0.5">
                           {getFrequencyLabel(item.frequency)}
@@ -159,78 +143,44 @@ export default function ScheduledScansBlock({
                         </p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
+                        <IconActionButton
+                          icon={Mail}
+                          ariaLabel={
+                            item.scan_alerts_enabled !== false
+                              ? t("scheduledScans.alertsOn")
+                              : t("scheduledScans.alertsOff")
+                          }
                           onClick={() => handleToggleAlerts(item)}
-                          className={`p-2 shrink-0 cursor-pointer ${
+                          variant={
                             item.scan_alerts_enabled !== false
-                              ? "text-[rgb(var(--primary))]"
-                              : "text-[var(--muted)]"
-                          }`}
-                          aria-label={
-                            item.scan_alerts_enabled !== false
-                              ? t("scheduledScans.alertsOn")
-                              : t("scheduledScans.alertsOff")
+                              ? "primary"
+                              : "default"
                           }
-                          title={
-                            item.scan_alerts_enabled !== false
-                              ? t("scheduledScans.alertsOn")
-                              : t("scheduledScans.alertsOff")
-                          }
-                        >
-                          <Mail className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleEnabled(item)}
-                          className="p-2 text-[var(--muted)] hover:text-[rgb(var(--primary))] shrink-0 cursor-pointer"
-                          aria-label={
+                        />
+                        <IconActionButton
+                          icon={item.enabled ? Pause : Play}
+                          ariaLabel={
                             item.enabled
                               ? t("scheduledScans.pause")
                               : t("scheduledScans.resume")
                           }
-                        >
-                          {item.enabled ? (
-                            <Pause className="w-4 h-4" />
-                          ) : (
-                            <Play className="w-4 h-4" />
-                          )}
-                        </button>
-                        <button
-                          type="button"
+                          onClick={() => handleToggleEnabled(item)}
+                        />
+                        <IconActionButton
+                          icon={Trash2}
+                          ariaLabel={t("scheduledScans.delete")}
                           onClick={() => setDeleteTargetId(item.id)}
-                          className="p-2 text-[var(--muted)] hover:text-[rgb(var(--danger))] shrink-0 cursor-pointer"
-                          aria-label={t("scheduledScans.delete")}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          variant="danger"
+                        />
                       </div>
                     </li>
                   ))}
                 </ul>
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between pt-2">
-                    <span className="text-sm text-[var(--muted)]">
-                      {t("scanner.historyPageOf", { page, total: totalPages })}
-                    </span>
-                    <div className="flex gap-2">
-                      <GenericButton
-                        label="←"
-                        variant="outline"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page <= 1}
-                      />
-                      <GenericButton
-                        label="→"
-                        variant="outline"
-                        onClick={() =>
-                          setPage((p) => Math.min(totalPages, p + 1))
-                        }
-                        disabled={page >= totalPages}
-                      />
-                    </div>
-                  </div>
-                )}
+                <PaginationBar
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                />
               </>
             )}
           </div>

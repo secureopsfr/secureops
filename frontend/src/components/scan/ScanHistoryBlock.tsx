@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { FileDown, History, Trash2 } from "lucide-react";
 import Card from "../cards/Card";
 import ConfirmModal from "../ConfirmModal";
 import LoadingScreen from "../LoadingScreen";
-import { GenericButton } from "../buttons";
+import PaginationBar from "../PaginationBar";
+import { IconActionButton } from "../buttons";
 import { useLanguage } from "../LanguageProvider";
 import {
   getScanHistory,
@@ -16,8 +17,10 @@ import {
 } from "../../services/scanHistoryService";
 import type { ScanResult } from "../../services/scanService";
 import { getScoreBadge } from "./scanConstants";
+import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
 import { showErrorToast } from "../../utils/toastNotifications";
 import { formatDate } from "../../utils/dateFormat";
+import { formatUrlDisplay } from "../../utils/urlFormat";
 
 interface ScanHistoryBlockProps {
   onSelectScan: (result: ScanResult, scanId?: string) => void;
@@ -27,31 +30,28 @@ export default function ScanHistoryBlock({
   onSelectScan,
 }: ScanHistoryBlockProps) {
   const { t, language } = useLanguage();
-  const [items, setItems] = useState<ScanHistoryItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const perPage = 10;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getScanHistory(page, perPage);
-      setItems(res.items);
-      setTotal(res.total);
-    } catch {
-      showErrorToast(t("scanner.historyLoadError"));
-    } finally {
-      setLoading(false);
-    }
-  }, [page, t]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const onError = useCallback(
+    () => showErrorToast(t("scanner.historyLoadError")),
+    [t],
+  );
+  const {
+    items,
+    setItems,
+    total,
+    setTotal,
+    page,
+    setPage,
+    loading,
+    totalPages,
+  } = usePaginatedFetch<ScanHistoryItem>({
+    fetchFn: (p, perPage) => getScanHistory(p, perPage),
+    perPage: 10,
+    onError,
+  });
 
   const handleDeleteClick = useCallback((id: string) => {
     setDeleteTargetId(id);
@@ -111,8 +111,6 @@ export default function ScanHistoryBlock({
     [language, t],
   );
 
-  const totalPages = Math.max(1, Math.ceil(total / perPage));
-
   return (
     <>
       <Card disableHover>
@@ -152,7 +150,7 @@ export default function ScanHistoryBlock({
                         className="text-left flex-1 min-w-0 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                       >
                         <span className="font-medium text-[var(--text)] block truncate break-all">
-                          {displayUrl}
+                          {formatUrlDisplay(item.url)}
                         </span>
                         <span className="text-xs text-[var(--muted)]">
                           {formatDate(item.created_at)} · {item.score ?? "—"}
@@ -160,51 +158,28 @@ export default function ScanHistoryBlock({
                         </span>
                       </button>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
+                        <IconActionButton
+                          icon={FileDown}
+                          ariaLabel={t("scanner.exportPdfDownload")}
                           onClick={(e) => handlePdfClick(e, item)}
                           disabled={isPdfLoading}
-                          className="p-2 text-[var(--muted)] hover:text-[rgb(var(--primary))] shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
-                          aria-label={t("scanner.exportPdfDownload")}
-                        >
-                          <FileDown className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
+                        />
+                        <IconActionButton
+                          icon={Trash2}
+                          ariaLabel={t("scanner.historyDelete")}
                           onClick={() => handleDeleteClick(item.id)}
-                          className="p-2 text-[var(--muted)] hover:text-[rgb(var(--danger))] shrink-0 cursor-pointer"
-                          aria-label={t("scanner.historyDelete")}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          variant="danger"
+                        />
                       </div>
                     </li>
                   );
                 })}
               </ul>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-sm text-[var(--muted)]">
-                    {t("scanner.historyPageOf", { page, total: totalPages })}
-                  </span>
-                  <div className="flex gap-2">
-                    <GenericButton
-                      label="←"
-                      variant="outline"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page <= 1}
-                    />
-                    <GenericButton
-                      label="→"
-                      variant="outline"
-                      onClick={() =>
-                        setPage((p) => Math.min(totalPages, p + 1))
-                      }
-                      disabled={page >= totalPages}
-                    />
-                  </div>
-                </div>
-              )}
+              <PaginationBar
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
             </>
           )}
         </div>

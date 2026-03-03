@@ -3,6 +3,7 @@
  */
 
 import { fetchWithAuth, getApiBaseUrl } from "../utils/apiClient";
+import type { PaginatedListResponse } from "../types/api";
 
 export type Frequency = "daily" | "weekly" | "monthly";
 
@@ -93,13 +94,7 @@ export async function createScheduledScan(
   return response.json();
 }
 
-export interface ScheduledScanListResponse {
-  items: ScheduledScan[];
-  total: number;
-  page: number;
-  per_page: number;
-  total_pages: number;
-}
+export type ScheduledScanListResponse = PaginatedListResponse<ScheduledScan>;
 
 export async function getScheduledScans(
   page = 1,
@@ -168,13 +163,8 @@ export async function deleteScheduledScan(id: string): Promise<void> {
   }
 }
 
-export interface ScanAlertHistoryListResponse {
-  items: ScanAlertEvent[];
-  total: number;
-  page: number;
-  per_page: number;
-  total_pages: number;
-}
+export type ScanAlertHistoryListResponse =
+  PaginatedListResponse<ScanAlertEvent>;
 
 export async function getScanAlertHistory(
   page = 1,

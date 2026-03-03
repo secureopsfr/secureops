@@ -20,6 +20,7 @@ import FindingCard from "./FindingCard";
 import type { ScanResult } from "../../services/scanService";
 import { getScoreBadge, getCategoryKey, severitySort } from "./scanConstants";
 import { exportScanResult, type ExportFormat } from "../../utils/exportScan";
+import { formatUrlDisplay } from "../../utils/urlFormat";
 import { downloadScanPdf } from "../../services/scanHistoryService";
 import { showErrorToast } from "../../utils/toastNotifications";
 
@@ -164,8 +165,7 @@ export default function ScanResults({
     return acc;
   }, {});
 
-  const displayUrl =
-    result.url.replace(/^https?:\/\//, "").replace(/\/$/, "") || result.url;
+  const displayUrl = formatUrlDisplay(result.url);
 
   const domain = (() => {
     try {

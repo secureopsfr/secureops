@@ -1,18 +1,21 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Bell, Trash2 } from "lucide-react";
 import Card from "../cards/Card";
 import ConfirmModal from "../ConfirmModal";
 import LoadingScreen from "../LoadingScreen";
-import { GenericButton } from "../buttons";
+import PaginationBar from "../PaginationBar";
+import { IconActionButton } from "../buttons";
 import { useLanguage } from "../LanguageProvider";
 import {
   getScanAlertHistory,
   deleteScanAlertEvent,
   type ScanAlertEvent,
 } from "../../services/scheduledScanService";
+import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
 import { formatDate } from "../../utils/dateFormat";
+import { formatUrlDisplay } from "../../utils/urlFormat";
 import {
   showErrorToast,
   showSuccessToast,
@@ -20,34 +23,18 @@ import {
 
 export default function AlertHistoryBlock() {
   const { t } = useLanguage();
-  const [items, setItems] = useState<ScanAlertEvent[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const perPage = 10;
 
-  const load = useCallback(
-    async (pageOverride?: number) => {
-      const p = pageOverride ?? page;
-      setLoading(true);
-      try {
-        const res = await getScanAlertHistory(p, perPage);
-        setItems(res.items);
-        setTotal(res.total);
-        if (pageOverride !== undefined) setPage(pageOverride);
-      } catch {
-        showErrorToast(t("scheduledScans.alertHistoryLoadError"));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [page, perPage, t],
+  const onError = useCallback(
+    () => showErrorToast(t("scheduledScans.alertHistoryLoadError")),
+    [t],
   );
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { items, page, setPage, loading, load, totalPages } =
+    usePaginatedFetch<ScanAlertEvent>({
+      fetchFn: (p, perPage) => getScanAlertHistory(p, perPage),
+      perPage: 10,
+      onError,
+    });
 
   const getAlertTypeLabel = (alertType: string) => {
     if (alertType === "regression")
@@ -56,9 +43,6 @@ export default function AlertHistoryBlock() {
       return t("scheduledScans.alertTypeCriticalFinding");
     return alertType;
   };
-
-  const formatUrlDisplay = (url: string) =>
-    url.replace(/^https?:\/\//, "").replace(/\/$/, "") || url;
 
   const handleDeleteClick = useCallback((id: string) => {
     setDeleteTargetId(id);
@@ -80,8 +64,6 @@ export default function AlertHistoryBlock() {
   const handleDeleteModalClose = useCallback(() => {
     setDeleteTargetId(null);
   }, []);
-
-  const totalPages = Math.max(1, Math.ceil(total / perPage));
 
   return (
     <Card disableHover>
@@ -132,27 +114,11 @@ export default function AlertHistoryBlock() {
                 </li>
               ))}
             </ul>
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-sm text-[var(--muted)]">
-                  {t("scanner.historyPageOf", { page, total: totalPages })}
-                </span>
-                <div className="flex gap-2">
-                  <GenericButton
-                    label="←"
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page <= 1}
-                  />
-                  <GenericButton
-                    label="→"
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page >= totalPages}
-                  />
-                </div>
-              </div>
-            )}
+            <PaginationBar
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
           </>
         )}
       </div>

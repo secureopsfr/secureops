@@ -5,6 +5,7 @@ et l'extraction des informations utilisateur depuis les tokens JWT.
 """
 
 import logging
+import uuid
 from typing import Annotated, Any, Dict, Optional
 
 from common.jwt_verifier import verify_cognito_jwt
@@ -14,9 +15,37 @@ from fastapi import Header, HTTPException, status
 from app.db import get_async_session
 from app.exceptions import UserNotFoundError
 from app.services.cognito_service import get_user_email
-from app.services.user_repository import get_or_create_user
+from app.services.user_repository import get_or_create_user, get_user_by_cognito_sub
 
 logger = logging.getLogger(__name__)
+
+
+async def resolve_user_id(current_user: Dict[str, Any]) -> uuid.UUID:
+    """Résout cognito_sub → user_id en base de données.
+
+    Args:
+        current_user: Dict des claims JWT (doit contenir "sub").
+
+    Returns:
+        uuid.UUID: L'identifiant utilisateur en base.
+
+    Raises:
+        HTTPException: 401 si sub manquant, 404 si utilisateur non trouvé.
+    """
+    cognito_sub = current_user.get("sub")
+    if not cognito_sub:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Impossible d'identifier l'utilisateur",
+        )
+    async with get_async_session() as session:
+        user = await get_user_by_cognito_sub(session, cognito_sub)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Utilisateur non trouvé en base de données",
+            )
+        return user.id
 
 
 async def get_current_user(

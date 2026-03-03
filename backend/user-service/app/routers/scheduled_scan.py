@@ -29,30 +29,11 @@ from app.services.scheduled_scan_repository import (
     update_scheduled_scan,
 )
 from app.services.scheduled_scan_utils import compute_next_run
-from app.services.user_repository import get_user_by_cognito_sub
-from app.utils.auth import get_current_user
+from app.utils.auth import get_current_user, resolve_user_id
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/scans", tags=["scans – planifiés"])
-
-
-async def _resolve_user_id(current_user: Dict) -> uuid.UUID:
-    """Résout cognito_sub → user_id en base."""
-    cognito_sub = current_user.get("sub")
-    if not cognito_sub:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Impossible d'identifier l'utilisateur",
-        )
-    async with get_async_session() as session:
-        user = await get_user_by_cognito_sub(session, cognito_sub)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Utilisateur non trouvé en base de données",
-            )
-        return user.id
 
 
 def _to_response(scan) -> ScheduledScanResponse:
@@ -80,7 +61,7 @@ async def create_scheduled_scan_entry(
 ) -> ScheduledScanResponse:
     """Crée un scan planifié."""
     try:
-        user_id = await _resolve_user_id(current_user)
+        user_id = await resolve_user_id(current_user)
         async with get_async_session() as session:
             scan = await create_scheduled_scan(
                 session=session,
@@ -113,7 +94,7 @@ async def list_scheduled_scans(
 ) -> ScheduledScanListResponse:
     """Liste les scans planifiés de l'utilisateur (pagination)."""
     try:
-        user_id = await _resolve_user_id(current_user)
+        user_id = await resolve_user_id(current_user)
         limit = min(max(limit, 1), 100)
         offset = (page - 1) * limit
         async with get_async_session() as session:
@@ -145,7 +126,7 @@ async def patch_scheduled_scan(
 ) -> ScheduledScanResponse:
     """Modifie un scan planifié (fréquence, paramètres, pause)."""
     try:
-        user_id = await _resolve_user_id(current_user)
+        user_id = await resolve_user_id(current_user)
         try:
             scan_uuid = uuid.UUID(scan_id)
         except ValueError:
@@ -206,7 +187,7 @@ async def list_scan_alert_history(
 ) -> ScanAlertHistoryListResponse:
     """Liste l'historique des alertes déclenchées pour l'utilisateur (pagination)."""
     try:
-        user_id = await _resolve_user_id(current_user)
+        user_id = await resolve_user_id(current_user)
         limit = min(max(limit, 1), 100)
         offset = (page - 1) * limit
         async with get_async_session() as session:
@@ -246,7 +227,7 @@ async def delete_scan_alert_event_entry(
 ) -> None:
     """Supprime un événement d'alerte de l'historique."""
     try:
-        user_id = await _resolve_user_id(current_user)
+        user_id = await resolve_user_id(current_user)
         try:
             event_uuid = uuid.UUID(event_id)
         except ValueError:
@@ -276,7 +257,7 @@ async def delete_scheduled_scan_entry(
 ) -> None:
     """Supprime un scan planifié."""
     try:
-        user_id = await _resolve_user_id(current_user)
+        user_id = await resolve_user_id(current_user)
         try:
             scan_uuid = uuid.UUID(scan_id)
         except ValueError:
