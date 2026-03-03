@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scheduled_scan import ScheduledScan
@@ -89,17 +89,40 @@ async def get_scheduled_scan_by_id(
     return result.scalar_one_or_none()
 
 
-async def list_scheduled_scans_by_user(session: AsyncSession, user_id: uuid.UUID) -> List[ScheduledScan]:
-    """Liste les scans planifiés d'un utilisateur.
+async def count_scheduled_scans_by_user(session: AsyncSession, user_id: uuid.UUID) -> int:
+    """Compte le nombre total de scans planifiés d'un utilisateur.
 
     Args:
         session: Session de base de données.
         user_id: UUID de l'utilisateur.
 
     Returns:
+        Nombre total de scans planifiés.
+    """
+    result = await session.execute(select(func.count(ScheduledScan.id)).where(ScheduledScan.user_id == user_id))
+    return result.scalar() or 0
+
+
+async def list_scheduled_scans_by_user(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    limit: int = 20,
+    offset: int = 0,
+) -> List[ScheduledScan]:
+    """Liste les scans planifiés d'un utilisateur (pagination).
+
+    Args:
+        session: Session de base de données.
+        user_id: UUID de l'utilisateur.
+        limit: Nombre max d'éléments.
+        offset: Décalage pour pagination.
+
+    Returns:
         Liste des scans planifiés.
     """
-    result = await session.execute(select(ScheduledScan).where(ScheduledScan.user_id == user_id).order_by(ScheduledScan.next_run_at))
+    result = await session.execute(
+        select(ScheduledScan).where(ScheduledScan.user_id == user_id).order_by(ScheduledScan.next_run_at).limit(limit).offset(offset),
+    )
     return list(result.scalars().all())
 
 

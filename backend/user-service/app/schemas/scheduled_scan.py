@@ -1,7 +1,7 @@
 """Schémas Pydantic pour les scans planifiés."""
 
 from datetime import datetime
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -45,6 +45,16 @@ class ScheduledScanUpdateRequest(BaseModel):
     scan_alerts_enabled: Optional[bool] = Field(None, description="Alertes email régression/finding critique")
 
 
+class ScheduledScanListResponse(BaseModel):
+    """Réponse paginée de la liste des scans planifiés."""
+
+    items: List["ScheduledScanResponse"] = Field(..., description="Liste des scans planifiés")
+    total: int = Field(..., description="Nombre total")
+    page: int = Field(1, ge=1, description="Numéro de page")
+    per_page: int = Field(20, ge=1, description="Éléments par page")
+    total_pages: int = Field(0, ge=0, description="Nombre total de pages")
+
+
 class ScheduledScanResponse(BaseModel):
     """Réponse pour un scan planifié."""
 
@@ -70,3 +80,13 @@ class ScanAlertEventResponse(BaseModel):
     alert_type: str = Field(..., description="Type : regression ou critical_finding")
     email_sent: bool = Field(..., description="True si l'email a été envoyé avec succès")
     triggered_at: datetime = Field(..., description="Date/heure du déclenchement")
+
+
+class ScanAlertHistoryListResponse(BaseModel):
+    """Réponse paginée de l'historique des alertes."""
+
+    items: List[ScanAlertEventResponse] = Field(..., description="Liste des événements")
+    total: int = Field(..., description="Nombre total")
+    page: int = Field(1, ge=1, description="Numéro de page")
+    per_page: int = Field(20, ge=1, description="Éléments par page")
+    total_pages: int = Field(0, ge=0, description="Nombre total de pages")

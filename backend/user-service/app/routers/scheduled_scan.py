@@ -2,19 +2,26 @@
 
 import logging
 import uuid
-from typing import Annotated, Dict, List
+from typing import Annotated, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.db import get_async_session
 from app.schemas.scheduled_scan import (
     ScanAlertEventResponse,
+    ScanAlertHistoryListResponse,
     ScheduledScanCreateRequest,
+    ScheduledScanListResponse,
     ScheduledScanResponse,
     ScheduledScanUpdateRequest,
 )
-from app.services.scan_alert_repository import delete_scan_alert_event, list_scan_alert_events_by_user
+from app.services.scan_alert_repository import (
+    count_scan_alert_events_by_user,
+    delete_scan_alert_event,
+    list_scan_alert_events_by_user,
+)
 from app.services.scheduled_scan_repository import (
+    count_scheduled_scans_by_user,
     create_scheduled_scan,
     delete_scheduled_scan,
     get_scheduled_scan_by_id,
@@ -98,16 +105,28 @@ async def create_scheduled_scan_entry(
         )
 
 
-@router.get("/schedule", response_model=List[ScheduledScanResponse])
+@router.get("/schedule", response_model=ScheduledScanListResponse)
 async def list_scheduled_scans(
     current_user: Annotated[Dict, Depends(get_current_user)],
-) -> List[ScheduledScanResponse]:
-    """Liste les scans planifiés de l'utilisateur."""
+    page: int = 1,
+    limit: int = 10,
+) -> ScheduledScanListResponse:
+    """Liste les scans planifiés de l'utilisateur (pagination)."""
     try:
         user_id = await _resolve_user_id(current_user)
+        limit = min(max(limit, 1), 100)
+        offset = (page - 1) * limit
         async with get_async_session() as session:
-            scans = await list_scheduled_scans_by_user(session, user_id)
-            return [_to_response(s) for s in scans]
+            total = await count_scheduled_scans_by_user(session, user_id)
+            scans = await list_scheduled_scans_by_user(session, user_id, limit=limit, offset=offset)
+            total_pages = max((total + limit - 1) // limit, 1) if total > 0 else 0
+            return ScheduledScanListResponse(
+                items=[_to_response(s) for s in scans],
+                total=total,
+                page=page,
+                per_page=limit,
+                total_pages=total_pages,
+            )
     except HTTPException:
         raise
     except Exception as e:
@@ -179,25 +198,37 @@ async def patch_scheduled_scan(
         )
 
 
-@router.get("/schedule/alerts/history", response_model=List[ScanAlertEventResponse])
+@router.get("/schedule/alerts/history", response_model=ScanAlertHistoryListResponse)
 async def list_scan_alert_history(
     current_user: Annotated[Dict, Depends(get_current_user)],
-) -> List[ScanAlertEventResponse]:
-    """Liste l'historique des alertes déclenchées pour l'utilisateur."""
+    page: int = 1,
+    limit: int = 10,
+) -> ScanAlertHistoryListResponse:
+    """Liste l'historique des alertes déclenchées pour l'utilisateur (pagination)."""
     try:
         user_id = await _resolve_user_id(current_user)
+        limit = min(max(limit, 1), 100)
+        offset = (page - 1) * limit
         async with get_async_session() as session:
-            events = await list_scan_alert_events_by_user(session, user_id)
-            return [
-                ScanAlertEventResponse(
-                    id=str(e.id),
-                    url=e.url,
-                    alert_type=e.alert_type,
-                    email_sent=e.email_sent,
-                    triggered_at=e.triggered_at,
-                )
-                for e in events
-            ]
+            total = await count_scan_alert_events_by_user(session, user_id)
+            events = await list_scan_alert_events_by_user(session, user_id, limit=limit, offset=offset)
+            total_pages = max((total + limit - 1) // limit, 1) if total > 0 else 0
+            return ScanAlertHistoryListResponse(
+                items=[
+                    ScanAlertEventResponse(
+                        id=str(e.id),
+                        url=e.url,
+                        alert_type=e.alert_type,
+                        email_sent=e.email_sent,
+                        triggered_at=e.triggered_at,
+                    )
+                    for e in events
+                ],
+                total=total,
+                page=page,
+                per_page=limit,
+                total_pages=total_pages,
+            )
     except HTTPException:
         raise
     except Exception as e:

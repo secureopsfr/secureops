@@ -93,9 +93,20 @@ export async function createScheduledScan(
   return response.json();
 }
 
-export async function getScheduledScans(): Promise<ScheduledScan[]> {
+export interface ScheduledScanListResponse {
+  items: ScheduledScan[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}
+
+export async function getScheduledScans(
+  page = 1,
+  limit = 10,
+): Promise<ScheduledScanListResponse> {
   const response = await fetchWithAuth(
-    `${getApiBaseUrl()}/user/api/scans/schedule`,
+    `${getApiBaseUrl()}/user/api/scans/schedule?page=${page}&limit=${limit}`,
     { method: "GET" },
   );
   if (!response.ok) {
@@ -157,9 +168,20 @@ export async function deleteScheduledScan(id: string): Promise<void> {
   }
 }
 
-export async function getScanAlertHistory(): Promise<ScanAlertEvent[]> {
+export interface ScanAlertHistoryListResponse {
+  items: ScanAlertEvent[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+}
+
+export async function getScanAlertHistory(
+  page = 1,
+  limit = 10,
+): Promise<ScanAlertHistoryListResponse> {
   const response = await fetchWithAuth(
-    `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history`,
+    `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history?page=${page}&limit=${limit}`,
     { method: "GET" },
   );
   if (!response.ok) {

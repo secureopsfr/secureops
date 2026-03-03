@@ -34,7 +34,7 @@ export default function ScanHistoryBlock({
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
-  const perPage = 20;
+  const perPage = 10;
 
   const load = useCallback(async () => {
     setLoading(true);

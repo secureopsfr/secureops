@@ -3,7 +3,7 @@
 import uuid
 from typing import List
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scan_alert_event import ScanAlertEvent
@@ -43,23 +43,41 @@ async def create_scan_alert_event(
     return event
 
 
-async def list_scan_alert_events_by_user(
-    session: AsyncSession,
-    user_id: uuid.UUID,
-    limit: int = 100,
-) -> List[ScanAlertEvent]:
-    """Liste les événements d'alerte d'un utilisateur, du plus récent au plus ancien.
+async def count_scan_alert_events_by_user(session: AsyncSession, user_id: uuid.UUID) -> int:
+    """Compte le nombre total d'événements d'alerte d'un utilisateur.
 
     Args:
         session: Session de base de données.
         user_id: UUID de l'utilisateur.
-        limit: Nombre maximum d'événements à retourner.
+
+    Returns:
+        Nombre total d'événements.
+    """
+    result = await session.execute(
+        select(func.count(ScanAlertEvent.id)).where(ScanAlertEvent.user_id == user_id),
+    )
+    return result.scalar() or 0
+
+
+async def list_scan_alert_events_by_user(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    limit: int = 20,
+    offset: int = 0,
+) -> List[ScanAlertEvent]:
+    """Liste les événements d'alerte d'un utilisateur (pagination, du plus récent au plus ancien).
+
+    Args:
+        session: Session de base de données.
+        user_id: UUID de l'utilisateur.
+        limit: Nombre max d'éléments.
+        offset: Décalage pour pagination.
 
     Returns:
         Liste des ScanAlertEvent.
     """
     result = await session.execute(
-        select(ScanAlertEvent).where(ScanAlertEvent.user_id == user_id).order_by(ScanAlertEvent.triggered_at.desc()).limit(limit),
+        select(ScanAlertEvent).where(ScanAlertEvent.user_id == user_id).order_by(ScanAlertEvent.triggered_at.desc()).limit(limit).offset(offset),
     )
     return list(result.scalars().all())
 
