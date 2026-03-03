@@ -1,12 +1,10 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import { Bell, Trash2 } from "lucide-react";
-import Card from "../cards/Card";
-import ConfirmModal from "../ConfirmModal";
+import { SectionCard } from "../cards";
 import LoadingScreen from "../LoadingScreen";
 import PaginationBar from "../PaginationBar";
-import { IconActionButton } from "../buttons";
 import { useLanguage } from "../LanguageProvider";
 import {
   getScanAlertHistory,
@@ -14,6 +12,7 @@ import {
   type ScanAlertEvent,
 } from "../../services/scheduledScanService";
 import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
+import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 import { formatDate } from "../../utils/dateFormat";
 import { formatUrlDisplay } from "../../utils/urlFormat";
 import {
@@ -23,7 +22,6 @@ import {
 
 export default function AlertHistoryBlock() {
   const { t } = useLanguage();
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const onError = useCallback(
     () => showErrorToast(t("scheduledScans.alertHistoryLoadError")),
@@ -36,6 +34,29 @@ export default function AlertHistoryBlock() {
       onError,
     });
 
+  const handleDeleteConfirm = useCallback(
+    async (id: string) => {
+      try {
+        await deleteScanAlertEvent(id);
+        await load(page > 1 ? 1 : undefined);
+        showSuccessToast(t("scheduledScans.alertHistoryDeleteSuccess"));
+      } catch {
+        showErrorToast(t("scheduledScans.alertHistoryDeleteError"));
+      }
+    },
+    [load, page, t],
+  );
+
+  const { openDeleteModal, ConfirmDeleteModal } = useConfirmDelete(
+    handleDeleteConfirm,
+    {
+      title: t("scheduledScans.alertHistoryDeleteModalTitle"),
+      message: t("scheduledScans.alertHistoryDeleteConfirm"),
+      confirmText: t("scheduledScans.alertHistoryDeleteBtn"),
+      cancelText: t("common.cancel"),
+    },
+  );
+
   const getAlertTypeLabel = (alertType: string) => {
     if (alertType === "regression")
       return t("scheduledScans.alertTypeRegression");
@@ -44,35 +65,8 @@ export default function AlertHistoryBlock() {
     return alertType;
   };
 
-  const handleDeleteClick = useCallback((id: string) => {
-    setDeleteTargetId(id);
-  }, []);
-
-  const handleDeleteConfirm = useCallback(async () => {
-    const id = deleteTargetId;
-    if (!id) return;
-    setDeleteTargetId(null);
-    try {
-      await deleteScanAlertEvent(id);
-      await load(page > 1 ? 1 : undefined);
-      showSuccessToast(t("scheduledScans.alertHistoryDeleteSuccess"));
-    } catch {
-      showErrorToast(t("scheduledScans.alertHistoryDeleteError"));
-    }
-  }, [deleteTargetId, load, page, t]);
-
-  const handleDeleteModalClose = useCallback(() => {
-    setDeleteTargetId(null);
-  }, []);
-
   return (
-    <Card disableHover>
-      <div className="flex items-center gap-3 mb-4">
-        <Bell className="w-6 h-6 text-[rgb(var(--primary))]" />
-        <h2 className="text-xl font-bold text-[var(--text)]">
-          {t("scheduledScans.alertHistoryTitle")}
-        </h2>
-      </div>
+    <SectionCard icon={Bell} title={t("scheduledScans.alertHistoryTitle")}>
       <div className="space-y-4">
         {loading ? (
           <LoadingScreen
@@ -105,7 +99,7 @@ export default function AlertHistoryBlock() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleDeleteClick(item.id)}
+                    onClick={() => openDeleteModal(item.id)}
                     className="p-2 text-[var(--muted)] hover:text-[rgb(var(--danger))] shrink-0 cursor-pointer"
                     aria-label={t("scheduledScans.alertHistoryDelete")}
                   >
@@ -123,17 +117,7 @@ export default function AlertHistoryBlock() {
         )}
       </div>
 
-      <ConfirmModal
-        isOpen={deleteTargetId !== null}
-        onClose={handleDeleteModalClose}
-        onConfirm={handleDeleteConfirm}
-        title={t("scheduledScans.alertHistoryDeleteModalTitle")}
-        message={t("scheduledScans.alertHistoryDeleteConfirm")}
-        confirmText={t("scheduledScans.alertHistoryDeleteBtn")}
-        cancelText={t("common.cancel")}
-        variant="danger"
-        icon={Trash2}
-      />
-    </Card>
+      {ConfirmDeleteModal}
+    </SectionCard>
   );
 }

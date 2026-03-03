@@ -79,3 +79,41 @@ export async function fetchWithAuth(
 
   return response;
 }
+
+/**
+ * Vérifie si la réponse est ok ; sinon parse le JSON d'erreur et lance une Error.
+ * Ne retourne jamais si response.ok est false (type never).
+ *
+ * @param response - Réponse fetch à vérifier
+ * @param fallbackMessage - Message utilisé si le body n'a pas de détail
+ * @throws Error avec le message d'erreur de l'API ou le fallback
+ */
+export async function handleFetchError(
+  response: Response,
+  fallbackMessage: string,
+): Promise<never> {
+  const err = await response.json().catch(() => ({}));
+  const raw = (err as { detail?: string | string[] }).detail;
+  const detail = Array.isArray(raw) ? raw.join(", ") : (raw ?? fallbackMessage);
+  throw new Error(typeof detail === "string" ? detail : fallbackMessage);
+}
+
+/**
+ * Effectue un appel API authentifié, parse le JSON et gère les erreurs.
+ *
+ * @param url - URL de l'endpoint
+ * @param options - Options fetch (method, body, etc.)
+ * @param fallbackError - Message d'erreur par défaut si !response.ok
+ * @returns Promise<T> - Données JSON parsées
+ */
+export async function fetchJsonWithAuth<T>(
+  url: string,
+  options: RequestInit = {},
+  fallbackError: string,
+): Promise<T> {
+  const response = await fetchWithAuth(url, options);
+  if (!response.ok) {
+    await handleFetchError(response, fallbackError);
+  }
+  return response.json() as Promise<T>;
+}

@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import { CalendarClock, Mail, Pause, Play, Trash2 } from "lucide-react";
-import Card from "../cards/Card";
-import ConfirmModal from "../ConfirmModal";
+import { SectionCard } from "../cards";
 import LoadingScreen from "../LoadingScreen";
 import PaginationBar from "../PaginationBar";
 import { IconActionButton } from "../buttons";
@@ -15,6 +14,7 @@ import {
   type ScheduledScan,
 } from "../../services/scheduledScanService";
 import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
+import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 import { formatDateTimeShort } from "../../utils/dateFormat";
 import { formatUrlDisplay } from "../../utils/urlFormat";
 import {
@@ -36,7 +36,6 @@ export default function ScheduledScansBlock({
   refreshTrigger = 0,
 }: ScheduledScansBlockProps) {
   const { t } = useLanguage();
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const onError = useCallback(
     () => showErrorToast(t("scheduledScans.loadError")),
@@ -49,6 +48,29 @@ export default function ScheduledScansBlock({
       onError,
       refreshTrigger,
     });
+
+  const handleDeleteConfirm = useCallback(
+    async (id: string) => {
+      try {
+        await deleteScheduledScan(id);
+        await load(page > 1 ? 1 : undefined);
+        showSuccessToast(t("scheduledScans.deleteSuccess"));
+      } catch {
+        showErrorToast(t("scheduledScans.deleteError"));
+      }
+    },
+    [load, page, t],
+  );
+
+  const { openDeleteModal, ConfirmDeleteModal } = useConfirmDelete(
+    handleDeleteConfirm,
+    {
+      title: t("scheduledScans.deleteConfirmTitle"),
+      message: t("scheduledScans.deleteConfirmMessage"),
+      confirmText: t("scheduledScans.deleteConfirmBtn"),
+      cancelText: t("common.cancel"),
+    },
+  );
 
   const handleToggleAlerts = async (item: ScheduledScan) => {
     try {
@@ -82,19 +104,6 @@ export default function ScheduledScansBlock({
     }
   };
 
-  const handleDeleteConfirm = async () => {
-    const id = deleteTargetId;
-    if (!id) return;
-    setDeleteTargetId(null);
-    try {
-      await deleteScheduledScan(id);
-      await load(page > 1 ? 1 : undefined);
-      showSuccessToast(t("scheduledScans.deleteSuccess"));
-    } catch {
-      showErrorToast(t("scheduledScans.deleteError"));
-    }
-  };
-
   const getFrequencyLabel = (freq: string) => {
     const opt = FREQUENCY_OPTIONS.find((o) => o.value === freq);
     return opt ? t(opt.labelKey) : freq;
@@ -102,14 +111,11 @@ export default function ScheduledScansBlock({
 
   return (
     <>
-      <Card disableHover className="mt-6">
-        <div className="flex items-center gap-3 mb-4">
-          <CalendarClock className="w-6 h-6 text-[rgb(var(--primary))]" />
-          <h2 className="text-xl font-bold text-[var(--text)]">
-            {t("scheduledScans.title")}
-          </h2>
-        </div>
-
+      <SectionCard
+        icon={CalendarClock}
+        title={t("scheduledScans.title")}
+        className="mt-6"
+      >
         {loading ? (
           <LoadingScreen
             variant="section"
@@ -169,7 +175,7 @@ export default function ScheduledScansBlock({
                         <IconActionButton
                           icon={Trash2}
                           ariaLabel={t("scheduledScans.delete")}
-                          onClick={() => setDeleteTargetId(item.id)}
+                          onClick={() => openDeleteModal(item.id)}
                           variant="danger"
                         />
                       </div>
@@ -186,15 +192,8 @@ export default function ScheduledScansBlock({
           </div>
         )}
 
-        <ConfirmModal
-          isOpen={deleteTargetId !== null}
-          onClose={() => setDeleteTargetId(null)}
-          onConfirm={handleDeleteConfirm}
-          title={t("scheduledScans.deleteConfirmTitle")}
-          message={t("scheduledScans.deleteConfirmMessage")}
-          confirmText={t("scheduledScans.deleteConfirmBtn")}
-        />
-      </Card>
+        {ConfirmDeleteModal}
+      </SectionCard>
     </>
   );
 }

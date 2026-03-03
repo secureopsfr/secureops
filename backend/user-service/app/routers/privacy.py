@@ -13,8 +13,7 @@ from app.services.scan_alert_repository import list_scan_alert_events_by_user
 from app.services.scan_repository import list_scans_by_user_id
 from app.services.scheduled_scan_repository import list_scheduled_scans_by_user
 from app.services.subscription_repository import get_subscription_by_user_id
-from app.services.user_repository import get_user_by_cognito_sub
-from app.utils.auth import get_current_user
+from app.utils.auth import get_current_user, resolve_user
 
 logger = logging.getLogger(__name__)
 
@@ -198,21 +197,8 @@ async def export_user_data(
 ) -> PlainTextResponse:
     """Exporte toutes les données personnelles de l'utilisateur (RGPD)."""
     try:
-        cognito_sub = current_user.get("sub")
-        if not cognito_sub:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Impossible d'identifier l'utilisateur",
-            )
-
         async with get_async_session() as session:
-            user = await get_user_by_cognito_sub(session, cognito_sub)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Utilisateur non trouvé en base de données",
-                )
-
+            user = await resolve_user(session, current_user)
             content = await _build_export_content(session, user)
             return PlainTextResponse(content=content)
 

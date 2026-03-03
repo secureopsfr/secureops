@@ -2,7 +2,7 @@
 
 import logging
 import uuid
-from typing import Annotated, Dict
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -29,7 +29,7 @@ from app.services.scheduled_scan_repository import (
     update_scheduled_scan,
 )
 from app.services.scheduled_scan_utils import compute_next_run
-from app.utils.auth import get_current_user, resolve_user_id
+from app.utils.auth import get_current_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +57,10 @@ def _to_response(scan) -> ScheduledScanResponse:
 @router.post("/schedule", response_model=ScheduledScanResponse)
 async def create_scheduled_scan_entry(
     body: ScheduledScanCreateRequest,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
 ) -> ScheduledScanResponse:
     """Crée un scan planifié."""
     try:
-        user_id = await resolve_user_id(current_user)
         async with get_async_session() as session:
             scan = await create_scheduled_scan(
                 session=session,
@@ -88,13 +87,12 @@ async def create_scheduled_scan_entry(
 
 @router.get("/schedule", response_model=ScheduledScanListResponse)
 async def list_scheduled_scans(
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
     page: int = 1,
     limit: int = 10,
 ) -> ScheduledScanListResponse:
     """Liste les scans planifiés de l'utilisateur (pagination)."""
     try:
-        user_id = await resolve_user_id(current_user)
         limit = min(max(limit, 1), 100)
         offset = (page - 1) * limit
         async with get_async_session() as session:
@@ -122,11 +120,10 @@ async def list_scheduled_scans(
 async def patch_scheduled_scan(
     scan_id: str,
     body: ScheduledScanUpdateRequest,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
 ) -> ScheduledScanResponse:
     """Modifie un scan planifié (fréquence, paramètres, pause)."""
     try:
-        user_id = await resolve_user_id(current_user)
         try:
             scan_uuid = uuid.UUID(scan_id)
         except ValueError:
@@ -181,13 +178,12 @@ async def patch_scheduled_scan(
 
 @router.get("/schedule/alerts/history", response_model=ScanAlertHistoryListResponse)
 async def list_scan_alert_history(
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
     page: int = 1,
     limit: int = 10,
 ) -> ScanAlertHistoryListResponse:
     """Liste l'historique des alertes déclenchées pour l'utilisateur (pagination)."""
     try:
-        user_id = await resolve_user_id(current_user)
         limit = min(max(limit, 1), 100)
         offset = (page - 1) * limit
         async with get_async_session() as session:
@@ -223,11 +219,10 @@ async def list_scan_alert_history(
 @router.delete("/schedule/alerts/history/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_scan_alert_event_entry(
     event_id: str,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
 ) -> None:
     """Supprime un événement d'alerte de l'historique."""
     try:
-        user_id = await resolve_user_id(current_user)
         try:
             event_uuid = uuid.UUID(event_id)
         except ValueError:
@@ -253,11 +248,10 @@ async def delete_scan_alert_event_entry(
 @router.delete("/schedule/{scan_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_scheduled_scan_entry(
     scan_id: str,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
 ) -> None:
     """Supprime un scan planifié."""
     try:
-        user_id = await resolve_user_id(current_user)
         try:
             scan_uuid = uuid.UUID(scan_id)
         except ValueError:

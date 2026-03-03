@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.db import get_async_session
 from app.schemas.user import LanguagePreferenceResponse, LanguagePreferenceUpdateRequest, ThemePreferenceResponse, ThemePreferenceUpdateRequest
-from app.services.user_repository import get_user_by_cognito_sub, update_user_dark_mode, update_user_language
-from app.utils.auth import get_current_user
+from app.services.user_repository import update_user_dark_mode, update_user_language
+from app.utils.auth import get_current_user, resolve_user
 
 logger = logging.getLogger(__name__)
 
@@ -22,21 +22,8 @@ async def update_theme_preference(
 ) -> ThemePreferenceResponse:
     """Met à jour la préférence de thème (dark/light mode)."""
     try:
-        cognito_sub = current_user.get("sub")
-        if not cognito_sub:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Impossible d'identifier l'utilisateur",
-            )
-
         async with get_async_session() as session:
-            user = await get_user_by_cognito_sub(session, cognito_sub)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Utilisateur non trouvé en base de données",
-                )
-
+            user = await resolve_user(session, current_user)
             updated_user = await update_user_dark_mode(session, user, theme_data.dark_mode)
 
             return ThemePreferenceResponse(success=True, dark_mode=updated_user.dark_mode)
@@ -58,21 +45,8 @@ async def update_language_preference(
 ) -> LanguagePreferenceResponse:
     """Met à jour la préférence de langue."""
     try:
-        cognito_sub = current_user.get("sub")
-        if not cognito_sub:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Impossible d'identifier l'utilisateur",
-            )
-
         async with get_async_session() as session:
-            user = await get_user_by_cognito_sub(session, cognito_sub)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Utilisateur non trouvé en base de données",
-                )
-
+            user = await resolve_user(session, current_user)
             updated_user = await update_user_language(session, user, language_data.language.value)
 
             return LanguagePreferenceResponse(success=True, language=updated_user.language)

@@ -10,14 +10,44 @@ from typing import Annotated, Any, Dict, Optional
 
 from common.jwt_verifier import verify_cognito_jwt
 from common.logging_config import mask_email
-from fastapi import Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_async_session
 from app.exceptions import UserNotFoundError
+from app.models.user import User
 from app.services.cognito_service import get_user_email
 from app.services.user_repository import get_or_create_user, get_user_by_cognito_sub
 
 logger = logging.getLogger(__name__)
+
+
+async def resolve_user(session: AsyncSession, current_user: Dict[str, Any]) -> User:
+    """Résout cognito_sub → User en base de données (utilise la session fournie).
+
+    Args:
+        session: Session SQLAlchemy déjà ouverte.
+        current_user: Dict des claims JWT (doit contenir "sub").
+
+    Returns:
+        User: L'utilisateur en base.
+
+    Raises:
+        HTTPException: 401 si sub manquant, 404 si utilisateur non trouvé.
+    """
+    cognito_sub = current_user.get("sub")
+    if not cognito_sub:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Impossible d'identifier l'utilisateur",
+        )
+    user = await get_user_by_cognito_sub(session, cognito_sub)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Utilisateur non trouvé en base de données",
+        )
+    return user
 
 
 async def resolve_user_id(current_user: Dict[str, Any]) -> uuid.UUID:
@@ -32,19 +62,8 @@ async def resolve_user_id(current_user: Dict[str, Any]) -> uuid.UUID:
     Raises:
         HTTPException: 401 si sub manquant, 404 si utilisateur non trouvé.
     """
-    cognito_sub = current_user.get("sub")
-    if not cognito_sub:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Impossible d'identifier l'utilisateur",
-        )
     async with get_async_session() as session:
-        user = await get_user_by_cognito_sub(session, cognito_sub)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Utilisateur non trouvé en base de données",
-            )
+        user = await resolve_user(session, current_user)
         return user.id
 
 
@@ -131,6 +150,26 @@ async def get_current_user(
             detail=f"Erreur d'authentification: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+async def get_current_user_id(
+    current_user: Annotated[Dict[str, Any], Depends(get_current_user)],
+) -> uuid.UUID:
+    """Dépendance FastAPI retournant directement l'identifiant utilisateur.
+
+    À utiliser dans les endpoints qui n'ont besoin que de user_id.
+    Résout cognito_sub → user en base et retourne user.id.
+
+    Args:
+        current_user: Injecté par Depends(get_current_user).
+
+    Returns:
+        uuid.UUID: L'identifiant utilisateur en base.
+
+    Raises:
+        HTTPException: 401 si sub manquant, 404 si utilisateur non trouvé.
+    """
+    return await resolve_user_id(current_user)
 
 
 async def _ensure_user_in_db(cognito_sub: str, claims: Dict[str, Any]) -> bool:

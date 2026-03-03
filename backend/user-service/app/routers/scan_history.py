@@ -2,7 +2,7 @@
 
 import logging
 import uuid
-from typing import Annotated, Dict
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -17,7 +17,7 @@ from app.services.scan_repository import (
     list_scans_by_user_id,
 )
 from app.services.subscription_repository import get_subscription_by_user_id
-from app.utils.auth import get_current_user, resolve_user_id
+from app.utils.auth import get_current_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +27,10 @@ router = APIRouter(prefix="/api/scans", tags=["scans – historique"])
 @router.post("/history", response_model=ScanDetailResponse)
 async def create_scan_entry(
     body: ScanCreateRequest,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
 ) -> ScanDetailResponse:
     """Enregistre un scan dans l'historique (appelé par scan-service ou frontend)."""
     try:
-        user_id = await resolve_user_id(current_user)
         async with get_async_session() as session:
             subscription = await get_subscription_by_user_id(session, user_id)
             retention = (subscription.history_retention if subscription else None) or "30"
@@ -79,13 +78,12 @@ async def create_scan_entry(
 
 @router.get("/history", response_model=ScanListResponse)
 async def list_scans(
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
     page: int = 1,
     limit: int = 20,
 ) -> ScanListResponse:
     """Liste les scans de l'utilisateur (pagination)."""
     try:
-        user_id = await resolve_user_id(current_user)
         limit = min(max(limit, 1), 100)
         offset = (page - 1) * limit
 
@@ -126,11 +124,10 @@ async def list_scans(
 @router.get("/history/{scan_id}", response_model=ScanDetailResponse)
 async def get_scan_detail(
     scan_id: str,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
 ) -> ScanDetailResponse:
     """Récupère le détail d'un scan."""
     try:
-        user_id = await resolve_user_id(current_user)
         try:
             scan_uuid = uuid.UUID(scan_id)
         except ValueError:
@@ -165,11 +162,10 @@ async def get_scan_detail(
 
 @router.delete("/history", status_code=status.HTTP_200_OK)
 async def delete_all_scans(
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
 ) -> dict:
     """Supprime tous les scans de l'historique de l'utilisateur."""
     try:
-        user_id = await resolve_user_id(current_user)
         async with get_async_session() as session:
             deleted_count = await delete_all_user_scans(session, user_id)
             return {"deleted_count": deleted_count}
@@ -186,11 +182,10 @@ async def delete_all_scans(
 @router.delete("/history/{scan_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_scan(
     scan_id: str,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
 ) -> None:
     """Supprime un scan de l'historique."""
     try:
-        user_id = await resolve_user_id(current_user)
         try:
             scan_uuid = uuid.UUID(scan_id)
         except ValueError:

@@ -2,8 +2,7 @@
 
 import React, { useCallback, useState } from "react";
 import { FileDown, History, Trash2 } from "lucide-react";
-import Card from "../cards/Card";
-import ConfirmModal from "../ConfirmModal";
+import { SectionCard } from "../cards";
 import LoadingScreen from "../LoadingScreen";
 import PaginationBar from "../PaginationBar";
 import { IconActionButton } from "../buttons";
@@ -18,6 +17,7 @@ import {
 import type { ScanResult } from "../../services/scanService";
 import { getScoreBadge } from "./scanConstants";
 import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
+import { useConfirmDelete } from "../../hooks/useConfirmDelete";
 import { showErrorToast } from "../../utils/toastNotifications";
 import { formatDate } from "../../utils/dateFormat";
 import { formatUrlDisplay } from "../../utils/urlFormat";
@@ -32,7 +32,6 @@ export default function ScanHistoryBlock({
   const { t, language } = useLanguage();
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const onError = useCallback(
     () => showErrorToast(t("scanner.historyLoadError")),
@@ -53,22 +52,28 @@ export default function ScanHistoryBlock({
     onError,
   });
 
-  const handleDeleteClick = useCallback((id: string) => {
-    setDeleteTargetId(id);
-  }, []);
+  const handleDeleteConfirm = useCallback(
+    async (id: string) => {
+      try {
+        await deleteScan(id);
+        setItems((prev) => prev.filter((item) => item.id !== id));
+        setTotal((prev) => Math.max(0, prev - 1));
+      } catch {
+        showErrorToast(t("scanner.historyDeleteError"));
+      }
+    },
+    [setItems, setTotal, t],
+  );
 
-  const handleDeleteConfirm = useCallback(async () => {
-    const id = deleteTargetId;
-    if (!id) return;
-    setDeleteTargetId(null);
-    try {
-      await deleteScan(id);
-      setItems((prev) => prev.filter((item) => item.id !== id));
-      setTotal((prev) => Math.max(0, prev - 1));
-    } catch {
-      showErrorToast(t("scanner.historyDeleteError"));
-    }
-  }, [deleteTargetId, t]);
+  const { openDeleteModal, ConfirmDeleteModal } = useConfirmDelete(
+    handleDeleteConfirm,
+    {
+      title: t("scanner.historyDeleteModalTitle"),
+      message: t("scanner.historyDeleteConfirm"),
+      confirmText: t("scanner.historyDeleteBtn"),
+      cancelText: t("common.cancel"),
+    },
+  );
 
   const handleSelectScan = useCallback(
     async (item: ScanHistoryItem) => {
@@ -92,10 +97,6 @@ export default function ScanHistoryBlock({
     [onSelectScan, t],
   );
 
-  const handleDeleteModalClose = useCallback(() => {
-    setDeleteTargetId(null);
-  }, []);
-
   const handlePdfClick = useCallback(
     async (e: React.MouseEvent, item: ScanHistoryItem) => {
       e.stopPropagation();
@@ -113,13 +114,7 @@ export default function ScanHistoryBlock({
 
   return (
     <>
-      <Card disableHover>
-        <div className="flex items-center gap-3 mb-4">
-          <History className="w-6 h-6 text-[rgb(var(--primary))]" />
-          <h2 className="text-xl font-bold text-[var(--text)]">
-            {t("scanner.historyTitle")}
-          </h2>
-        </div>
+      <SectionCard icon={History} title={t("scanner.historyTitle")}>
         <div className="space-y-4">
           {loading ? (
             <LoadingScreen
@@ -167,7 +162,7 @@ export default function ScanHistoryBlock({
                         <IconActionButton
                           icon={Trash2}
                           ariaLabel={t("scanner.historyDelete")}
-                          onClick={() => handleDeleteClick(item.id)}
+                          onClick={() => openDeleteModal(item.id)}
                           variant="danger"
                         />
                       </div>
@@ -183,19 +178,9 @@ export default function ScanHistoryBlock({
             </>
           )}
         </div>
-      </Card>
+      </SectionCard>
 
-      <ConfirmModal
-        isOpen={deleteTargetId !== null}
-        onClose={handleDeleteModalClose}
-        onConfirm={handleDeleteConfirm}
-        title={t("scanner.historyDeleteModalTitle")}
-        message={t("scanner.historyDeleteConfirm")}
-        confirmText={t("scanner.historyDeleteBtn")}
-        cancelText={t("common.cancel")}
-        variant="danger"
-        icon={Trash2}
-      />
+      {ConfirmDeleteModal}
     </>
   );
 }
