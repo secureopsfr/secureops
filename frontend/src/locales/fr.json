@@ -188,6 +188,7 @@
     "exportJson": "JSON",
     "exportXlsx": "Excel (XLSX)",
     "exportPdf": "PDF",
+    "exportPdfGenerating": "Génération du PDF…",
     "exportPdfUnavailable": "PDF disponible après sauvegarde du scan.",
     "exportPdfIncludeMatrices": "Inclure les matrices gravité/vraisemblance",
     "exportPdfLang": "Langue",

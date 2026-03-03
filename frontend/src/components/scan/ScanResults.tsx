@@ -32,6 +32,7 @@ import { formatUrlDisplay } from "../../utils/urlFormat";
 import { downloadScanPdf } from "../../services/scanHistoryService";
 import { showErrorToast } from "../../utils/toastNotifications";
 import { renderWithBold } from "../../utils/renderWithBold";
+import { LoadingSpinner } from "../LoadingScreen";
 
 interface ScanResultsProps {
   result: ScanResult;
@@ -635,15 +636,16 @@ export default function ScanResults({
                 title={disabled ? t("scanner.exportPdfUnavailable") : undefined}
                 className="flex items-center gap-3 w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[var(--color-surface-hover)] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--color-surface-input)]"
               >
-                {icon}
-                <span className="font-medium">{t(labelKey)}</span>
-                {disabled && (
+                {isPdf && pdfLoading ? <LoadingSpinner size="sm" /> : icon}
+                <span className="font-medium">
+                  {isPdf && pdfLoading
+                    ? t("scanner.exportPdfGenerating")
+                    : t(labelKey)}
+                </span>
+                {disabled && !pdfLoading && (
                   <span className="text-xs text-muted-theme ml-auto">
                     {t("scanner.exportPdfUnavailable")}
                   </span>
-                )}
-                {isPdf && scanId && pdfLoading && (
-                  <span className="text-xs text-muted-theme ml-auto">...</span>
                 )}
               </button>
             );
