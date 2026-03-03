@@ -262,10 +262,17 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Extraire `Disallow` et signaler routes potentiellement sensibles (admin, api, backup, etc.) ✅
 
 **En plus (v0.2.0) :**
-- [ ] Vérifier présence de `Sitemap:` (bonne pratique SEO/sécurité)
-- [ ] Détecter `Crawl-delay` (non standard, info)
-- [ ] Analyser `Allow` en complément de `Disallow`
-- [ ] Comparer chemins Disallow avec endpoints sensibles connus
+- [x] Détecter `Crawl-delay` (non standard, info)
+- [x] Analyser `Allow` en complément de `Disallow`
+
+#### 5.1.6bis Sitemap
+
+**Existant (v0.1.0) :** Aucun.
+
+**En plus (v0.2.0) :**
+- [x] Vérifier présence de `Sitemap:` dans robots.txt (bonne pratique SEO/sécurité)
+- [x] Fallback : chercher sitemap à l'emplacement classique (`/sitemap.xml`, `/sitemap_index.xml`) si non déclaré
+- [x] Analyser le contenu du sitemap : détecter URLs sensibles (admin, api, config, etc.) exposées dans le sitemap → finding
 
 #### 5.1.7 Tech fingerprinting
 
