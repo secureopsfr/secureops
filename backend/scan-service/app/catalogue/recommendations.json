@@ -822,5 +822,77 @@
     "title_fr": "Problème CORS ou cross-origin",
     "title_en": "CORS or cross-origin issue",
     "references": ["https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing"]
+  },
+  "integrity-sri-external-missing": {
+    "recommendation": "Ajouter l'attribut integrity (SRI) sur les scripts et feuilles de style chargés depuis des domaines externes (CDN, tiers). Mettre à jour le hash à chaque changement de ressource.",
+    "recommendation_en": "Add the integrity (SRI) attribute on scripts and stylesheets loaded from external domains (CDN, third parties). Update the hash whenever the resource changes.",
+    "title_fr": "Ressources externes sans SRI",
+    "title_en": "External resources without SRI",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity",
+      "https://cheatsheetseries.owasp.org/cheatsheets/Subresource_Integrity_Cheat_Sheet.html"
+    ]
+  },
+  "integrity-csp-not-present-advanced-checks-skipped": {
+    "recommendation": "Mettre en place une Content-Security-Policy (CSP) stricte pour contrôler l'exécution des scripts et renforcer la protection contre le XSS.",
+    "recommendation_en": "Deploy a strict Content-Security-Policy (CSP) to control script execution and strengthen XSS protection.",
+    "title_fr": "CSP absente : tests avancés non appliqués",
+    "title_en": "CSP missing: advanced checks not applied",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP"]
+  },
+  "integrity-script-inline-no-nonce": {
+    "recommendation": "Éviter les scripts inline ou leur associer un nonce/hash cohérent avec la CSP (`script-src 'nonce-xxx'` ou `script-src 'sha256-...'`). Supprimer l'usage de `unsafe-inline`.",
+    "recommendation_en": "Avoid inline scripts or associate them with a nonce/hash consistent with CSP (`script-src 'nonce-xxx'` or `script-src 'sha256-...'`). Remove the use of `unsafe-inline`.",
+    "title_fr": "Scripts inline sans nonce avec CSP",
+    "title_en": "Inline scripts without nonce with CSP",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#nonce"]
+  },
+  "integrity-form-password-autocomplete": {
+    "recommendation": "Configurer l'attribut autocomplete sur les champs password (`current-password`, `new-password` ou `off`) en fonction du contexte (login, changement de mot de passe, etc.).",
+    "recommendation_en": "Configure the autocomplete attribute on password fields (`current-password`, `new-password` or `off`) depending on the context (login, password change, etc.).",
+    "title_fr": "Champs password sans autocomplete adapté",
+    "title_en": "Password fields without appropriate autocomplete",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete",
+      "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html"
+    ]
+  },
+  "integrity-target-blank-noopener": {
+    "recommendation": "Ajouter `rel=\"noopener\"` (et idéalement `rel=\"noopener noreferrer\"`) à tous les liens `target=\"_blank\"` vers des domaines externes pour se protéger contre le tabnabbing.",
+    "recommendation_en": "Add `rel=\"noopener\"` (and ideally `rel=\"noopener noreferrer\"`) to all `target=\"_blank\"` links to external domains to protect against tabnabbing.",
+    "title_fr": "Liens target=\"_blank\" sans noopener",
+    "title_en": "target=\"_blank\" links without noopener",
+    "references": [
+      "https://owasp.org/www-community/attacks/Reverse_Tabnabbing",
+      "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#security_and_privacy_concerns"
+    ]
+  },
+  "integrity-meta-robots-missing": {
+    "recommendation": "Ajouter une meta `robots` avec `noindex` sur les pages sensibles (login, admin, API) qui ne doivent pas apparaître dans les moteurs de recherche.",
+    "recommendation_en": "Add a `robots` meta tag with `noindex` on sensitive pages (login, admin, API) that should not appear in search engines.",
+    "title_fr": "Meta robots absente sur page sensible",
+    "title_en": "robots meta missing on sensitive page",
+    "references": ["https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag"]
+  },
+  "integrity-meta-robots-no-noindex": {
+    "recommendation": "Compléter la meta `robots` existante avec la directive `noindex` sur les pages sensibles lorsque l'indexation n'est pas souhaitée.",
+    "recommendation_en": "Extend the existing `robots` meta tag with the `noindex` directive on sensitive pages when indexing is not desired.",
+    "title_fr": "Meta robots sans noindex sur page sensible",
+    "title_en": "robots meta without noindex on sensitive page",
+    "references": ["https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag"]
+  },
+  "integrity-connection-failed": {
+    "recommendation": "Vérifier que la page principale est accessible en HTTPS et que son contenu HTML peut être chargé pour permettre les vérifications d'intégrité.",
+    "recommendation_en": "Ensure the main page is accessible over HTTPS and its HTML content can be loaded to allow integrity checks.",
+    "title_fr": "Analyse d'intégrité impossible",
+    "title_en": "Integrity analysis unavailable",
+    "references": []
+  },
+  "integrity-generic": {
+    "recommendation": "Revoir la configuration frontend (HTML, scripts, formulaires, liens) pour corriger les problèmes d'intégrité et de sous-ressources identifiés.",
+    "recommendation_en": "Review the frontend configuration (HTML, scripts, forms, links) to fix the identified integrity and subresource issues.",
+    "title_fr": "Problème d'intégrité ou de sous-ressources",
+    "title_en": "Integrity or subresources issue",
+    "references": []
   }
 }

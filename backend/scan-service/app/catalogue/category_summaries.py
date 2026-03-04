@@ -15,6 +15,7 @@ _CATEGORY_ORDER = (
     "tls",
     "headers",
     "cache",
+    "integrity",
     "cookies",
     "exposed_files",
     "directory_listing",

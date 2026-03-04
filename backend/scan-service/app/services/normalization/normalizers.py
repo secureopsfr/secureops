@@ -21,6 +21,7 @@ from app.services.cache.checks import CacheCheckResult
 from app.services.cookies.checks import CookieCheckResult
 from app.services.cors_cross_origin.checks import CorsCrossOriginCheckResult
 from app.services.information_disclosure.checks import InformationDisclosureCheckResult
+from app.services.integrity import IntegrityCheckResult
 from app.services.path_checks.core import PathCheckResult
 from app.services.robots_txt.checks import RobotsTxtCheckResult
 from app.services.security_headers.checks import SecurityHeadersCheckResult
@@ -566,6 +567,60 @@ class ScanResultsDict(TypedDict, total=False):
     cache: CacheCheckResult
     information_disclosure: InformationDisclosureCheckResult
     cors_cross_origin: CorsCrossOriginCheckResult
+    integrity: IntegrityCheckResult
+
+
+def _integrity_msg_to_finding(msg: str) -> tuple[str, str, str]:
+    """Mappe un message d'intégrité vers (slug, title, severity).
+
+    Args:
+        msg: Message du finding brut.
+
+    Returns:
+        tuple[str, str, str]: (slug, title, severity).
+    """
+    msg_l = msg.lower()
+    if "ressources externes sans sri" in msg_l:
+        return ("integrity-sri-external-missing", "Ressources externes sans SRI", "medium")
+    if "aucune content-security-policy détectée" in msg_l:
+        return (
+            "integrity-csp-not-present-advanced-checks-skipped",
+            "CSP absente : tests avancés non appliqués",
+            "info",
+        )
+    if "scripts inline sans nonce" in msg_l:
+        return ("integrity-script-inline-no-nonce", "Scripts inline sans nonce avec CSP", "medium")
+    if "champs password sans autocomplete explicite" in msg_l:
+        return ("integrity-form-password-autocomplete", "Champs password sans autocomplete adapté", "low")
+    if 'liens target="_blank" sans rel="noopener"' in msg_l:
+        return ("integrity-target-blank-noopener", 'Liens target="_blank" sans noopener', "low")
+    if "meta robots absente sur une page sensible" in msg_l:
+        return ("integrity-meta-robots-missing", "Meta robots absente sur page sensible", "low")
+    if "meta robots présente mais sans noindex" in msg_l:
+        return ("integrity-meta-robots-no-noindex", "Meta robots sans noindex sur page sensible", "low")
+    if "vérifications d'intégrité impossibles" in msg_l:
+        return ("integrity-connection-failed", "Analyse d'intégrité impossible", "info")
+    return ("integrity-generic", "Problème d'intégrité ou de sous-ressources", "medium")
+
+
+def _normalize_integrity(result: IntegrityCheckResult) -> list[Finding]:
+    """Convertit IntegrityCheckResult en list[Finding]."""
+    findings: list[Finding] = []
+    if not result.fetch_ok:
+        findings.append(
+            _finding(
+                "integrity-connection-failed",
+                "integrity",
+                "Analyse d'intégrité impossible",
+                "info",
+                "Vérifications d'intégrité impossibles : réponse HTTPS indisponible ou illisible.",
+            ),
+        )
+        return findings
+    for msg in result.findings:
+        slug, title, severity = _integrity_msg_to_finding(msg)
+        findings.append(_finding(slug, "integrity", title, severity, msg))
+    return findings
 
 
 _NORMALIZERS: list[tuple[str, Callable[[object], list[Finding]]]] = [
@@ -580,6 +635,7 @@ _NORMALIZERS: list[tuple[str, Callable[[object], list[Finding]]]] = [
     ("tech_fingerprinting", _normalize_tech_fingerprinting),
     ("information_disclosure", _normalize_information_disclosure),
     ("cors_cross_origin", _normalize_cors_cross_origin),
+    ("integrity", _normalize_integrity),
 ]
 
 

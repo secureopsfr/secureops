@@ -7,6 +7,7 @@ settings reste dans config_loader (caller_file pour create_simple_settings).
 from app.config.cache import CacheSettings, get_cache_settings
 from app.config.cors_cross_origin import CorsCrossOriginSettings, get_cors_cross_origin_settings
 from app.config.information_disclosure import InformationDisclosureSettings, get_information_disclosure_max_body, get_information_disclosure_settings
+from app.config.integrity import IntegritySettings, get_integrity_settings
 from app.config.path_checks import (
     DirectoryListingConfig,
     ExposedFileConfig,
@@ -32,6 +33,7 @@ __all__ = [
     "DirectoryListingConfig",
     "ExposedFileConfig",
     "InformationDisclosureSettings",
+    "IntegritySettings",
     "PathCheckConfig",
     "PdfSettings",
     "ScanTimeoutsSettings",
@@ -48,6 +50,7 @@ __all__ = [
     "get_exposed_files_severity_upgrade",
     "get_information_disclosure_max_body",
     "get_information_disclosure_settings",
+    "get_integrity_settings",
     "get_pdf_settings",
     "get_robots_txt_settings",
     "get_tech_fingerprinting_thresholds",

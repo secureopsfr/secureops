@@ -334,5 +334,41 @@
   "cors-generic": {
     "gravite": "Significative",
     "vraisemblance": "Forte"
+  },
+  "integrity-sri-external-missing": {
+    "gravite": "Importante",
+    "vraisemblance": "Faible"
+  },
+  "integrity-csp-not-present-advanced-checks-skipped": {
+    "gravite": "Mineure",
+    "vraisemblance": "Très forte"
+  },
+  "integrity-script-inline-no-nonce": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
+  "integrity-form-password-autocomplete": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "integrity-target-blank-noopener": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
+  "integrity-meta-robots-missing": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "integrity-meta-robots-no-noindex": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "integrity-connection-failed": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "integrity-generic": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
   }
 }
