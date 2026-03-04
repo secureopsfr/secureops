@@ -251,6 +251,17 @@ cache:
   immutable_max_age: 31536000
   sensitive_max_age: 0           # max-age autorisé pour une page sensible (0 = uniquement no-store / no-cache / private)
 
+# Intégrité et sous-ressources (roadmap §5.6).
+# Analyse passive du HTML de la page principale : SRI, scripts inline vs CSP, formulaires,
+# liens target=\"_blank\" et meta robots sur pages sensibles.
+integrity:
+  max_body_bytes: 524288  # Taille maximale de HTML analysé (512 Ko)
+  sensitive_paths:
+    - "/login"
+    - "/admin"
+    - "/auth"
+    - "/api/"
+
 # robots.txt (roadmap §3.6) : motifs de routes sensibles à signaler dans Disallow.
 # Par défaut : _DEFAULT_ROBOTS_TXT_PATTERNS dans config_loader. Surcharger ici si besoin.
 robots_txt:
@@ -296,6 +307,7 @@ scoring:
     tls: 25
     headers: 25
     cache: 5
+    integrity: 5
     cookies: 20
     exposed_files: 10
     directory_listing: 10
@@ -319,6 +331,7 @@ pdf:
       - tls
       - headers
       - cache
+      - integrity
       - cookies
       - exposed_files
       - directory_listing
@@ -332,6 +345,7 @@ pdf:
       - tls
       - headers
       - cache
+      - integrity
       - cookies
       - exposed_files
       - directory_listing
@@ -344,6 +358,7 @@ pdf:
       tls: "TLS / HTTPS"
       headers: "Security Headers"
       cache: "Cache et performances"
+      integrity: "Intégrité et sous-ressources"
       cookies: "Cookies"
       exposed_files: "Fichiers exposés"
       directory_listing: "Directory listing"
@@ -357,6 +372,7 @@ pdf:
       tls: "TLS / HTTPS"
       headers: "Security Headers"
       cache: "Cache and performance"
+      integrity: "Integrity and subresources"
       cookies: "Cookies"
       exposed_files: "Exposed files"
       directory_listing: "Directory listing"

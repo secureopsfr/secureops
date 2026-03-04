@@ -32,6 +32,7 @@ from app.services.cors_cross_origin import run_cors_cross_origin_checks
 from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
 from app.services.information_disclosure import check_information_disclosure_from_response
+from app.services.integrity import check_integrity_from_response
 from app.services.normalization import normalize_results
 from app.services.robots_txt import run_robots_txt_checks
 from app.services.scoring import compute_score
@@ -231,6 +232,12 @@ _SCAN_STEPS: list[tuple[str, str, str, Callable]] = [
         "Vérification fuites d'information…",
         "Fuites d'information vérifiées.",
         lambda ctx: check_information_disclosure_from_response(ctx.https_response),
+    ),
+    (
+        "integrity",
+        "Vérification intégrité et sous-ressources…",
+        "Intégrité et sous-ressources vérifiées.",
+        lambda ctx: check_integrity_from_response(ctx.https_response, ctx.https_url),
     ),
     (
         "cors_cross_origin",

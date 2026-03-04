@@ -17,6 +17,8 @@ class ScoringSettings:
 _DEFAULT_WEIGHTS: dict[str, int] = {
     "tls": 25,
     "headers": 25,
+    "cache": 5,
+    "integrity": 5,
     "cookies": 20,
     "exposed_files": 10,
     "directory_listing": 10,

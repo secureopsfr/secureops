@@ -13,6 +13,7 @@ from app.services.cors_cross_origin.checks import CorsCrossOriginCheckResult
 from app.services.directory_listing import DirectoryListingCheckResult
 from app.services.exposed_files import ExposedFilesCheckResult
 from app.services.information_disclosure.checks import InformationDisclosureCheckResult
+from app.services.integrity import IntegrityCheckResult
 from app.services.robots_txt import RobotsTxtCheckResult
 from app.services.sitemap import SitemapCheckResult
 from app.services.tech_fingerprinting.checks import TechFingerprintingCheckResult
@@ -69,8 +70,10 @@ def patch_scan_checks(**overrides):
         fetch_ok=True,
     )
     information_disclosure_result = overrides.pop("information_disclosure_result", None) or InformationDisclosureCheckResult(
-        findings=(), fetch_ok=True
+        findings=(),
+        fetch_ok=True,
     )
+    integrity_result = overrides.pop("integrity_result", None) or IntegrityCheckResult(findings=(), fetch_ok=True)
     cors_cross_origin_result = overrides.pop("cors_cross_origin_result", None) or CorsCrossOriginCheckResult(findings=(), fetch_ok=True)
 
     @asynccontextmanager
@@ -115,6 +118,11 @@ def patch_scan_checks(**overrides):
             "app.services.scan_stream.check_information_disclosure_from_response",
             new_callable=MagicMock,
             return_value=information_disclosure_result,
+        ),
+        patch(
+            "app.services.scan_stream.check_integrity_from_response",
+            new_callable=MagicMock,
+            return_value=integrity_result,
         ),
         patch(
             "app.services.scan_stream.run_cors_cross_origin_checks",

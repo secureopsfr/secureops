@@ -35,6 +35,26 @@
       "Long cache for immutable assets"
     ]
   },
+  "integrity": {
+    "label_fr": "Intégrité et sous-ressources",
+    "label_en": "Integrity and subresources",
+    "description_fr": "Le scan analyse le HTML de la page principale pour vérifier l'utilisation de **Subresource Integrity (SRI)** sur les scripts et feuilles de style externes, ainsi que plusieurs bonnes pratiques de sécurité côté frontend : scripts inline cohérents avec la **CSP** (nonces/hashes lorsque présente), champs **password** avec `autocomplete` approprié, liens `target=\"_blank\"` protégés par `rel=\"noopener\"`, et présence de meta **robots** adaptées (`noindex`) sur certaines pages sensibles (login, admin, API). Lorsque **aucune CSP n'est définie**, les tests avancés sur les scripts inline (nonces/hashes) ne sont pas appliqués et cela est explicitement indiqué dans les résultats.",
+    "description_en": "The scan analyzes the main page HTML to verify the use of **Subresource Integrity (SRI)** on external scripts and stylesheets, as well as several frontend security best practices: inline scripts consistent with **CSP** (nonces/hashes when present), **password** fields with appropriate `autocomplete`, `target=\"_blank\"` links protected by `rel=\"noopener\"`, and suitable **robots** meta tags (`noindex`) on certain sensitive pages (login, admin, API). When **no CSP is defined**, advanced checks on inline scripts (nonces/hashes) are not applied and this is explicitly reported in the results.",
+    "checks_fr": [
+      "**SRI** sur scripts/CSS externes",
+      "Scripts inline cohérents avec la **CSP**",
+      "Champs **password** avec `autocomplete` adapté",
+      "Liens `target=\"_blank\"` avec `rel=\"noopener\"`",
+      "Meta **robots** (noindex) sur pages sensibles"
+    ],
+    "checks_en": [
+      "**SRI** on external scripts/CSS",
+      "Inline scripts consistent with **CSP**",
+      "**Password** fields with appropriate `autocomplete`",
+      "`target=\"_blank\"` links with `rel=\"noopener\"`",
+      "**robots** meta (noindex) on sensitive pages"
+    ]
+  },
   "cookies": {
     "label_fr": "Cookies",
     "label_en": "Cookies",
