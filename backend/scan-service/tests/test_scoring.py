@@ -71,6 +71,7 @@ def test_compute_score_all_critical() -> None:
         _finding("cache", "critical"),
         _finding("information_disclosure", "critical"),
         _finding("cors_cross_origin", "critical"),
+        _finding("integrity", "critical"),
     )
     score = compute_score(findings)
     assert score == 0
