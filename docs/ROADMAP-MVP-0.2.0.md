@@ -244,6 +244,8 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - [x] Détection de fichiers de backup (`.bak`, `.old`, `.swp`, `~`)
 - [x] Endpoints API docs exposés : `/swagger`, `/api-docs`, `/graphql` (introspection)
 
+> **Fait :** Chemins et messages dans `config/settings.yml` (section `exposed_files.paths`) ; logique dans `app/services/path_checks/core.py` et normalisation `exposed_files` (signatures par chemin, severity_upgrade pour .env/.git/config).
+
 #### 5.1.5 Directory listing
 
 **Existant (v0.1.0) :**
@@ -251,9 +253,12 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 - Signatures Apache/Nginx (Index of, Parent Directory, [DIR], mod_autoindex, nginx, `<a href=`) ✅
 
 **En plus (v0.2.0) :**
-- [ ] Chemins supplémentaires : `/tmp/`, `/logs/`, `/config/`, `/backup/`, `/data/`
-- [ ] Détection de listing partiel (réponse HTML avec liens vers fichiers)
-- [ ] Alerte si répertoire sensible retourne 403 (existence révélée)
+- [x] Chemins supplémentaires : `/tmp/`, `/logs/`, `/config/`, `/backup/`, `/data/`
+  - **Fait :** `_DEFAULT_DIRECTORY` dans `app/config/path_checks.py` ; configurable via `directory_listing.paths` dans settings.yml.
+- [x] Détection de listing partiel (réponse HTML avec liens vers fichiers)
+  - **Fait :** `_is_partial_listing_body` dans `app/services/directory_listing/checks.py` (seuil de liens, extensions typiques).
+- [x] Alerte si répertoire sensible retourne 403 (existence révélée)
+  - **Fait :** `_SENSITIVE_FOR_403` (/config/, /backup/, /logs/, /tmp/, /data/) ; finding `directory_listing-sensitive-403` via normalizer.
 
 #### 5.1.6 robots.txt
 
@@ -263,7 +268,9 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 
 **En plus (v0.2.0) :**
 - [x] Détecter `Crawl-delay` (non standard, info)
+  - **Fait :** `_extract_crawl_delay` dans `app/services/robots_txt/checks.py` ; finding `robots_txt-crawl-delay` (info) via normalizer.
 - [x] Analyser `Allow` en complément de `Disallow`
+  - **Fait :** `_extract_allow_paths` dans `app/services/robots_txt/checks.py` ; `allow_paths` dans `RobotsTxtCheckResult`.
 
 #### 5.1.6bis Sitemap
 
@@ -271,8 +278,11 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 
 **En plus (v0.2.0) :**
 - [x] Vérifier présence de `Sitemap:` dans robots.txt (bonne pratique SEO/sécurité)
+  - **Fait :** `_extract_sitemap_urls` dans `app/services/robots_txt/checks.py` ; module `app/services/sitemap/checks.py` utilise `robots_txt_result.sitemap_urls`.
 - [x] Fallback : chercher sitemap à l'emplacement classique (`/sitemap.xml`, `/sitemap_index.xml`) si non déclaré
+  - **Fait :** `_SITEMAP_FALLBACK_PATHS` et `_resolve_sitemap_urls` dans `app/services/sitemap/checks.py` ; finding `sitemap-undeclared` si trouvé uniquement via fallback.
 - [x] Analyser le contenu du sitemap : détecter URLs sensibles (admin, api, config, etc.) exposées dans le sitemap → finding
+  - **Fait :** `_analyze_sitemap_urls` et `_url_path_matches_sensitive` ; patterns dans config ; finding `sitemap-sensitive-url` par URL sensible.
 
 #### 5.1.7 Tech fingerprinting
 
@@ -349,59 +359,77 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 
 ---
 
-### 5.5 Nouveaux tests — Méthodes HTTP et redirections
-
-#### 5.5.1 Méthodes HTTP
-- [ ] Requête `OPTIONS` : lister les méthodes autorisées
-- [ ] `TRACE` activé → finding (XST)
-- [ ] `PUT`, `DELETE`, `PATCH` exposés sans nécessité → info
-- [ ] `HEAD` supporté (bonne pratique)
-
-#### 5.5.2 Redirections
-- [ ] Détection open redirect (paramètre `url`/`redirect`/`next` redirigeant vers domaine externe)
-- [ ] Chaînes de redirection excessives (> 5)
-- [ ] Redirection HTTP→HTTPS avec code 301/302 (pas 307/308 pour préserver méthode)
-
----
-
 ### 5.6 Nouveaux tests — Intégrité et sous-ressources
 
-#### 5.6.1 Subresource Integrity (SRI)
-- [ ] Scripts/CSS externes (CDN) sans attribut `integrity` → finding
-- [ ] Recommandation : utiliser SRI pour ressources tierces
+#### 5.6.1 Subresource Integrity (SRI) (à faire — MVP 0.2.0)
 
-#### 5.6.2 Analyse du HTML
-- [ ] Balises `<script>` sans `nonce` ou `integrity` (contexte CSP)
-- [ ] Formulaires sans `autocomplete="off"` sur champs sensibles (password)
-- [ ] `target="_blank"` sans `rel="noopener noreferrer"`
-- [ ] Meta `robots` (noindex sur pages sensibles)
+Détecter les ressources tierces (scripts, CSS) chargées sans garantie d’intégrité.
 
----
+- [ ] **Scripts/CSS externes (CDN) sans attribut `integrity`** → finding : balises `<script src="https://...">` et `<link href="https://...">` vers domaine externe sans attribut `integrity` (risque MITM / compromission CDN).
+- [ ] **Recommandation SRI pour tiers** : dans le rapport, recommander d’utiliser SRI pour toutes les ressources chargées depuis CDN ou domaines tiers.
 
-### 5.7 Nouveaux tests — APIs et formats
+#### 5.6.2 Analyse du HTML (à faire — MVP 0.2.0)
 
-#### 5.7.1 APIs exposées
-- [ ] Détection GraphQL : introspection activée sur `/graphql` ou similaire
-- [ ] Swagger/OpenAPI exposé sans auth
-- [ ] Endpoints REST retournant des listes non paginées (info)
+Nouveaux checks passifs : parser le HTML de la page principale et signaler les bonnes pratiques manquantes.
 
-#### 5.7.2 Formats de réponse
-- [ ] `Content-Type` incorrect (ex. JSON servi en `text/html`)
-- [ ] `X-Content-Type-Options: nosniff` vérifié sur tous les types
-- [ ] Compression (gzip/brotli) pour réduire surface
+- [ ] **`<script>` sans `nonce` ou `integrity`** (contexte CSP) : balises script inline ou externes sans mécanisme d’intégrité ou nonce → finding (risque XSS / injection).
+- [ ] **Formulaires sans `autocomplete="off"`** sur champs sensibles (ex. `type="password"`, champs login) → finding (risque fuite par autocomplétion).
+- [ ] **`target="_blank"` sans `rel="noopener noreferrer"`** : liens ouvrant en nouvel onglet sans protection → finding (risque `window.opener`).
+- [ ] **Meta `robots`** : pages sensibles (login, admin, API) sans `noindex` quand approprié → finding ou info (exposition aux moteurs de recherche).
+
+Référence : [integrite-et-sous-ressources.md](verifications/integrite-et-sous-ressources.md).
 
 ---
 
 ### 5.8 Documentation et scoring
 
 #### 5.8.1 Documentation
-- [ ] Fichier `docs/verifications/` par catégorie de test
-- [ ] Chaque check : risque, exemple, recommandation, référence OWASP/CWE
-- [ ] Matrice de sévérité (critical/high/medium/low/info)
+- [x] Fichier `docs/verifications/` par catégorie de test
+  - **Fait :** Un fichier par catégorie (tls-https, security-headers, cookies, exposition-fichiers, directory-listing, robots-txt, sitemap, tech-fingerprinting, information-disclosure, cache-et-performances, cors-et-cross-origin, integrite-et-sous-ressources, apis-et-formats, methodes-http-et-redirections).
+- [x] Chaque check : risque, exemple, recommandation, référence OWASP/CWE
+  - **Fait :** Structure commune dans les docs (objectif, explication, exemple, vulnérabilité/impact, matrice gravité) ; références OWASP/CWE selon les docs.
+- [x] Matrice de sévérité (critical/high/medium/low/info)
+  - **Fait :** `app/catalogue/risk_matrix.json` (gravite, vraisemblance par slug) ; `scoring.severity_penalties` dans settings.yml.
 
 #### 5.8.2 Scoring
-- [ ] Adapter le scoring pour les nouveaux checks (pondération)
-- [ ] Règles d’upgrade/downgrade pour les findings critiques
+- [x] Adapter le scoring pour les nouveaux checks (pondération)
+  - **Fait :** `app/config/scoring.py` et `app/services/scoring.py` ; `scoring.category_weights` dans settings.yml (tls, headers, cookies, exposed_files, directory_listing, robots_txt, sitemap, tech_fingerprinting, information_disclosure, cors_cross_origin).
+- [x] Règles d’upgrade/downgrade pour les findings critiques
+  - **Fait :** `get_exposed_files_severity_upgrade()` (path_checks.py) : chemins `.git/config`, `.env` → critical ; configurable via `exposed_files.severity_upgrade` dans settings.yml.
+
+### Liste exhaustive des tests passifs frontend (MVP 0.2.0)
+
+Tests qui concernent la **page principale** (URL scannée) et ses **sous-ressources** (HTML, headers, scripts/CSS/images extraits du HTML). Les blocs 5.5 (Méthodes HTTP / redirections) et 5.7 (APIs / formats) sont orientés backend/API et sont dans [A-PENSER-PLUS-TARD.md](A-PENSER-PLUS-TARD.md).
+
+| Domaine | Détail | Statut |
+|--------|--------|--------|
+| **TLS / HTTPS** | Posture TLS, chaîne certificats, expiration &lt; 30 j, TLS 1.3 | ✅ Fait (5.1.1) |
+| **Security Headers** | CSP, HSTS, XFO, XCTO, Referrer, Permissions, COEP, COOP, Clear-Site-Data, report-uri, unsafe-inline/eval | ✅ Fait (5.1.2) |
+| **Cookies** | Secure, HttpOnly, SameSite, préfixes __Host-/__Secure-, Partitioned, session incomplète, Expires long | ✅ Fait (5.1.3) |
+| **Exposition fichiers** | Liste étendue (.env, .git, .htaccess, swagger, graphql, backup…), signatures, API docs | ✅ Fait (5.1.4) |
+| **Directory listing** | Chemins /tmp, /logs, /config…, listing partiel, 403 sur chemins sensibles | ✅ Fait (5.1.5) |
+| **robots.txt** | Disallow, Allow, Crawl-delay, routes sensibles | ✅ Fait (5.1.6) |
+| **Sitemap** | Sitemap: dans robots, fallback /sitemap.xml, URLs sensibles dans sitemap | ✅ Fait (5.1.6bis) |
+| **Tech fingerprinting** | Server/X-Powered-By versions, CPE/CVE, meta/scripts HTML, stack probable | ✅ Fait (5.1.7) |
+| **Information disclosure** | Stack traces, mode debug, secrets, headers debug, Server avec version | ✅ Fait (5.2) |
+| **Cache** | Page : Cache-Control, Pragma, ETag, Last-Modified, Vary, pages sensibles non cacheables | ✅ Fait (5.3.1) |
+| **Cache sous-ressources** | Scripts/CSS/images : Cache-Control, cache long pour assets immuables | ✅ Fait (5.3.2) |
+| **CORS** | ACAO *, Credentials+*, Allow-Methods, Expose-Headers sensibles | ✅ Fait (5.4.1) |
+| **Cross-origin** | Mixed content (HTTP sur HTTPS), CORP manquant, Referrer-Policy (via headers) | ✅ Fait (5.4.2) |
+| **SRI** | Scripts/CSS externes (CDN) sans `integrity` → finding + recommandation SRI | ⏳ À faire (5.6.1) |
+| **Analyse HTML** | `<script>` sans nonce/integrity, autocomplete sur password, target="_blank" sans noopener, meta robots | ⏳ À faire (5.6.2) |
+
+**Conclusion :** Tous les tests passifs frontend listés ci‑dessus sont **faits**, sauf **5.6** (SRI + Analyse du HTML), qui est la seule partie restante à développer pour avoir la liste complète.
+
+### Ce qui manque dans les tests passifs (section 5)
+
+Les blocs **5.5** (Méthodes HTTP et redirections) et **5.7** (APIs et formats) ont été déplacés dans [A-PENSER-PLUS-TARD.md](A-PENSER-PLUS-TARD.md). Il reste à implémenter :
+
+- **5.6 — Intégrité et sous-ressources**
+  - **5.6.1** SRI : scripts/CSS externes (CDN) sans attribut `integrity` → finding ; recommandation SRI pour ressources tierces.
+  - **5.6.2** Analyse HTML : `<script>` sans `nonce` ou `integrity` (contexte CSP) ; formulaires sans `autocomplete="off"` sur champs sensibles (password) ; `target="_blank"` sans `rel="noopener noreferrer"` ; meta `robots` (noindex sur pages sensibles).
+
+Référence détaillée : [docs/verifications/integrite-et-sous-ressources.md](verifications/integrite-et-sous-ressources.md).
 
 ---
 
