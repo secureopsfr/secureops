@@ -38,11 +38,8 @@ Objectif : faire évoluer le scanner v0.1.0 vers une **plateforme** avec authent
 
 ## 1) Décisions MVP 0.2.0 (à figer avant de coder)
 
-- [ ] **Scope V2** : Auth + dashboard + historique + export PDF + API publique
-- [ ] **Auth** : Cognito (déjà en place) — connexion **après** le scan pour accéder aux résultats (comme 0.1.0 § 7.4), scanner restant public
-- [ ] **Mode scan** : synchrone uniquement (mode async reporté, voir [A-PENSER-PLUS-TARD.md](A-PENSER-PLUS-TARD.md))
-- [ ] **API publique** : clés API pour intégrations externes (CI/CD, scripts)
-- [ ] **Limites** : quotas par utilisateur (ex. 50 scans/jour) ; rate limiting API
+- [x] **Scope V2** : Auth + dashboard + historique + export PDF
+- [x] **Auth** : Cognito (déjà en place) — connexion **après** le scan pour accéder aux résultats (comme 0.1.0 § 7.4), scanner restant public
 
 ---
 
@@ -361,21 +358,25 @@ Le scan-service appelle le gateway (`GATEWAY_URL`) en fin de scan si `Authorizat
 
 ### 5.6 Nouveaux tests — Intégrité et sous-ressources
 
-#### 5.6.1 Subresource Integrity (SRI) (à faire — MVP 0.2.0)
+#### 5.6.1 Subresource Integrity (SRI)
 
 Détecter les ressources tierces (scripts, CSS) chargées sans garantie d’intégrité.
 
-- [ ] **Scripts/CSS externes (CDN) sans attribut `integrity`** → finding : balises `<script src="https://...">` et `<link href="https://...">` vers domaine externe sans attribut `integrity` (risque MITM / compromission CDN).
-- [ ] **Recommandation SRI pour tiers** : dans le rapport, recommander d’utiliser SRI pour toutes les ressources chargées depuis CDN ou domaines tiers.
+- [x] **Scripts/CSS externes (CDN) sans attribut `integrity`** → finding : balises `<script src="https://...">` et `<link href="https://...">` vers domaine externe sans attribut `integrity` (risque MITM / compromission CDN).
+- [x] **Recommandation SRI pour tiers** : dans le rapport, recommander d’utiliser SRI pour toutes les ressources chargées depuis CDN ou domaines tiers.
 
-#### 5.6.2 Analyse du HTML (à faire — MVP 0.2.0)
+> **Fait :** Implémenté dans `backend/scan-service/app/services/integrity/checks.py` via le parser HTML (`_IntegrityHTMLParser`) qui repère les scripts et CSS externes sans attribut `integrity` et génère un finding agrégé (`Ressources externes sans SRI détectées…`). Tests unitaires dans `backend/scan-service/tests/test_integrity_checks.py::test_check_integrity_sri_on_external_resources`.
+
+#### 5.6.2 Analyse du HTML
 
 Nouveaux checks passifs : parser le HTML de la page principale et signaler les bonnes pratiques manquantes.
 
-- [ ] **`<script>` sans `nonce` ou `integrity`** (contexte CSP) : balises script inline ou externes sans mécanisme d’intégrité ou nonce → finding (risque XSS / injection).
-- [ ] **Formulaires sans `autocomplete="off"`** sur champs sensibles (ex. `type="password"`, champs login) → finding (risque fuite par autocomplétion).
-- [ ] **`target="_blank"` sans `rel="noopener noreferrer"`** : liens ouvrant en nouvel onglet sans protection → finding (risque `window.opener`).
-- [ ] **Meta `robots`** : pages sensibles (login, admin, API) sans `noindex` quand approprié → finding ou info (exposition aux moteurs de recherche).
+- [x] **`<script>` sans `nonce` ou `integrity`** (contexte CSP) : balises script inline ou externes sans mécanisme d’intégrité ou nonce → finding (risque XSS / injection).
+- [x] **Formulaires sans `autocomplete="off"`** sur champs sensibles (ex. `type="password"`, champs login) → finding (risque fuite par autocomplétion).
+- [x] **`target="_blank"` sans `rel="noopener noreferrer"`** : liens ouvrant en nouvel onglet sans protection → finding (risque `window.opener`).
+- [x] **Meta `robots`** : pages sensibles (login, admin, API) sans `noindex` quand approprié → finding ou info (exposition aux moteurs de recherche).
+
+> **Fait :** Les mêmes modules d’intégrité analysent les scripts inline (nonces CSP), les champs `input type="password"` (autocomplete), les liens `target="_blank"` (absence de `rel="noopener"`), et les meta `robots` sur les chemins sensibles (configurés dans `integrity.sensitive_paths`). Couvert par `test_check_integrity_csp_absent_reports_skipped_advanced_checks`, `test_check_integrity_inline_scripts_without_nonce_when_csp_present`, `test_check_integrity_password_autocomplete_and_target_blank` et `test_check_integrity_meta_robots_on_sensitive_page`.
 
 Référence : [integrite-et-sous-ressources.md](verifications/integrite-et-sous-ressources.md).
 
@@ -416,84 +417,22 @@ Tests qui concernent la **page principale** (URL scannée) et ses **sous-ressour
 | **Cache sous-ressources** | Scripts/CSS/images : Cache-Control, cache long pour assets immuables | ✅ Fait (5.3.2) |
 | **CORS** | ACAO *, Credentials+*, Allow-Methods, Expose-Headers sensibles | ✅ Fait (5.4.1) |
 | **Cross-origin** | Mixed content (HTTP sur HTTPS), CORP manquant, Referrer-Policy (via headers) | ✅ Fait (5.4.2) |
-| **SRI** | Scripts/CSS externes (CDN) sans `integrity` → finding + recommandation SRI | ⏳ À faire (5.6.1) |
-| **Analyse HTML** | `<script>` sans nonce/integrity, autocomplete sur password, target="_blank" sans noopener, meta robots | ⏳ À faire (5.6.2) |
+| **SRI** | Scripts/CSS externes (CDN) sans `integrity` → finding + recommandation SRI | ✅ Fait (5.6.1) |
+| **Analyse HTML** | `<script>` sans nonce/integrity, autocomplete sur password, target="_blank" sans noopener, meta robots | ✅ Fait (5.6.2) |
 
-**Conclusion :** Tous les tests passifs frontend listés ci‑dessus sont **faits**, sauf **5.6** (SRI + Analyse du HTML), qui est la seule partie restante à développer pour avoir la liste complète.
+**Conclusion :** Tous les tests passifs frontend listés ci‑dessus sont **faits** pour la v0.2.0, y compris **5.6** (SRI + Analyse du HTML).
 
 ### Ce qui manque dans les tests passifs (section 5)
 
-Les blocs **5.5** (Méthodes HTTP et redirections) et **5.7** (APIs et formats) ont été déplacés dans [A-PENSER-PLUS-TARD.md](A-PENSER-PLUS-TARD.md). Il reste à implémenter :
-
-- **5.6 — Intégrité et sous-ressources**
-  - **5.6.1** SRI : scripts/CSS externes (CDN) sans attribut `integrity` → finding ; recommandation SRI pour ressources tierces.
-  - **5.6.2** Analyse HTML : `<script>` sans `nonce` ou `integrity` (contexte CSP) ; formulaires sans `autocomplete="off"` sur champs sensibles (password) ; `target="_blank"` sans `rel="noopener noreferrer"` ; meta `robots` (noindex sur pages sensibles).
-
-Référence détaillée : [docs/verifications/integrite-et-sous-ressources.md](verifications/integrite-et-sous-ressources.md).
+Les blocs **5.5** (Méthodes HTTP et redirections) et **5.7** (APIs et formats) ont été déplacés dans [A-PENSER-PLUS-TARD.md](A-PENSER-PLUS-TARD.md) et restent à implémenter dans une version ultérieure.
+Le bloc **5.6 — Intégrité et sous-ressources** est livré (voir [docs/verifications/integrite-et-sous-ressources.md](verifications/integrite-et-sous-ressources.md)).
 
 ---
 
-## 6) API publique + clés API
-
-### 6.1 Modèle
-- [ ] Schéma : `api_keys` (id, user_id, key_hash, name, created_at, last_used_at)
-- [ ] Génération : clé aléatoire (ex. 32 caractères) ; stocker uniquement le hash
-
-### 6.2 Authentification
-- [ ] Header `X-API-Key` ou `Authorization: Bearer <api_key>`
-- [ ] Middleware : vérifier la clé, résoudre l’utilisateur, appliquer quotas
-
-### 6.3 Quotas et rate limiting
-- [ ] Quotas par clé : ex. 100 scans/jour
-- [ ] Rate limiting : ex. 10 req/min par clé
-- [ ] Réponse 429 si dépassement
-
-### 6.4 API
-- [ ] `POST /api/keys` : créer une clé (nom, retourne la clé en clair une seule fois)
-- [ ] `GET /api/keys` : liste des clés (sans valeur)
-- [ ] `DELETE /api/keys/{id}` : révoquer une clé
-
-### 6.5 Frontend
-- [ ] Page « Clés API » dans Mon compte
-- [ ] Création, affichage (une fois), révocation
-- [ ] Documentation : exemple curl avec `X-API-Key`
-
----
-
-## 7) Intégration CI/CD (GitHub Action)
-
-### 7.1 Action GitHub
-- [ ] Répo `secureops/actions` ou action dans le monorepo
-- [ ] Inputs : `url`, `api_key` (secret), `fail_on_score_below` (optionnel)
-
-### 7.2 Comportement
-- [ ] Appel `POST /scan/api/scan` avec `X-API-Key`
-- [ ] Parse le résultat (score, findings)
-- [ ] Fail le job si `score < fail_on_score_below` ou si finding critical
-
-### 7.3 Documentation
-- [ ] README : exemple d’utilisation dans un workflow
-- [ ] Badge optionnel : « Scan SecureOps » sur le README du projet
-
----
-
-## 8) Qualité / CI (V2)
-
-### 8.1 Backend
-- [ ] Tests unitaires pour les nouveaux modules (export, historique)
-- [ ] Coverage maintenu
-
-### 8.2 Frontend
-- [ ] Tests unitaires pour les nouveaux composants (dashboard, historique)
-- [ ] E2E tests (optionnel) : login → scan → historique
-
----
-
-## 9) Release MVP v0.2.0
+## 6) Release MVP v0.2.0
 
 - [ ] Tag `v0.2.0`
 - [ ] Release notes (nouvelles fonctionnalités vs v0.1.0)
-- [ ] Migration guide (changements : historique, export PDF — scan reste public)
 - [ ] Mise à jour de la documentation
 
 ---
