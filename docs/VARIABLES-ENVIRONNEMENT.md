@@ -31,6 +31,7 @@ Référence des variables utilisées par le template (racine et frontend).
 | `FRONTEND_URL` | Optionnel | URL du frontend (callback, emails) | `http://localhost:3000` |
 | `IS_DOCKER` | Auto (Docker) | `true` dans les conteneurs pour choisir les URLs des services | — |
 | `DISABLE_AUTH_MIDDLEWARE` | Dev uniquement | Désactive l’auth au gateway si `true` | `false` |
+| `IS_PROD` | Oui (scan-service) | Flag environnement pour le scan-service. Si `1`, `true` ou `yes` (valeur par défaut si non défini), les protections strictes sont activées : blocage localhost/127.0.0.1/::1 et IP privées, ports limités aux ports autorisés. Si `false`, localhost et les ports libres sont autorisés pour les tests locaux (ex. `bad_cache_server.py` sur 127.0.0.1:8001). | `false` en dev (forcé par `launch_dev.sh`), non défini ou `true` en prod |
 
 En Docker, `DATABASE_URL` et `ADMIN_DATABASE_URL` sont construites à partir de `POSTGRES_*` dans le `docker-compose.yml`.
 
