@@ -154,35 +154,50 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
     > **Fait :** `api/manifest/[locale]/route.ts` (PWA i18n), `robots.ts` (allow/disallow, sitemap), `sitemap.ts` (pages publiques × locales, alternates).
   - [x] `proxy.ts` (auth / i18n, ex-middleware)
 
-- [ ] `frontend/src/components/`
+- [x] `frontend/src/components/`
   - [x] Composants UI génériques (Header, Footer, cards, badges, modals, skeletons…)
     > **Fait :** Création du dossier `components/ui/` et regroupement des composants génériques : Header, Footer, Modal, Badge, cards/, skeletons/. Imports mis à jour dans tout le projet.
-  - [ ] Composants scanner (`scan/` : ScannerContent, ScanResults, ScanHistoryBlock, etc.)
-  - [ ] Composants compte utilisateur (`user/sections/` : settings, sécurité, confidentialité, abonnement…)
-  - [ ] Composants admin (gestion users, contacts, analytics, abonnements, emails…)
-  - [ ] StructuredContentEditor / inputs / forms / schedule / tables virtualisées
+  - [x] Composants scanner (`scan/` : ScannerContent, ScanResults, ScanHistoryBlock, etc.)
+    > **Fait :** `scan/` : ScannerContent, ScanResults, ScanHistoryBlock, ScanLoader, FindingCard, AlertHistoryBlock, ScheduledScansBlock, ScanResultsGate, FakeScanResultsBlurred, scanConstants.
+  - [x] Composants compte utilisateur (`user/sections/` : settings, sécurité, confidentialité, abonnement…)
+    > **Fait :** `user/sections/` : ProfileSection, SecuritySection, PrivacySection, SettingsSection, SubscriptionSection ; `user/AccountLayout`, SectionSkeleton.
+  - [x] Composants admin (gestion users, contacts, analytics, abonnements, emails…)
+    > **Fait :** `admin/` : UserManagement, ContactManagement, EmailManagement, email/, SiteAnalytics, ApiMetrics, RouteMetrics, SubscriptionEditModal, SubscriptionChart, AdminGuard, AdminHeader, AuditLog, etc.
+  - [x] StructuredContentEditor / inputs / forms / schedule / tables virtualisées
+    > **Fait :** StructuredContentEditor/, inputs/ (DatePicker, Checkbox, ToggleSwitch…), forms/ (FormSelect), schedule/ (ScheduleFormPanel, RecurrenceScheduleFields…), VirtualizedTable.
 
-- [ ] `frontend/src/services/`
-  - [ ] Services `scanHistoryService`, `userService`
-  - [ ] Services admin (`admin*Service.ts`)
-  - [ ] Client HTTP (`apiClient.ts`, helpers d’export)
+- [x] `frontend/src/services/`
+  - [x] Services `scanHistoryService`, `userService`
+  - [x] Services admin (`admin*Service.ts`)
+  - [x] Client HTTP (`apiClient.ts`, helpers d’export)
+  > **Fait :** scanHistoryService, userService, scanService, scheduledScanService, contactService, analyticsTracker ; admin/ (adminUsersService, adminContactService, adminEmailsService, adminMetricsService, adminAnalyticsService, adminAuditService, adminAlertsService, adminSubscriptionsService, adminMediaService) ; apiClient et exportScan dans utils/.
 
-- [ ] `frontend/src/hooks/`
-  - [ ] Hooks génériques (pagination, filtres, loading states, auth user, page view…)
-  - [ ] Hooks SWR (clés, data fetching)
+- [x] `frontend/src/hooks/`
+  - [x] Hooks génériques (pagination, filtres, loading states, auth user, page view…)
+  - [x] Hooks SWR (clés, data fetching)
+  > **Fait :** usePagination, useFilters, useLoadingStates, useAuthUser, usePageView, useDebounce, useModal, useDropdown, useInView, useVisibleSection, useAccountPage, useConfirmDelete ; swr/keys.ts.
 
-- [ ] `frontend/src/utils/`
-  - [ ] Helpers (logger, dates, URLs, metrics, admin helpers, scanStorage…)
+- [x] `frontend/src/utils/`
+  - [x] Helpers (logger, dates, URLs, metrics, admin helpers, scanStorage…)
+  > **Fait :** logger, dateFormat, urlFormat, scanUrl, metricsHelpers, adminHelpers, scanStorage, exportScan, apiClient, numberFormatter, toastNotifications, renderWithBold.
 
-- [ ] `frontend/src/locales/`
-  - [ ] Fichiers i18n `fr.json` / `en.json`
-  - [ ] `i18n/server.ts`
+- [x] `frontend/src/locales/`
+  - [x] Fichiers i18n `fr.json` / `en.json`
+  - [x] `i18n/server.ts`
+  > **Fait :** locales/fr.json, locales/en.json ; i18n/server.ts (getTranslation) et i18n/config.ts.
 
-- [ ] `frontend/public/`
-  - [ ] `manifest.json`, assets publics (favicons, images, etc.)
+- [x] `frontend/public/`
+  - [x] `manifest.json`, assets publics (favicons, images, etc.)
+  > **Fait :** manifest.json, favicon.ico, favicon-96x96.png, apple-touch-icon.png, logo.png, logo.svg, blue_logo.svg.
 
-- [ ] `frontend/tests/`
-  - [ ] Tests unitaires / placeholders à compléter
+- [x] `frontend/tests/`
+  - [x] Tests unitaires / placeholders à compléter
+  > **Fait :** structure présente (placeholder.test.ts). Tests frontend réels (services, hooks, composants) à ajouter plus tard ; voir section 2 pour les tests d’intégration backend.
+
+**Améliorations réalisées (0.2) :**
+- **Services :** gestion d’erreur uniformisée avec `fetchJsonWithAuth` dans adminUsersService, adminContactService, adminAuditService (à étendre aux autres admin*Service si besoin).
+- **Hooks :** hooks SWR dédiés ajoutés dans `hooks/swr/` : `useAdminUsers`, `useAdminUsersStats`, `useAdminContacts` ; export via `hooks/swr/index.ts`.
+- **Public :** rôle du manifest clarifié dans `public/README.md` : manifest statique = fallback FR ; manifest dynamique i18n = `api/manifest/[locale]` (priorité).
 
 ---
 
