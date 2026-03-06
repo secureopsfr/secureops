@@ -145,10 +145,13 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
   - [x] `.env.example`
     > **Fait :** Configs présentes ; `turbopack.root` dans next.config ; middleware migré en proxy.ts ; .env.example allégé (variables inutiles supprimées).
 
-- [ ] `frontend/src/app/`
-  - [ ] Routing `[locale]/` (pages : accueil, tarifs, scanner, compte, admin, auth, politique de confidentialité…)
-  - [ ] Layouts (layout global, layout mon-compte, layout admin, loading/not-found)
-  - [ ] Routes API (manifest, robots, sitemap)
+- [x] `frontend/src/app/`
+  - [x] Routing `[locale]/` (pages : accueil, tarifs, scanner, compte, admin, auth, politique de confidentialité…)
+    > **Fait :** Toutes les routes sous `[locale]/` : accueil, tarifs, scanner, mon-compte, admin, connexion, inscription, mot-de-passe-oublie, confirmation, contact, politique-confidentialite, [...slug].
+  - [x] Layouts (layout global, layout mon-compte, layout admin, loading/not-found)
+    > **Fait :** `[locale]/layout.tsx` (global), `mon-compte/layout.tsx`, `admin/layout.tsx` ; `loading.tsx` et `not-found.tsx` présents à tous les niveaux concernés.
+  - [x] Routes API (manifest, robots, sitemap)
+    > **Fait :** `api/manifest/[locale]/route.ts` (PWA i18n), `robots.ts` (allow/disallow, sitemap), `sitemap.ts` (pages publiques × locales, alternates).
   - [x] `proxy.ts` (auth / i18n, ex-middleware)
 
 - [ ] `frontend/src/components/`
