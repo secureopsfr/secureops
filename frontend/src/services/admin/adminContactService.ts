@@ -2,7 +2,7 @@
  * Service d'administration pour la gestion des messages de contact.
  */
 
-import { fetchWithAuth, getApiBaseUrl } from "../../utils/apiClient";
+import { fetchJsonWithAuth, getApiBaseUrl } from "../../utils/apiClient";
 import { error as logError, log } from "../../utils/logger";
 import { showErrorToast, getToastT } from "../../utils/toastNotifications";
 
@@ -39,25 +39,13 @@ export async function getContactMessages(
     }
     log("[AdminContactService] Récupération messages contact:", url);
 
-    const response = await fetchWithAuth(url, {
-      method: "GET",
-    });
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      logError(
-        "[AdminContactService] Erreur récupération messages:",
-        errorData,
-      );
-      throw new Error(
-        errorData.detail ||
-          "Erreur lors de la récupération des messages de contact",
-      );
-    }
-
-    const result = await response.json();
+    const result = await fetchJsonWithAuth<
+      PaginatedResponse<ContactMessageRecord>
+    >(
+      url,
+      { method: "GET" },
+      "Erreur lors de la récupération des messages de contact",
+    );
     log("[AdminContactService] Messages de contact récupérés");
     return result;
   } catch (err: unknown) {
@@ -75,25 +63,11 @@ export async function updateContactMessageStatus(
   status: string,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/contact/${messageId}`,
-      {
-        method: "PUT",
-        body: JSON.stringify({ status }),
-      },
+      { method: "PUT", body: JSON.stringify({ status }) },
+      "Erreur lors de la mise à jour du statut du message",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail ||
-          "Erreur lors de la mise à jour du statut du message",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminContactService] Erreur mise à jour statut message:", err);
     showErrorToast(getToastT()("admin.toast.updateContactStatus"));
@@ -105,23 +79,11 @@ export async function deleteContactMessage(
   messageId: number,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/contact/${messageId}`,
-      {
-        method: "DELETE",
-      },
+      { method: "DELETE" },
+      "Erreur lors de la suppression du message",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la suppression du message",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminContactService] Erreur suppression message contact:", err);
     showErrorToast(getToastT()("admin.toast.deleteContact"));
@@ -134,24 +96,11 @@ export async function replyToContactMessage(
   body: string,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/contact/${messageId}/reply`,
-      {
-        method: "POST",
-        body: JSON.stringify({ body }),
-      },
+      { method: "POST", body: JSON.stringify({ body }) },
+      "Erreur lors de l'envoi de la réponse",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de l'envoi de la réponse",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminContactService] Erreur envoi réponse contact:", err);
     showErrorToast(getToastT()("admin.toast.sendContactReply"));
