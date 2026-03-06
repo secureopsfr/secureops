@@ -118,6 +118,7 @@ services:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
       - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
+      - PDF_SERVICE_URL=http://pdf-service:8013
     networks: [app-network]
     depends_on:
       postgres:

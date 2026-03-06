@@ -10,6 +10,7 @@ from fastapi import FastAPI
 
 from app.config_loader import settings
 from app.routers.health import router as health_router
+from app.routers.report import router as report_router
 
 setup_logging(service_name="pdf-service")
 
@@ -36,6 +37,7 @@ def create_app() -> FastAPI:
     app.add_middleware(CorrelationIdMiddleware)
 
     app.include_router(health_router)
+    app.include_router(report_router)
     register_exception_handlers(app)
 
     return app

@@ -16,19 +16,7 @@ def build_synthese(
     score_color: str,
     lang: str,
 ) -> str:
-    """Construit le HTML de la section Synthèse.
-
-    Args:
-        by_category: Findings groupés par catégorie.
-        ordered_cats: Ordre des catégories.
-        findings: Liste des findings.
-        score_val: Score /100.
-        score_color: Couleur du score.
-        lang: Code langue (fr/en).
-
-    Returns:
-        str: HTML de la synthèse.
-    """
+    """Construit le HTML de la section Synthèse."""
     synthese_label = t("synthese", lang)
     score_synthese = t("score", lang)
     status_label = t("status", lang)

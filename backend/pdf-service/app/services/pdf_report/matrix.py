@@ -31,16 +31,7 @@ def _vraisemblance_index(vraisemblance: str) -> int:
 
 
 def render_matrix(gravite: str, vraisemblance: str, lang: str) -> str:
-    """Génère le HTML d'une matrice avec croix à la position (gravité, vraisemblance).
-
-    Args:
-        gravite: Ligne (Mineure, Significative, Importante, Majeure) — du catalogue.
-        vraisemblance: Colonne (Très faible, Faible, Forte, Très forte) — du catalogue.
-        lang: Code langue pour les libellés.
-
-    Returns:
-        str: Fragment HTML de la matrice.
-    """
+    """Génère le HTML d'une matrice avec croix à la position (gravité, vraisemblance)."""
     row_idx = _gravite_index(gravite)
     col_idx = _vraisemblance_index(vraisemblance)
 

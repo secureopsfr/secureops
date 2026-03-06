@@ -10,7 +10,6 @@ from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.schemas.scan import ScanRequest
-from app.services.pdf_report import generate_pdf
 from app.services.scan_runner import ScanRunError, run_scan_to_result
 from app.services.scan_stream import scan_stream_generator
 from app.utils.url_validator import URLValidationError
@@ -53,7 +52,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["scan"])
 
 GATEWAY_URL = os.getenv("GATEWAY_URL", "http://localhost:8000")
+PDF_SERVICE_URL = os.getenv("PDF_SERVICE_URL", "http://localhost:8013")
 FETCH_SCAN_TIMEOUT = 10.0
+PDF_REQUEST_TIMEOUT = 60.0
 
 
 @router.get(
@@ -92,16 +93,23 @@ async def export_scan_pdf(
         logger.warning("Schéma scan invalide pour PDF: %s", e)
         return Response(status_code=502, content="Données du scan invalides")
 
-    pdf_bytes = generate_pdf(
-        url=scan_data.url,
-        score=scan_data.score,
-        timestamp=scan_data.timestamp,
-        duration=scan_data.duration,
-        findings=scan_data.findings,
-        include_matrices=include_matrices,
-        lang=lang if lang in ("fr", "en") else "fr",
-    )
+    pdf_endpoint = urljoin(f"{PDF_SERVICE_URL.rstrip('/')}/", "api/report/pdf")
+    payload = {
+        "url": scan_data.url,
+        "score": scan_data.score,
+        "timestamp": scan_data.timestamp,
+        "duration": scan_data.duration,
+        "findings": scan_data.findings,
+    }
+    params = {"lang": lang if lang in ("fr", "en") else "fr", "include_matrices": include_matrices}
 
+    async with httpx.AsyncClient(timeout=PDF_REQUEST_TIMEOUT) as client:
+        pdf_resp = await client.post(pdf_endpoint, json=payload, params=params)
+        if pdf_resp.status_code >= 400:
+            logger.warning("Erreur pdf-service pour export PDF: %s %s", pdf_resp.status_code, pdf_resp.text[:200])
+            return Response(status_code=502, content="Impossible de générer le PDF")
+
+    pdf_bytes = pdf_resp.content
     host = scan_data.url.replace("https://", "").replace("http://", "").split("/")[0][:30]
     filename = f"scan-{host}-{scan_data.timestamp[:10]}.pdf".replace(":", "-")
 
