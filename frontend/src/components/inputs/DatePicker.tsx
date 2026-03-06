@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useLanguage } from "../LanguageProvider";
 
 const WEEKDAY_LABELS = ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"];
 const MONTH_LABELS = [
@@ -48,6 +49,7 @@ export default function DatePicker({
   showInput = true,
   placeholder = "AAAA-MM-JJ",
 }: DatePickerProps) {
+  const { t } = useLanguage();
   const minDate = useMemo(
     () => (min ? new Date(min + "T00:00:00") : null),
     [min],
@@ -174,7 +176,7 @@ export default function DatePicker({
           onBlur={handleInputBlur}
           placeholder={placeholder}
           className="auth-input w-full mb-3 min-w-0"
-          aria-label="Date au format AAAA-MM-JJ"
+          aria-label={t("datePicker.ariaDate")}
         />
       )}
       <div className="theme-calendar-header">
@@ -195,7 +197,7 @@ export default function DatePicker({
           onClick={nextMonth}
           disabled={!canNext}
           className="theme-calendar-nav"
-          aria-label="Mois suivant"
+          aria-label={t("datePicker.ariaNextMonth")}
         >
           <ChevronRight className="w-4 h-4" />
         </button>

@@ -5,6 +5,7 @@ import { fetchAuthSession } from "aws-amplify/auth";
 import { Upload, ImageIcon, FolderOpen, Check } from "lucide-react";
 import { GenericButton } from "../buttons";
 import Modal from "../ui/Modal";
+import { useLanguage } from "../LanguageProvider";
 import { error } from "../../utils/logger";
 import { formatFileSize } from "../../utils/numberFormatter";
 import { getApiBaseUrl } from "../../utils/apiClient";
@@ -26,6 +27,7 @@ export default function ImageModal({
   onClose,
   onInsert,
 }: ImageModalProps) {
+  const { t } = useLanguage();
   type SourceTab = "upload" | "gallery";
   const [sourceTab, setSourceTab] = useState<SourceTab>("upload");
 
@@ -166,7 +168,8 @@ export default function ImageModal({
           throw new Error(detail);
         }
         throw new Error(
-          detail || `Erreur lors de l'upload: ${response.status}`,
+          detail ||
+            t("imageModal.uploadErrorStatus", { status: response.status }),
         );
       }
 
@@ -184,9 +187,7 @@ export default function ImageModal({
     } catch (err) {
       error("[ImageModal] Erreur upload image:", err);
       setUploadError(
-        err instanceof Error
-          ? err.message
-          : "Erreur lors de l'upload de l'image",
+        err instanceof Error ? err.message : t("imageModal.uploadError"),
       );
     } finally {
       setIsUploading(false);
@@ -230,7 +231,7 @@ export default function ImageModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Ajouter une image"
+      title={t("imageModal.addImage")}
       maxWidth="600px"
     >
       <div className="flex flex-col" style={{ maxHeight: "calc(80vh - 6rem)" }}>
@@ -307,7 +308,7 @@ export default function ImageModal({
                           iconPosition="left"
                         />
                         <GenericButton
-                          label="Annuler"
+                          label={t("imageModal.cancel")}
                           onClick={() => {
                             setSelectedImage(null);
                             if (fileInputRef.current) {
@@ -323,7 +324,7 @@ export default function ImageModal({
                     <div className="space-y-2">
                       <img
                         src={imageUrl}
-                        alt="Preview"
+                        alt={t("imageModal.preview")}
                         className="mx-auto max-h-32 rounded"
                         loading="lazy"
                         decoding="async"
@@ -375,7 +376,7 @@ export default function ImageModal({
                   type="text"
                   value={imageName}
                   onChange={(e) => setImageName(e.target.value)}
-                  placeholder="ex: hero-banner, promo-ete-2026"
+                  placeholder={t("imageModal.urlPlaceholder")}
                   className="auth-input w-full"
                 />
                 <p className="mt-1 text-xs text-[var(--muted)]">
@@ -393,7 +394,7 @@ export default function ImageModal({
                   type="url"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
+                  placeholder={t("imageModal.urlPlaceholder2")}
                   className="auth-input w-full"
                 />
               </div>
@@ -408,7 +409,7 @@ export default function ImageModal({
                 type="text"
                 value={gallerySearch}
                 onChange={(e) => setGallerySearch(e.target.value)}
-                placeholder="Rechercher une image…"
+                placeholder={t("imageModal.searchPlaceholder")}
                 className="auth-input w-full mb-3"
               />
 
@@ -416,7 +417,7 @@ export default function ImageModal({
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-2 border-[rgb(var(--primary))] border-t-transparent" />
                   <span className="ml-2 text-sm text-[var(--muted)]">
-                    Chargement…
+                    {t("imageModal.loading")}
                   </span>
                 </div>
               ) : galleryError ? (
@@ -436,8 +437,8 @@ export default function ImageModal({
                   <ImageIcon className="mx-auto h-8 w-8 text-[var(--muted)] mb-2" />
                   <p className="text-sm text-[var(--muted)]">
                     {gallerySearch.trim()
-                      ? "Aucune image ne correspond à la recherche"
-                      : "Aucune image dans la galerie"}
+                      ? t("imageModal.noSearchResults")
+                      : t("imageModal.noImages")}
                   </p>
                 </div>
               ) : (
@@ -489,7 +490,7 @@ export default function ImageModal({
                 <div className="mt-3 p-2 rounded-lg border border-[rgb(var(--primary))] bg-[rgba(var(--primary),0.05)] flex items-center gap-3">
                   <img
                     src={imageUrl}
-                    alt="Sélection"
+                    alt={t("imageModal.selection")}
                     className="w-12 h-12 rounded object-cover shrink-0"
                     loading="lazy"
                     decoding="async"
@@ -518,7 +519,7 @@ export default function ImageModal({
               type="text"
               value={altText}
               onChange={(e) => setAltText(e.target.value)}
-              placeholder="Description de l'image"
+              placeholder={t("imageModal.descriptionPlaceholder")}
               className="auth-input w-full"
             />
           </div>
@@ -532,7 +533,7 @@ export default function ImageModal({
               type="text"
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              placeholder="Légende qui apparaîtra sous l'image"
+              placeholder={t("imageModal.captionPlaceholder")}
               className="auth-input w-full"
             />
           </div>
@@ -541,12 +542,12 @@ export default function ImageModal({
         {/* Actions (fixe en bas) */}
         <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-[var(--border)] shrink-0">
           <GenericButton
-            label="Annuler"
+            label={t("imageModal.cancel")}
             onClick={onClose}
             variant="secondary"
           />
           <GenericButton
-            label="Ajouter"
+            label={t("imageModal.addImage")}
             onClick={handleInsert}
             disabled={!imageUrl.trim()}
             variant="primary"

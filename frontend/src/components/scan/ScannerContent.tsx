@@ -242,7 +242,7 @@ export default function ScannerContent() {
           delay={80}
           className="page-section landing-reveal-page"
           as="section"
-          aria-label="Scanner header"
+          aria-label={t("scanner.ariaHeader")}
         >
           <div className="page-container">
             <div className="page-header text-center mb-4">
@@ -272,7 +272,7 @@ export default function ScannerContent() {
                   <div className="space-y-4">
                     <form
                       onSubmit={handleSubmit}
-                      aria-label="Scan form"
+                      aria-label={t("scanner.ariaForm")}
                       className="space-y-4"
                     >
                       <label

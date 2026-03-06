@@ -11,7 +11,29 @@
     "success": "Action réalisée avec succès.",
     "notAvailable": "(Non disponible)",
     "typeToConfirm": "Tapez",
-    "toConfirm": "pour confirmer"
+    "toConfirm": "pour confirmer",
+    "noData": "Aucune donnée disponible"
+  },
+  "pagination": {
+    "prev": "Précédent",
+    "next": "Suivant"
+  },
+  "errorBoundary": {
+    "title": "Une erreur est survenue",
+    "message": "Désolé, quelque chose s'est mal passé. Veuillez réessayer.",
+    "tryAgain": "Réessayer",
+    "reloadPage": "Recharger la page",
+    "supportMessage": "Si le problème persiste, veuillez contacter le support technique.",
+    "errorMessageLabel": "Message d'erreur",
+    "stackTraceSummary": "Stack Trace (cliquer pour afficher)"
+  },
+  "modal": {
+    "ariaClose": "Fermer"
+  },
+  "datePicker": {
+    "ariaDate": "Date au format AAAA-MM-JJ",
+    "ariaPrevMonth": "Mois précédent",
+    "ariaNextMonth": "Mois suivant"
   },
   "header": {
     "home": "Accueil",
@@ -212,6 +234,8 @@
     "gateDesc": "Vos résultats sont prêts. Connectez-vous pour les consulter et les exporter.",
     "gateHistoryDesc": "Connectez-vous pour sauvegarder vos résultats dans l'historique.",
     "gateCta": "Se connecter",
+    "ariaHeader": "En-tête du scanner",
+    "ariaForm": "Formulaire de scan",
     "errorTitle": "Erreur lors du scan",
     "errorGeneric": "Une erreur est survenue. Veuillez réessayer.",
     "saveFailed": "Impossible de sauvegarder le scan dans l'historique.",
@@ -358,7 +382,9 @@
     "captchaError": "Erreur lors de l'exécution du captcha. Veuillez réessayer.",
     "captchaUnavailable": "Erreur: captcha non disponible. Veuillez recharger la page.",
     "successMessage": "Message envoyé avec succès ! Un email de confirmation vous a été envoyé. Nous vous répondrons dans les plus brefs délais.",
-    "sendError": "Erreur lors de l'envoi du message"
+    "sendError": "Erreur lors de l'envoi du message",
+    "ariaPage": "Page contact",
+    "ariaForm": "Formulaire de contact"
   },
   "account": {
     "loadingInfo": "Chargement de vos informations...",
@@ -816,6 +842,7 @@
       "loadAuditLog": "Impossible de récupérer le journal d'audit.",
       "loadAuditStats": "Impossible de récupérer les statistiques d'audit."
     },
+    "ariaTabs": "Onglets",
     "tabs": {
       "overview": "Vue d'ensemble",
       "users": "Utilisateurs",
@@ -875,6 +902,7 @@
       "diskSpace": "Espace disque",
       "formats": "Formats",
       "registrationsEvolution": "Évolution inscriptions (6 derniers mois)",
+      "registrationsEvolution12": "Évolution des inscriptions (12 mois)",
       "noAlerts": "Aucune alerte",
       "unacknowledgedCount": "{{count}} non acquittée(s)",
       "allProcessed": "Tous traités",
@@ -1267,7 +1295,14 @@
       "templateCreated": "Template \"{{filename}}\" créé avec succès",
       "templateDeleted": "Template \"{{filename}}\" supprimé avec succès",
       "deleteTemplate": "Supprimer le template",
-      "deleteTemplateConfirm": "Êtes-vous sûr de vouloir supprimer le template \"{{filename}}\" ? Cette action est irréversible."
+      "deleteTemplateConfirm": "Êtes-vous sûr de vouloir supprimer le template \"{{filename}}\" ? Cette action est irréversible.",
+      "viewGrid": "Vue grille",
+      "viewList": "Vue liste",
+      "templatePreview": "Aperçu du template"
+    },
+    "chart": {
+      "free": "Gratuit",
+      "premium": "Premium"
     },
     "windowOptions": {
       "5min": "5 min",
@@ -1347,6 +1382,53 @@
       "replyEmail": "Répondre par email",
       "deleteMessage": "Supprimer le message"
     }
+  },
+  "editor": {
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "bold": "Gras",
+    "italic": "Italique",
+    "underline": "Souligné",
+    "strikethrough": "Barré",
+    "h1": "Titre 1",
+    "h2": "Titre 2",
+    "h3": "Titre 3",
+    "bulletList": "Liste à puces",
+    "numberedList": "Liste numérotée",
+    "alignLeft": "Aligner à gauche",
+    "alignCenter": "Centrer",
+    "alignRight": "Aligner à droite",
+    "insertLink": "Insérer un lien",
+    "linkUrlPlaceholder": "https://example.com",
+    "linkTextPlaceholder": "Texte du lien",
+    "insertImage": "Insérer une image",
+    "textColor": "Couleur du texte",
+    "reset": "Réinitialiser",
+    "divider": "Ligne de séparation",
+    "codeBlock": "Bloc de code",
+    "remove": "Supprimer"
+  },
+  "imageModal": {
+    "addImage": "Ajouter une image",
+    "cancel": "Annuler",
+    "loading": "Chargement…",
+    "noSearchResults": "Aucune image ne correspond à la recherche",
+    "noImages": "Aucune image dans la galerie",
+    "preview": "Aperçu",
+    "selection": "Sélection",
+    "urlPlaceholder": "ex: hero-banner, promo-ete-2026",
+    "urlPlaceholder2": "https://example.com/image.jpg",
+    "searchPlaceholder": "Rechercher une image…",
+    "descriptionPlaceholder": "Description de l'image",
+    "captionPlaceholder": "Légende qui apparaîtra sous l'image",
+    "uploadError": "Erreur lors de l'upload de l'image",
+    "uploadErrorStatus": "Erreur lors de l'upload: {{status}}"
+  },
+  "routeMetrics": {
+    "errorLoad": "Erreur lors du chargement des métriques.",
+    "errorConnection": "Erreur de connexion au serveur.",
+    "errorLoadData": "Erreur lors du chargement des données.",
+    "errorConnectionShort": "Erreur de connexion."
   },
   "notFound": {
     "title": "Page introuvable",

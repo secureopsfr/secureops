@@ -1,5 +1,8 @@
+"use client";
+
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { GenericButton } from "../buttons";
+import { useLanguage } from "../LanguageProvider";
 
 /* ─────────────────────── Types ─────────────────────── */
 
@@ -32,6 +35,7 @@ type PaginationProps = OffsetPaginationProps | PagePaginationProps;
 /* ─────────────────────── Composant ─────────────────────── */
 
 export default function Pagination(props: PaginationProps) {
+  const { t } = useLanguage();
   if (props.mode === "offset") {
     const { offset, limit, total, onPrevious, onNext, disabled } = props;
     if (total <= limit) return null;
@@ -44,13 +48,13 @@ export default function Pagination(props: PaginationProps) {
         </div>
         <div className="flex items-center gap-2">
           <GenericButton
-            label="Précédent"
+            label={t("pagination.prev")}
             onClick={onPrevious}
             disabled={offset === 0 || disabled}
             variant="secondary"
           />
           <GenericButton
-            label="Suivant"
+            label={t("pagination.next")}
             onClick={onNext}
             disabled={offset + limit >= total || disabled}
             variant="secondary"

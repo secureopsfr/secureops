@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Composant de chargement unifié pour toutes les sections admin.
  * Assure une cohérence visuelle à travers tout le panneau d'administration.
@@ -6,13 +8,17 @@
 import React from "react";
 import Card from "../ui/cards/Card";
 import LoadingScreen from "../LoadingScreen";
+import { useLanguage } from "../LanguageProvider";
 
 interface AdminSectionLoadingProps {
   /**
    * Message de chargement personnalisé
-   * Par défaut : "Chargement..."
    */
   message?: string;
+  /**
+   * Clé i18n pour le message (prioritaire si fournie)
+   */
+  messageKey?: string;
   /**
    * Si true, affiche un message d'erreur au lieu du loader
    */
@@ -29,11 +35,19 @@ interface AdminSectionLoadingProps {
  */
 export default function AdminSectionLoading({
   message,
+  messageKey,
   error = null,
   onRetry,
   retryLabel,
   errorTitle,
 }: AdminSectionLoadingProps & { retryLabel?: string; errorTitle?: string }) {
+  const { t } = useLanguage();
+  const displayMessage = messageKey
+    ? t(messageKey)
+    : (message ?? t("common.loading"));
+  const displayErrorTitle = errorTitle ?? t("admin.common.loadingError");
+  const displayRetryLabel = retryLabel ?? t("admin.common.retry");
+
   if (error) {
     return (
       <Card disableHover>
@@ -54,7 +68,7 @@ export default function AdminSectionLoading({
             </svg>
           </div>
           <p className="text-[var(--text)] font-medium mb-2">
-            {errorTitle ?? "Erreur de chargement"}
+            {displayErrorTitle}
           </p>
           <p className="text-[var(--muted)] text-sm mb-4">{error}</p>
           {onRetry && (
@@ -62,7 +76,7 @@ export default function AdminSectionLoading({
               onClick={onRetry}
               className="px-4 py-2 bg-[rgb(var(--primary))] text-white rounded-lg hover:bg-[rgba(var(--primary),0.8)] transition-colors text-sm"
             >
-              {retryLabel ?? "Réessayer"}
+              {displayRetryLabel}
             </button>
           )}
         </div>
@@ -72,24 +86,31 @@ export default function AdminSectionLoading({
 
   return (
     <Card disableHover>
-      <LoadingScreen variant="section" message={message} />
+      <LoadingScreen variant="section" message={displayMessage} />
     </Card>
   );
 }
 
 /**
- * Variante inline pour les chargements dans des sections déjà chargées
+ * Variante inline pour les chargements dans des sections déjà chargées.
+ * Accepte message (texte) ou messageKey (clé i18n).
  */
 export function AdminInlineLoading({
-  message = "Chargement...",
+  message,
+  messageKey,
 }: {
   message?: string;
+  messageKey?: string;
 }) {
+  const { t } = useLanguage();
+  const displayMessage = messageKey
+    ? t(messageKey)
+    : (message ?? t("common.loading"));
   return (
     <div className="flex items-center justify-center py-8">
       <div className="flex items-center gap-3">
         <div className="animate-spin rounded-full h-5 w-5 border-2 border-[rgb(var(--primary))] border-t-transparent"></div>
-        <span className="text-sm text-[var(--muted)]">{message}</span>
+        <span className="text-sm text-[var(--muted)]">{displayMessage}</span>
       </div>
     </div>
   );

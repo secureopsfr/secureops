@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import Card from "./cards/Card";
+import { useLanguage } from "../LanguageProvider";
 
 const DURATION_MS = 250;
 
@@ -41,6 +42,7 @@ export default function Modal({
   showCloseButton = true,
   closeOnBackdropClick = true,
 }: ModalProps) {
+  const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [phase, setPhase] = useState<"enter" | "entered" | "exit" | "exited">(
@@ -183,7 +185,7 @@ export default function Modal({
                 <button
                   onClick={onClose}
                   className="p-1 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors text-[var(--muted)] hover:text-[var(--text)]"
-                  aria-label="Fermer"
+                  aria-label={t("modal.ariaClose")}
                 >
                   <X className="w-5 h-5" />
                 </button>

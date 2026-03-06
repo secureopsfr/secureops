@@ -76,7 +76,9 @@ const ImageGallery = nextDynamic(
 const AuditLog = nextDynamic(
   () => import("../../../components/admin/AuditLog"),
   {
-    loading: () => <AdminInlineLoading message="Chargement de la section..." />,
+    loading: () => (
+      <AdminInlineLoading messageKey="admin.common.loadingSection" />
+    ),
     ssr: false,
   },
 );
@@ -196,7 +198,7 @@ export default function AdminPage() {
                 <div className="text-center mb-8">
                   <nav
                     className="inline-flex gap-2 flex-wrap justify-center"
-                    aria-label="Tabs"
+                    aria-label={t("admin.ariaTabs")}
                   >
                     {tabs.map((tab) => {
                       const isActive = activeTab === tab.id;

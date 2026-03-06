@@ -810,7 +810,7 @@ function TemplatesSection({
               <iframe
                 srcDoc={editContent}
                 className="w-full min-h-[500px] border-0"
-                title="Aperçu du template"
+                title={t("admin.gallery.templatePreview")}
                 sandbox=""
               />
             </div>

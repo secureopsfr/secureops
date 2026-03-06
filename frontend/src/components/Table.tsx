@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { useLanguage } from "./LanguageProvider";
 
 interface Column<T> {
   key: keyof T | string;
@@ -110,13 +111,15 @@ function compareValues(a: unknown, b: unknown): number {
 export default function Table<T extends Record<string, unknown>>({
   data,
   columns,
-  emptyMessage = "Aucune donnée disponible",
+  emptyMessage,
   className = "",
   headerClassName = "",
   rowClassName = "",
   cellClassName = "",
   defaultSort,
 }: TableProps<T>) {
+  const { t } = useLanguage();
+  const displayEmptyMessage = emptyMessage ?? t("common.noData");
   const [sort, setSort] = useState<SortState>({
     key: defaultSort?.key ?? "",
     direction: defaultSort?.direction ?? null,
@@ -166,7 +169,7 @@ export default function Table<T extends Record<string, unknown>>({
   if (!data || data.length === 0) {
     return (
       <div className="py-12 text-center">
-        <p className="text-[var(--muted)]">{emptyMessage}</p>
+        <p className="text-[var(--muted)]">{displayEmptyMessage}</p>
       </div>
     );
   }

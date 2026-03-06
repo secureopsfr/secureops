@@ -2,6 +2,7 @@
 
 import React from "react";
 import { TrendingUp } from "lucide-react";
+import { useLanguage } from "../LanguageProvider";
 import {
   ResponsiveContainer,
   BarChart,
@@ -40,6 +41,7 @@ interface SubscriptionChartProps {
 const SubscriptionChart = React.memo(function SubscriptionChart({
   data,
 }: SubscriptionChartProps) {
+  const { t } = useLanguage();
   if (!data || data.length === 0) return null;
 
   return (
@@ -50,7 +52,7 @@ const SubscriptionChart = React.memo(function SubscriptionChart({
           className="text-base font-semibold text-[var(--text)]"
           style={{ margin: 0 }}
         >
-          Évolution des inscriptions (12 mois)
+          {t("admin.overview.registrationsEvolution12")}
         </h3>
       </div>
       <div style={{ width: "100%", height: 280 }}>
@@ -92,13 +94,13 @@ const SubscriptionChart = React.memo(function SubscriptionChart({
             />
             <Bar
               dataKey="free"
-              name="Free"
+              name={t("admin.chart.free")}
               fill="rgba(var(--primary),0.6)"
               radius={[4, 4, 0, 0]}
             />
             <Bar
               dataKey="premium"
-              name="Premium"
+              name={t("admin.chart.premium")}
               fill="rgb(var(--warning))"
               radius={[4, 4, 0, 0]}
             />
