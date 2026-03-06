@@ -1,6 +1,6 @@
 import { localePath, type Locale } from "../i18n/config";
 import { getTranslation } from "../i18n/server";
-import { Card } from "./cards";
+import { Card } from "./ui/cards";
 import PricingCards from "./PricingCards";
 import type { PricingPlan } from "./PricingCards";
 import AnimateInView from "./AnimateInView";

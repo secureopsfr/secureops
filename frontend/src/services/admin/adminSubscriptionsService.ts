@@ -2,7 +2,7 @@
  * Service d'administration pour la gestion des abonnements.
  */
 
-import { fetchWithAuth, getApiBaseUrl } from "../../utils/apiClient";
+import { fetchJsonWithAuth, getApiBaseUrl } from "../../utils/apiClient";
 import { error as logError } from "../../utils/logger";
 import { showErrorToast, getToastT } from "../../utils/toastNotifications";
 
@@ -59,18 +59,14 @@ export async function getSubscriptions({
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
 
-    const response = await fetchWithAuth(url.toString(), { method: "GET" });
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la récupération des abonnements",
-      );
-    }
-
-    return await response.json();
+    return await fetchJsonWithAuth<{
+      subscriptions: SubscriptionRecord[];
+      total: number;
+    }>(
+      url.toString(),
+      { method: "GET" },
+      "Erreur lors de la récupération des abonnements",
+    );
   } catch (err: unknown) {
     logError(
       "[AdminSubscriptionsService] Erreur récupération abonnements:",
@@ -83,22 +79,11 @@ export async function getSubscriptions({
 
 export async function getSubscriptionStats(): Promise<SubscriptionStatsResponse> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<SubscriptionStatsResponse>(
       `${getApiBaseUrl()}/admin/api/subscriptions/stats`,
       { method: "GET" },
+      "Erreur lors de la récupération des stats abonnements",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail ||
-          "Erreur lors de la récupération des stats abonnements",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError(
       "[AdminSubscriptionsService] Erreur récupération stats abonnements:",
@@ -121,18 +106,14 @@ export async function getSubscriptionHistory({
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
 
-    const response = await fetchWithAuth(url.toString(), { method: "GET" });
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la récupération de l'historique",
-      );
-    }
-
-    return await response.json();
+    return await fetchJsonWithAuth<{
+      history: SubscriptionRecord[];
+      total: number;
+    }>(
+      url.toString(),
+      { method: "GET" },
+      "Erreur lors de la récupération de l'historique",
+    );
   } catch (err: unknown) {
     logError(
       "[AdminSubscriptionsService] Erreur récupération historique abonnements:",
@@ -148,24 +129,11 @@ export async function updateSubscription(
   updates: { plan?: string; status?: string; current_period_end?: string },
 ): Promise<SubscriptionRecord> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<SubscriptionRecord>(
       `${getApiBaseUrl()}/admin/api/subscriptions/${subscriptionId}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(updates),
-      },
+      { method: "PUT", body: JSON.stringify(updates) },
+      "Erreur lors de la mise à jour de l'abonnement",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la mise à jour de l'abonnement",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminSubscriptionsService] Erreur mise à jour abonnement:", err);
     showErrorToast(getToastT()("admin.toast.subUpdate"));

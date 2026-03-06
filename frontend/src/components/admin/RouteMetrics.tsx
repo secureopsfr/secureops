@@ -13,7 +13,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 import Table from "../Table";
 import { DropdownSelector } from "../buttons";
 import adminService from "../../services/admin";
@@ -200,9 +200,7 @@ export default function RouteMetrics({
         setInternalMetrics(result.metrics as Record<string, unknown>[]);
       } else {
         setInternalMetrics([]);
-        setFetchError(
-          result.error || "Erreur lors du chargement des métriques.",
-        );
+        setFetchError(result.error || t("routeMetrics.errorLoad"));
       }
     } catch (err: unknown) {
       logError(
@@ -211,12 +209,12 @@ export default function RouteMetrics({
       );
       setInternalMetrics([]);
       setFetchError(
-        err instanceof Error ? err.message : "Erreur de connexion au serveur.",
+        err instanceof Error ? err.message : t("routeMetrics.errorConnection"),
       );
     } finally {
       setLoading(false);
     }
-  }, [windowMinutes, entityKey, entityLabel, propsMetrics]);
+  }, [windowMinutes, entityKey, entityLabel, propsMetrics, t]);
 
   useEffect(() => {
     loadMetrics();
@@ -251,14 +249,16 @@ export default function RouteMetrics({
           setPoints(res.points);
         } else {
           setPoints([]);
-          setChartError(res.error || "Erreur lors du chargement des données.");
+          setChartError(res.error || t("routeMetrics.errorLoadData"));
         }
       } catch (err: unknown) {
         if (cancelled) return;
         logError("[RouteMetrics] Erreur timeseries:", err);
         setPoints([]);
         setChartError(
-          err instanceof Error ? err.message : "Erreur de connexion.",
+          err instanceof Error
+            ? err.message
+            : t("routeMetrics.errorConnectionShort"),
         );
       } finally {
         if (!cancelled) setChartLoading(false);
@@ -269,6 +269,7 @@ export default function RouteMetrics({
       cancelled = true;
     };
   }, [
+    t,
     selectedEntity,
     effectiveWindowMinutes,
     bucketMinutes,

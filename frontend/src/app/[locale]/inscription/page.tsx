@@ -14,7 +14,7 @@ import { GoogleButton } from "../../../components/auth/GoogleButton";
 import { GenericButton } from "../../../components/buttons";
 import { PasswordInput } from "../../../components/inputs";
 import { useLanguage } from "../../../components/LanguageProvider";
-import { AuthFormSkeleton } from "../../../components/skeletons";
+import { AuthFormSkeleton } from "../../../components/ui/skeletons";
 
 export default function SignUpPage() {
   const router = useRouter();

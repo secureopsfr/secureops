@@ -1,5 +1,5 @@
 import { GenericButton } from "./buttons";
-import { TestimonialCard, FeatureCard } from "./cards";
+import { TestimonialCard, FeatureCard } from "./ui/cards";
 import AnimateInView from "./AnimateInView";
 import { getTranslation } from "../i18n/server";
 import { localePath, type Locale } from "../i18n/config";

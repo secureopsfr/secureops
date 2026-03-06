@@ -1,6 +1,6 @@
 import Skeleton, {
   SkeletonButton,
-} from "../../../components/skeletons/Skeleton";
+} from "../../../components/ui/skeletons/Skeleton";
 
 /**
  * Skeleton de chargement pour la page Admin.

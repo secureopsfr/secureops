@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { localePath, type Locale } from "../i18n/config";
-import { getTranslation } from "../i18n/server";
-import CopyEmailButton from "./CopyEmailButton";
-import AnimateInView from "./AnimateInView";
+import { localePath, type Locale } from "../../i18n/config";
+import { getTranslation } from "../../i18n/server";
+import CopyEmailButton from "../CopyEmailButton";
+import AnimateInView from "../AnimateInView";
 
 const CONTACT_EMAIL = "contact@secureops.io";
 

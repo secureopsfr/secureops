@@ -139,45 +139,67 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
 
 ## 0.2 Frontend — Refactoring par dossier
 
-- [ ] `frontend/` racine
-  - [ ] `package.json` / `package-lock.json`
-  - [ ] `next.config.ts`, `tsconfig.json`, `jest.config.mjs`, `eslint.config.mjs`, `postcss.config.mjs`
-  - [ ] `.env.example`
+- [x] `frontend/` racine
+  - [x] `package.json` / `package-lock.json`
+  - [x] `next.config.ts`, `tsconfig.json`, `jest.config.mjs`, `eslint.config.mjs`, `postcss.config.mjs`
+  - [x] `.env.example`
+    > **Fait :** Configs présentes ; `turbopack.root` dans next.config ; middleware migré en proxy.ts ; .env.example allégé (variables inutiles supprimées).
 
-- [ ] `frontend/src/app/`
-  - [ ] Routing `[locale]/` (pages : accueil, tarifs, scanner, compte, admin, auth, politique de confidentialité…)
-  - [ ] Layouts (layout global, layout mon-compte, layout admin, loading/not-found)
-  - [ ] Routes API (manifest, robots, sitemap)
-  - [ ] `middleware.ts` (auth / i18n)
+- [x] `frontend/src/app/`
+  - [x] Routing `[locale]/` (pages : accueil, tarifs, scanner, compte, admin, auth, politique de confidentialité…)
+    > **Fait :** Toutes les routes sous `[locale]/` : accueil, tarifs, scanner, mon-compte, admin, connexion, inscription, mot-de-passe-oublie, confirmation, contact, politique-confidentialite, [...slug].
+  - [x] Layouts (layout global, layout mon-compte, layout admin, loading/not-found)
+    > **Fait :** `[locale]/layout.tsx` (global), `mon-compte/layout.tsx`, `admin/layout.tsx` ; `loading.tsx` et `not-found.tsx` présents à tous les niveaux concernés.
+  - [x] Routes API (manifest, robots, sitemap)
+    > **Fait :** `api/manifest/[locale]/route.ts` (PWA i18n), `robots.ts` (allow/disallow, sitemap), `sitemap.ts` (pages publiques × locales, alternates).
+  - [x] `proxy.ts` (auth / i18n, ex-middleware)
 
-- [ ] `frontend/src/components/`
-  - [ ] Composants UI génériques (Header, Footer, cards, badges, modals, skeletons…)
-  - [ ] Composants scanner (`scan/` : ScannerContent, ScanResults, ScanHistoryBlock, etc.)
-  - [ ] Composants compte utilisateur (`user/sections/` : settings, sécurité, confidentialité, abonnement…)
-  - [ ] Composants admin (gestion users, contacts, analytics, abonnements, emails…)
-  - [ ] StructuredContentEditor / inputs / forms / schedule / tables virtualisées
+- [x] `frontend/src/components/`
+  - [x] Composants UI génériques (Header, Footer, cards, badges, modals, skeletons…)
+    > **Fait :** Création du dossier `components/ui/` et regroupement des composants génériques : Header, Footer, Modal, Badge, cards/, skeletons/. Imports mis à jour dans tout le projet.
+  - [x] Composants scanner (`scan/` : ScannerContent, ScanResults, ScanHistoryBlock, etc.)
+    > **Fait :** `scan/` : ScannerContent, ScanResults, ScanHistoryBlock, ScanLoader, FindingCard, AlertHistoryBlock, ScheduledScansBlock, ScanResultsGate, FakeScanResultsBlurred, scanConstants.
+  - [x] Composants compte utilisateur (`user/sections/` : settings, sécurité, confidentialité, abonnement…)
+    > **Fait :** `user/sections/` : ProfileSection, SecuritySection, PrivacySection, SettingsSection, SubscriptionSection ; `user/AccountLayout`, SectionSkeleton.
+  - [x] Composants admin (gestion users, contacts, analytics, abonnements, emails…)
+    > **Fait :** `admin/` : UserManagement, ContactManagement, EmailManagement, email/, SiteAnalytics, ApiMetrics, RouteMetrics, SubscriptionEditModal, SubscriptionChart, AdminGuard, AdminHeader, AuditLog, etc.
+  - [x] StructuredContentEditor / inputs / forms / schedule / tables virtualisées
+    > **Fait :** StructuredContentEditor/, inputs/ (DatePicker, Checkbox, ToggleSwitch…), forms/ (FormSelect), schedule/ (ScheduleFormPanel, RecurrenceScheduleFields…), VirtualizedTable.
 
-- [ ] `frontend/src/services/`
-  - [ ] Services `scanHistoryService`, `userService`
-  - [ ] Services admin (`admin*Service.ts`)
-  - [ ] Client HTTP (`apiClient.ts`, helpers d’export)
+- [x] `frontend/src/services/`
+  - [x] Services `scanHistoryService`, `userService`
+  - [x] Services admin (`admin*Service.ts`)
+  - [x] Client HTTP (`apiClient.ts`, helpers d’export)
+  > **Fait :** scanHistoryService, userService, scanService, scheduledScanService, contactService, analyticsTracker ; admin/ (adminUsersService, adminContactService, adminEmailsService, adminMetricsService, adminAnalyticsService, adminAuditService, adminAlertsService, adminSubscriptionsService, adminMediaService) ; apiClient et exportScan dans utils/.
 
-- [ ] `frontend/src/hooks/`
-  - [ ] Hooks génériques (pagination, filtres, loading states, auth user, page view…)
-  - [ ] Hooks SWR (clés, data fetching)
+- [x] `frontend/src/hooks/`
+  - [x] Hooks génériques (pagination, filtres, loading states, auth user, page view…)
+  - [x] Hooks SWR (clés, data fetching)
+  > **Fait :** usePagination, useFilters, useLoadingStates, useAuthUser, usePageView, useDebounce, useModal, useDropdown, useInView, useVisibleSection, useAccountPage, useConfirmDelete ; swr/keys.ts.
 
-- [ ] `frontend/src/utils/`
-  - [ ] Helpers (logger, dates, URLs, metrics, admin helpers, scanStorage…)
+- [x] `frontend/src/utils/`
+  - [x] Helpers (logger, dates, URLs, metrics, admin helpers, scanStorage…)
+  > **Fait :** logger, dateFormat, urlFormat, scanUrl, metricsHelpers, adminHelpers, scanStorage, exportScan, apiClient, numberFormatter, toastNotifications, renderWithBold.
 
-- [ ] `frontend/src/locales/`
-  - [ ] Fichiers i18n `fr.json` / `en.json`
-  - [ ] `i18n/server.ts`
+- [x] `frontend/src/locales/`
+  - [x] Fichiers i18n `fr.json` / `en.json`
+  - [x] `i18n/server.ts`
+  > **Fait :** locales/fr.json, locales/en.json ; i18n/server.ts (getTranslation) et i18n/config.ts.
 
-- [ ] `frontend/public/`
-  - [ ] `manifest.json`, assets publics (favicons, images, etc.)
+- [x] `frontend/public/`
+  - [x] `manifest.json`, assets publics (favicons, images, etc.)
+  > **Fait :** manifest.json, favicon.ico, favicon-96x96.png, apple-touch-icon.png, logo.png, logo.svg, blue_logo.svg.
 
-- [ ] `frontend/tests/`
-  - [ ] Tests unitaires / placeholders à compléter
+- [x] `frontend/tests/`
+  - [x] Tests unitaires / placeholders à compléter
+  > **Fait :** structure présente (placeholder.test.ts). Tests frontend réels (services, hooks, composants) à ajouter plus tard ; voir section 2 pour les tests d’intégration backend.
+
+**Améliorations réalisées (0.2) :**
+- **Services :** gestion d’erreur uniformisée avec `fetchJsonWithAuth` dans tous les services admin concernés : adminUsersService, adminContactService, adminAuditService, **adminAlertsService**, **adminEmailsService**, **adminMediaService** (méthodes JSON uniquement ; upload image reste en FormData), **adminSubscriptionsService** ; et dans **scheduledScanService**. Non modifiés (volontairement) : adminMetricsService, adminAnalyticsService (retournent `{ success, error }`), userService (helper `apiCall`), scanService (SSE pour `runScan`).
+- **Hooks SWR :** hooks dédiés dans `hooks/swr/` : `useAdminUsers`, `useAdminUsersStats`, `useAdminContacts` ; **useAdminAuditLogs**, **useAdminAuditStats** ; **useAdminImages**, **useAdminImageStats** ; **useAdminTemplates**, **useAdminTemplateContent** ; **useAdminAlertRules**, **useAdminAlertEvents**, **useAdminAlertSummary**. Export via `hooks/swr/index.ts`. Les composants **AuditLog**, **AlertingDashboard** et **ImageGallery** (sections Images + Templates) utilisent ces hooks à la place de `useSWR` + services directs.
+- **React.memo :** **KpiGrid** et **SubscriptionChart** enveloppés avec `React.memo` pour limiter les re-renders (KpiCard était déjà mémoïsée).
+- **Public :** rôle du manifest clarifié dans `public/README.md` : manifest statique = fallback FR ; manifest dynamique i18n = `api/manifest/[locale]` (priorité).
+- **i18n (traductions FR/EN) :** suppression des chaînes en dur et harmonisation des aria-labels. Nouvelles clés dans `fr.json` / `en.json` : `common.noData`, `pagination`, `errorBoundary`, `modal`, `datePicker`, `contact.ariaPage` / `ariaForm`, `scanner.ariaHeader` / `ariaForm`, `admin.ariaTabs`, `admin.gallery.viewGrid` / `viewList` / `templatePreview`, `admin.overview.registrationsEvolution12`, `admin.chart.free` / `premium`, `editor.*` (barre d’outils), `imageModal.*`, `routeMetrics.*`. Composants mis à jour : SubscriptionChart, admin/page (loading + aria tabs), SearchToolbar, Pagination, ConfirmModal, GenericButton, Table, VirtualizedTable, AdminSectionLoading / AdminInlineLoading (messageKey), ErrorBoundary (fallback traduit via ErrorBoundaryFallback + renderFallback, ErrorBoundary déplacé dans LanguageProvider), ContactForm, ScannerContent, Modal, DatePicker, ImageGallery (templatePreview), StructuredContentEditor, ImageModal, RouteMetrics. En locale EN, tous ces textes suivent désormais la langue choisie.
 
 ---
 

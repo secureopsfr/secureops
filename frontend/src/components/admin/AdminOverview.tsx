@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import useSWR from "swr";
 import {
   Users,
   CreditCard,
@@ -17,40 +16,16 @@ import {
   RefreshCw,
   ArrowRight,
 } from "lucide-react";
-import Card from "../cards/Card";
-import Badge from "../Badge";
+import Card from "../ui/cards/Card";
+import Badge from "../ui/Badge";
 import KpiGrid from "./KpiGrid";
 import type { KpiItem } from "./KpiGrid";
-import adminService from "../../services/admin";
-import type {
-  UsersStatsResponse,
-  SubscriptionStatsResponse,
-  AlertSummaryResponse,
-  AuditStatsResponse,
-  ImageGalleryStats,
-  PageViewsSummaryResponse,
-} from "../../services/admin";
 import { formatFileSize } from "../../utils/numberFormatter";
-import { computeApiKpis } from "../../utils/metricsHelpers";
-import type { ApiKpis } from "../../utils/metricsHelpers";
 import { GenericButton } from "../buttons";
 import { AdminInlineLoading } from "./AdminSectionLoading";
-import { ADMIN_OVERVIEW_KEY } from "../../hooks/swr/keys";
+import { useAdminOverview } from "../../hooks/swr";
+import type { OverviewData } from "../../hooks/swr";
 import { useLanguage } from "../LanguageProvider";
-
-/* ─────────────────────── Types ─────────────────────── */
-
-interface OverviewData {
-  userStats: UsersStatsResponse | null;
-  subStats: SubscriptionStatsResponse | null;
-  alertSummary: AlertSummaryResponse | null;
-  auditStats: AuditStatsResponse | null;
-  imageStats: ImageGalleryStats | null;
-  siteStats: PageViewsSummaryResponse | null;
-  contactPending: number;
-  contactTotal: number;
-  apiMetrics: ApiKpis | null;
-}
 
 /* ─────────────────────── Props ─────────────────────── */
 
@@ -64,78 +39,7 @@ export default function AdminOverview({ onNavigate }: AdminOverviewProps) {
   const { t, language } = useLanguage();
   const loc = language === "en" ? "en-US" : "fr-FR";
 
-  /* ── SWR : chargement de toutes les données en un seul fetcher ── */
-  const {
-    data,
-    isLoading: loading,
-    mutate: revalidate,
-  } = useSWR<OverviewData>(
-    ADMIN_OVERVIEW_KEY,
-    async () => {
-      const [
-        userStats,
-        subStats,
-        alertSummary,
-        auditStats,
-        imageStats,
-        siteStatsRes,
-        contacts,
-        apiRes,
-      ] = await Promise.allSettled([
-        adminService.getUsersStats(),
-        adminService.getSubscriptionStats(),
-        adminService.getAlertSummary(),
-        adminService.getAuditStats({}),
-        adminService.getImageStats(),
-        adminService.getPageViewsSummary({}),
-        adminService.getContactMessages(null, 1000, 0),
-        adminService.getPerformance({ windowMinutes: 1440, limit: 50 }),
-      ]);
-
-      // Parse site stats (retourne { success, data })
-      let siteStats: PageViewsSummaryResponse | null = null;
-      if (
-        siteStatsRes.status === "fulfilled" &&
-        siteStatsRes.value?.success &&
-        siteStatsRes.value?.data
-      ) {
-        siteStats = siteStatsRes.value.data;
-      }
-
-      // Parse contact counts
-      let contactPending = 0;
-      let contactTotal = 0;
-      if (contacts.status === "fulfilled" && contacts.value) {
-        const contactData = contacts.value.data || [];
-        contactTotal = contacts.value.total || contactData.length;
-        contactPending = contactData.filter(
-          (c: { status: string }) => c.status === "pending",
-        ).length;
-      }
-
-      // Parse API metrics
-      let apiMetrics: ApiKpis | null = null;
-      if (apiRes.status === "fulfilled" && apiRes.value?.success) {
-        const metrics = apiRes.value.metrics as Record<string, unknown>[];
-        apiMetrics = computeApiKpis(metrics);
-      }
-
-      return {
-        userStats: userStats.status === "fulfilled" ? userStats.value : null,
-        subStats: subStats.status === "fulfilled" ? subStats.value : null,
-        alertSummary:
-          alertSummary.status === "fulfilled" ? alertSummary.value : null,
-        auditStats: auditStats.status === "fulfilled" ? auditStats.value : null,
-        imageStats: imageStats.status === "fulfilled" ? imageStats.value : null,
-        siteStats,
-        contactPending,
-        contactTotal,
-        apiMetrics,
-      };
-    },
-    { dedupingInterval: 60_000 },
-  );
-
+  const { data, isLoading: loading, mutate: revalidate } = useAdminOverview();
   const loadAll = () => revalidate();
 
   /* ── fallback si pas encore chargé ── */

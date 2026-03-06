@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
-import Modal from "./Modal";
+import Modal from "./ui/Modal";
 import { GenericButton } from "./buttons";
+import { useLanguage } from "./LanguageProvider";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -28,13 +29,16 @@ export default function ConfirmModal({
   onConfirm,
   title,
   message,
-  confirmText = "Confirmer",
-  cancelText = "Annuler",
+  confirmText,
+  cancelText,
   variant = "default",
   confirmationText,
   icon: Icon,
 }: ConfirmModalProps) {
+  const { t } = useLanguage();
   const [confirmationInput, setConfirmationInput] = useState("");
+  const displayConfirmText = confirmText ?? t("common.confirm");
+  const displayCancelText = cancelText ?? t("common.cancel");
 
   // Réinitialiser l'input quand le modal s'ouvre
   useEffect(() => {
@@ -113,12 +117,12 @@ export default function ConfirmModal({
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
           <GenericButton
-            label={cancelText}
+            label={displayCancelText}
             onClick={onClose}
             variant="secondary"
           />
           <GenericButton
-            label={confirmText}
+            label={displayConfirmText}
             onClick={handleConfirm}
             disabled={isConfirmDisabled}
             variant={isDanger ? "danger" : "primary"}

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLanguage } from "../LanguageProvider";
 
 interface Option {
   value: string;
@@ -98,6 +99,7 @@ const GenericButton: React.FC<GenericButtonProps> = ({
   type = "button",
   style,
 }) => {
+  const { t } = useLanguage();
   // Déterminer si c'est un dropdown ou un bouton simple
   const isDropdown = options.length > 0 && onChange;
 
@@ -170,7 +172,7 @@ const GenericButton: React.FC<GenericButtonProps> = ({
           )}
 
           <span className="flex-1 truncate">
-            {loading ? loadingLabel || "Chargement..." : displayLabel}
+            {loading ? (loadingLabel ?? t("common.loading")) : displayLabel}
           </span>
 
           {icon && iconPosition === "right" && !isDropdown && (
@@ -232,7 +234,7 @@ const GenericButton: React.FC<GenericButtonProps> = ({
   const content = loading ? (
     <>
       <LoadingSpinner variant={variant} />
-      <span>{loadingLabel || `${label}...`}</span>
+      <span>{loadingLabel ?? t("common.loading")}</span>
     </>
   ) : (
     <>

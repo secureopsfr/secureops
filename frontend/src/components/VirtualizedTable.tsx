@@ -2,6 +2,7 @@
 
 import React, { ReactElement } from "react";
 import { List } from "react-window";
+import { useLanguage } from "./LanguageProvider";
 
 interface Column<T = Record<string, unknown>> {
   key: string;
@@ -107,14 +108,16 @@ export default function VirtualizedTable<T = Record<string, unknown>>({
   columns,
   rowHeight = 50,
   height = 600,
-  emptyMessage = "Aucune donnée disponible",
+  emptyMessage,
   cellClassName = "",
 }: VirtualizedTableProps<T>) {
+  const { t } = useLanguage();
+  const displayEmptyMessage = emptyMessage ?? t("common.noData");
   if (data.length === 0) {
     return (
       <div className="rounded-xl border border-[var(--border)] bg-[var(--color-surface)] overflow-hidden">
         <div className="py-12 text-center">
-          <p className="text-[var(--muted)]">{emptyMessage}</p>
+          <p className="text-[var(--muted)]">{displayEmptyMessage}</p>
         </div>
       </div>
     );

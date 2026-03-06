@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  // Racine du projet pour Turbopack (évite le warning lockfiles multiples en monorepo)
+  turbopack: {
+    root: path.resolve(process.cwd()),
+  },
+
   // Pas de trailing slash pour éviter contenu dupliqué (SEO)
   trailingSlash: false,
 

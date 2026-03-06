@@ -2,7 +2,7 @@
  * Service pour les scans planifiés (monitoring continu).
  */
 
-import { fetchWithAuth, getApiBaseUrl } from "../utils/apiClient";
+import { fetchJsonWithAuth, getApiBaseUrl } from "../utils/apiClient";
 import type { PaginatedListResponse } from "../types/api";
 
 export type Frequency = "daily" | "weekly" | "monthly";
@@ -64,7 +64,7 @@ export interface UpdateScheduledScanInput {
 export async function createScheduledScan(
   input: CreateScheduledScanInput,
 ): Promise<ScheduledScan> {
-  const response = await fetchWithAuth(
+  return fetchJsonWithAuth<ScheduledScan>(
     `${getApiBaseUrl()}/user/api/scans/schedule`,
     {
       method: "POST",
@@ -79,19 +79,8 @@ export async function createScheduledScan(
         scan_alerts_enabled: input.scan_alerts_enabled ?? true,
       }),
     },
+    "Erreur lors de la création du scan planifié",
   );
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    const detail = err.detail;
-    const message =
-      typeof detail === "string"
-        ? detail
-        : Array.isArray(detail) && detail.length > 0
-          ? (detail[0] as { msg?: string }).msg || detail[0]
-          : "Erreur lors de la création du scan planifié";
-    throw new Error(message);
-  }
-  return response.json();
 }
 
 export type ScheduledScanListResponse = PaginatedListResponse<ScheduledScan>;
@@ -100,18 +89,11 @@ export async function getScheduledScans(
   page = 1,
   limit = 10,
 ): Promise<ScheduledScanListResponse> {
-  const response = await fetchWithAuth(
+  return fetchJsonWithAuth<ScheduledScanListResponse>(
     `${getApiBaseUrl()}/user/api/scans/schedule?page=${page}&limit=${limit}`,
     { method: "GET" },
+    "Erreur lors de la récupération des scans planifiés",
   );
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(
-      (err.detail as string) ||
-        "Erreur lors de la récupération des scans planifiés",
-    );
-  }
-  return response.json();
 }
 
 export async function updateScheduledScan(
@@ -132,35 +114,19 @@ export async function updateScheduledScan(
   if (input.scan_alerts_enabled !== undefined)
     body.scan_alerts_enabled = input.scan_alerts_enabled;
 
-  const response = await fetchWithAuth(
+  return fetchJsonWithAuth<ScheduledScan>(
     `${getApiBaseUrl()}/user/api/scans/schedule/${id}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(body),
-    },
+    { method: "PATCH", body: JSON.stringify(body) },
+    "Erreur lors de la modification du scan planifié",
   );
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(
-      (err.detail as string) ||
-        "Erreur lors de la modification du scan planifié",
-    );
-  }
-  return response.json();
 }
 
 export async function deleteScheduledScan(id: string): Promise<void> {
-  const response = await fetchWithAuth(
+  await fetchJsonWithAuth(
     `${getApiBaseUrl()}/user/api/scans/schedule/${id}`,
     { method: "DELETE" },
+    "Erreur lors de la suppression du scan planifié",
   );
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(
-      (err.detail as string) ||
-        "Erreur lors de la suppression du scan planifié",
-    );
-  }
 }
 
 export type ScanAlertHistoryListResponse =
@@ -170,30 +136,17 @@ export async function getScanAlertHistory(
   page = 1,
   limit = 10,
 ): Promise<ScanAlertHistoryListResponse> {
-  const response = await fetchWithAuth(
+  return fetchJsonWithAuth<ScanAlertHistoryListResponse>(
     `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history?page=${page}&limit=${limit}`,
     { method: "GET" },
+    "Erreur lors de la récupération de l'historique des alertes",
   );
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(
-      (err.detail as string) ||
-        "Erreur lors de la récupération de l'historique des alertes",
-    );
-  }
-  return response.json();
 }
 
 export async function deleteScanAlertEvent(eventId: string): Promise<void> {
-  const response = await fetchWithAuth(
+  await fetchJsonWithAuth(
     `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history/${eventId}`,
     { method: "DELETE" },
+    "Erreur lors de la suppression de l'événement d'alerte",
   );
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(
-      (err.detail as string) ||
-        "Erreur lors de la suppression de l'événement d'alerte",
-    );
-  }
 }

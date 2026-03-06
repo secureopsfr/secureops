@@ -207,7 +207,7 @@ export default function ContactForm() {
       delay={80}
       className="page-section landing-reveal-page"
       as="section"
-      aria-label="Contact page"
+      aria-label={t("contact.ariaPage")}
     >
       <div className="page-container space-y-6">
         {/* Header */}
@@ -224,7 +224,7 @@ export default function ContactForm() {
 
             <form
               onSubmit={handleSubmit}
-              aria-label="Contact form"
+              aria-label={t("contact.ariaForm")}
               className="space-y-4"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

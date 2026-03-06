@@ -2,7 +2,7 @@
  * Service d'administration pour la gestion des utilisateurs.
  */
 
-import { fetchWithAuth, getApiBaseUrl } from "../../utils/apiClient";
+import { fetchJsonWithAuth, getApiBaseUrl } from "../../utils/apiClient";
 import { error as logError } from "../../utils/logger";
 import { showErrorToast, getToastT } from "../../utils/toastNotifications";
 
@@ -60,18 +60,11 @@ export async function getUsers({
     url.searchParams.set("limit", limit.toString());
     url.searchParams.set("offset", offset.toString());
 
-    const response = await fetchWithAuth(url.toString(), { method: "GET" });
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la récupération des utilisateurs",
-      );
-    }
-
-    return await response.json();
+    return await fetchJsonWithAuth<UsersResponse>(
+      url.toString(),
+      { method: "GET" },
+      "Erreur lors de la récupération des utilisateurs",
+    );
   } catch (err: unknown) {
     logError("[AdminUsersService] Erreur récupération utilisateurs:", err);
     showErrorToast(getToastT()("admin.toast.loadUsers"));
@@ -81,22 +74,11 @@ export async function getUsers({
 
 export async function getUserDetail(userId: string): Promise<UserRecord> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<UserRecord>(
       `${getApiBaseUrl()}/admin/api/users/${userId}`,
       { method: "GET" },
+      "Erreur lors de la récupération du détail utilisateur",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail ||
-          "Erreur lors de la récupération du détail utilisateur",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError(
       "[AdminUsersService] Erreur récupération détail utilisateur:",
@@ -109,21 +91,11 @@ export async function getUserDetail(userId: string): Promise<UserRecord> {
 
 export async function getUsersStats(): Promise<UsersStatsResponse> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<UsersStatsResponse>(
       `${getApiBaseUrl()}/admin/api/users/stats`,
       { method: "GET" },
+      "Erreur lors de la récupération des stats",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la récupération des stats",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError(
       "[AdminUsersService] Erreur récupération stats utilisateurs:",
@@ -139,24 +111,11 @@ export async function updateUserGroup(
   group: string,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/users/${userId}/group`,
-      {
-        method: "PUT",
-        body: JSON.stringify({ group }),
-      },
+      { method: "PUT", body: JSON.stringify({ group }) },
+      "Erreur lors du changement de groupe",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors du changement de groupe",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminUsersService] Erreur changement groupe utilisateur:", err);
     showErrorToast(getToastT()("admin.toast.groupChange"));
@@ -169,24 +128,11 @@ export async function toggleUserStatus(
   action: "disable" | "enable",
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/users/${userId}/status`,
-      {
-        method: "PUT",
-        body: JSON.stringify({ action }),
-      },
+      { method: "PUT", body: JSON.stringify({ action }) },
+      "Erreur lors du changement de statut",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors du changement de statut",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminUsersService] Erreur changement statut utilisateur:", err);
     showErrorToast(getToastT()("admin.toast.statusChange"));

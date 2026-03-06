@@ -7,8 +7,8 @@ import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { GenericButton } from "../buttons";
 import AnimateInView from "../AnimateInView";
-import Card from "../cards/Card";
-import Modal from "../Modal";
+import Card from "../ui/cards/Card";
+import Modal from "../ui/Modal";
 import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
 import ScanResultsGate from "./ScanResultsGate";
@@ -242,7 +242,7 @@ export default function ScannerContent() {
           delay={80}
           className="page-section landing-reveal-page"
           as="section"
-          aria-label="Scanner header"
+          aria-label={t("scanner.ariaHeader")}
         >
           <div className="page-container">
             <div className="page-header text-center mb-4">
@@ -272,7 +272,7 @@ export default function ScannerContent() {
                   <div className="space-y-4">
                     <form
                       onSubmit={handleSubmit}
-                      aria-label="Scan form"
+                      aria-label={t("scanner.ariaForm")}
                       className="space-y-4"
                     >
                       <label

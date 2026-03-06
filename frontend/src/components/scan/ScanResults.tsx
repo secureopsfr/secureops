@@ -13,9 +13,9 @@ import {
 import { useLanguage } from "../LanguageProvider";
 import { GenericButton } from "../buttons";
 import AnimateInView from "../AnimateInView";
-import Card from "../cards/Card";
-import Badge from "../Badge";
-import Modal from "../Modal";
+import Card from "../ui/cards/Card";
+import Badge from "../ui/Badge";
+import Modal from "../ui/Modal";
 import FindingCard from "./FindingCard";
 import type { ScanResult } from "../../services/scanService";
 import {

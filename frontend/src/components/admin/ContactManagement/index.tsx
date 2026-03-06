@@ -4,7 +4,7 @@ import { Mail, RefreshCw, LayoutGrid, List, Trash2 } from "lucide-react";
 import { useContactManagement } from "./hooks/useContactManagement";
 import { useContactColumns } from "./ContactColumns";
 import ContactReplyModal from "./ContactReplyModal";
-import Card from "../../cards/Card";
+import Card from "../../ui/cards/Card";
 import { DropdownSelector } from "../../buttons";
 import Pagination from "../Pagination";
 import ContactKanban from "../ContactKanban";

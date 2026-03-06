@@ -12,6 +12,7 @@ common/logging_config.py
 common/middleware.py
 common/schemas.py
 common/url_utils.py
+common/version.py
 template_common.egg-info/PKG-INFO
 template_common.egg-info/SOURCES.txt
 template_common.egg-info/dependency_links.txt

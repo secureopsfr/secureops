@@ -6,10 +6,10 @@
  */
 
 import { useLanguage } from "../LanguageProvider";
-import Card from "../cards/Card";
-import Badge from "../Badge";
+import Card from "../ui/cards/Card";
+import Badge from "../ui/Badge";
 import { getCategoryKey, getSeverityKey } from "./scanConstants";
-import type { BadgeVariant } from "../Badge";
+import type { BadgeVariant } from "../ui/Badge";
 
 /** Données factices pour simuler un aperçu de résultats. */
 const FAKE_SCORE = 72;

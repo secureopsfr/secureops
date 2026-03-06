@@ -8,7 +8,7 @@ import { ThemeProvider } from "./ThemeProvider";
 import { LanguageProvider } from "./LanguageProvider";
 import { AnalyticsProvider } from "./AnalyticsProvider";
 import { SWRProvider } from "../providers/SWRProvider";
-import ErrorBoundary from "./ErrorBoundary";
+import ErrorBoundary, { ErrorBoundaryFallback } from "./ErrorBoundary";
 import type { Locale } from "../i18n/config";
 
 export function Providers({
@@ -19,18 +19,26 @@ export function Providers({
   locale: Locale;
 }) {
   return (
-    <ErrorBoundary
-      showDetails={process.env.NODE_ENV === "development"}
-      fallbackMessage="Une erreur inattendue s'est produite. Nous travaillons à la résoudre."
-    >
-      <SWRProvider>
-        <ThemeProvider>
-          <LanguageProvider initialLocale={locale}>
+    <SWRProvider>
+      <ThemeProvider>
+        <LanguageProvider initialLocale={locale}>
+          <ErrorBoundary
+            showDetails={process.env.NODE_ENV === "development"}
+            renderFallback={(error, errorInfo, actions) => (
+              <ErrorBoundaryFallback
+                error={error}
+                errorInfo={errorInfo}
+                showDetails={process.env.NODE_ENV === "development"}
+                onReset={actions.onReset}
+                onReload={actions.onReload}
+              />
+            )}
+          >
             <AnalyticsProvider>{children}</AnalyticsProvider>
             <Toaster />
-          </LanguageProvider>
-        </ThemeProvider>
-      </SWRProvider>
-    </ErrorBoundary>
+          </ErrorBoundary>
+        </LanguageProvider>
+      </ThemeProvider>
+    </SWRProvider>
   );
 }

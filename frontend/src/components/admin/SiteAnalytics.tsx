@@ -24,7 +24,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 import { DropdownSelector } from "../buttons";
 import Table from "../Table";
 import KpiGrid from "./KpiGrid";

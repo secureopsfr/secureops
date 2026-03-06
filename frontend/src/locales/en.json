@@ -11,7 +11,29 @@
     "success": "Action completed successfully.",
     "notAvailable": "(Not available)",
     "typeToConfirm": "Type",
-    "toConfirm": "to confirm"
+    "toConfirm": "to confirm",
+    "noData": "No data available"
+  },
+  "pagination": {
+    "prev": "Previous",
+    "next": "Next"
+  },
+  "errorBoundary": {
+    "title": "An error occurred",
+    "message": "Sorry, something went wrong. Please try again.",
+    "tryAgain": "Try again",
+    "reloadPage": "Reload page",
+    "supportMessage": "If the problem persists, please contact technical support.",
+    "errorMessageLabel": "Error message",
+    "stackTraceSummary": "Stack trace (click to expand)"
+  },
+  "modal": {
+    "ariaClose": "Close"
+  },
+  "datePicker": {
+    "ariaDate": "Date in YYYY-MM-DD format",
+    "ariaPrevMonth": "Previous month",
+    "ariaNextMonth": "Next month"
   },
   "header": {
     "home": "Home",
@@ -212,6 +234,8 @@
     "gateDesc": "Your results are ready. Sign in to view and export them.",
     "gateHistoryDesc": "Sign in to save your results to history.",
     "gateCta": "Sign in",
+    "ariaHeader": "Scanner header",
+    "ariaForm": "Scan form",
     "errorTitle": "Scan error",
     "errorGeneric": "An error occurred. Please try again.",
     "saveFailed": "Unable to save scan to history.",
@@ -358,7 +382,9 @@
     "captchaError": "Error executing captcha. Please try again.",
     "captchaUnavailable": "Error: captcha not available. Please reload the page.",
     "successMessage": "Message sent successfully! A confirmation email has been sent to you. We will reply as soon as possible.",
-    "sendError": "Error sending message"
+    "sendError": "Error sending message",
+    "ariaPage": "Contact page",
+    "ariaForm": "Contact form"
   },
   "account": {
     "loadingInfo": "Loading your information...",
@@ -816,6 +842,7 @@
       "loadAuditLog": "Unable to load audit log.",
       "loadAuditStats": "Unable to load audit statistics."
     },
+    "ariaTabs": "Tabs",
     "tabs": {
       "overview": "Overview",
       "users": "Users",
@@ -875,6 +902,7 @@
       "diskSpace": "Disk Space",
       "formats": "Formats",
       "registrationsEvolution": "Registration Evolution (last 6 months)",
+      "registrationsEvolution12": "Registration evolution (12 months)",
       "noAlerts": "No alerts",
       "unacknowledgedCount": "{{count}} unacknowledged",
       "allProcessed": "All processed",
@@ -1267,7 +1295,14 @@
       "templateCreated": "Template \"{{filename}}\" created successfully",
       "templateDeleted": "Template \"{{filename}}\" deleted successfully",
       "deleteTemplate": "Delete template",
-      "deleteTemplateConfirm": "Are you sure you want to delete the template \"{{filename}}\"? This action is irreversible."
+      "deleteTemplateConfirm": "Are you sure you want to delete the template \"{{filename}}\"? This action is irreversible.",
+      "viewGrid": "Grid view",
+      "viewList": "List view",
+      "templatePreview": "Template preview"
+    },
+    "chart": {
+      "free": "Free",
+      "premium": "Premium"
     },
     "windowOptions": {
       "5min": "5 min",
@@ -1347,6 +1382,53 @@
       "replyEmail": "Reply by email",
       "deleteMessage": "Delete message"
     }
+  },
+  "editor": {
+    "undo": "Undo",
+    "redo": "Redo",
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "strikethrough": "Strikethrough",
+    "h1": "Heading 1",
+    "h2": "Heading 2",
+    "h3": "Heading 3",
+    "bulletList": "Bullet list",
+    "numberedList": "Numbered list",
+    "alignLeft": "Align left",
+    "alignCenter": "Center",
+    "alignRight": "Align right",
+    "insertLink": "Insert link",
+    "linkUrlPlaceholder": "https://example.com",
+    "linkTextPlaceholder": "Link text",
+    "insertImage": "Insert image",
+    "textColor": "Text color",
+    "reset": "Reset",
+    "divider": "Divider",
+    "codeBlock": "Code block",
+    "remove": "Remove"
+  },
+  "imageModal": {
+    "addImage": "Add image",
+    "cancel": "Cancel",
+    "loading": "Loading…",
+    "noSearchResults": "No images match your search",
+    "noImages": "No images in gallery",
+    "preview": "Preview",
+    "selection": "Selection",
+    "urlPlaceholder": "e.g. hero-banner, promo-summer-2026",
+    "urlPlaceholder2": "https://example.com/image.jpg",
+    "searchPlaceholder": "Search images…",
+    "descriptionPlaceholder": "Image description",
+    "captionPlaceholder": "Caption to display under the image",
+    "uploadError": "Error uploading image",
+    "uploadErrorStatus": "Upload error: {{status}}"
+  },
+  "routeMetrics": {
+    "errorLoad": "Error loading metrics.",
+    "errorConnection": "Connection error.",
+    "errorLoadData": "Error loading data.",
+    "errorConnectionShort": "Connection error."
   },
   "notFound": {
     "title": "Page not found",
