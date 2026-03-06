@@ -29,7 +29,7 @@ docker volume create pgdata
 docker compose up -d --build
 ```
 
-- Les images sont construites à partir des `Dockerfile` dans `backend/` (gateway, admin-service, user-service, metier-*-service) et `frontend/`.
+- Les images sont construites à partir des `Dockerfile` dans `backend/` (gateway, admin-service, user-service, scan-service, pdf-service) et `frontend/`.
 - Les variables du fichier `.env` à la racine sont injectées dans les conteneurs (voir `docker-compose.yml`).
 - Le frontend reçoit notamment `NEXT_PUBLIC_GATEWAY_URL=http://gateway:8000` pour appeler le gateway depuis le navigateur ; en production, adapter cette URL (domaine public du gateway).
 
@@ -93,7 +93,8 @@ Chaque service expose un endpoint de santé utilisé par Docker et par le gatewa
 | Gateway        | `GET http://gateway:8000/health` |
 | Admin-service  | `GET http://admin-service:8010/api/health` |
 | User-service   | `GET http://user-service:8011/api/health` |
-| Metier-*       | `GET http://metier-*-service:PORT/api/health` |
+| Scan-service   | `GET http://scan-service:8012/api/health` |
+| Pdf-service    | `GET http://pdf-service:8013/api/health` |
 
 Le `docker-compose.yml` définit des `healthcheck` et des `depends_on` avec `condition: service_healthy` pour que le gateway ne démarre qu’une fois les services et Postgres prêts.
 

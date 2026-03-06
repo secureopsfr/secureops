@@ -17,17 +17,17 @@ SecureOps est organisé en **microservices** derrière un **API Gateway** unique
                     ┌─────────────────────────────────────────────────────────┐
                     │                     API Gateway                         │
                     │  Port 8000 • Auth middleware • CORS • Proxy             │
-                    │  Routes : /health, /admin/*, /user/*, /scan/*           │
-                    └───┬─────────┬─────────┬─────────┬────────────┘
-                        │         │         │         │
-          ┌─────────────┘         │         │         └─────────────┐
-          ▼                       ▼         ▼                        ▼
-   ┌───────────────┐     ┌───────────────┐ ┌───────────────────────┐
-   │ admin-service │     │ user-service  │ │ scan-service          │
-   │ Port 8010     │     │ Port 8011    │ │ Port 8012             │
-   │ PostgreSQL    │     │ PostgreSQL   │ │ (scan posture sécu)   │
-   │ Alembic       │     │ Alembic      │ │                       │
-   └───────┬───────┘     └──────┬───────┘ └───────────────────────┘
+                    │  Routes : /health, /admin/*, /user/*, /scan/*, /pdf/*   │
+                    └───┬─────────┬─────────┬─────────┬─────────┬────────────┘
+                        │         │         │         │         │
+          ┌─────────────┘         │         │         │         └─────────────┐
+          ▼                       ▼         ▼         ▼                        ▼
+   ┌───────────────┐     ┌───────────────┐ ┌───────────────┐ ┌───────────────────────┐
+   │ admin-service │     │ user-service  │ │ pdf-service   │ │ scan-service          │
+   │ Port 8010     │     │ Port 8011     │ │ Port 8013     │ │ Port 8012             │
+   │ PostgreSQL    │     │ PostgreSQL    │ │ (rapports PDF) │ │ (scan posture sécu)   │
+   │ Alembic       │     │ Alembic       │ │ WeasyPrint    │ │                       │
+   └───────┬───────┘     └──────┬───────┘ └───────────────┘ └───────────────────────┘
            │                    │
            └────────┬───────────┘
                     ▼
@@ -46,9 +46,12 @@ SecureOps est organisé en **microservices** derrière un **API Gateway** unique
 | **gateway** | 8000 | Authentification JWT (Cognito), CORS, proxy vers les services. Ne stocke pas de données. | — |
 | **admin-service** | 8010 | Administration : contacts, newsletter, emails, analytics, KPIs, alerting, gestion utilisateurs, upload d’images. | PostgreSQL (async), Alembic |
 | **user-service** | 8011 | Utilisateurs : profil, préférences, abonnements, favoris, sécurité, confidentialité. | PostgreSQL, Alembic |
-| **scan-service** | 8012 | Scanner de posture sécurité : TLS/HTTPS, headers, cookies, exposition fichiers, directory listing, robots.txt, fingerprinting. Score /100, findings normalisés. | — |
+| **pdf-service** | 8013 | Génération de rapports PDF (WeasyPrint). Appelé par le scan-service pour l’export PDF ; pas de base de données. | — |
+| **scan-service** | 8012 | Scanner de posture sécurité : TLS/HTTPS, headers, cookies, exposition fichiers, directory listing, robots.txt, fingerprinting. Score /100, findings normalisés. Export PDF via appel HTTP au pdf-service. | — |
 
-Le **scan-service** expose `POST /api/scan` (SSE) et `/api/health`. Protection SSRF, validation URL stricte, timeouts configurables.
+Le **scan-service** expose `POST /api/scan` (SSE), `GET /api/scan/export/pdf` (proxy vers pdf-service) et `/api/health`. Protection SSRF, validation URL stricte, timeouts configurables.
+
+Le **pdf-service** expose `POST /api/report/pdf` (body : payload scan + options lang/include_matrices) et `/api/health`. Optionnellement protégé par clé interne (`X-Internal-Api-Key`) si `PDF_SERVICE_INTERNAL_API_KEY` est définie.
 
 ## Routes du gateway
 
@@ -58,6 +61,7 @@ Le gateway expose :
 - **`/admin/*`** — Proxifié vers admin-service. Requiert **JWT + groupe Cognito `admin`** (sauf routes explicitement publiques).
 - **`/user/*`** — Proxifié vers user-service. Requiert **JWT** (utilisateur authentifié).
 - **`/scan/*`** — Proxifié vers scan-service. `POST /scan/api/scan` est **public** (MVP) ; les autres routes requièrent **JWT**.
+- **`/pdf/*`** — Proxifié vers pdf-service (génération de rapports PDF). Appelé en interne par le scan-service ; le gateway peut ajouter le header `X-Internal-Api-Key` si configuré.
 
 Routes **publiques** (sans auth) :
 

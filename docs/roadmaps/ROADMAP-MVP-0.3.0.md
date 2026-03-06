@@ -105,7 +105,7 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
 
 - [ ] `backend/scan-service/`
   - [ ] `app/`
-    - [ ] `routers/` (scan, health, export PDF, endpoints internes)
+    - [ ] `routers/` (scan, health, export PDF via proxy vers pdf-service, endpoints internes)
     - [ ] `services/`
       - [ ] `tls/`
       - [ ] `security_headers/`
@@ -120,15 +120,14 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
       - [ ] `cors_cross_origin/`
       - [ ] `integrity/`
       - [ ] `subresources/`
-      - [ ] `pdf_report/`
       - [ ] `normalization/`
       - [ ] `scan_history_save/`
       - [ ] `scan_runner.py`
-    - [ ] `catalogue/` (reco, matrices, catégories)
+    - [ ] `catalogue/` (reco, matrices, catégories — hors PDF, voir pdf-service)
     - [ ] `config/` (TLS, cache, CORS, scoring, SSRS, timeouts, URL validation…)
     - [ ] `utils/` (url_validator, ssrf, url_helpers, headers, http_fetch, ssl_scan…)
     - [ ] `models/`, `schemas/`, `errors/`, `static/`
-  - [ ] `tests/` (checks, scoring, PDF, router, SSRF, URL validator…)
+  - [ ] `tests/` (checks, scoring, router, SSRF, URL validator…)
   - [ ] `Dockerfile`
 
 - [ ] `backend/` racine
@@ -226,10 +225,14 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
    - Authentification : soit le gateway vérifie le JWT et transmet la requête au pdf-service, soit le pdf-service est appelé uniquement en interne (scan-service / user-service) avec une clé ou un réseau isolé.
 
 5. **Livrables**
-   - [ ] Créer `backend/pdf-service/` avec endpoint de génération PDF.
-   - [ ] Déplacer la logique et les assets (catalogue, CSS, i18n) depuis le scan-service.
-   - [ ] Adapter le gateway (route vers pdf-service) et le scan-service ou user-service (appel au pdf-service au lieu de générer en local).
-   - [ ] Mettre à jour le docker-compose et la doc (ARCHITECTURE.md, VARIABLES-ENVIRONNEMENT.md).
+   - [x] Créer `backend/pdf-service/` avec endpoint de génération PDF.
+     > **Fait :** Répertoire `backend/pdf-service/` avec `app/` (main, routers/report, services/pdf_report, config, schemas, utils), `config/settings.yml`, `tests/`, `Dockerfile`, `requirements.txt` (WeasyPrint). Endpoint `POST /api/report/pdf` (body : url, score, timestamp, duration, findings ; query : lang, include_matrices) et `GET /api/health`.
+   - [x] Déplacer la logique et les assets (catalogue, CSS, i18n) depuis le scan-service.
+     > **Fait :** Migration de `pdf_report/` (cover, sommaire, synthese, findings, matrix, links, pdf_i18n, html_builder), `config/pdf.py`, `static/pdf_report.css` et `logo.png`, `catalogue/` (recommendations, risk_matrix, category_summaries + JSON) vers pdf-service. Suppression de tout le code PDF du scan-service.
+   - [x] Adapter le gateway (route vers pdf-service) et le scan-service ou user-service (appel au pdf-service au lieu de générer en local).
+     > **Fait :** Gateway : route `/pdf/*` → pdf-service (port 8013) dans `config/settings.yml` ; si `PDF_SERVICE_INTERNAL_API_KEY` définie, header `X-Internal-Api-Key` ajouté au proxy. Scan-service : `GET /api/scan/export/pdf` appelle le pdf-service en POST avec le payload scan ; variables `PDF_SERVICE_URL` et `PDF_SERVICE_INTERNAL_API_KEY`. Pdf-service : vérification optionnelle du header `X-Internal-Api-Key` si clé définie.
+   - [x] Mettre à jour le docker-compose et la doc (ARCHITECTURE.md, VARIABLES-ENVIRONNEMENT.md).
+     > **Fait :** docker-compose (principal, CI, betatest) : service pdf-service, variables `PDF_SERVICE_URL` et `PDF_SERVICE_INTERNAL_API_KEY` pour gateway et scan-service. `launch_dev.sh` : vérification et démarrage du pdf-service. ARCHITECTURE.md : schéma, table des services, route `/pdf/*`, endpoints scan/pdf. VARIABLES-ENVIRONNEMENT.md et `.env.example` (racine, pdf-service, gateway) : documentation des variables PDF. DEPLOIEMENT.md et PDF-I18N.md adaptés.
 
 Les sections suivantes de la roadmap v0.3.0 (nouvelles fonctionnalités, tests actifs, analytics, etc.) seront ajoutées après ce refactoring de base.
 
