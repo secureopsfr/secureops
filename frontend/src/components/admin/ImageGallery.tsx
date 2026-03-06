@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import useSWR from "swr";
 import {
   Upload,
   Trash2,
@@ -25,23 +24,20 @@ import KpiGrid from "./KpiGrid";
 import SearchToolbar from "./SearchToolbar";
 import ConfirmModal from "../ConfirmModal";
 import adminService from "../../services/admin";
-import type {
-  ImageRecord,
-  ImageGalleryStats,
-  TemplateRecord,
-  TemplateContent,
-} from "../../services/admin";
+import type { ImageRecord, TemplateRecord } from "../../services/admin";
 import { error as logError } from "../../utils/logger";
 import { formatFileSize } from "../../utils/numberFormatter";
 import { showSuccessToast } from "../../utils/toastNotifications";
 import { formatDateTime } from "../../utils/dateFormat";
 import { AdminInlineLoading } from "./AdminSectionLoading";
 import {
-  adminImagesKey,
-  ADMIN_IMAGE_STATS_KEY,
-  ADMIN_TEMPLATES_KEY,
-  adminTemplateContentKey,
-} from "../../hooks/swr/keys";
+  useAdminImages,
+  useAdminImageStats,
+} from "../../hooks/swr/useAdminImages";
+import {
+  useAdminTemplates,
+  useAdminTemplateContent,
+} from "../../hooks/swr/useAdminTemplates";
 import { getApiBaseUrl } from "../../utils/apiClient";
 import { useLanguage } from "../LanguageProvider";
 
@@ -204,23 +200,13 @@ function ImagesSection({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  /* ── SWR : images ── */
+  /* ── SWR : images et stats ── */
   const {
-    data: galleryRes,
+    images,
     isLoading: galleryLoading,
     mutate: mutateImages,
-  } = useSWR(adminImagesKey(sortField, sortOrder), () =>
-    adminService.getImages({ sortBy: sortField, sortOrder }),
-  );
-
-  /* ── SWR : stats images ── */
-  const { data: stats, mutate: mutateStats } = useSWR<ImageGalleryStats>(
-    ADMIN_IMAGE_STATS_KEY,
-    () => adminService.getImageStats(),
-    { dedupingInterval: 60_000 },
-  );
-
-  const images = galleryRes?.images ?? [];
+  } = useAdminImages(sortField, sortOrder);
+  const { data: stats, mutate: mutateStats } = useAdminImageStats();
   const loading = galleryLoading;
 
   const loadData = useCallback(() => {
@@ -668,14 +654,15 @@ function TemplatesSection({
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<TemplateRecord | null>(null);
 
-  /* ── SWR : liste des templates ── */
+  /* ── SWR : liste des templates et contenu en édition ── */
   const {
-    data: templatesRes,
+    templates,
     isLoading: templatesLoading,
     mutate: mutateTemplates,
-  } = useSWR(ADMIN_TEMPLATES_KEY, () => adminService.getTemplates());
-
-  const templates = templatesRes?.templates ?? [];
+  } = useAdminTemplates();
+  const { mutate: mutateContent } = useAdminTemplateContent(
+    editingTemplate ?? null,
+  );
 
   useEffect(() => {
     onRegisterActions({
@@ -684,15 +671,6 @@ function TemplatesSection({
       loading: templatesLoading,
     });
   }, [onRegisterActions, mutateTemplates, templatesLoading]);
-
-  /* ── SWR : contenu du template en cours d'édition ── */
-  const { mutate: mutateContent } = useSWR<TemplateContent>(
-    editingTemplate ? adminTemplateContentKey(editingTemplate) : null,
-    () =>
-      editingTemplate
-        ? adminService.getTemplateContent(editingTemplate)
-        : Promise.reject(),
-  );
 
   /* ── Ouvrir l'éditeur ── */
   const handleEdit = async (filename: string) => {

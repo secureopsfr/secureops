@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import useSWR from "swr";
 import {
   Bell,
   Plus,
@@ -27,20 +26,16 @@ import Checkbox from "../inputs/Checkbox";
 import KpiGrid from "./KpiGrid";
 import Pagination from "./Pagination";
 import adminService from "../../services/admin";
-import type {
-  AlertRuleRecord,
-  AlertEventRecord,
-  AlertSummaryResponse,
-} from "../../services/admin";
+import type { AlertRuleRecord } from "../../services/admin";
 import { error as logError } from "../../utils/logger";
 import { formatDateTime } from "../../utils/dateFormat";
 import { AdminInlineLoading } from "./AdminSectionLoading";
 import { useLanguage } from "../LanguageProvider";
 import {
-  adminAlertEventsKey,
-  ADMIN_ALERT_RULES_KEY,
-  ADMIN_ALERT_SUMMARY_KEY,
-} from "../../hooks/swr/keys";
+  useAdminAlertRules,
+  useAdminAlertEvents,
+  useAdminAlertSummary,
+} from "../../hooks/swr/useAdminAlerts";
 
 /* ─────────────────────── Helpers ─────────────────────── */
 
@@ -126,34 +121,18 @@ export default function AlertingDashboard() {
   const [formNotify, setFormNotify] = useState(true);
   const [formSubmitting, setFormSubmitting] = useState(false);
 
-  /* ── SWR : règles d'alerte ── */
-  const { data: rules = [], mutate: mutateRules } = useSWR<AlertRuleRecord[]>(
-    ADMIN_ALERT_RULES_KEY,
-    () => adminService.getAlertRules(),
-  );
-
-  /* ── SWR : événements d'alerte ── */
-  const eventsSwrKey = adminAlertEventsKey({
+  /* ── SWR : règles, événements et résumé alertes ── */
+  const { data: rules, mutate: mutateRules } = useAdminAlertRules();
+  const {
+    events,
+    total: eventsTotal,
+    isLoading: eventsLoading,
+    mutate: mutateEvents,
+  } = useAdminAlertEvents({
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
   });
-  const {
-    data: eventsData,
-    isLoading: eventsLoading,
-    mutate: mutateEvents,
-  } = useSWR(eventsSwrKey, () =>
-    adminService.getAlertEvents({ limit: PAGE_SIZE, offset: page * PAGE_SIZE }),
-  );
-  const events = (eventsData?.events as AlertEventRecord[]) ?? [];
-  const eventsTotal = eventsData?.total ?? 0;
-
-  /* ── SWR : résumé alertes ── */
-  const { data: summary = null, mutate: mutateSummary } =
-    useSWR<AlertSummaryResponse | null>(
-      ADMIN_ALERT_SUMMARY_KEY,
-      () => adminService.getAlertSummary(),
-      { dedupingInterval: 60_000 },
-    );
+  const { summary, mutate: mutateSummary } = useAdminAlertSummary();
 
   const loading = eventsLoading;
 

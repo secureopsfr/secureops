@@ -195,8 +195,9 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
   > **Fait :** structure présente (placeholder.test.ts). Tests frontend réels (services, hooks, composants) à ajouter plus tard ; voir section 2 pour les tests d’intégration backend.
 
 **Améliorations réalisées (0.2) :**
-- **Services :** gestion d’erreur uniformisée avec `fetchJsonWithAuth` dans adminUsersService, adminContactService, adminAuditService (à étendre aux autres admin*Service si besoin).
-- **Hooks :** hooks SWR dédiés ajoutés dans `hooks/swr/` : `useAdminUsers`, `useAdminUsersStats`, `useAdminContacts` ; export via `hooks/swr/index.ts`.
+- **Services :** gestion d’erreur uniformisée avec `fetchJsonWithAuth` dans tous les services admin concernés : adminUsersService, adminContactService, adminAuditService, **adminAlertsService**, **adminEmailsService**, **adminMediaService** (méthodes JSON uniquement ; upload image reste en FormData), **adminSubscriptionsService** ; et dans **scheduledScanService**. Non modifiés (volontairement) : adminMetricsService, adminAnalyticsService (retournent `{ success, error }`), userService (helper `apiCall`), scanService (SSE pour `runScan`).
+- **Hooks SWR :** hooks dédiés dans `hooks/swr/` : `useAdminUsers`, `useAdminUsersStats`, `useAdminContacts` ; **useAdminAuditLogs**, **useAdminAuditStats** ; **useAdminImages**, **useAdminImageStats** ; **useAdminTemplates**, **useAdminTemplateContent** ; **useAdminAlertRules**, **useAdminAlertEvents**, **useAdminAlertSummary**. Export via `hooks/swr/index.ts`. Les composants **AuditLog**, **AlertingDashboard** et **ImageGallery** (sections Images + Templates) utilisent ces hooks à la place de `useSWR` + services directs.
+- **React.memo :** **KpiGrid** et **SubscriptionChart** enveloppés avec `React.memo` pour limiter les re-renders (KpiCard était déjà mémoïsée).
 - **Public :** rôle du manifest clarifié dans `public/README.md` : manifest statique = fallback FR ; manifest dynamique i18n = `api/manifest/[locale]` (priorité).
 
 ---

@@ -37,7 +37,9 @@ interface SubscriptionChartProps {
  * Graphique en barres montrant l'évolution des inscriptions free vs premium
  * sur les 12 derniers mois.
  */
-export default function SubscriptionChart({ data }: SubscriptionChartProps) {
+const SubscriptionChart = React.memo(function SubscriptionChart({
+  data,
+}: SubscriptionChartProps) {
   if (!data || data.length === 0) return null;
 
   return (
@@ -105,4 +107,6 @@ export default function SubscriptionChart({ data }: SubscriptionChartProps) {
       </div>
     </Card>
   );
-}
+});
+
+export default SubscriptionChart;

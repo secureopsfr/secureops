@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import useSWR from "swr";
 import {
   Shield,
   User,
@@ -19,14 +18,15 @@ import Badge from "../ui/Badge";
 import KpiGrid from "./KpiGrid";
 import Pagination from "./Pagination";
 import DropdownSelector from "../buttons/DropdownSelector";
-import adminService from "../../services/admin";
-import type { AuditLogEntry, AuditStatsResponse } from "../../services/admin";
 import { formatDateTime } from "../../utils/dateFormat";
 import { AdminInlineLoading } from "./AdminSectionLoading";
 import { useLanguage } from "../LanguageProvider";
 import { usePagination } from "../../hooks/usePagination";
 import { useFilters } from "../../hooks/useFilters";
-import { adminAuditLogsKey, adminAuditStatsKey } from "../../hooks/swr/keys";
+import {
+  useAdminAuditLogs,
+  useAdminAuditStats,
+} from "../../hooks/swr/useAdminAudit";
 
 /* ─────────────────────── Helpers ─────────────────────── */
 
@@ -89,36 +89,20 @@ export default function AuditLog() {
     action: "",
   });
 
-  /* ── SWR : logs d'audit ── */
-  const logsSwrKey = adminAuditLogsKey({
+  /* ── SWR : logs et stats d'audit ── */
+  const {
+    logs,
+    total,
+    isLoading: logsLoading,
+    mutate: mutateLogs,
+  } = useAdminAuditLogs({
     entity: filters.entity || null,
     action: filters.action || null,
     limit: pagination.limit,
     offset: pagination.offset,
   });
 
-  const {
-    data: logsData,
-    isLoading: logsLoading,
-    mutate: mutateLogs,
-  } = useSWR(logsSwrKey, () =>
-    adminService.getAuditLogs({
-      entityType: filters.entity || null,
-      action: filters.action || null,
-      limit: pagination.limit,
-      offset: pagination.offset,
-    }),
-  );
-
-  const logs = (logsData?.logs as AuditLogEntry[]) ?? [];
-  const total = logsData?.total ?? 0;
-
-  /* ── SWR : stats d'audit ── */
-  const { data: stats } = useSWR<AuditStatsResponse>(
-    adminAuditStatsKey(),
-    () => adminService.getAuditStats(),
-    { dedupingInterval: 60_000 },
-  );
+  const { data: stats } = useAdminAuditStats();
 
   const loading = logsLoading;
   const loadData = () => mutateLogs();
