@@ -10,9 +10,9 @@ from app.exceptions import CognitoConfigurationError, InvalidPasswordError
 from app.schemas.user import ChangePasswordRequest, ChangePasswordResponse
 from app.services.cognito_service import delete_user as delete_cognito_user
 from app.services.cognito_service import revoke_all_user_tokens
-from app.services.user_repository import delete_user_by_id, get_user_by_cognito_sub
+from app.services.user_repository import delete_user_by_id
 from app.services.user_service import change_user_password_service
-from app.utils.auth import get_current_user
+from app.utils.auth import get_current_user, resolve_user
 
 logger = logging.getLogger(__name__)
 
@@ -56,28 +56,15 @@ async def delete_account(
 ) -> None:
     """Supprime le compte de l'utilisateur (Cognito + BDD)."""
     try:
-        cognito_sub = current_user.get("sub")
-        username = current_user.get("username")
-        if not cognito_sub:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Impossible d'identifier l'utilisateur",
-            )
-
         async with get_async_session() as session:
-            user = await get_user_by_cognito_sub(session, cognito_sub)
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Utilisateur non trouvé en base de données",
-                )
-
+            user = await resolve_user(session, current_user)
             user_id = user.id
+            cognito_sub = current_user.get("sub")
+            username = current_user.get("username") or cognito_sub
 
             # Supprimer dans Cognito
             try:
-                cognito_username = username if username else cognito_sub
-                delete_cognito_user(cognito_username)
+                delete_cognito_user(username)
             except Exception as cognito_err:
                 logger.error("Erreur lors de la suppression dans Cognito (continuation): %s", cognito_err, exc_info=True)
 

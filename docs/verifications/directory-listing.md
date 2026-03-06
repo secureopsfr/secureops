@@ -297,3 +297,29 @@ De nombreux frameworks (Django, Flask, Rails, etc.) utilisent un répertoire `/s
 
 - [Nginx – autoindex](https://nginx.org/en/docs/http/ngx_http_autoindex_module.html)
 - [OWASP – Security Misconfiguration](https://owasp.org/www-project-top-ten/2017/A6_2017-Security_Misconfiguration)
+
+---
+
+## Améliorations prévues (v0.2.0)
+
+Les vérifications suivantes seront ajoutées ou étendues dans la version 0.2.0 du scanner :
+
+### Chemins supplémentaires
+
+| Chemin | Sensibilité | Gravité typique |
+|--------|-------------|-----------------|
+| `/tmp/` | Élevée | Élevée |
+| `/logs/` | Élevée | Élevée |
+| `/config/` | Élevée | Élevée |
+| `/backup/` | Élevée | Élevée |
+| `/data/` | Moyenne à élevée | Modérée à élevée |
+
+Ces répertoires contiennent souvent des données sensibles (logs avec IP, configs, sauvegardes). Un listing activé facilite l’énumération et l’accès à des fichiers non prévus pour le public.
+
+### Détection de listing partiel
+
+Certains serveurs ou applications génèrent des pages HTML avec des **liens vers des fichiers** sans utiliser le format standard Apache/Nginx. Le scan peut détecter des réponses HTML contenant des motifs `<a href="...">` pointant vers des fichiers ou sous-dossiers, indiquant une forme de listing (même partiel). Adapter les signatures pour couvrir ces cas.
+
+### Alerte répertoire sensible en 403
+
+Si un répertoire **sensible** (ex. `/admin/`, `/config/`, `/backup/`) retourne **403 Forbidden** au lieu de 404, cela révèle son **existence** : le serveur connaît le chemin et refuse l’accès. Un attaquant peut en déduire la présence de ressources protégées et tenter des contournements (path traversal, bypass). Gravité : Info à Low.

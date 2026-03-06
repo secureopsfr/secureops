@@ -55,7 +55,15 @@ services:
       - COGNITO_REGION=${COGNITO_REGION:-eu-west-3}
       - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID:-test-user-pool-id}
     networks: [app-network]
-    depends_on: [admin-service, user-service, scan-service, postgres]
+    depends_on:
+      admin-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      scan-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
   admin-service:
     build:
@@ -82,11 +90,23 @@ services:
       dockerfile: user-service/Dockerfile
     environment:
       - IS_DOCKER=true
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - SCAN_SERVICE_URL=http://scan-service:8012
+      - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
+      - ADMIN_SERVICE_URL=http://admin-service:8010
+      - ADMIN_SERVICE_INTERNAL_API_KEY=${ADMIN_SERVICE_INTERNAL_API_KEY:-}
+      - SCHEDULED_SCAN_INITIAL_DELAY_SECONDS=${SCHEDULED_SCAN_INITIAL_DELAY_SECONDS:-60}
+      - SCHEDULED_SCAN_INTERVAL_SECONDS=${SCHEDULED_SCAN_INTERVAL_SECONDS:-300}
     networks: [app-network]
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8011/api/health')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   scan-service:
     build:
@@ -95,10 +115,17 @@ services:
     environment:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
     networks: [app-network]
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8012/api/health')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   postgres:
     image: postgis/postgis:15-3.3
@@ -111,7 +138,7 @@ services:
       - ./docker/initdb.d:/docker-entrypoint-initdb.d:ro
     networks: [app-network]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5

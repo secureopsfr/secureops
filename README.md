@@ -78,7 +78,7 @@ secureops/
 ├── docker-compose.yml          # Stack complète
 ├── launch_dev.sh               # Démarrage dev (Postgres + services locaux)
 ├── .env.example                # Variables d’environnement racine
-├── VERSION                     # Version courante (ex. 0.1.0)
+├── VERSION                     # Version courante (ex. 0.2.0)
 ├── CHANGELOG.md                # Historique des modifications
 └── pytest.ini                  # Config pytest (tests à venir)
 ```
@@ -91,8 +91,8 @@ secureops/
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture des services, flux d’authentification, bases de données |
 | [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md) | Déploiement, migrations Alembic, healthchecks, bonnes pratiques |
 | [docs/VARIABLES-ENVIRONNEMENT.md](docs/VARIABLES-ENVIRONNEMENT.md) | Référence des variables d’environnement (racine et frontend) |
-| [docs/ROADMAP-MVP-0.1.0.md](docs/ROADMAP-MVP-0.1.0.md) | Roadmap MVP 0.1.0 (scanner de posture sécurité) |
-| [docs/ROADMAP-MVP-0.2.0.md](docs/ROADMAP-MVP-0.2.0.md) | Roadmap MVP 0.2.0 (auth, historique, export, API publique) |
+| [docs/roadmaps/ROADMAP-MVP-0.1.0.md](docs/roadmaps/ROADMAP-MVP-0.1.0.md) | Roadmap MVP 0.1.0 (scanner de posture sécurité) |
+| [docs/roadmaps/ROADMAP-MVP-0.2.0.md](docs/roadmaps/ROADMAP-MVP-0.2.0.md) | Roadmap MVP 0.2.0 (auth, historique, export, API publique) |
 | [CHANGELOG.md](CHANGELOG.md) | Historique des modifications (Keep a Changelog) |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Lint, pre-commit, conventions de code |
 | [docs/AUDIT-TEMPLATE.md](docs/AUDIT-TEMPLATE.md) | Audit des manques et améliorations prioritaires |

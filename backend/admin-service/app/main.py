@@ -9,6 +9,7 @@ from typing import AsyncIterator
 from common.error_handlers import register_exception_handlers
 from common.logging_config import get_logger, setup_logging
 from common.middleware import CorrelationIdMiddleware
+from common.version import get_app_version
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -23,6 +24,7 @@ from app.routers.contact_public import router as contact_public_router
 from app.routers.email_templates import router as email_templates_router
 from app.routers.health import router as health_router
 from app.routers.image_upload import router as image_upload_router
+from app.routers.internal_notifications import router as internal_notifications_router
 from app.routers.kpis import router as performance_router
 from app.routers.mailing_list import router as mailing_list_router
 from app.routers.newsletter import router as newsletter_router
@@ -151,7 +153,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: C901
 
 def create_app() -> FastAPI:
     """Crée et configure l'application FastAPI."""
-    app = FastAPI(title=config.general.service_name, version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title=config.general.service_name, version=get_app_version(), lifespan=lifespan)
 
     # Pas de CORS : ce service est interne, seul le gateway y accède.
     app.add_middleware(CorrelationIdMiddleware)
@@ -174,6 +176,7 @@ def create_app() -> FastAPI:
     app.include_router(subscription_router, prefix=_API)
     app.include_router(audit_router, prefix=_API)
     app.include_router(alerting_router, prefix=_API)
+    app.include_router(internal_notifications_router)
 
     register_exception_handlers(app)
 

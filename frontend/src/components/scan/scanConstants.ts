@@ -12,14 +12,48 @@ export const SEVERITY_ORDER = [
   "info",
 ] as const;
 
+/** Nombre de checks par catégorie (fallback quand category_summaries absent, ex. historique). */
+export const CHECKS_COUNT_FALLBACK: Record<string, number> = {
+  tls: 4,
+  headers: 6,
+  cache: 5,
+  integrity: 5,
+  cookies: 7,
+  exposed_files: 13,
+  directory_listing: 9,
+  robots_txt: 5,
+  tech_fingerprinting: 6,
+  information_disclosure: 6,
+  cors_cross_origin: 8,
+};
+
+/** Ordre des catégories de tests (aligné avec le PDF). */
+export const CHECKED_CATEGORIES_ORDER: readonly string[] = [
+  "tls",
+  "headers",
+  "cache",
+  "integrity",
+  "cookies",
+  "exposed_files",
+  "directory_listing",
+  "robots_txt",
+  "tech_fingerprinting",
+  "information_disclosure",
+  "cors_cross_origin",
+];
+
 export const CATEGORY_I18N_MAP: Record<string, string> = {
   tls: "scanner.categoryTls",
   headers: "scanner.categoryHeaders",
+  cache: "scanner.categoryCache",
+  integrity: "scanner.categoryIntegrity",
   cookies: "scanner.categoryCookies",
   exposed_files: "scanner.categoryExposedFiles",
   directory_listing: "scanner.categoryDirectoryListing",
   robots_txt: "scanner.categoryRobotsTxt",
   tech_fingerprinting: "scanner.categoryTechFingerprinting",
+  information_disclosure: "scanner.categoryInformationDisclosure",
+  cors_cross_origin: "scanner.categoryCorsCrossOrigin",
 };
 
 export const SEVERITY_I18N_MAP: Record<string, string> = {
@@ -32,6 +66,25 @@ export const SEVERITY_I18N_MAP: Record<string, string> = {
 
 export function getCategoryKey(category: string): string {
   return CATEGORY_I18N_MAP[category] ?? category;
+}
+
+/** Clés i18n pour le résumé « ce qui a été vérifié » quand tout est OK. */
+export const CATEGORY_SUMMARY_OK_I18N: Record<string, string> = {
+  tls: "scanner.summaryTlsOk",
+  headers: "scanner.summaryHeadersOk",
+  cache: "scanner.summaryCacheOk",
+  integrity: "scanner.summaryIntegrityOk",
+  cookies: "scanner.summaryCookiesOk",
+  exposed_files: "scanner.summaryExposedFilesOk",
+  directory_listing: "scanner.summaryDirectoryListingOk",
+  robots_txt: "scanner.summaryRobotsTxtOk",
+  tech_fingerprinting: "scanner.summaryTechFingerprintingOk",
+  information_disclosure: "scanner.summaryInformationDisclosureOk",
+  cors_cross_origin: "scanner.summaryCorsCrossOriginOk",
+};
+
+export function getCategorySummaryOkKey(category: string): string {
+  return CATEGORY_SUMMARY_OK_I18N[category] ?? "";
 }
 
 export function getSeverityKey(severity: string): string {

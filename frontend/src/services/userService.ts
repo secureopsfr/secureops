@@ -251,6 +251,7 @@ class UserService {
   async updateSubscriptionPreferences(preferences: {
     newsletter_enabled?: boolean;
     new_features_notifications_enabled?: boolean;
+    history_retention?: string;
   }): Promise<ApiResponse> {
     return this.apiCall("/user/api/user/subscription/preferences", {
       method: "PATCH",

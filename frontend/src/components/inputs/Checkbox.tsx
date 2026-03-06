@@ -33,7 +33,7 @@ const Checkbox: React.FC<CheckboxProps> = ({
     >
       <div
         className="relative inline-flex items-center"
-        style={{ width: "20px", height: "20px", flexShrink: 0 }}
+        style={{ width: "16px", height: "16px", flexShrink: 0 }}
       >
         <input
           type="checkbox"
@@ -43,8 +43,8 @@ const Checkbox: React.FC<CheckboxProps> = ({
           data-testid={dataTestId}
           style={{
             position: "absolute",
-            width: "20px",
-            height: "20px",
+            width: "16px",
+            height: "16px",
             margin: 0,
             padding: 0,
             opacity: 0,
@@ -57,11 +57,11 @@ const Checkbox: React.FC<CheckboxProps> = ({
         />
         <div
           style={{
-            width: "20px",
-            height: "20px",
+            width: "16px",
+            height: "16px",
             borderWidth: "2px",
             borderStyle: "solid",
-            borderRadius: "4px",
+            borderRadius: "3px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

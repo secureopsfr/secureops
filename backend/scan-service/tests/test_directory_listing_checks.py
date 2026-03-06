@@ -131,6 +131,61 @@ async def test_run_directory_listing_checks_fetch_ok_false_si_toutes_echouent() 
     assert result.exposed == ()
 
 
+@pytest.mark.asyncio()
+async def test_run_directory_listing_checks_partial_listing() -> None:
+    """Listing partiel : HTML avec liens vers fichiers (sans signature Apache/Nginx)."""
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.content = b"""<html><body><h1>Files</h1>
+    <a href="report.pdf">report.pdf</a>
+    <a href="data.csv">data.csv</a>
+    <a href="backup.zip">backup.zip</a>
+    </body></html>"""
+
+    async def _fetch_side_effect(url, **kwargs):
+        if "uploads" in url:
+            return mock_resp
+        resp_404 = MagicMock()
+        resp_404.status_code = 404
+        resp_404.content = b""
+        return resp_404
+
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.side_effect = _fetch_side_effect
+
+        result = await run_directory_listing_checks("https://example.com")
+
+    uploads_finding = next((e for e in result.exposed if "/uploads/" in e.path), None)
+    assert uploads_finding is not None
+
+
+@pytest.mark.asyncio()
+async def test_run_directory_listing_checks_403_sensitive_path() -> None:
+    """403 sur /config/ (chemin sensible) → finding exposed_403."""
+    mock_resp_403 = MagicMock()
+    mock_resp_403.status_code = 403
+    mock_resp_403.content = b"Forbidden"
+
+    async def _fetch_side_effect(url, **kwargs):
+        if "config" in url:
+            return mock_resp_403
+        resp_404 = MagicMock()
+        resp_404.status_code = 404
+        resp_404.content = b""
+        return resp_404
+
+    with patch("app.services.path_checks.core.fetch_url", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.side_effect = _fetch_side_effect
+
+        result = await run_directory_listing_checks("https://example.com")
+
+    assert len(result.exposed_403) >= 1
+    config_finding = next((e for e in result.exposed_403 if "/config/" in e.path), None)
+    assert config_finding is not None
+    assert "403" in config_finding.message
+    assert result.fetch_ok is True
+
+
 def test_directory_listing_check_result_to_dict() -> None:
     """to_dict() sérialise correctement pour l'événement SSE result."""
     result = DirectoryListingCheckResult(
@@ -146,3 +201,19 @@ def test_directory_listing_check_result_to_dict() -> None:
     assert d["exposed"][0]["severity"] == "high"
     assert d["exposed"][0]["message"] == "Listing activé sur /uploads/."
     assert d["findings"] == ["Listing activé sur /uploads/."]
+    assert "exposed_403" in d
+    assert d["exposed_403"] == []
+
+
+def test_directory_listing_check_result_to_dict_with_exposed_403() -> None:
+    """to_dict() inclut exposed_403 quand présent."""
+    pf_403 = DirectoryListingEntry("/config/", "medium", "Répertoire sensible /config/ retourne 403.")
+    result = DirectoryListingCheckResult(
+        exposed=(),
+        findings=(),
+        fetch_ok=True,
+        exposed_403=(pf_403,),
+    )
+    d = result.to_dict()
+
+    assert d["exposed_403"] == [{"path": "/config/", "severity": "medium", "message": pf_403.message}]

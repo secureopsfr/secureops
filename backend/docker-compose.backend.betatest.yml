@@ -74,6 +74,10 @@ services:
       - IS_DOCKER=true
       - IS_PROD=true
       - DATABASE_URL=${RDS_DATABASE_URL}
+      - SCAN_SERVICE_URL=http://scan-service:8012
+      - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
+      - SCHEDULED_SCAN_INITIAL_DELAY_SECONDS=${SCHEDULED_SCAN_INITIAL_DELAY_SECONDS:-60}
+      - SCHEDULED_SCAN_INTERVAL_SECONDS=${SCHEDULED_SCAN_INTERVAL_SECONDS:-300}
     restart: unless-stopped
     networks:
       - app-network
@@ -100,6 +104,7 @@ services:
       - IS_DOCKER=true
       - IS_PROD=true
       - DATABASE_URL=${RDS_DATABASE_URL}
+      - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
     restart: unless-stopped
     networks:
       - app-network

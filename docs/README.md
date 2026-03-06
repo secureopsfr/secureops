@@ -18,9 +18,9 @@ Index de la documentation du projet.
 
 ## Roadmaps et versions
 
-- [**ROADMAP-MVP-0.1.0.md**](ROADMAP-MVP-0.1.0.md) — Roadmap MVP 0.1.0 : scanner de posture sécurité (TLS, headers, cookies, exposition fichiers, etc.).
+- [**ROADMAP-MVP-0.1.0.md**](roadmaps/ROADMAP-MVP-0.1.0.md) — Roadmap MVP 0.1.0 : scanner de posture sécurité (TLS, headers, cookies, exposition fichiers, etc.).
 
-- [**ROADMAP-MVP-0.2.0.md**](ROADMAP-MVP-0.2.0.md) — Roadmap MVP 0.2.0 : auth, historique, export PDF, API publique, monitoring.
+- [**ROADMAP-MVP-0.2.0.md**](roadmaps/ROADMAP-MVP-0.2.0.md) — Roadmap MVP 0.2.0 : auth, historique, export PDF, API publique, monitoring.
 
 - [**CHANGELOG.md**](../CHANGELOG.md) — Historique des modifications (format Keep a Changelog). Version courante dans [VERSION](../VERSION).
 

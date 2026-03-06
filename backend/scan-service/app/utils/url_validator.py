@@ -1,70 +1,54 @@
 """Validation et normalisation des URLs pour le scan (posture sécurité).
 
-Conformité roadmap MVP : schéma http/https uniquement, pas de credentials,
-ports 80/443, longueur limitée, normalisation. Configuration dans config/settings.yml (url_validation).
+Délègue à common.url_utils pour la normalisation de base, puis ajoute
+la validation des ports (config settings.yml).
+
+En production (`IS_PROD=true`), seuls les ports configurés sont autorisés.
+En environnement non prod (`IS_PROD=false`), la vérification des ports est
+désactivée pour faciliter les tests locaux (ex. serveur sur 127.0.0.1:8001).
 """
 
-from urllib.parse import urlparse, urlunparse
+import os
+from urllib.parse import urlparse
+
+from common.url_utils import URLValidationError, normalize_scan_url
 
 from app.config_loader import get_url_validation_settings
 
 
-class URLValidationError(ValueError):
-    """Erreur de validation d'URL (schéma, credentials, port, longueur)."""
+def _is_prod_env() -> bool:
+    """Indique si l'environnement est en mode production.
 
-    pass
+    La variable d'environnement IS_PROD est considérée vraie si elle vaut
+    "1", "true" ou "yes" (insensible à la casse). Si elle est absente,
+    le comportement par défaut est conservateur (prod).
+    """
+    value = os.getenv("IS_PROD", "true").lower().strip()
+    return value in ("1", "true", "yes")
 
 
 def validate_and_normalize_url(url: str) -> str:
     """Valide l'URL et retourne une forme normalisée.
 
-    Vérifications (roadmap §2.1) :
-    - Schéma http ou https uniquement.
-    - Refus des credentials (user:pass@host).
-    - Port 80, 443 ou port par défaut implicite.
-    - Longueur <= max_url_length (settings).
-    - Normalisation (minuscules schéma/netloc, fragment supprimé).
+    Utilise common.url_utils pour schéma, credentials, netloc. Ajoute
+    la validation des ports (80, 443, 1010, 1011 selon config) en mode
+    production uniquement.
 
     Args:
         url: Chaîne URL à valider.
 
     Returns:
-        str: URL normalisée (sans fragment, schéma/netloc en minuscules).
+        str: URL normalisée.
 
     Raises:
-        URLValidationError: Si l'URL est invalide (schéma, credentials, port, longueur).
+        URLValidationError: Si l'URL est invalide.
     """
-    if not url or not isinstance(url, str):
-        raise URLValidationError("URL vide ou invalide.")
-
     cfg = get_url_validation_settings()
-    url_stripped = url.strip()
-    if len(url_stripped) > cfg.max_url_length:
-        raise URLValidationError(f"URL trop longue (max {cfg.max_url_length} caractères).")
+    normalized = normalize_scan_url(url, max_length=cfg.max_url_length)
 
-    try:
-        parsed = urlparse(url_stripped)
-    except Exception as e:
-        raise URLValidationError(f"URL mal formée: {e}") from e
-
-    scheme = (parsed.scheme or "").lower()
-    if scheme not in cfg.allowed_schemes:
-        raise URLValidationError(f"Seuls les schémas http et https sont autorisés (reçu: {parsed.scheme or 'vide'}).")
-
-    if parsed.username or parsed.password:
-        raise URLValidationError("Les credentials dans l'URL (user:pass@host) ne sont pas autorisés.")
-
-    if parsed.port is not None and parsed.port not in cfg.allowed_ports:
+    parsed = urlparse(normalized)
+    if _is_prod_env() and parsed.port is not None and parsed.port not in cfg.allowed_ports:
         ports_str = ", ".join(str(p) for p in sorted(cfg.allowed_ports))
         raise URLValidationError(f"Seuls les ports {ports_str} sont autorisés.")
-
-    if not parsed.netloc:
-        raise URLValidationError("URL sans host (netloc manquant).")
-
-    # Normalisation : minuscules pour schéma et netloc, suppression du fragment
-    normalized_netloc = parsed.netloc.lower()
-    normalized = urlunparse((scheme, normalized_netloc, parsed.path or "/", parsed.params, parsed.query, ""))
-    if len(normalized) > cfg.max_url_length:
-        raise URLValidationError(f"URL normalisée trop longue (max {cfg.max_url_length} caractères).")
 
     return normalized

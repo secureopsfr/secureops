@@ -163,3 +163,23 @@ Le signalement des routes sensibles dans robots.txt est généralement classé e
 - [Robots Exclusion Protocol](https://www.robotstxt.org/)
 - [Google – robots.txt](https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt)
 - [OWASP – Information Exposure](https://owasp.org/www-community/attacks/Information_exposure_through_query_strings_in_url)
+
+---
+
+## Améliorations prévues (v0.2.0)
+
+Les vérifications suivantes seront ajoutées ou étendues dans la version 0.2.0 du scanner :
+
+### 4. Détecter Crawl-delay
+
+La directive **`Crawl-delay`** (non standard, supportée par certains robots comme Bingbot) demande un délai entre les requêtes. Sa présence peut indiquer une volonté de limiter la charge. Info uniquement : ce n’est pas une mesure de sécurité.
+
+### 5. Analyser Allow en complément de Disallow
+
+Les directives **`Allow`** peuvent affiner les règles (ex. `Disallow: /api/` puis `Allow: /api/public/`). Le scan doit parser `Allow` pour avoir une vue complète des chemins autorisés ou interdits, et éviter les faux positifs sur les exceptions.
+
+---
+
+## Vérification Sitemap (séparée)
+
+La vérification du **sitemap** (présence de `Sitemap:` dans robots.txt, fallback à l'emplacement classique, analyse des URLs sensibles) est documentée dans [sitemap.md](sitemap.md).

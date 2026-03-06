@@ -26,9 +26,12 @@ Usage typique dans ``app/db.py`` d'un service::
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import logging
 import os
+import subprocess
+import sys
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -67,19 +70,30 @@ def build_async_database_url() -> str:
 def run_alembic_migrations(alembic_ini: str) -> None:
     """Exécute les migrations Alembic en mode ``upgrade head``.
 
+    Utilise un subprocess pour éviter de bloquer la boucle d'événements async
+    et pour ne pas écraser la configuration de logging du service.
+
     Args:
         alembic_ini: chemin absolu ou relatif vers ``alembic.ini``.
-    """
-    try:
-        from alembic import command
-        from alembic.config import Config
 
-        alembic_cfg = Config(alembic_ini)
-        command.upgrade(alembic_cfg, "head")
+    Raises:
+        RuntimeError: si la migration échoue.
+    """
+    alembic_dir = os.path.dirname(os.path.abspath(alembic_ini))
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            cwd=alembic_dir,
+            env=os.environ.copy(),
+            capture_output=False,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"Migration Alembic échouée (code {result.returncode})")
         logger.info("Migrations Alembic appliquées avec succès")
     except Exception as e:
         logger.error("Erreur lors de l'exécution des migrations Alembic: %s", e)
-        raise
+        raise RuntimeError(f"Migration Alembic échouée: {e}") from e
 
 
 class AsyncDatabase:
@@ -146,9 +160,10 @@ class AsyncDatabase:
             # Importer les modèles pour enregistrer les métadonnées
             importlib.import_module(models_import)
 
-            # Appliquer les migrations Alembic
+            # Appliquer les migrations Alembic (subprocess pour ne pas bloquer l'event loop)
             if alembic_ini is not None:
-                run_alembic_migrations(alembic_ini)
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, run_alembic_migrations, alembic_ini)
 
             logger.info("Tables et migrations initialisées avec succès")
         except Exception as e:

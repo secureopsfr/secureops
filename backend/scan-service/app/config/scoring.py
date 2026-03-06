@@ -17,11 +17,16 @@ class ScoringSettings:
 _DEFAULT_WEIGHTS: dict[str, int] = {
     "tls": 25,
     "headers": 25,
+    "cache": 5,
+    "integrity": 5,
     "cookies": 20,
     "exposed_files": 10,
     "directory_listing": 10,
     "robots_txt": 5,
+    "sitemap": 5,
     "tech_fingerprinting": 5,
+    "information_disclosure": 5,
+    "cors_cross_origin": 5,
 }
 _DEFAULT_PENALTIES: dict[str, int] = {
     "critical": 100,

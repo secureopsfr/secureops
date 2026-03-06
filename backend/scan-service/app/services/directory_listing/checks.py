@@ -1,18 +1,75 @@
 """Détection du directory listing (roadmap §3.5).
 
-Teste une liste de répertoires usuels (/uploads/, /assets/, /static/) et détecte
-si le serveur renvoie une page de listing (signatures Apache/Nginx).
+Teste une liste de répertoires usuels (/uploads/, /assets/, /static/, /tmp/, /logs/, etc.)
+et détecte si le serveur renvoie une page de listing (signatures Apache/Nginx ou listing partiel).
+Gère aussi les 403 sur chemins sensibles (existence révélée).
 """
 
+import re
+
 from app.config_loader import get_directory_listing_max_body, get_directory_listing_settings
-from app.services.path_checks import PathCheckResult, run_path_checks
+from app.services.path_checks import PathCheckResult, PathFinding, run_path_checks
+
+# Chemins sensibles : un 403 indique l'existence du répertoire (protection active).
+_SENSITIVE_FOR_403 = frozenset(("/config/", "/backup/", "/logs/", "/tmp/", "/data/"))
+
+# Extensions de fichiers typiques dans un listing partiel.
+_PARTIAL_LISTING_EXTENSIONS = (
+    ".pdf",
+    ".zip",
+    ".csv",
+    ".xlsx",
+    ".xls",
+    ".txt",
+    ".log",
+    ".sql",
+    ".bak",
+    ".env",
+    ".json",
+    ".xml",
+    ".yaml",
+    ".yml",
+    ".conf",
+    ".ini",
+    ".config",
+    ".tar",
+    ".gz",
+    ".doc",
+    ".docx",
+    ".ppt",
+    ".pptx",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+)
+
+# Seuil minimum de liens pour considérer un listing partiel (éviter faux positifs).
+_PARTIAL_LISTING_MIN_LINKS = 3
+
+
+def _make_on_403_handler():
+    """Retourne le callback pour les 403 sur chemins sensibles."""
+
+    def handler(path: str) -> PathFinding | None:
+        path_norm = (path.rstrip("/") + "/") if path else "/"
+        if path_norm in _SENSITIVE_FOR_403:
+            return PathFinding(
+                path=path,
+                severity="medium",
+                message=f"Répertoire sensible {path} retourne 403 : existence révélée.",
+            )
+        return None
+
+    return handler
 
 
 def _is_listing_body(body: bytes, _path: str) -> bool:
-    """Détecte si le corps correspond à une page de listing Apache/Nginx.
+    """Détecte si le corps correspond à une page de listing Apache/Nginx ou partiel.
 
     Signatures typiques : Index of, Parent Directory, [DIR], mod_autoindex (Apache),
     nginx, <a href=" (Nginx). Évite les faux positifs en exigeant plusieurs motifs.
+    Détecte aussi les listings partiels : HTML avec plusieurs liens vers fichiers.
 
     Args:
         body: Corps de la réponse HTTP (octets).
@@ -24,16 +81,49 @@ def _is_listing_body(body: bytes, _path: str) -> bool:
     if len(body) == 0:
         return False
     text = body.decode("utf-8", errors="replace").lower()
-    if "index of" not in text:
+    # Détection Apache/Nginx (signatures classiques)
+    if "index of" in text:
+        apache_signatures = ("parent directory", "[dir]", "mod_autoindex", "<title>index of")
+        nginx_signatures = ("<a href=", "nginx")
+        if any(s in text for s in apache_signatures):
+            return True
+        if any(s in text for s in nginx_signatures):
+            return True
+    # Détection listing partiel : HTML avec liens vers fichiers (sans signature Apache/Nginx)
+    return _is_partial_listing_body(text)
+
+
+def _is_partial_listing_body(text: str) -> bool:
+    """Détecte un listing partiel : HTML avec plusieurs liens vers fichiers ou sous-dossiers.
+
+    Args:
+        text: Corps décodé en minuscules.
+
+    Returns:
+        bool: True si listing partiel détecté (≥ N liens vers fichiers/dossiers).
+    """
+    if "<a href=" not in text and "<a " not in text:
         return False
-    # Au moins un motif supplémentaire pour réduire les faux positifs
-    apache_signatures = ("parent directory", "[dir]", "mod_autoindex", "<title>index of")
-    nginx_signatures = ("<a href=", "nginx")
-    if any(s in text for s in apache_signatures):
-        return True
-    if any(s in text for s in nginx_signatures):
-        return True
-    return False
+    # Recherche des liens <a href="...">
+    pattern = re.compile(r'<a\s+[^>]*href\s*=\s*["\']([^"\']+)["\']', re.IGNORECASE)
+    matches = pattern.findall(text)
+    count = 0
+    for href in matches:
+        href = href.strip().lower()
+        if not href or href.startswith("#") or href.startswith("mailto:") or href.startswith("javascript:"):
+            continue
+        # Dossier : chemin se terminant par /
+        if href.endswith("/"):
+            count += 1
+            continue
+        # Fichier : extension connue
+        if any(href.endswith(ext) for ext in _PARTIAL_LISTING_EXTENSIONS):
+            count += 1
+            continue
+        # Lien relatif simple (ex. "fichier.pdf" ou "sous-dossier/")
+        if "/" not in href and "." in href:
+            count += 1
+    return count >= _PARTIAL_LISTING_MIN_LINKS
 
 
 async def run_directory_listing_checks(
@@ -43,8 +133,9 @@ async def run_directory_listing_checks(
 ) -> PathCheckResult:
     """Teste tous les répertoires configurés pour le directory listing.
 
-    Effectue des requêtes GET en parallèle. Un répertoire est considéré vulnérable
-    si status 200 et contenu contient les signatures Apache/Nginx de listing.
+    Effectue des requêtes GET en parallèle. Un répertoire est considéré vulnérable si :
+    - status 200 et contenu contient les signatures Apache/Nginx ou un listing partiel ;
+    - status 403 sur un chemin sensible (/config/, /backup/, /logs/, /tmp/, /data/).
     Si client est fourni, réutilise la connexion TCP (keep-alive).
 
     Args:
@@ -52,8 +143,15 @@ async def run_directory_listing_checks(
         client: Client httpx optionnel (issu de scan_client()) pour réutilisation.
 
     Returns:
-        PathCheckResult: Répertoires exposés et findings.
+        PathCheckResult: Répertoires exposés, findings et exposed_403.
     """
     configs = get_directory_listing_settings()
     max_body = get_directory_listing_max_body()
-    return await run_path_checks(base_url, configs, _is_listing_body, max_body, client=client)
+    return await run_path_checks(
+        base_url,
+        configs,
+        _is_listing_body,
+        max_body,
+        client=client,
+        on_403=_make_on_403_handler(),
+    )

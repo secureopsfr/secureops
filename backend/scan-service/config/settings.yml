@@ -67,66 +67,233 @@ ssrf:
     - "fc00::/7"
 
 # Security Headers (roadmap §3.2) : en-têtes à vérifier.
+# message_absent (fr) utilisé par les checks ; message_absent_en pour cohérence i18n (catalogue override PDF).
+# severity : high, medium, low, info — sévérité du finding si l'en-tête est absent.
 security_headers:
   headers:
     - name: Content-Security-Policy
       message_absent: "Content-Security-Policy absent : risque XSS accru."
+      message_absent_en: "Content-Security-Policy absent: increased XSS risk."
+      severity: high
     - name: Strict-Transport-Security
       message_absent: "Strict-Transport-Security absent : risque de downgrade HTTPS→HTTP."
+      message_absent_en: "Strict-Transport-Security absent: risk of HTTPS→HTTP downgrade."
+      severity: high
     - name: X-Frame-Options
       message_absent: "X-Frame-Options absent : risque de clickjacking."
+      message_absent_en: "X-Frame-Options absent: clickjacking risk."
+      severity: medium
     - name: X-Content-Type-Options
       message_absent: "X-Content-Type-Options absent : risque de MIME sniffing."
+      message_absent_en: "X-Content-Type-Options absent: MIME sniffing risk."
       expected_value: nosniff
+      severity: medium
     - name: Referrer-Policy
       message_absent: "Referrer-Policy absent : risque de fuite d'URLs sensibles."
+      message_absent_en: "Referrer-Policy absent: risk of sensitive URL leakage."
+      severity: medium
     - name: Permissions-Policy
       message_absent: "Permissions-Policy absent : APIs navigateur accessibles par défaut."
+      message_absent_en: "Permissions-Policy absent: browser APIs accessible by default."
+      severity: medium
+    - name: Cross-Origin-Embedder-Policy
+      message_absent: "Cross-Origin-Embedder-Policy absent : isolation cross-origin limitée."
+      message_absent_en: "Cross-Origin-Embedder-Policy absent: limited cross-origin isolation."
+      severity: low
+    - name: Cross-Origin-Opener-Policy
+      message_absent: "Cross-Origin-Opener-Policy absent : isolation cross-origin limitée."
+      message_absent_en: "Cross-Origin-Opener-Policy absent: limited cross-origin isolation."
+      severity: low
+    - name: Clear-Site-Data
+      message_absent: "Clear-Site-Data absent : déconnexion sans purge des données."
+      message_absent_en: "Clear-Site-Data absent: logout without data purge."
+      severity: low
 
 # Exposed files / sensitive endpoints (roadmap §3.4) : chemins à tester.
+# message (fr) utilisé par les checks ; message_en pour cohérence i18n (catalogue override PDF).
 exposed_files:
   max_body_bytes: 8192  # Limite de lecture pour détection (éviter gros fichiers)
   severity_upgrade:  # Chemins forcés en critical (ignorer severity du path)
     - /.git/config
     - /.env
+    - /.env.bak
   paths:
     - path: /.env
       severity: critical
       message: "Fichier .env exposé : credentials et secrets accessibles."
+      message_en: "File .env exposed: credentials and secrets accessible."
     - path: /.git/config
       severity: critical
       message: "Fichier .git/config exposé : dépôt Git accessible."
+      message_en: "File .git/config exposed: Git repository accessible."
     - path: /backup.zip
       severity: high
       message: "Archive backup.zip exposée : sauvegarde accessible."
+      message_en: "Backup archive exposed: backup accessible."
     - path: /phpinfo.php
       severity: high
       message: "phpinfo.php exposé : configuration PHP révélée."
+      message_en: "phpinfo.php exposed: PHP configuration revealed."
     - path: /admin/
       severity: medium
       message: "Interface /admin/ exposée : à protéger par authentification."
+      message_en: "Admin interface exposed: protect with authentication."
     - path: /.DS_Store
       severity: low
       message: "Fichier .DS_Store exposé : structure des répertoires révélée."
+      message_en: "File .DS_Store exposed: directory structure revealed."
+    - path: /.htaccess
+      severity: medium
+      message: "Fichier .htaccess exposé : configuration Apache accessible."
+      message_en: "File .htaccess exposed: Apache configuration accessible."
+    - path: /web.config
+      severity: medium
+      message: "Fichier web.config exposé : configuration IIS/ASP.NET accessible."
+      message_en: "File web.config exposed: IIS/ASP.NET configuration accessible."
+    - path: /.svn/entries
+      severity: high
+      message: "Fichier .svn/entries exposé : dépôt Subversion accessible."
+      message_en: "File .svn/entries exposed: Subversion repository accessible."
+    - path: /composer.json
+      severity: low
+      message: "Fichier composer.json exposé : dépendances PHP révélées."
+      message_en: "File composer.json exposed: PHP dependencies revealed."
+    - path: /package.json
+      severity: low
+      message: "Fichier package.json exposé : dépendances Node.js révélées."
+      message_en: "File package.json exposed: Node.js dependencies revealed."
+    - path: /.npmrc
+      severity: medium
+      message: "Fichier .npmrc exposé : configuration npm accessible."
+      message_en: "File .npmrc exposed: npm configuration accessible."
+    - path: /config.bak
+      severity: high
+      message: "Fichier de backup config.bak exposé : configuration accessible."
+      message_en: "Backup file config.bak exposed: configuration accessible."
+    - path: /web.config.bak
+      severity: high
+      message: "Fichier de backup web.config.bak exposé."
+      message_en: "Backup file web.config.bak exposed."
+    - path: /.env.bak
+      severity: critical
+      message: "Fichier de backup .env.bak exposé : credentials accessibles."
+      message_en: "Backup file .env.bak exposed: credentials accessible."
+    - path: /swagger
+      severity: medium
+      message: "Swagger/OpenAPI exposé : documentation API accessible sans authentification."
+      message_en: "Swagger/OpenAPI exposed: API documentation accessible without authentication."
+    - path: /swagger.json
+      severity: medium
+      message: "Swagger/OpenAPI (swagger.json) exposé : schéma API accessible."
+      message_en: "Swagger/OpenAPI (swagger.json) exposed: API schema accessible."
+    - path: /api-docs
+      severity: medium
+      message: "Documentation API exposée : endpoints et schémas accessibles."
+      message_en: "API documentation exposed: endpoints and schemas accessible."
+    - path: /api-docs.json
+      severity: medium
+      message: "Documentation API (api-docs.json) exposée : schéma accessible."
+      message_en: "API documentation (api-docs.json) exposed: schema accessible."
+    - path: /graphql
+      severity: medium
+      message: "Endpoint GraphQL exposé : introspection possible sans authentification."
+      message_en: "GraphQL endpoint exposed: introspection possible without authentication."
 
 # Directory listing (roadmap §3.5) : répertoires à tester.
+# message (fr) utilisé par les checks ; message_en pour cohérence i18n (catalogue override PDF).
 directory_listing:
   max_body_bytes: 8192
   paths:
     - path: /uploads/
       severity: high
       message: "Directory listing activé sur /uploads/ : fichiers utilisateurs énumérables."
+      message_en: "Directory listing enabled on /uploads/: user files enumerable."
     - path: /assets/
       severity: medium
       message: "Directory listing activé sur /assets/ : structure révélée."
+      message_en: "Directory listing enabled on /assets/: structure revealed."
     - path: /static/
       severity: medium
       message: "Directory listing activé sur /static/ : structure révélée."
+      message_en: "Directory listing enabled on /static/: structure revealed."
+    - path: /tmp/
+      severity: medium
+      message: "Directory listing activé sur /tmp/ : fichiers temporaires énumérables."
+      message_en: "Directory listing enabled on /tmp/: temporary files enumerable."
+    - path: /logs/
+      severity: high
+      message: "Directory listing activé sur /logs/ : journaux accessibles."
+      message_en: "Directory listing enabled on /logs/: logs accessible."
+    - path: /config/
+      severity: high
+      message: "Directory listing activé sur /config/ : configuration exposée."
+      message_en: "Directory listing enabled on /config/: configuration exposed."
+    - path: /backup/
+      severity: high
+      message: "Directory listing activé sur /backup/ : sauvegardes énumérables."
+      message_en: "Directory listing enabled on /backup/: backups enumerable."
+    - path: /data/
+      severity: high
+      message: "Directory listing activé sur /data/ : données exposées."
+      message_en: "Directory listing enabled on /data/: data exposed."
+
+# Cache et performances (roadmap §5.3.1 et §5.3.2).
+# Analyse la page principale et un nombre limité de sous-ressources (scripts, CSS, images).
+cache:
+  sensitive_paths:
+    - "/login"
+    - "/admin"
+    - "/auth"
+    - "/api/"
+  max_sub_resources: 50          # Nombre maximal de sous-ressources analysées par page
+  subresource_timeout: 3.0       # Timeout (s) par requête HEAD/GET sur une sous-ressource
+  immutable_pattern: "\\.[a-f0-9]{8,}\\.(js|css)$"
+  immutable_max_age: 31536000
+  sensitive_max_age: 0           # max-age autorisé pour une page sensible (0 = uniquement no-store / no-cache / private)
+
+# Intégrité et sous-ressources (roadmap §5.6).
+# Analyse passive du HTML de la page principale : SRI, scripts inline vs CSP, formulaires,
+# liens target=\"_blank\" et meta robots sur pages sensibles.
+integrity:
+  max_body_bytes: 524288  # Taille maximale de HTML analysé (512 Ko)
+  sensitive_paths:
+    - "/login"
+    - "/admin"
+    - "/auth"
+    - "/api/"
 
 # robots.txt (roadmap §3.6) : motifs de routes sensibles à signaler dans Disallow.
 # Par défaut : _DEFAULT_ROBOTS_TXT_PATTERNS dans config_loader. Surcharger ici si besoin.
 robots_txt:
   patterns: []  # Vide = utiliser les defaults du code
+
+# Tech fingerprinting (roadmap §5.1.7) : versions minimales sûres par produit.
+# Si la version détectée est < min_safe_version, un finding est émis.
+# Vide = utiliser les defaults du code (nginx 1.20, Apache 2.4.50, PHP 8.0, etc.).
+tech_fingerprinting:
+  vulnerable_thresholds: {}  # ex: {nginx: "1.20.0", php: "8.0.0"}
+
+# Information disclosure (roadmap §5.2) : limite de taille du corps analysé pour fuites.
+information_disclosure:
+  max_body_bytes: 1048576  # 1 Mo
+
+# CORS et cross-origin (roadmap §5.4). Vérifications sur la page principale et sur des
+# URLs dérivées (chemins sensibles). Requêtes GET et OPTIONS avec en-tête Origin.
+# Référence : docs/verifications/cors-et-cross-origin.md
+cors_cross_origin:
+  sensitive_paths:       # Chemins à tester en plus de la page principale (base_url + path)
+    - "/api/"
+    - "/user/"
+    - "/admin/"
+    - "/auth/"
+    - "/login"
+  test_origin: "https://evil.example.com"  # Origine fictive pour détecter réflexion non validée
+  expose_headers_sensitive:   # En-têtes considérés sensibles si exposés via Access-Control-Expose-Headers
+    - "X-Auth-Token"
+    - "X-Request-ID"
+    - "Authorization"
+  max_sub_resources: 50   # Limite pour détection mixed content (réutilise même logique que cache)
+  subresource_timeout: 3.0
 
 # Timeouts scan (roadmap §2.3) : connexion, lecture, durée max du scan.
 timeouts:
@@ -139,14 +306,79 @@ scoring:
   category_weights:
     tls: 25
     headers: 25
+    cache: 5
+    integrity: 5
     cookies: 20
     exposed_files: 10
     directory_listing: 10
     robots_txt: 5
+    sitemap: 5
     tech_fingerprinting: 5
+    information_disclosure: 5
+    cors_cross_origin: 5
   severity_penalties:
     critical: 100
     high: 50
     medium: 25
     low: 10
     info: 0
+
+# PDF (rapport de scan) : catégories, libellés i18n, footer.
+pdf:
+  footer_url: "https://secureops.example.com"
+  categories:
+    order:
+      - tls
+      - headers
+      - cache
+      - integrity
+      - cookies
+      - exposed_files
+      - directory_listing
+      - robots_txt
+      - sitemap
+      - tech_fingerprinting
+      - information_disclosure
+      - cors_cross_origin
+      - other
+    checked:
+      - tls
+      - headers
+      - cache
+      - integrity
+      - cookies
+      - exposed_files
+      - directory_listing
+      - robots_txt
+      - sitemap
+      - tech_fingerprinting
+      - information_disclosure
+      - cors_cross_origin
+    labels_fr:
+      tls: "TLS / HTTPS"
+      headers: "Security Headers"
+      cache: "Cache et performances"
+      integrity: "Intégrité et sous-ressources"
+      cookies: "Cookies"
+      exposed_files: "Fichiers exposés"
+      directory_listing: "Directory listing"
+      robots_txt: "robots.txt"
+      sitemap: "Sitemap"
+      tech_fingerprinting: "Tech fingerprinting"
+      information_disclosure: "Fuites d'information"
+      cors_cross_origin: "CORS et cross-origin"
+      other: "Autres"
+    labels_en:
+      tls: "TLS / HTTPS"
+      headers: "Security Headers"
+      cache: "Cache and performance"
+      integrity: "Integrity and subresources"
+      cookies: "Cookies"
+      exposed_files: "Exposed files"
+      directory_listing: "Directory listing"
+      robots_txt: "robots.txt"
+      sitemap: "Sitemap"
+      tech_fingerprinting: "Tech fingerprinting"
+      information_disclosure: "Information disclosure"
+      cors_cross_origin: "CORS and cross-origin"
+      other: "Other"

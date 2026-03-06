@@ -61,6 +61,9 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
     set +a
 fi
 
+# Sortie Python non bufferisée pour voir les logs en temps réel
+export PYTHONUNBUFFERED=1
+
 # Lancer PostgreSQL avec Docker
 echo -e "${GREEN}Lancement de PostgreSQL...${NC}"
 POSTGRES_RUNNING=$(docker ps -q -f name=^/postgres$ 2>/dev/null)
@@ -270,8 +273,8 @@ else
     # Lancer le service user-service
     launch_service "user-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" && uvicorn app.main:app --host 0.0.0.0 --port 8011 --reload" "$SCRIPT_DIR/backend/user-service"
 
-    # Lancer le service scan-service
-    launch_service "scan-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" && uvicorn app.main:app --host 0.0.0.0 --port 8012 --reload" "$SCRIPT_DIR/backend/scan-service"
+    # Lancer le service scan-service (IS_PROD=false pour autoriser localhost/ports libres en dev)
+    launch_service "scan-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" IS_PROD=false && uvicorn app.main:app --host 0.0.0.0 --port 8012 --reload" "$SCRIPT_DIR/backend/scan-service"
 
     # Lancer le frontend (Next.js)
     echo -e "${YELLOW}Démarrage du frontend Next.js (cela peut prendre jusqu'à 2-3 minutes si les packages sont déjà installés, sinon 5-15 minutes). Si ça ne marche pas, faire le clean install de npm et relancer le script.${NC}"

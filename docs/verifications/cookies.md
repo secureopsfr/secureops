@@ -343,3 +343,23 @@ Identique à la section 1 (Flag Secure). Voir la matrice ci-dessus.
 
 - [OWASP – Session Management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
 - [MDN – Set-Cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie)
+
+---
+
+## Améliorations v0.2.0 (implémentées)
+
+### 5. Préfixes __Host- et __Secure- ✅
+
+Détecter l’utilisation des préfixes **`__Host-`** et **`__Secure-`** sur les cookies sensibles. Finding : `cookies-no-host-secure-prefix` (info).
+
+### 6. Cookie Partitioned (CHIPS) ✅
+
+Vérifier l’attribut **`Partitioned`** (CHIPS – Cookies Having Independent Partitioned State) pour les cookies tiers. Ce mécanisme isole les cookies par site de premier niveau, limitant le tracking cross-site. Pertinent pour les cookies tiers (analytics, widgets). Info si cookie tiers sans Partitioned.
+
+### 7. Alerte cookie de session sans HttpOnly + Secure + SameSite=Strict ✅
+
+Alerte high **critique ou high** si un cookie identifié comme **session** (noms courants : `session`, `sessionid`, `PHPSESSID`, `JSESSIONID`, `connect.sid`, etc.) n’a pas les trois flags : `HttpOnly`, `Secure` et `SameSite=Strict` (ou `Lax` selon le cas). Combinaison minimale pour une session sécurisée.
+
+### 8. Détection Expires trop lointain pour session ✅
+
+Pour les cookies de session, si **`Expires`** ou **`Max-Age`** > 24h, finding : `cookies-session-expires-long` (low). Recommandation : sessions courtes ou cookies sans Expires.

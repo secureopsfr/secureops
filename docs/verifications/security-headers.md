@@ -490,3 +490,29 @@ Permissions-Policy permet de désactiver ou restreindre des fonctionnalités (ex
 
 - [MDN – Permissions-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy)
 - [W3C – Permissions Policy](https://w3c.github.io/webappsec-permissions-policy/)
+
+---
+
+## Améliorations prévues (v0.2.0)
+
+Les vérifications suivantes seront ajoutées ou étendues dans la version 0.2.0 du scanner :
+
+### 7. Content-Security-Policy : report-uri ou report-to
+
+Vérifier que la CSP inclut une directive **`report-uri`** ou **`report-to`** pour recevoir les rapports de violation. Cela permet de détecter les tentatives d’injection ou les ressources bloquées en production sans impacter l’utilisateur. Absence = info ou low.
+
+### 8. Directives CSP strictes (unsafe-inline, unsafe-eval)
+
+Analyser les directives `script-src` et `style-src` : la présence de **`unsafe-inline`** ou **`unsafe-eval`** affaiblit la protection XSS. Si possible, privilégier les nonces ou hashes. Finding si ces directives sont présentes sans justification (niveau Low à Medium selon le contexte).
+
+### 9. Headers COEP / COOP
+
+Vérifier la présence des en-têtes **Cross-Origin-Embedder-Policy** (COEP) et **Cross-Origin-Opener-Policy** (COOP). Ils renforcent l’isolation des contextes de navigation et limitent les attaques cross-origin (ex. Spectre). Recommandés pour les applications sensibles. Absence = info.
+
+### 10. Clear-Site-Data
+
+Vérifier si l’en-tête **Clear-Site-Data** est utilisé pour la déconnexion sécurisée. Lors d’un logout, ce header demande au navigateur de supprimer les cookies, le cache et le stockage local. Bonne pratique pour les applications d’authentification. Absence = info.
+
+### 11. Sévérité différenciée selon le header manquant
+
+Adapter la **gravité du finding** selon l’en-tête manquant : par exemple, l’absence de `Content-Security-Policy` ou `Strict-Transport-Security` peut être plus sévère que l’absence de `Permissions-Policy`. Matrice de sévérité par header à définir.

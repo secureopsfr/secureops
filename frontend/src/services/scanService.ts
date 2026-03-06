@@ -23,12 +23,32 @@ export interface ScanFinding {
   references: string[];
 }
 
+export interface CategorySummary {
+  category: string;
+  label_fr: string;
+  label_en: string;
+  description_fr: string;
+  description_en: string;
+  checks_fr: string[];
+  checks_en: string[];
+  anomaly_count: number;
+  /** Nombre de tests effectués dans cette catégorie (calculé par le backend). */
+  checks_count?: number;
+  /** Posture TLS (catégorie tls uniquement) : ok, warning, critical. */
+  tls_posture?: "ok" | "warning" | "critical";
+  /** Version TLS négociée (catégorie tls uniquement), ex. "TLS 1.2", "TLS 1.3". */
+  tls_version?: string;
+}
+
 export interface ScanResult {
   url: string;
   timestamp: string;
   duration: number;
   score: number;
   findings: ScanFinding[];
+  category_summaries?: CategorySummary[];
+  /** Nombre total de tests effectués (calculé par le backend). */
+  total_tests_count?: number;
 }
 
 export interface ScanError {
@@ -37,12 +57,19 @@ export interface ScanError {
   error_type?: string;
 }
 
-export type ScanEventType = "step" | "result" | "error";
+export type ScanEventType =
+  | "step"
+  | "result"
+  | "error"
+  | "save_failed"
+  | "save_done";
 
 export type ScanEventHandler =
   | { type: "step"; data: ScanStep }
   | { type: "result"; data: ScanResult }
-  | { type: "error"; data: ScanError };
+  | { type: "error"; data: ScanError }
+  | { type: "save_failed"; data: string }
+  | { type: "save_done"; data: { scan_id: string } };
 
 function parseSSEBlock(block: string): { event: string; data: unknown } | null {
   let event = "message";
@@ -64,23 +91,34 @@ function parseSSEBlock(block: string): { event: string; data: unknown } | null {
 
 /**
  * Lance un scan et consomme le flux SSE.
- * Appelle onEvent pour chaque événement (step, result, error).
+ * Appelle onEvent pour chaque événement (step, result, error, save_failed).
+ *
+ * @param url - URL à scanner
+ * @param onEvent - Callback pour chaque événement SSE
+ * @param getToken - Optionnel : retourne le token pour sauvegarder dans l'historique (si connecté)
  */
 export async function runScan(
   url: string,
   onEvent: (ev: ScanEventHandler) => void,
+  getToken?: () => Promise<string | null>,
 ): Promise<void> {
   const baseUrl = getApiBaseUrl();
   const endpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan`;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "text/event-stream",
+  };
+  if (getToken) {
+    const token = await getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
 
   let response: Response;
   try {
     response = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "text/event-stream",
-      },
+      headers,
       body: JSON.stringify({ url }),
     });
   } catch (err) {
@@ -141,10 +179,30 @@ export async function runScan(
           onEvent({ type: "step", data: data as ScanStep });
         } else if (event === "result" && data && typeof data === "object") {
           onEvent({ type: "result", data: data as ScanResult });
-          return;
+          // Ne pas return : le flux peut encore émettre save_failed
         } else if (event === "error" && data && typeof data === "object") {
           onEvent({ type: "error", data: data as ScanError });
           return;
+        } else if (
+          event === "save_failed" &&
+          data &&
+          typeof data === "object"
+        ) {
+          onEvent({
+            type: "save_failed",
+            data:
+              (data as { message?: string }).message ?? "Erreur de sauvegarde",
+          });
+        } else if (
+          event === "save_done" &&
+          data &&
+          typeof data === "object" &&
+          "scan_id" in data
+        ) {
+          onEvent({
+            type: "save_done",
+            data: { scan_id: (data as { scan_id: string }).scan_id },
+          });
         }
       }
     }

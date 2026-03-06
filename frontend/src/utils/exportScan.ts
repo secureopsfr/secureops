@@ -44,12 +44,13 @@ function downloadBlob(blob: Blob, filename: string): void {
 }
 
 /**
- * Exporte les résultats en CSV.
+ * Exporte les résultats en CSV (une ligne par finding).
  */
 export function exportToCsv(result: ScanResult): void {
   const headers = [
-    "Sévérité",
+    "ID",
     "Catégorie",
+    "Sévérité",
     "Titre",
     "Preuve",
     "Recommandation",
@@ -59,12 +60,13 @@ export function exportToCsv(result: ScanResult): void {
 
   for (const f of result.findings) {
     rows.push([
-      f.severity,
+      f.id,
       f.category,
+      f.severity,
       f.title,
       f.evidence,
       f.recommendation,
-      f.references.join(" | "),
+      (f.references ?? []).join(" | "),
     ]);
   }
 
@@ -76,15 +78,27 @@ export function exportToCsv(result: ScanResult): void {
 }
 
 /**
- * Exporte les résultats en JSON.
+ * Exporte les résultats en JSON (structure alignée sur la page de scan).
  */
 export function exportToJson(result: ScanResult): void {
+  const totalTestsCount =
+    result.total_tests_count ??
+    (result.category_summaries ?? []).reduce(
+      (sum, s) => sum + (s.checks_count ?? 0),
+      0,
+    );
+
   const json = JSON.stringify(
     {
-      url: result.url,
-      timestamp: result.timestamp,
-      duration: result.duration,
-      score: result.score,
+      synthese: {
+        url: result.url,
+        timestamp: result.timestamp,
+        duration: result.duration,
+        score: result.score,
+        total_tests_count: totalTestsCount,
+        findings_count: result.findings.length,
+      },
+      repartition: result.category_summaries ?? [],
       findings: result.findings,
     },
     null,
@@ -95,10 +109,16 @@ export function exportToJson(result: ScanResult): void {
 }
 
 /**
- * Exporte les résultats en XLSX (Excel).
+ * Exporte les résultats en XLSX (Excel) : une ligne par finding.
  */
 export function exportToXlsx(result: ScanResult): void {
   const wb = XLSX.utils.book_new();
+  const totalTestsCount =
+    result.total_tests_count ??
+    (result.category_summaries ?? []).reduce(
+      (sum, s) => sum + (s.checks_count ?? 0),
+      0,
+    );
 
   // Feuille 1 : résumé
   const summaryData = [
@@ -106,15 +126,40 @@ export function exportToXlsx(result: ScanResult): void {
     ["Date", result.timestamp],
     ["Durée (s)", result.duration],
     ["Score", result.score],
+    ["Nombre total de tests", totalTestsCount],
     ["Nombre de findings", result.findings.length],
   ];
   const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
   XLSX.utils.book_append_sheet(wb, wsSummary, "Résumé");
 
-  // Feuille 2 : findings
+  // Feuille 2 : répartition par catégorie
+  if (result.category_summaries && result.category_summaries.length > 0) {
+    const repartitionHeaders = [
+      "Catégorie",
+      "Label FR",
+      "Label EN",
+      "Nb tests",
+      "Nb anomalies",
+    ];
+    const repartitionRows = result.category_summaries.map((s) => [
+      s.category,
+      s.label_fr,
+      s.label_en,
+      s.checks_count ?? 0,
+      s.anomaly_count ?? 0,
+    ]);
+    const wsRepartition = XLSX.utils.aoa_to_sheet([
+      repartitionHeaders,
+      ...repartitionRows,
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsRepartition, "Répartition");
+  }
+
+  // Feuille 3 : findings (une ligne par finding)
   const findingsHeaders = [
-    "Sévérité",
+    "ID",
     "Catégorie",
+    "Sévérité",
     "Titre",
     "Preuve",
     "Recommandation",
@@ -122,12 +167,13 @@ export function exportToXlsx(result: ScanResult): void {
   ];
   const findingsRows: (string | number)[][] = result.findings.map(
     (f: ScanFinding) => [
-      f.severity,
+      f.id,
       f.category,
+      f.severity,
       f.title,
       f.evidence,
       f.recommendation,
-      f.references.join(" | "),
+      (f.references ?? []).join(" | "),
     ],
   );
   const wsFindings = XLSX.utils.aoa_to_sheet([

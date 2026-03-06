@@ -22,6 +22,7 @@ interface SettingsSectionProps {
   subscription: {
     newsletter_enabled?: boolean;
     new_features_notifications_enabled?: boolean;
+    scan_alerts_enabled?: boolean;
     [key: string]: unknown;
   } | null;
   initialLanguage?: Language;
