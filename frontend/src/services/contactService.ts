@@ -5,8 +5,7 @@
 
 import { showErrorToast } from "../utils/toastNotifications";
 import { log, error } from "../utils/logger";
-
-import { getApiBaseUrl } from "../utils/apiClient";
+import { getApiBaseUrl, fetchJson } from "../utils/apiClient";
 
 export interface ContactMessageRequest {
   first_name: string;
@@ -37,23 +36,15 @@ export async function sendContactMessage(
     const url = `${baseUrl}/api/contact`;
     log("[ContactService] Envoi message contact:", url);
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const data = await fetchJson<ContactMessageResponse>(
+      url,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(contactData),
       },
-      body: JSON.stringify(contactData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      error("[ContactService] Erreur envoi contact:", errorData);
-      throw new Error(errorData.detail || "Erreur lors de l'envoi du message");
-    }
-
-    const data = await response.json();
+      "Erreur lors de l'envoi du message",
+    );
     log("[ContactService] Message contact envoyé");
     return data;
   } catch (err: unknown) {

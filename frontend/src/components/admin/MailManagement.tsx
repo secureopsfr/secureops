@@ -128,6 +128,7 @@ export default function MailManagement() {
     <div className="space-y-6">
       <EmailManagement
         key={mode}
+        emailType={mode === "notifications" ? "notification" : "newsletter"}
         mode={mode}
         onModeChange={(m) => setMode(m as MailMode)}
         modeOptions={modeOptions}
