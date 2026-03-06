@@ -1,0 +1,32 @@
+general:
+  service_name: "pdf-service"
+  environment: "development"
+  cors_allow_origins:
+    - "*"
+  # DATABASE_URL requis par create_simple_settings ; non utilisé par ce service (pas de BDD).
+
+server:
+  host: "0.0.0.0"
+  port: 8013
+
+logging:
+  level: "INFO"
+
+database:
+  pool_size: 5
+  max_overflow: 5
+  pool_timeout: 30
+  pool_recycle: 3600
+  pool_pre_ping: true
+  echo: false
+  connect_args:
+    server_settings:
+      application_name: "pdf-service"
+  ssl_mode: "prefer"
+  pool_logging: false
+
+routers:
+  health:
+    prefix: "/api"
+    tags:
+      - "health"

@@ -40,12 +40,18 @@ repos:
         files: ^backend/scan-service/.*\.py$
         args:
           - --config=backend/scan-service/pyproject.toml
+      - id: black
+        name: Black pdf-service
+        language_version: python3
+        files: ^backend/pdf-service/.*\.py$
+        args:
+          - --config=backend/pdf-service/pyproject.toml
 
   # ──────────────────────────────────────────────────────────────────────────────
   # isort (Python) — un hook par service, pour prendre la config locale
   # ──────────────────────────────────────────────────────────────────────────────
   - repo: https://github.com/PyCQA/isort
-    rev: 7.0.0
+    rev: 8.0.1
     hooks:
       - id: isort
         name: isort Gateway
@@ -65,6 +71,11 @@ repos:
       - id: isort
         name: isort scan-service
         files: ^backend/scan-service/.*\.py$
+        args:
+          - --profile=black
+      - id: isort
+        name: isort pdf-service
+        files: ^backend/pdf-service/.*\.py$
         args:
           - --profile=black
 
@@ -94,12 +105,17 @@ repos:
         files: ^backend/scan-service/.*\.py$
         args:
           - --config=backend/scan-service/.flake8
+      - id: flake8
+        name: Flake8 pdf-service
+        files: ^backend/pdf-service/.*\.py$
+        args:
+          - --config=backend/pdf-service/.flake8
 
   # ──────────────────────────────────────────────────────────────────────────────
   # ESLint (TypeScript/React) pour frontend Next.js
   # ──────────────────────────────────────────────────────────────────────────────
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v10.0.0-rc.1
+    rev: v10.0.2
     hooks:
       - id: eslint
         name: Frontend Next.js ESLint

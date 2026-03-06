@@ -44,6 +44,8 @@ services:
         condition: service_healthy
       scan-service:
         condition: service_healthy
+      pdf-service:
+        condition: service_healthy
       postgres:
         condition: service_healthy
 
@@ -111,6 +113,27 @@ services:
       - app-network
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8012/api/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  pdf-service:
+    build:
+      context: ./backend
+      dockerfile: pdf-service/Dockerfile
+    ports:
+      - "8013:8013"
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8013/api/health')\""]
       interval: 10s
       timeout: 5s
       retries: 5

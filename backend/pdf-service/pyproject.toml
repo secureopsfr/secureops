@@ -1,0 +1,11 @@
+[tool.black]
+line-length = 150
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 150
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -ra"

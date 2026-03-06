@@ -24,6 +24,8 @@ services:
         condition: service_started
       scan-service:
         condition: service_started
+      pdf-service:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -109,6 +111,31 @@ services:
       - app-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8012/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  pdf-service:
+    build:
+      context: .
+      dockerfile: pdf-service/Dockerfile
+    container_name: immosphere-pdf-service
+    ports:
+      - "${PDF_PORT:-8013}:8013"
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=${RDS_DATABASE_URL}
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8013/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
