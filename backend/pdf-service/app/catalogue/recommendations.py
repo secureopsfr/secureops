@@ -1,8 +1,6 @@
 """Catalogue des recommandations, détails et références par slug de finding.
 
-Charge les entrées depuis recommendations.json. Chaque entrée associe un slug
-à (recommendation, recommendation_en, title_fr, title_en, evidence_fr, evidence_en,
-detail_fr, detail_en, references). Support i18n fr/en (scan et pdf-service).
+Charge les entrées depuis recommendations.json. Support i18n pour PDF fr/en.
 """
 
 import json
@@ -10,19 +8,15 @@ from functools import lru_cache
 from pathlib import Path
 
 
-def _load_catalogue() -> dict[str, dict]:
-    """Charge le catalogue depuis recommendations.json.
-
-    Returns:
-        dict[str, dict]: slug → {recommendation, references, detail_fr, detail_en, ...}.
-    """
+def _load_catalogue() -> dict:
+    """Charge le catalogue depuis recommendations.json."""
     path = Path(__file__).resolve().parent / "recommendations.json"
     with path.open(encoding="utf-8") as f:
         return json.load(f)
 
 
 @lru_cache(maxsize=1)
-def _get_catalogue() -> dict[str, dict]:
+def _get_catalogue() -> dict:
     """Retourne le catalogue (mis en cache au premier accès)."""
     return _load_catalogue()
 
@@ -33,15 +27,7 @@ def _lang_key(lang: str, suffix: str) -> str:
 
 
 def get_recommendation(slug: str, lang: str = "fr") -> str:
-    """Retourne la recommandation pour un slug (fr/en), ou une chaîne générique si absent.
-
-    Args:
-        slug: Identifiant du finding (ex. tls-https-disabled).
-        lang: Code langue (fr/en). Défaut fr.
-
-    Returns:
-        str: Texte de recommandation.
-    """
+    """Retourne la recommandation pour un slug (fr/en)."""
     entry = _get_catalogue().get(slug)
     if entry is not None:
         key = _lang_key(lang, "recommendation")
@@ -56,14 +42,7 @@ def get_recommendation(slug: str, lang: str = "fr") -> str:
 
 
 def get_references(slug: str) -> tuple[str, ...]:
-    """Retourne les références (liens) pour un slug.
-
-    Args:
-        slug: Identifiant du finding.
-
-    Returns:
-        tuple[str, ...]: Liste des URLs de référence.
-    """
+    """Retourne les références (liens) pour un slug."""
     entry = _get_catalogue().get(slug)
     if entry is not None:
         refs = entry.get("references", [])
@@ -72,15 +51,7 @@ def get_references(slug: str) -> tuple[str, ...]:
 
 
 def get_title(slug: str, lang: str) -> str:
-    """Retourne le titre i18n pour un slug (fr/en), ou chaîne vide si absent.
-
-    Args:
-        slug: Identifiant du finding.
-        lang: Code langue (fr/en).
-
-    Returns:
-        str: Titre traduit ou chaîne vide si non défini dans le catalogue.
-    """
+    """Retourne le titre i18n pour un slug (fr/en)."""
     entry = _get_catalogue().get(slug)
     if entry is None:
         return ""
@@ -90,15 +61,7 @@ def get_title(slug: str, lang: str) -> str:
 
 
 def get_evidence(slug: str, lang: str) -> str:
-    """Retourne l'evidence i18n pour un slug (fr/en), ou chaîne vide si absent.
-
-    Args:
-        slug: Identifiant du finding.
-        lang: Code langue (fr/en).
-
-    Returns:
-        str: Evidence traduite ou chaîne vide si non définie dans le catalogue.
-    """
+    """Retourne l'evidence i18n pour un slug (fr/en)."""
     entry = _get_catalogue().get(slug)
     if entry is None:
         return ""
@@ -108,15 +71,7 @@ def get_evidence(slug: str, lang: str) -> str:
 
 
 def get_detail(slug: str, lang: str) -> str:
-    """Retourne le détail explicatif pour un slug (fr/en), ou chaîne vide si absent.
-
-    Args:
-        slug: Identifiant du finding.
-        lang: Code langue (fr/en).
-
-    Returns:
-        str: Explication détaillée du problème ou chaîne vide.
-    """
+    """Retourne le détail explicatif pour un slug (fr/en)."""
     entry = _get_catalogue().get(slug)
     if entry is None:
         return ""

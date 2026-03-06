@@ -1,8 +1,4 @@
-"""Traductions i18n pour le rapport PDF (fr/en).
-
-Source unique pour toutes les chaînes affichées dans le PDF.
-Évite les mélanges fr/en en centralisant et en forçant lang cohérent.
-"""
+"""Traductions i18n pour le rapport PDF (fr/en)."""
 
 # Clés : identifiants. Valeurs : dict fr / en.
 _PDF_STRINGS: dict[str, dict[str, str]] = {
@@ -85,7 +81,6 @@ _PDF_STRINGS: dict[str, dict[str, str]] = {
     "vraisemblance_tres_forte": {"fr": "Très forte", "en": "Very high"},
 }
 
-# Mapping gravité/vraisemblance du catalogue risk_matrix vers clés i18n
 _GRAVITE_KEYS = {
     "Mineure": "gravite_mineure",
     "Significative": "gravite_significative",
@@ -118,21 +113,13 @@ def _normalize_lang(lang: str) -> str:
 
 
 def t(key: str, lang: str) -> str:
-    """Retourne la traduction pour la clé et la langue.
-
-    Args:
-        key: Clé de traduction (ex. "sommaire", "evidence").
-        lang: Code langue ("fr" ou "en").
-
-    Returns:
-        str: Chaîne traduite, ou la clé si absente.
-    """
+    """Retourne la traduction pour la clé et la langue."""
     lang = _normalize_lang(lang)
     entry = _PDF_STRINGS.get(key, {})
     return entry.get(lang, entry.get("fr", key))
 
 
 def get_all_for_lang(lang: str) -> dict[str, str]:
-    """Retourne toutes les traductions pour une langue (pour usage batch)."""
+    """Retourne toutes les traductions pour une langue."""
     lang = _normalize_lang(lang)
     return {k: v.get(lang, v.get("fr", k)) for k, v in _PDF_STRINGS.items()}

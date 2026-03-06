@@ -15,11 +15,11 @@ _GRAVITES = ("Mineure", "Significative", "Importante", "Majeure")
 _VRAISEMBLANCES = ("Très faible", "Faible", "Forte", "Très forte")
 
 
-def _load_risk_matrix() -> dict[str, dict[str, str]]:
+def _load_risk_matrix() -> dict:
     """Charge le catalogue depuis risk_matrix.json.
 
     Returns:
-        dict[str, dict[str, str]]: slug → {gravite, vraisemblance}.
+        dict: slug → {gravite, vraisemblance}.
     """
     path = Path(__file__).resolve().parent / "risk_matrix.json"
     with path.open(encoding="utf-8") as f:
@@ -27,7 +27,7 @@ def _load_risk_matrix() -> dict[str, dict[str, str]]:
 
 
 @lru_cache(maxsize=1)
-def _get_risk_matrix() -> dict[str, dict[str, str]]:
+def _get_risk_matrix() -> dict:
     """Retourne le catalogue (mis en cache au premier accès)."""
     return _load_risk_matrix()
 

@@ -22,10 +22,14 @@ def register_proxy_routes(app: FastAPI) -> None:
     ADMIN_SERVICE_URL = {svc["prefix"]: svc["url"] for svc in SERVICES}.get("admin")
     ADMIN_METRICS_URL = f"{ADMIN_SERVICE_URL.rstrip('/')}/api/metrics/performance" if ADMIN_SERVICE_URL else None  # noqa: Q000
     ADMIN_METRICS_API_KEY = os.getenv("ADMIN_METRICS_API_KEY", "")
+    PDF_SERVICE_INTERNAL_API_KEY = os.getenv("PDF_SERVICE_INTERNAL_API_KEY", "")
 
     for svc in SERVICES:
         prefix, url = svc["prefix"], svc["url"]
-        endpoint = make_handler(url, prefix, ADMIN_METRICS_URL, ADMIN_METRICS_API_KEY)
+        extra_headers = None
+        if prefix == "pdf" and PDF_SERVICE_INTERNAL_API_KEY:
+            extra_headers = {"X-Internal-Api-Key": PDF_SERVICE_INTERNAL_API_KEY}
+        endpoint = make_handler(url, prefix, ADMIN_METRICS_URL, ADMIN_METRICS_API_KEY, extra_headers=extra_headers)
         app.add_api_route(
             f"/{prefix}/{{path:path}}",  # noqa: E231
             endpoint=endpoint,

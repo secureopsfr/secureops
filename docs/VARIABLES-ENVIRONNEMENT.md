@@ -32,6 +32,8 @@ Référence des variables utilisées par le template (racine et frontend).
 | `IS_DOCKER` | Auto (Docker) | `true` dans les conteneurs pour choisir les URLs des services | — |
 | `DISABLE_AUTH_MIDDLEWARE` | Dev uniquement | Désactive l’auth au gateway si `true` | `false` |
 | `IS_PROD` | Oui (scan-service) | Flag environnement pour le scan-service. Si `1`, `true` ou `yes` (valeur par défaut si non défini), les protections strictes sont activées : blocage localhost/127.0.0.1/::1 et IP privées, ports limités aux ports autorisés. Si `false`, localhost et les ports libres sont autorisés pour les tests locaux (ex. `bad_cache_server.py` sur 127.0.0.1:8001). | `false` en dev (forcé par `launch_dev.sh`), non défini ou `true` en prod |
+| `PDF_SERVICE_URL` | scan-service | URL du pdf-service pour l’export PDF (scan-service appelle ce service en HTTP). | `http://localhost:8013` (dev), `http://pdf-service:8013` (Docker) |
+| `PDF_SERVICE_INTERNAL_API_KEY` | Optionnel (prod) | Clé partagée pour les appels au pdf-service. Si définie : le **gateway** l’ajoute en header `X-Internal-Api-Key` lors du proxy vers `/pdf/*` ; le **scan-service** l’envoie lors de l’appel au pdf-service ; le **pdf-service** exige ce header. En dev (non définie), aucun contrôle. | En prod : une valeur secrète commune aux trois services |
 
 En Docker, `DATABASE_URL` et `ADMIN_DATABASE_URL` sont construites à partir de `POSTGRES_*` dans le `docker-compose.yml`.
 

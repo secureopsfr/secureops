@@ -50,6 +50,12 @@ if [ ! -d "$SCRIPT_DIR/backend/scan-service" ]; then
     exit 1
 fi
 
+# Vérifier pdf-service
+if [ ! -d "$SCRIPT_DIR/backend/pdf-service" ]; then
+    echo -e "${RED}Erreur: Le répertoire backend/pdf-service n'existe pas${NC}"
+    exit 1
+fi
+
 # Créer un répertoire pour les logs
 mkdir -p "$SCRIPT_DIR/logs"
 
@@ -159,7 +165,11 @@ start_manual_services() {
     echo -e "   Ouvrez un nouveau terminal et exécutez:"
     echo -e "   cd $SCRIPT_DIR/backend/scan-service && venv\\Scripts\\activate && python -m uvicorn app.main:app --host 0.0.0.0 --port 8012 --reload"
 
-    echo -e "${GREEN}5. Démarrer le frontend (Next.js):${NC}"
+    echo -e "${GREEN}5. Démarrer le service pdf-service:${NC}"
+    echo -e "   Ouvrez un nouveau terminal et exécutez:"
+    echo -e "   cd $SCRIPT_DIR/backend/pdf-service && venv\\Scripts\\activate && python -m uvicorn app.main:app --host 0.0.0.0 --port 8013 --reload"
+
+    echo -e "${GREEN}6. Démarrer le frontend (Next.js):${NC}"
     echo -e "   Ouvrez un nouveau terminal et exécutez:"
     echo -e "   cd $SCRIPT_DIR/frontend && npm run dev"
 
@@ -274,7 +284,10 @@ else
     launch_service "user-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" && uvicorn app.main:app --host 0.0.0.0 --port 8011 --reload" "$SCRIPT_DIR/backend/user-service"
 
     # Lancer le service scan-service (IS_PROD=false pour autoriser localhost/ports libres en dev)
-    launch_service "scan-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" IS_PROD=false && uvicorn app.main:app --host 0.0.0.0 --port 8012 --reload" "$SCRIPT_DIR/backend/scan-service"
+    launch_service "scan-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" IS_PROD=false PDF_SERVICE_URL=http://localhost:8013 && uvicorn app.main:app --host 0.0.0.0 --port 8012 --reload" "$SCRIPT_DIR/backend/scan-service"
+
+    # Lancer le service pdf-service
+    launch_service "pdf-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" && uvicorn app.main:app --host 0.0.0.0 --port 8013 --reload" "$SCRIPT_DIR/backend/pdf-service"
 
     # Lancer le frontend (Next.js)
     echo -e "${YELLOW}Démarrage du frontend Next.js (cela peut prendre jusqu'à 2-3 minutes si les packages sont déjà installés, sinon 5-15 minutes). Si ça ne marche pas, faire le clean install de npm et relancer le script.${NC}"

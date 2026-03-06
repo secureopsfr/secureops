@@ -1,0 +1,140 @@
+{
+  "tls": {
+    "label_fr": "TLS / HTTPS",
+    "label_en": "TLS / HTTPS",
+    "description_fr": "Le scan vérifie que le site est accessible en **HTTPS**, que le trafic HTTP redirige vers **HTTPS**, que le **certificat** est valide (non expiré, non auto-signé), que la **chaîne de certificats** est complète (intermédiaires inclus), et que les versions **TLS** obsolètes (1.0, 1.1) sont désactivées. Une alerte est émise si le certificat expire dans moins de 30 jours.",
+    "description_en": "The scan verifies that the site is accessible via **HTTPS**, that HTTP traffic redirects to **HTTPS**, that the **certificate** is valid (not expired, not self-signed), that the **certificate chain** is complete (intermediates included), and that obsolete **TLS** versions (1.0, 1.1) are disabled. An alert is issued if the certificate expires in less than 30 days.",
+    "checks_fr": ["**HTTPS** activé", "Redirection **HTTP→HTTPS**", "**Certificat** valide", "Pas de **TLS** 1.0/1.1"],
+    "checks_en": ["**HTTPS** enabled", "**HTTP→HTTPS** redirect", "Valid **certificate**", "No **TLS** 1.0/1.1"]
+  },
+  "headers": {
+    "label_fr": "Security Headers",
+    "label_en": "Security Headers",
+    "description_fr": "Le scan vérifie la présence des en-têtes de sécurité recommandés : **Content-Security-Policy** (CSP), **Strict-Transport-Security** (HSTS), **X-Frame-Options**, **X-Content-Type-Options** (nosniff), **Referrer-Policy** et **Permissions-Policy**. Ces en-têtes protègent contre le XSS, le clickjacking, le MIME sniffing et les fuites d'URL.",
+    "description_en": "The scan verifies the presence of recommended security headers: **Content-Security-Policy** (CSP), **Strict-Transport-Security** (HSTS), **X-Frame-Options**, **X-Content-Type-Options** (nosniff), **Referrer-Policy** and **Permissions-Policy**. These headers protect against XSS, clickjacking, MIME sniffing and URL leakage.",
+    "checks_fr": ["**CSP**", "**HSTS**", "**X-Frame-Options**", "**X-Content-Type-Options**", "**Referrer-Policy**", "**Permissions-Policy**"],
+    "checks_en": ["**CSP**", "**HSTS**", "**X-Frame-Options**", "**X-Content-Type-Options**", "**Referrer-Policy**", "**Permissions-Policy**"]
+  },
+  "cache": {
+    "label_fr": "Cache et performances",
+    "label_en": "Cache and performance",
+    "description_fr": "Le scan analyse les en-têtes de cache de la page principale (**Cache-Control**, **Pragma**, **ETag**, **Last-Modified**, **Vary**) et détecte les pages sensibles (login, admin, API) cacheables publiquement. Il extrait ensuite un sous-ensemble de sous-requêtes (scripts, feuilles de style, images) pour vérifier que les assets immuables (fichiers avec hash dans l'URL) bénéficient d'un cache long (`max-age` élevé, `immutable`).",
+    "description_en": "The scan analyzes cache headers on the main page (**Cache-Control**, **Pragma**, **ETag**, **Last-Modified**, **Vary**) and detects sensitive pages (login, admin, API) that are publicly cacheable. It then extracts a subset of sub-requests (scripts, stylesheets, images) to verify that immutable assets (files with a hash in the URL) benefit from a long cache (`max-age` and `immutable`).",
+    "checks_fr": [
+      "**Cache-Control** page principale",
+      "Pages sensibles non cacheables publiquement",
+      "Cohérence **Pragma** / **Cache-Control**",
+      "Analyse des sous-requêtes (JS/CSS/images)",
+      "Cache long pour assets immuables"
+    ],
+    "checks_en": [
+      "**Cache-Control** on main page",
+      "Sensitive pages not publicly cacheable",
+      "Consistent **Pragma** / **Cache-Control**",
+      "Analysis of sub-requests (JS/CSS/images)",
+      "Long cache for immutable assets"
+    ]
+  },
+  "integrity": {
+    "label_fr": "Intégrité et sous-ressources",
+    "label_en": "Integrity and subresources",
+    "description_fr": "Le scan analyse le HTML de la page principale pour vérifier l'utilisation de **Subresource Integrity (SRI)** sur les scripts et feuilles de style externes, ainsi que plusieurs bonnes pratiques de sécurité côté frontend : scripts inline cohérents avec la **CSP** (nonces/hashes lorsque présente), champs **password** avec `autocomplete` approprié, liens `target=\"_blank\"` protégés par `rel=\"noopener\"`, et présence de meta **robots** adaptées (`noindex`) sur certaines pages sensibles (login, admin, API). Lorsque **aucune CSP n'est définie**, les tests avancés sur les scripts inline (nonces/hashes) ne sont pas appliqués et cela est explicitement indiqué dans les résultats.",
+    "description_en": "The scan analyzes the main page HTML to verify the use of **Subresource Integrity (SRI)** on external scripts and stylesheets, as well as several frontend security best practices: inline scripts consistent with **CSP** (nonces/hashes when present), **password** fields with appropriate `autocomplete`, `target=\"_blank\"` links protected by `rel=\"noopener\"`, and suitable **robots** meta tags (`noindex`) on certain sensitive pages (login, admin, API). When **no CSP is defined**, advanced checks on inline scripts (nonces/hashes) are not applied and this is explicitly reported in the results.",
+    "checks_fr": [
+      "**SRI** sur scripts/CSS externes",
+      "Scripts inline cohérents avec la **CSP**",
+      "Champs **password** avec `autocomplete` adapté",
+      "Liens `target=\"_blank\"` avec `rel=\"noopener\"`",
+      "Meta **robots** (noindex) sur pages sensibles"
+    ],
+    "checks_en": [
+      "**SRI** on external scripts/CSS",
+      "Inline scripts consistent with **CSP**",
+      "**Password** fields with appropriate `autocomplete`",
+      "`target=\"_blank\"` links with `rel=\"noopener\"`",
+      "**robots** meta (noindex) on sensitive pages"
+    ]
+  },
+  "cookies": {
+    "label_fr": "Cookies",
+    "label_en": "Cookies",
+    "description_fr": "Le scan analyse les en-têtes Set-Cookie et vérifie les flags de sécurité : **Secure** (obligatoire sur HTTPS), **HttpOnly** (protection XSS) et **SameSite** (protection CSRF). Il détecte les cookies de session sans triple protection (HttpOnly+Secure+SameSite=Strict), recommande les préfixes **__Host-**/**__Secure-** pour les cookies sensibles, signale les cookies tiers sans **Partitioned** (CHIPS) et alerte si un cookie de session a une durée **Expires/Max-Age** > 24h.",
+    "description_en": "The scan analyzes Set-Cookie headers and verifies security flags: **Secure** (required on HTTPS), **HttpOnly** (XSS protection) and **SameSite** (CSRF protection). It detects session cookies without triple protection (HttpOnly+Secure+SameSite=Strict), recommends **__Host-**/**__Secure-** prefixes for sensitive cookies, reports third-party cookies without **Partitioned** (CHIPS), and alerts if a session cookie has **Expires/Max-Age** > 24h.",
+    "checks_fr": ["**Secure**", "**HttpOnly**", "**SameSite**", "Session : triple protection", "Préfixes **__Host-**/**__Secure-**", "**Partitioned** (CHIPS)", "**Expires** session < 24h"],
+    "checks_en": ["**Secure**", "**HttpOnly**", "**SameSite**", "Session: triple protection", "**__Host-**/**__Secure-** prefixes", "**Partitioned** (CHIPS)", "Session **Expires** < 24h"]
+  },
+  "exposed_files": {
+    "label_fr": "Fichiers exposés",
+    "label_en": "Exposed files",
+    "description_fr": "Le scan teste une liste de chemins sensibles pour détecter une exposition accidentelle : **/.env**, **/.git/config**, **/backup.zip**, **/phpinfo.php**, **/admin/**, **/.DS_Store**, **/.htaccess**, **/web.config**, **/.svn/entries**, **/composer.json**, **/package.json**, **/.npmrc**, fichiers backup (**config.bak**, **.env.bak**), et endpoints API docs (**/swagger**, **/api-docs**, **/graphql**). Un fichier est exposé si la réponse est 200 et que le contenu correspond aux signatures connues.",
+    "description_en": "The scan tests a list of sensitive paths to detect accidental exposure: **/.env**, **/.git/config**, **/backup.zip**, **/phpinfo.php**, **/admin/**, **/.DS_Store**, **/.htaccess**, **/web.config**, **/.svn/entries**, **/composer.json**, **/package.json**, **/.npmrc**, backup files (**config.bak**, **.env.bak**), and API docs endpoints (**/swagger**, **/api-docs**, **/graphql**). A file is exposed if the response is 200 and the content matches known signatures.",
+    "checks_fr": ["**.env**", "**.git/config**", "**backup.zip**", "**phpinfo.php**", "**/admin/**", "**.DS_Store**", "**.htaccess**", "**web.config**", "**/.svn/entries**", "**composer.json**", "**package.json**", "**backup**", "**swagger/api-docs/graphql**"],
+    "checks_en": ["**.env**", "**.git/config**", "**backup.zip**", "**phpinfo.php**", "**/admin/**", "**.DS_Store**", "**.htaccess**", "**web.config**", "**/.svn/entries**", "**composer.json**", "**package.json**", "**backup**", "**swagger/api-docs/graphql**"]
+  },
+  "directory_listing": {
+    "label_fr": "Directory listing",
+    "label_en": "Directory listing",
+    "description_fr": "Le scan vérifie si le listing de répertoires est activé sur **/uploads/**, **/assets/**, **/static/**, **/tmp/**, **/logs/**, **/config/**, **/backup/** et **/data/**. Un listing actif permet à un attaquant d'énumérer les fichiers et d'accéder à des ressources non prévues pour le public. Un 403 sur un répertoire sensible (/config/, /backup/, /logs/, /tmp/, /data/) révèle son existence et est également signalé.",
+    "description_en": "The scan checks whether directory listing is enabled on **/uploads/**, **/assets/**, **/static/**, **/tmp/**, **/logs/**, **/config/**, **/backup/** and **/data/**. An active listing allows an attacker to enumerate files and access resources not intended for public access. A 403 on a sensitive directory (/config/, /backup/, /logs/, /tmp/, /data/) reveals its existence and is also reported.",
+    "checks_fr": ["**/uploads/**", "**/assets/**", "**/static/**", "**/tmp/**", "**/logs/**", "**/config/**", "**/backup/**", "**/data/**", "403 sur chemins sensibles"],
+    "checks_en": ["**/uploads/**", "**/assets/**", "**/static/**", "**/tmp/**", "**/logs/**", "**/config/**", "**/backup/**", "**/data/**", "403 on sensitive paths"]
+  },
+  "robots_txt": {
+    "label_fr": "robots.txt",
+    "label_en": "robots.txt",
+    "description_fr": "Le scan lit le fichier **/robots.txt**, extrait les directives **Disallow**, **Allow**, **Sitemap** et **Crawl-delay**, et signale les routes potentiellement sensibles (admin, api, backup, config, etc.).",
+    "description_en": "The scan reads **/robots.txt**, extracts **Disallow**, **Allow**, **Sitemap** and **Crawl-delay** directives, and reports potentially sensitive routes (admin, api, backup, config, etc.).",
+    "checks_fr": ["Lecture **robots.txt**", "Extraction **Disallow**/**Allow**", "**Sitemap**", "**Crawl-delay**", "Détection routes sensibles"],
+    "checks_en": ["Read **robots.txt**", "Extract **Disallow**/**Allow**", "**Sitemap**", "**Crawl-delay**", "Detect sensitive routes"]
+  },
+  "sitemap": {
+    "label_fr": "Sitemap",
+    "label_en": "Sitemap",
+    "description_fr": "Le scan vérifie la présence de **Sitemap:** dans robots.txt, cherche un sitemap à l'emplacement classique (/sitemap.xml) si absent, et analyse le contenu pour détecter des **URLs sensibles** (admin, api, config, etc.) exposées aux crawlers.",
+    "description_en": "The scan checks for **Sitemap:** in robots.txt, looks for a sitemap at the standard location (/sitemap.xml) if absent, and analyzes the content to detect **sensitive URLs** (admin, api, config, etc.) exposed to crawlers.",
+    "checks_fr": ["**Sitemap:** dans robots.txt", "Fallback **/sitemap.xml**", "Analyse URLs sensibles"],
+    "checks_en": ["**Sitemap:** in robots.txt", "Fallback **/sitemap.xml**", "Analyze sensitive URLs"]
+  },
+  "tech_fingerprinting": {
+    "label_fr": "Tech fingerprinting",
+    "label_en": "Tech fingerprinting",
+    "description_fr": "Le scan analyse les en-têtes **Server**, **X-Powered-By**, **X-Generator**, extrait les **versions**, détecte via **balises HTML** (meta generator, scripts), et alerte si une version est connue comme **potentiellement vulnérable** (seuils configurables). Rapport « stack probable » avec niveaux de confiance.",
+    "description_en": "The scan analyzes **Server**, **X-Powered-By**, **X-Generator** headers, extracts **versions**, detects via **HTML tags** (meta generator, scripts), and alerts if a version is known as **potentially vulnerable** (configurable thresholds). « Probable stack » report with confidence levels.",
+    "checks_fr": ["**Server**", "**X-Powered-By**", "**Versions**", "**HTML meta/scripts**", "**Versions vulnérables**", "**Stack + confiance**"],
+    "checks_en": ["**Server**", "**X-Powered-By**", "**Versions**", "**HTML meta/scripts**", "**Vulnerable versions**", "**Stack + confidence**"]
+  },
+  "information_disclosure": {
+    "label_fr": "Fuites d'information",
+    "label_en": "Information disclosure",
+    "description_fr": "Le scan analyse le **corps** et les **en-têtes** de la réponse HTTPS pour détecter des fuites : **stack traces**, messages d'erreur en **mode debug**, **secrets** (tokens, clés API), en-têtes de débogage (**X-Debug**, **X-Debug-Token**, **X-Runtime**) et en-têtes révélant la stack (**Server**, **X-Powered-By**, **X-AspNet-Version**, **X-Generator**).",
+    "description_en": "The scan analyzes the response **body** and **headers** for leaks: **stack traces**, **debug** error messages, **secrets** (tokens, API keys), debug headers (**X-Debug**, **X-Debug-Token**, **X-Runtime**) and stack-revealing headers (**Server**, **X-Powered-By**, **X-AspNet-Version**, **X-Generator**).",
+    "checks_fr": ["**Stack traces**", "**Mode debug**", "**Secrets/tokens**", "**Headers débogage**", "**Server/X-Powered-By** avec version", "**Headers custom**"],
+    "checks_en": ["**Stack traces**", "**Debug mode**", "**Secrets/tokens**", "**Debug headers**", "**Server/X-Powered-By** with version", "**Custom headers**"]
+  },
+  "cors_cross_origin": {
+    "label_fr": "CORS et cross-origin",
+    "label_en": "CORS and cross-origin",
+    "description_fr": "Le scan envoie des requêtes **GET et OPTIONS** avec l'en-tête **Origin** vers la page principale et vers des URLs dérivées (chemins sensibles : /api/, /user/, /admin/, etc.). Il vérifie **Access-Control-Allow-Origin** (* sur endpoint sensible), **Access-Control-Allow-Credentials** avec réflexion d'origine, **Access-Control-Allow-Methods** (PUT/DELETE/PATCH), **Access-Control-Expose-Headers** (en-têtes sensibles), **Cross-Origin-Resource-Policy** (CORP), et la détection du **mixed content** (ressources HTTP sur page HTTPS). Le finding « CORP manquant sur endpoint sensible » n'est émis que si la réponse ressemble à une API (JSON, XML, etc.), et non pour une page HTML (ex. « Cette page n'existe pas »). **Referrer-Policy** est vérifié dans la catégorie **Security Headers**.",
+    "description_en": "The scan sends **GET and OPTIONS** requests with the **Origin** header to the main page and to derived URLs (sensitive paths: /api/, /user/, /admin/, etc.). It checks **Access-Control-Allow-Origin** (* on sensitive endpoint), **Access-Control-Allow-Credentials** with origin reflection, **Access-Control-Allow-Methods** (PUT/DELETE/PATCH), **Access-Control-Expose-Headers** (sensitive headers), **Cross-Origin-Resource-Policy** (CORP), and **mixed content** detection (HTTP resources on HTTPS page). The « CORP missing on sensitive endpoint » finding is only reported when the response looks like an API (JSON, XML, etc.), not for HTML pages (e.g. « Page not found »). **Referrer-Policy** is verified in the **Security Headers** category.",
+    "checks_fr": [
+      "**GET/OPTIONS** avec Origin (page + chemins sensibles)",
+      "**ACAO *** sur endpoint sensible",
+      "**Credentials** + réflexion d'origine",
+      "**Allow-Methods** (PUT/DELETE/PATCH)",
+      "**Expose-Headers** sensibles",
+      "**CORP** manquant",
+      "**Mixed content** (HTTP sur HTTPS)",
+      "**Referrer-Policy** (vérifié dans Security Headers)"
+    ],
+    "checks_en": [
+      "**GET/OPTIONS** with Origin (page + sensitive paths)",
+      "**ACAO *** on sensitive endpoint",
+      "**Credentials** + origin reflection",
+      "**Allow-Methods** (PUT/DELETE/PATCH)",
+      "**Expose-Headers** sensitive",
+      "**CORP** missing",
+      "**Mixed content** (HTTP on HTTPS)",
+      "**Referrer-Policy** (checked in Security Headers)"
+    ]
+  }
+}

@@ -40,18 +40,7 @@ def build_cover_page(
     report_title: str,
     subtitle: str,
 ) -> str:
-    """Construit le HTML de la page de garde.
-
-    Args:
-        url: URL scannée.
-        date_str: Date formatée.
-        lang: Code langue (fr/en).
-        report_title: Titre du rapport.
-        subtitle: Sous-titre.
-
-    Returns:
-        str: HTML de la page de garde.
-    """
+    """Construit le HTML de la page de garde."""
     url_label = t("cover_url_label", lang)
     date_label = t("cover_date_label", lang)
     display_url = url.replace("https://", "").replace("http://", "").rstrip("/")[:60]

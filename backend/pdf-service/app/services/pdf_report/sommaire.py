@@ -19,16 +19,7 @@ def build_sommaire(
     ordered_cats: list[str],
     lang: str,
 ) -> str:
-    """Construit le HTML du sommaire (sections et sous-parties 2.1, 2.2, etc.).
-
-    Args:
-        by_category: Findings groupés par catégorie.
-        ordered_cats: Ordre des catégories.
-        lang: Code langue (fr/en).
-
-    Returns:
-        str: HTML du sommaire.
-    """
+    """Construit le HTML du sommaire (sections et sous-parties 2.1, 2.2, etc.)."""
     from app.config.pdf import get_pdf_settings
 
     sommaire_label = t("sommaire", lang)
