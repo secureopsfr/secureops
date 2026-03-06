@@ -1,8 +1,9 @@
 """Route de génération de rapports PDF."""
 
 import logging
+import os
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
@@ -11,6 +12,26 @@ from app.services.pdf_report import generate_pdf
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["report"])
+
+PDF_SERVICE_INTERNAL_API_KEY = os.getenv("PDF_SERVICE_INTERNAL_API_KEY")
+_X_INTERNAL_API_KEY_HEADER = Header(default=None, alias="X-Internal-Api-Key")
+
+
+async def _verify_internal_api_key(
+    x_internal_api_key: str | None = _X_INTERNAL_API_KEY_HEADER,
+) -> None:
+    """Vérifie la clé API interne si PDF_SERVICE_INTERNAL_API_KEY est définie.
+
+    En dev (variable non définie), l'accès est autorisé sans clé.
+    Le gateway et le scan-service envoient cette clé lors des appels.
+    """
+    if not PDF_SERVICE_INTERNAL_API_KEY:
+        return
+    if x_internal_api_key != PDF_SERVICE_INTERNAL_API_KEY:
+        raise HTTPException(status_code=401, detail="Clé API interne invalide ou manquante")
+
+
+_VERIFY_INTERNAL_API_KEY = Depends(_verify_internal_api_key)
 
 
 class ReportPdfBody(BaseModel):
@@ -26,11 +47,13 @@ class ReportPdfBody(BaseModel):
 @router.post(
     "/report/pdf",
     summary="Générer un rapport PDF",
-    description="Génère un rapport PDF à partir du payload de scan (url, score, timestamp, duration, findings).",
+    description="Génère un rapport PDF à partir du payload de scan (url, score, timestamp, duration, findings). "
+    "Si PDF_SERVICE_INTERNAL_API_KEY est définie, le header X-Internal-Api-Key est requis.",
     response_class=Response,
 )
 def report_pdf(
     body: ReportPdfBody,
+    _: None = _VERIFY_INTERNAL_API_KEY,
     lang: str = "fr",
     include_matrices: bool = True,
 ) -> Response:

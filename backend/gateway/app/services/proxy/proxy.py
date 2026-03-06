@@ -19,17 +19,24 @@ config = settings()
 HOP_BY_HOP = set(config.headers.hop_by_hop)
 
 
-async def proxy_buffer_request(service_url: str, request: Request, path: str) -> tuple[Response, int | None]:
+async def proxy_buffer_request(
+    service_url: str,
+    request: Request,
+    path: str,
+    *,
+    extra_headers: dict[str, str] | None = None,
+) -> tuple[Response, int | None]:
     """
     Proxy « buffer » : lit tout le contenu (JSON, CSV...) et renvoie un Response classique.
 
     Args:
-        service_url (str): URL du service à proxyer
-        request (Request): Requête HTTP
-        path (str): Chemin de la requête
+        service_url: URL du service à proxyer.
+        request: Requête HTTP.
+        path: Chemin de la requête.
+        extra_headers: Headers additionnels à envoyer au backend (ex. clé API interne).
 
     Returns:
-        tuple[Response, int | None]: Tuple contenant la réponse HTTP et la taille de la réponse en octets.
+        tuple[Response, int | None]: Réponse HTTP et taille du corps.
     """
     # Log des informations utilisateur si disponibles
     if hasattr(request.state, "user") and request.state.user:
@@ -39,6 +46,8 @@ async def proxy_buffer_request(service_url: str, request: Request, path: str) ->
 
     # 1) Filtrer les headers à forwarder
     proxied_headers = {name: value for name, value in request.headers.items() if name.lower() not in HOP_BY_HOP and name.lower() != "accept-encoding"}
+    if extra_headers:
+        proxied_headers.update(extra_headers)
 
     # Propager le correlation_id vers les services en aval
     cid = correlation_id_ctx.get()
@@ -95,17 +104,24 @@ async def proxy_buffer_request(service_url: str, request: Request, path: str) ->
     )
 
 
-async def proxy_stream_request(service_url: str, request: Request, path: str) -> StreamingResponse:
+async def proxy_stream_request(
+    service_url: str,
+    request: Request,
+    path: str,
+    *,
+    extra_headers: dict[str, str] | None = None,
+) -> StreamingResponse:
     """
     Instancie un AsyncClient(timeout=…) et fait client.send(..., stream=True).
 
     Args:
-        service_url (str): URL du service à proxyer
-        request (Request): Requête HTTP
-        path (str): Chemin de la requête
+        service_url: URL du service à proxyer.
+        request: Requête HTTP.
+        path: Chemin de la requête.
+        extra_headers: Headers additionnels à envoyer au backend.
 
     Returns:
-        StreamingResponse: Réponse streaming
+        StreamingResponse: Réponse streaming.
     """
     # Log des informations utilisateur si disponibles
     if hasattr(request.state, "user") and request.state.user:
@@ -115,6 +131,8 @@ async def proxy_stream_request(service_url: str, request: Request, path: str) ->
 
     # Filtrer les headers à forwarder
     proxied_headers = {name: value for name, value in request.headers.items() if name.lower() not in HOP_BY_HOP and name.lower() != "accept-encoding"}
+    if extra_headers:
+        proxied_headers.update(extra_headers)
 
     # Propager le correlation_id vers les services en aval
     cid = correlation_id_ctx.get()

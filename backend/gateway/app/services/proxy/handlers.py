@@ -43,18 +43,26 @@ async def _calculate_request_size(request: Request) -> int | None:
         return None
 
 
-def make_handler(service_url: str, prefix: str, admin_metrics_url: str | None, admin_metrics_api_key: str):
+def make_handler(
+    service_url: str,
+    prefix: str,
+    admin_metrics_url: str | None,
+    admin_metrics_api_key: str,
+    *,
+    extra_headers: dict[str, str] | None = None,
+):
     """
     Crée un handler pour un service donné.
 
     Args:
-        service_url (str): URL du service à proxyer
-        prefix (str): Préfixe du service (pour les métriques)
-        admin_metrics_url (str | None): URL du service admin pour les métriques
-        admin_metrics_api_key (str): Clé API pour les métriques
+        service_url: URL du service à proxyer.
+        prefix: Préfixe du service (pour les métriques).
+        admin_metrics_url: URL du service admin pour les métriques.
+        admin_metrics_api_key: Clé API pour les métriques.
+        extra_headers: Headers additionnels à envoyer au backend (ex. clé API pdf-service).
 
     Returns:
-        Callable[[str, Request], Coroutine[Any, Any, Response]]: Un handler pour le service donné
+        Callable: Handler pour le service donné.
     """
 
     async def handler(path: str, request: Request):
@@ -68,10 +76,10 @@ def make_handler(service_url: str, prefix: str, admin_metrics_url: str | None, a
 
         start = time.perf_counter()
         if wants_stream:
-            response = await proxy_stream_request(service_url, request, path)
+            response = await proxy_stream_request(service_url, request, path, extra_headers=extra_headers)
             response_size_bytes = None
         else:
-            response, response_size_bytes = await proxy_buffer_request(service_url, request, path)
+            response, response_size_bytes = await proxy_buffer_request(service_url, request, path, extra_headers=extra_headers)
         duration_ms = (time.perf_counter() - start) * 1000
 
         schedule_metric(

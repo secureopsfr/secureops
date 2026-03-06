@@ -29,6 +29,7 @@ services:
       # Indiquer que nous sommes en mode Docker
       - IS_DOCKER=true
       - ADMIN_METRICS_API_KEY=${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}
+      - PDF_SERVICE_INTERNAL_API_KEY=${PDF_SERVICE_INTERNAL_API_KEY:-}
     networks:
       - app-network
     healthcheck:
@@ -110,6 +111,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
       - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
       - PDF_SERVICE_URL=http://pdf-service:8013
+      - PDF_SERVICE_INTERNAL_API_KEY=${PDF_SERVICE_INTERNAL_API_KEY:-}
     networks:
       - app-network
     healthcheck:
@@ -131,6 +133,7 @@ services:
     environment:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - PDF_SERVICE_INTERNAL_API_KEY=${PDF_SERVICE_INTERNAL_API_KEY:-}
     networks:
       - app-network
     healthcheck:

@@ -53,6 +53,7 @@ router = APIRouter(prefix="/api", tags=["scan"])
 
 GATEWAY_URL = os.getenv("GATEWAY_URL", "http://localhost:8000")
 PDF_SERVICE_URL = os.getenv("PDF_SERVICE_URL", "http://localhost:8013")
+PDF_SERVICE_INTERNAL_API_KEY = os.getenv("PDF_SERVICE_INTERNAL_API_KEY")
 FETCH_SCAN_TIMEOUT = 10.0
 PDF_REQUEST_TIMEOUT = 60.0
 
@@ -102,9 +103,12 @@ async def export_scan_pdf(
         "findings": scan_data.findings,
     }
     params = {"lang": lang if lang in ("fr", "en") else "fr", "include_matrices": include_matrices}
+    pdf_headers = {}
+    if PDF_SERVICE_INTERNAL_API_KEY:
+        pdf_headers["X-Internal-Api-Key"] = PDF_SERVICE_INTERNAL_API_KEY
 
     async with httpx.AsyncClient(timeout=PDF_REQUEST_TIMEOUT) as client:
-        pdf_resp = await client.post(pdf_endpoint, json=payload, params=params)
+        pdf_resp = await client.post(pdf_endpoint, json=payload, params=params, headers=pdf_headers)
         if pdf_resp.status_code >= 400:
             logger.warning("Erreur pdf-service pour export PDF: %s %s", pdf_resp.status_code, pdf_resp.text[:200])
             return Response(status_code=502, content="Impossible de générer le PDF")
