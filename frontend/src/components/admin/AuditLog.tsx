@@ -13,9 +13,9 @@ import {
   Clock,
   Activity,
 } from "lucide-react";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 import Table from "../Table";
-import Badge from "../Badge";
+import Badge from "../ui/Badge";
 import KpiGrid from "./KpiGrid";
 import Pagination from "./Pagination";
 import DropdownSelector from "../buttons/DropdownSelector";

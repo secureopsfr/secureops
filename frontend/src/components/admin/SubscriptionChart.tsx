@@ -12,7 +12,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 
 const MONTH_LABELS = [
   "Jan",

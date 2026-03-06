@@ -1,5 +1,5 @@
-import { HeaderSkeleton } from "../../components/skeletons";
-import Skeleton from "../../components/skeletons/Skeleton";
+import { HeaderSkeleton } from "../../components/ui/skeletons";
+import Skeleton from "../../components/ui/skeletons/Skeleton";
 
 /**
  * Skeleton de chargement pour la page d'accueil (home).

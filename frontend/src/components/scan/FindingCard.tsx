@@ -1,11 +1,11 @@
 "use client";
 
 import { useLanguage } from "../LanguageProvider";
-import Badge from "../Badge";
+import Badge from "../ui/Badge";
 import { ExternalLink } from "lucide-react";
 import type { ScanFinding } from "../../services/scanService";
 import { getCategoryKey, getSeverityKey } from "./scanConstants";
-import type { BadgeVariant } from "../Badge";
+import type { BadgeVariant } from "../ui/Badge";
 
 const SEVERITY_BADGE_VARIANT: Record<string, BadgeVariant> = {
   critical: "error",

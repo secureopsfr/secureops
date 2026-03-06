@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { Upload, ImageIcon, FolderOpen, Check } from "lucide-react";
 import { GenericButton } from "../buttons";
-import Modal from "../Modal";
+import Modal from "../ui/Modal";
 import { error } from "../../utils/logger";
 import { formatFileSize } from "../../utils/numberFormatter";
 import { getApiBaseUrl } from "../../utils/apiClient";

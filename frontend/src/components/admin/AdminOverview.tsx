@@ -17,8 +17,8 @@ import {
   RefreshCw,
   ArrowRight,
 } from "lucide-react";
-import Card from "../cards/Card";
-import Badge from "../Badge";
+import Card from "../ui/cards/Card";
+import Badge from "../ui/Badge";
 import KpiGrid from "./KpiGrid";
 import type { KpiItem } from "./KpiGrid";
 import adminService from "../../services/admin";

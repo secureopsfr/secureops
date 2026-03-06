@@ -2,7 +2,7 @@
 
 import { useLanguage } from "../LanguageProvider";
 import { LoadingSpinner } from "../LoadingScreen";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 import { Check } from "lucide-react";
 import type { ScanStepDisplay } from "../../services/scanService";
 

@@ -3,8 +3,8 @@
 import { Clock, Send, Edit, Trash2, X, History } from "lucide-react";
 import { formatDateTime } from "../../../utils/dateFormat";
 import Table from "../../Table";
-import Badge, { BadgeVariant } from "../../Badge";
-import Card from "../../cards/Card";
+import Badge, { BadgeVariant } from "../../ui/Badge";
+import Card from "../../ui/cards/Card";
 import { AdminInlineLoading } from "../AdminSectionLoading";
 import { useLanguage } from "../../LanguageProvider";
 

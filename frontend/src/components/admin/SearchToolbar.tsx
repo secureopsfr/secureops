@@ -2,7 +2,7 @@
 
 import React, { type ReactNode } from "react";
 import { Search, X, SortAsc, SortDesc, Grid, List } from "lucide-react";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 import { useDebounce } from "../../hooks/useDebounce";
 
 /* ─────────────────────── Types ─────────────────────── */

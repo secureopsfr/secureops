@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
-import Modal from "./Modal";
+import Modal from "./ui/Modal";
 import { GenericButton } from "./buttons";
 
 interface ConfirmModalProps {

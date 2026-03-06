@@ -13,7 +13,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 import Table from "../Table";
 import { DropdownSelector } from "../buttons";
 import adminService from "../../services/admin";

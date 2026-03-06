@@ -17,10 +17,10 @@ import {
   Activity,
   Shield,
 } from "lucide-react";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 import Table from "../Table";
-import Badge from "../Badge";
-import Modal from "../Modal";
+import Badge from "../ui/Badge";
+import Modal from "../ui/Modal";
 import ConfirmModal from "../ConfirmModal";
 import DropdownSelector from "../buttons/DropdownSelector";
 import Checkbox from "../inputs/Checkbox";

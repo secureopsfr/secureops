@@ -20,7 +20,7 @@ import {
   Plus,
 } from "lucide-react";
 import Image from "next/image";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 import KpiGrid from "./KpiGrid";
 import SearchToolbar from "./SearchToolbar";
 import ConfirmModal from "../ConfirmModal";

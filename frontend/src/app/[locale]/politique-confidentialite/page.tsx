@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Header from "../../../components/Header";
-import Footer from "../../../components/Footer";
+import Header from "../../../components/ui/Header";
+import Footer from "../../../components/ui/Footer";
 import Link from "next/link";
 import AnimateInView from "../../../components/AnimateInView";
 import { getTranslation } from "../../../i18n/server";

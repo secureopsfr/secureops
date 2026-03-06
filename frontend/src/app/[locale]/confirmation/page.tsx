@@ -16,7 +16,7 @@ import {
 import { debug } from "../../../utils/logger";
 import { GenericButton } from "../../../components/buttons";
 import { useLanguage } from "../../../components/LanguageProvider";
-import { AuthFormSkeleton } from "../../../components/skeletons";
+import { AuthFormSkeleton } from "../../../components/ui/skeletons";
 
 export default function ConfirmSignUpPage() {
   const router = useRouter();

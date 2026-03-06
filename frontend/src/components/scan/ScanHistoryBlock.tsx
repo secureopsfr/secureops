@@ -2,7 +2,7 @@
 
 import React, { useCallback, useState } from "react";
 import { FileDown, History, Trash2 } from "lucide-react";
-import { SectionCard } from "../cards";
+import { SectionCard } from "../ui/cards";
 import LoadingScreen from "../LoadingScreen";
 import PaginationBar from "../PaginationBar";
 import { IconActionButton } from "../buttons";

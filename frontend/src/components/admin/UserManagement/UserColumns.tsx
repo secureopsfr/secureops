@@ -19,7 +19,7 @@ import {
   getStatusLabel,
   BooleanIcon,
 } from "../../../utils/adminHelpers";
-import Badge from "../../Badge";
+import Badge from "../../ui/Badge";
 import { useLanguage } from "../../LanguageProvider";
 
 interface UseUserColumnsProps {

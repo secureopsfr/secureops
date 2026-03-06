@@ -11,7 +11,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { formatDateTime } from "../../../utils/dateFormat";
-import Badge from "../../Badge";
+import Badge from "../../ui/Badge";
 import type { ContactMessage } from "./hooks/useContactManagement";
 import { useLanguage } from "../../LanguageProvider";
 

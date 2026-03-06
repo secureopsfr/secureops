@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Shield, ShieldCheck, ShieldAlert } from "lucide-react";
 import type { UserRecord } from "../../services/admin";
 import { GenericButton } from "../buttons";
-import Modal from "../Modal";
+import Modal from "../ui/Modal";
 import { useLanguage } from "../LanguageProvider";
 
 /* ─────────── Constantes ─────────── */

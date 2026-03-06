@@ -2,7 +2,7 @@
 
 import React, { useCallback } from "react";
 import { Bell, Trash2 } from "lucide-react";
-import { SectionCard } from "../cards";
+import { SectionCard } from "../ui/cards";
 import LoadingScreen from "../LoadingScreen";
 import PaginationBar from "../PaginationBar";
 import { useLanguage } from "../LanguageProvider";

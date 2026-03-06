@@ -21,9 +21,9 @@ import {
   getStatusLabel,
 } from "../../utils/adminHelpers";
 import { GenericButton } from "../buttons";
-import Badge from "../Badge";
-import type { BadgeVariant } from "../Badge";
-import Modal from "../Modal";
+import Badge from "../ui/Badge";
+import type { BadgeVariant } from "../ui/Badge";
+import Modal from "../ui/Modal";
 import LoadingScreen from "../LoadingScreen";
 import { useLanguage } from "../LanguageProvider";
 

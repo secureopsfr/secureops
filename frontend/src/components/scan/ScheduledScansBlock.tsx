@@ -2,7 +2,7 @@
 
 import React, { useCallback } from "react";
 import { CalendarClock, Mail, Pause, Play, Trash2 } from "lucide-react";
-import { SectionCard } from "../cards";
+import { SectionCard } from "../ui/cards";
 import LoadingScreen from "../LoadingScreen";
 import PaginationBar from "../PaginationBar";
 import { IconActionButton } from "../buttons";

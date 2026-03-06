@@ -3,7 +3,7 @@
 import React, { Component, ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { error as logError } from "../utils/logger";
-import Card from "./cards/Card";
+import Card from "./ui/cards/Card";
 import { GenericButton } from "./buttons";
 
 interface ErrorBoundaryProps {

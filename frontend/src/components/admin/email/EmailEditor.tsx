@@ -3,7 +3,7 @@
 import { useMemo, useCallback } from "react";
 import useSWR from "swr";
 import { Eye, X, Plus, FileCode2 } from "lucide-react";
-import Card from "../../cards/Card";
+import Card from "../../ui/cards/Card";
 import { GenericButton } from "../../buttons";
 import DropdownSelector from "../../buttons/DropdownSelector";
 import StructuredContentEditor from "../../StructuredContentEditor";

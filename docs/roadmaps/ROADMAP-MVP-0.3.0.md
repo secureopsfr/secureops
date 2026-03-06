@@ -151,7 +151,8 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
   - [ ] `middleware.ts` (auth / i18n)
 
 - [ ] `frontend/src/components/`
-  - [ ] Composants UI génériques (Header, Footer, cards, badges, modals, skeletons…)
+  - [x] Composants UI génériques (Header, Footer, cards, badges, modals, skeletons…)
+    > **Fait :** Création du dossier `components/ui/` et regroupement des composants génériques : Header, Footer, Modal, Badge, cards/, skeletons/. Imports mis à jour dans tout le projet.
   - [ ] Composants scanner (`scan/` : ScannerContent, ScanResults, ScanHistoryBlock, etc.)
   - [ ] Composants compte utilisateur (`user/sections/` : settings, sécurité, confidentialité, abonnement…)
   - [ ] Composants admin (gestion users, contacts, analytics, abonnements, emails…)

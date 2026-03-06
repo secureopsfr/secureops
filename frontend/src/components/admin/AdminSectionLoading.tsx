@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 import LoadingScreen from "../LoadingScreen";
 
 interface AdminSectionLoadingProps {

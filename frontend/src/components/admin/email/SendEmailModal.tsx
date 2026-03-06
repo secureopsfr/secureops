@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Modal from "../../Modal";
+import Modal from "../../ui/Modal";
 import { GenericButton } from "../../buttons";
 import { ScheduleFormPanel, ScheduleDateFields } from "../../schedule";
 import { useLanguage } from "../../LanguageProvider";

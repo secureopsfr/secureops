@@ -6,14 +6,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Sun, Moon, Globe, Menu, X } from "lucide-react";
-import { showSuccessToast } from "../utils/toastNotifications";
-import { GenericButton } from "./buttons";
-import { useTheme } from "./ThemeProvider";
-import { useLanguage } from "./LanguageProvider";
-import type { Language } from "./LanguageProvider";
+import { showSuccessToast } from "../../utils/toastNotifications";
+import { GenericButton } from "../buttons";
+import { useTheme } from "../ThemeProvider";
+import { useLanguage } from "../LanguageProvider";
+import type { Language } from "../LanguageProvider";
 
-import logger from "../utils/logger";
-import { useAuthUser } from "../hooks/useAuthUser";
+import logger from "../../utils/logger";
+import { useAuthUser } from "../../hooks/useAuthUser";
 
 export default function Header() {
   const router = useRouter();
