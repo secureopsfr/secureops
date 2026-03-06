@@ -7,7 +7,76 @@ et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
-## [0.1.0] - (en cours)
+## [0.2.0] - 2025-03-05
+
+### Ajouté
+
+#### Auth, historique et dashboard
+
+- **Persistance des scans** : table `scans` (user_id, url, score, findings_json, etc.), migration Alembic dans user-service
+- **API historique** : `POST/GET/DELETE /user/api/scans/history` pour enregistrer, lister (pagination) et supprimer les scans
+- **Dashboard** : section « Historique des scans » dans Mon compte, liste paginée avec score et badge, détail réutilisant `ScanResults`
+- **Sauvegarde automatique** : scan-service appelle le gateway en fin de scan si token présent pour persister le résultat
+
+#### Export PDF
+
+- **Endpoint** `GET /api/scan/export/pdf` : génération de rapport PDF professionnel (WeasyPrint)
+- **Contenu** : page de garde, score global, résumé par catégorie, liste des findings avec recommandations, footer configurable
+- **Frontend** : bouton « Télécharger PDF » sur la page résultats et sur le détail d'un scan historique
+- **i18n** : support fr/en dans le PDF via paramètre `lang`
+- **Refactoring** : modules dédiés (cover, sommaire, synthese, findings, matrix), CSS externe, catalogue i18n centralisé
+
+#### Monitoring continu (scans planifiés)
+
+- **Modèle** `scheduled_scans` : url, fréquence (daily/weekly/monthly), horaire, jour, `next_run_at`
+- **Scheduler** : boucle asyncio dans user-service (intervalle configurable), appel scan-service via endpoint interne
+- **API** : `POST/GET/PATCH/DELETE /user/api/scans/schedule` pour créer, lister, modifier et supprimer les scans planifiés
+- **Alertes** : détection de régression (chute de score), notification si finding critical ; préférence `scan_alerts_enabled` dans Settings
+- **Frontend** : bloc « Scans planifiés » sur la page Scanner (si connecté), formulaire URL/fréquence/heure, indicateur prochain scan
+
+#### Tests de posture sécurité — Améliorations
+
+- **TLS** : résumé « TLS posture » (OK/Avertissements/Critique), chaîne de certificats, alerte expiration < 30 j, détection TLS 1.3
+- **Security Headers** : CSP report-uri/unsafe-inline/unsafe-eval, COEP, COOP, Clear-Site-Data, sévérité différenciée par header
+- **Cookies** : préfixes __Host-/__Secure-, Partitioned (CHIPS), session incomplète, Expires trop long pour session
+- **Exposition fichiers** : liste étendue (.htaccess, web.config, .svn, composer.json, package.json, .npmrc, backups, swagger, graphql)
+- **Directory listing** : chemins /tmp, /logs, /config, /backup, /data ; listing partiel ; 403 sur chemins sensibles
+- **robots.txt** : Crawl-delay, Allow ; **Sitemap** : Sitemap dans robots, fallback /sitemap.xml, URLs sensibles dans sitemap
+- **Tech fingerprinting** : versions dans Server/X-Powered-By, base CPE/CVE, meta/scripts HTML, stack probable
+
+#### Nouveaux tests passifs
+
+- **Information disclosure** : stack traces, mode debug, secrets dans HTML/JSON, headers X-Debug, X-Runtime, Server avec version
+- **Cache** : Cache-Control, Pragma, ETag, Last-Modified, Vary ; pages sensibles non cacheables ; cache long pour assets immuables
+- **CORS** : ACAO *, Credentials+*, Allow-Methods, Expose-Headers sensibles ; mixed content (HTTP sur HTTPS), CORP manquant
+- **SRI** : scripts/CSS externes sans `integrity` ; analyse HTML : scripts sans nonce, autocomplete password, target="_blank" sans noopener, meta robots
+
+#### UX et design
+
+- Section « Résumé des vérifications » et « Liste des tests effectués » sur la page résultats
+- Amélioration du design : page de chargement, bubble Nouveau scan, page de scan
+- Gestion de la durée de vie de l'historique, suppression de tout l'historique en un clic
+- Corrections : skeleton page connexion/inscription, shimmer header, PDF indisponible quand connexion forcée
+
+#### Documentation
+
+- Fichiers de vérification par catégorie dans `docs/verifications/` (tls-https, security-headers, cookies, exposition-fichiers, directory-listing, robots-txt, sitemap, tech-fingerprinting, information-disclosure, cache-et-performances, cors-et-cross-origin, integrite-et-sous-ressources, etc.)
+- Roadmaps déplacées dans `docs/roadmaps/`, création roadmaps MVP 0.3.0 et 0.4.0
+
+### Modifié
+
+- Scoring adapté aux nouveaux checks (pondération par catégorie)
+- Matrice de sévérité et règles d'upgrade pour findings critiques
+
+### Limites connues (MVP 0.2.0)
+
+- Pas de rate limiting sur l'endpoint de scan
+- API publique : quotas et rate limiting à venir
+- Blocs 5.5 (Méthodes HTTP/redirections) et 5.7 (APIs/formats) reportés à une version ultérieure
+
+---
+
+## [0.1.0] - 2025-03-02
 
 ### Ajouté
 
@@ -62,4 +131,5 @@ et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+[0.2.0]: https://github.com/pierreglerant/secureops/releases/tag/v0.2.0
 [0.1.0]: https://github.com/pierreglerant/secureops/releases/tag/v0.1.0

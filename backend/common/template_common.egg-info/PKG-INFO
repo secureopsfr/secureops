@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: template-common
-Version: 0.1.0
+Version: 0.2.0
 Summary: Code partagé entre les micro-services du template fullstack.
 Requires-Python: >=3.11
 Requires-Dist: fastapi>=0.110.0

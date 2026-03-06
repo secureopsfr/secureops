@@ -9,6 +9,7 @@ from typing import AsyncIterator
 from common.error_handlers import register_exception_handlers
 from common.logging_config import get_logger, setup_logging
 from common.middleware import CorrelationIdMiddleware
+from common.version import get_app_version
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -152,7 +153,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: C901
 
 def create_app() -> FastAPI:
     """Crée et configure l'application FastAPI."""
-    app = FastAPI(title=config.general.service_name, version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title=config.general.service_name, version=get_app_version(), lifespan=lifespan)
 
     # Pas de CORS : ce service est interne, seul le gateway y accède.
     app.add_middleware(CorrelationIdMiddleware)
