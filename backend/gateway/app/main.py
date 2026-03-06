@@ -7,6 +7,7 @@ tuiles vectorielles .pbf avec CORS explicite.
 from common.error_handlers import register_exception_handlers
 from common.logging_config import get_logger, setup_logging
 from common.middleware import CorrelationIdMiddleware
+from common.version import get_app_version
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,7 +28,7 @@ setup_logging(service_name="gateway")
 logger = get_logger(__name__)
 
 # --- FastAPI & Middlewares ------------------------
-app = FastAPI(title=config.general.project_name)
+app = FastAPI(title=config.general.project_name, version=get_app_version())
 
 # Middleware de correlation ID (traçabilité cross-services)
 app.add_middleware(CorrelationIdMiddleware)
