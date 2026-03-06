@@ -139,16 +139,17 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
 
 ## 0.2 Frontend — Refactoring par dossier
 
-- [ ] `frontend/` racine
-  - [ ] `package.json` / `package-lock.json`
-  - [ ] `next.config.ts`, `tsconfig.json`, `jest.config.mjs`, `eslint.config.mjs`, `postcss.config.mjs`
-  - [ ] `.env.example`
+- [x] `frontend/` racine
+  - [x] `package.json` / `package-lock.json`
+  - [x] `next.config.ts`, `tsconfig.json`, `jest.config.mjs`, `eslint.config.mjs`, `postcss.config.mjs`
+  - [x] `.env.example`
+    > **Fait :** Configs présentes ; `turbopack.root` dans next.config ; middleware migré en proxy.ts ; .env.example allégé (variables inutiles supprimées).
 
 - [ ] `frontend/src/app/`
   - [ ] Routing `[locale]/` (pages : accueil, tarifs, scanner, compte, admin, auth, politique de confidentialité…)
   - [ ] Layouts (layout global, layout mon-compte, layout admin, loading/not-found)
   - [ ] Routes API (manifest, robots, sitemap)
-  - [ ] `middleware.ts` (auth / i18n)
+  - [x] `proxy.ts` (auth / i18n, ex-middleware)
 
 - [ ] `frontend/src/components/`
   - [x] Composants UI génériques (Header, Footer, cards, badges, modals, skeletons…)
