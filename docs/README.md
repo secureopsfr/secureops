@@ -34,6 +34,7 @@ Documentation détaillée des tests de posture sécurité implémentés :
 - [**exposition-fichiers.md**](verifications/exposition-fichiers.md) — Fichiers et endpoints sensibles exposés
 - [**directory-listing.md**](verifications/directory-listing.md) — Directory listing
 - [**robots-txt.md**](verifications/robots-txt.md) — robots.txt et routes Disallow
+- [**crawler.md**](verifications/crawler.md) — Crawler HTTP : découverte des URLs, respect robots.txt, contrat API
 - [**tech-fingerprinting.md**](verifications/tech-fingerprinting.md) — Détection de la stack technique
 
 ## Contribution
