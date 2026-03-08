@@ -24,6 +24,8 @@ services:
         condition: service_started
       scan-service:
         condition: service_started
+      crawl-service:
+        condition: service_started
       pdf-service:
         condition: service_started
     healthcheck:
@@ -111,6 +113,31 @@ services:
       - app-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8012/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  crawl-service:
+    build:
+      context: .
+      dockerfile: crawl-service/Dockerfile
+    container_name: immosphere-crawl-service
+    ports:
+      - "${CRAWL_PORT:-8014}:8014"
+    environment:
+      - IS_DOCKER=true
+      - IS_PROD=true
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8014/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

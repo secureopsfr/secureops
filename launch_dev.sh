@@ -56,6 +56,12 @@ if [ ! -d "$SCRIPT_DIR/backend/pdf-service" ]; then
     exit 1
 fi
 
+# Vérifier crawl-service
+if [ ! -d "$SCRIPT_DIR/backend/crawl-service" ]; then
+    echo -e "${RED}Erreur: Le répertoire backend/crawl-service n'existe pas${NC}"
+    exit 1
+fi
+
 # Créer un répertoire pour les logs
 mkdir -p "$SCRIPT_DIR/logs"
 
@@ -165,11 +171,15 @@ start_manual_services() {
     echo -e "   Ouvrez un nouveau terminal et exécutez:"
     echo -e "   cd $SCRIPT_DIR/backend/scan-service && venv\\Scripts\\activate && python -m uvicorn app.main:app --host 0.0.0.0 --port 8012 --reload"
 
-    echo -e "${GREEN}5. Démarrer le service pdf-service:${NC}"
+    echo -e "${GREEN}5. Démarrer le service crawl-service:${NC}"
+    echo -e "   Ouvrez un nouveau terminal et exécutez:"
+    echo -e "   cd $SCRIPT_DIR/backend/crawl-service && venv\\Scripts\\activate && python -m playwright install chromium && python -m uvicorn app.main:app --host 0.0.0.0 --port 8014 --reload"
+
+    echo -e "${GREEN}6. Démarrer le service pdf-service:${NC}"
     echo -e "   Ouvrez un nouveau terminal et exécutez:"
     echo -e "   cd $SCRIPT_DIR/backend/pdf-service && venv\\Scripts\\activate && python -m uvicorn app.main:app --host 0.0.0.0 --port 8013 --reload"
 
-    echo -e "${GREEN}6. Démarrer le frontend (Next.js):${NC}"
+    echo -e "${GREEN}7. Démarrer le frontend (Next.js):${NC}"
     echo -e "   Ouvrez un nouveau terminal et exécutez:"
     echo -e "   cd $SCRIPT_DIR/frontend && npm run dev"
 
@@ -252,6 +262,12 @@ launch_service() {
             echo -e "${RED}Erreur: Impossible d'activer l'environnement virtuel pour ${service_name}${NC}"
             return 1
         fi
+
+        # Crawl-service : installer les navigateurs Playwright (crawl mode SPA)
+        if [ "$service_name" = "crawl-service" ]; then
+            echo -e "${YELLOW}Vérification des navigateurs Playwright (Chromium)...${NC}"
+            (cd "$service_dir" && . venv/bin/activate && python -m playwright install chromium && deactivate) || echo -e "${YELLOW}Playwright: exécutez 'playwright install chromium' dans backend/crawl-service si le mode SPA échoue${NC}"
+        fi
     fi
 
     # S'assurer que le fichier de log peut être créé
@@ -285,6 +301,9 @@ else
 
     # Lancer le service scan-service (IS_PROD=false pour autoriser localhost/ports libres en dev)
     launch_service "scan-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" IS_PROD=false PDF_SERVICE_URL=http://localhost:8013 && uvicorn app.main:app --host 0.0.0.0 --port 8012 --reload" "$SCRIPT_DIR/backend/scan-service"
+
+    # Lancer le service crawl-service (IS_PROD=false pour autoriser localhost)
+    launch_service "crawl-service" ". venv/bin/activate && export IS_PROD=false && uvicorn app.main:app --host 0.0.0.0 --port 8014 --reload" "$SCRIPT_DIR/backend/crawl-service"
 
     # Lancer le service pdf-service
     launch_service "pdf-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" && uvicorn app.main:app --host 0.0.0.0 --port 8013 --reload" "$SCRIPT_DIR/backend/pdf-service"
