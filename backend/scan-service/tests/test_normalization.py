@@ -392,6 +392,7 @@ def test_normalize_robots_txt_fetch_ok_false() -> None:
         sensitive_routes=(),
         findings=("Impossible de récupérer robots.txt.",),
         fetch_ok=False,
+        found=False,
         crawl_delay=None,
         sitemap_urls=(),
     )
@@ -409,6 +410,7 @@ def test_normalize_robots_txt_sensitive_routes() -> None:
         sensitive_routes=(route,),
         findings=("Disallow: /admin/ (route potentiellement sensible : admin).",),
         fetch_ok=True,
+        found=True,
         crawl_delay=None,
         sitemap_urls=(),
     )
@@ -427,6 +429,7 @@ def test_normalize_robots_txt_crawl_delay() -> None:
         sensitive_routes=(),
         findings=(),
         fetch_ok=True,
+        found=True,
         crawl_delay=5,
         sitemap_urls=(),
     )

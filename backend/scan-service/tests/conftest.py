@@ -48,6 +48,7 @@ def patch_scan_checks(**overrides):
         sensitive_routes=(),
         findings=(),
         fetch_ok=True,
+        found=True,
         crawl_delay=None,
         sitemap_urls=(),
     )

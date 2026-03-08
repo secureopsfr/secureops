@@ -118,6 +118,7 @@ def test_robots_txt_check_result_to_dict() -> None:
         sensitive_routes=(SensitiveRoute("/admin/", "admin", "high"),),
         findings=("Disallow: /admin/ (route potentiellement sensible : admin).",),
         fetch_ok=True,
+        found=True,
         crawl_delay=None,
         sitemap_urls=(),
     )

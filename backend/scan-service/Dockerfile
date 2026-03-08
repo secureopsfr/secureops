@@ -3,7 +3,7 @@ FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Dépendances système minimales (génération PDF déléguée au pdf-service)
+# Dépendances système
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       build-essential \
