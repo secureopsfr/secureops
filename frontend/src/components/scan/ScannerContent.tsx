@@ -5,10 +5,11 @@ import { fetchAuthSession } from "aws-amplify/auth";
 import { AlertTriangle, Globe } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
-import { GenericButton } from "../buttons";
+import { DropdownSelector, GenericButton } from "../buttons";
 import AnimateInView from "../AnimateInView";
 import Card from "../ui/cards/Card";
 import Modal from "../ui/Modal";
+import CrawlValidationStep from "./CrawlValidationStep";
 import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
 import ScanResultsGate from "./ScanResultsGate";
@@ -24,6 +25,10 @@ import {
   type ScanError,
   type ScanStepDisplay,
 } from "../../services/scanService";
+import {
+  runCrawlStream,
+  type CrawlUrlEntry,
+} from "../../services/crawlService";
 import {
   createScheduledScan,
   getUserTimezone,
@@ -61,7 +66,13 @@ function parseTimeToHourMinute(time: string): { hour: number; minute: number } {
   return { hour: h ?? 0, minute: m ?? 0 };
 }
 
-type ScanState = "idle" | "loading" | "success" | "error";
+type ScanState =
+  | "idle"
+  | "crawling"
+  | "validation"
+  | "loading"
+  | "success"
+  | "error";
 
 export default function ScannerContent() {
   const { t, lp } = useLanguage();
@@ -83,6 +94,17 @@ export default function ScannerContent() {
   const [formScanAlertsEnabled, setFormScanAlertsEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scanOnlyThisPage, setScanOnlyThisPage] = useState(false);
+  const [crawlMode, setCrawlMode] = useState<"html" | "playwright" | "both">(
+    "html",
+  );
+  const [crawlMaxUrls, setCrawlMaxUrls] = useState(50);
+  const [crawledUrls, setCrawledUrls] = useState<CrawlUrlEntry[]>([]);
+  const [crawlTimeoutReached, setCrawlTimeoutReached] = useState(false);
+  const [crawlAntiBotSuspected, setCrawlAntiBotSuspected] = useState(false);
+  const [crawlRequestsBlocked, setCrawlRequestsBlocked] = useState(false);
+  const [crawlDisallowPaths, setCrawlDisallowPaths] = useState<string[]>([]);
+  const [crawlSteps, setCrawlSteps] = useState<ScanStepDisplay[]>([]);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -100,12 +122,8 @@ export default function ScannerContent() {
     }
   }, [authLoading, isAuthenticated, t]);
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      const trimmed = url.trim();
-      if (!trimmed) return;
-      const urlToScan = normalizeScanUrl(trimmed);
+  const runScanOnUrl = useCallback(
+    (urlToScan: string) => {
       setState("loading");
       setSteps([]);
       setResult(null);
@@ -124,54 +142,51 @@ export default function ScannerContent() {
           }
         : undefined;
 
-      try {
-        await runScan(
-          urlToScan,
-          (ev) => {
-            if (ev.type === "step") {
-              const done = ev.data.step.endsWith("_done");
-              setSteps((prev) => {
-                if (done && prev.length > 0) {
-                  // Remplace la dernière ligne (en chargement) par la version terminée
-                  const updated = [...prev];
-                  updated[updated.length - 1] = {
-                    step: ev.data.step,
-                    message: ev.data.message,
-                    done: true,
-                  };
-                  return updated;
-                }
-                return [
-                  ...prev,
-                  {
-                    step: ev.data.step,
-                    message: ev.data.message,
-                    done: false,
-                  },
-                ];
-              });
-            } else if (ev.type === "result") {
-              if (isAuthenticated) {
-                setResult(ev.data);
-                setState("success");
-              } else {
-                savePendingScanResult(ev.data);
-                setResult(ev.data);
-                setState("success");
+      runScan(
+        urlToScan,
+        (ev) => {
+          if (ev.type === "step") {
+            const done = ev.data.step.endsWith("_done");
+            setSteps((prev) => {
+              if (done && prev.length > 0) {
+                const updated = [...prev];
+                updated[updated.length - 1] = {
+                  step: ev.data.step,
+                  message: ev.data.message,
+                  done: true,
+                };
+                return updated;
               }
-            } else if (ev.type === "save_done") {
-              setScanId(ev.data.scan_id);
-            } else if (ev.type === "error") {
-              setError(ev.data);
-              setState("error");
-              setErrorModalOpen(true);
-            } else if (ev.type === "save_failed") {
-              showErrorToast(ev.data || t("scanner.saveFailed"));
+              return [
+                ...prev,
+                {
+                  step: ev.data.step,
+                  message: ev.data.message,
+                  done: false,
+                },
+              ];
+            });
+          } else if (ev.type === "result") {
+            if (isAuthenticated) {
+              setResult(ev.data);
+              setState("success");
+            } else {
+              savePendingScanResult(ev.data);
+              setResult(ev.data);
+              setState("success");
             }
-          },
-          getToken,
-        );
-      } catch (err) {
+          } else if (ev.type === "save_done") {
+            setScanId(ev.data.scan_id);
+          } else if (ev.type === "error") {
+            setError(ev.data);
+            setState("error");
+            setErrorModalOpen(true);
+          } else if (ev.type === "save_failed") {
+            showErrorToast(ev.data || t("scanner.saveFailed"));
+          }
+        },
+        getToken,
+      ).catch((err) => {
         setError({
           message:
             err instanceof Error ? err.message : t("scanner.errorGeneric"),
@@ -179,10 +194,126 @@ export default function ScannerContent() {
         });
         setState("error");
         setErrorModalOpen(true);
-      }
+      });
     },
-    [url, t, isAuthenticated],
+    [t, isAuthenticated],
   );
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      const trimmed = url.trim();
+      if (!trimmed) return;
+      const urlToScan = normalizeScanUrl(trimmed);
+      setError(null);
+      setErrorModalOpen(false);
+
+      if (scanOnlyThisPage) {
+        runScanOnUrl(urlToScan);
+        return;
+      }
+
+      setState("crawling");
+      setCrawlSteps([]);
+      runCrawlStream(
+        urlToScan,
+        (ev) => {
+          if (ev.type === "step") {
+            const step = ev.data.step;
+            const done = step.endsWith("_done");
+            const isCrawlProgress =
+              step === "crawl_progress" ||
+              step === "html_crawl_progress" ||
+              step === "playwright_crawl_progress";
+            setCrawlSteps((prev) => {
+              if (done && prev.length > 0) {
+                const updated = [...prev];
+                const checkStep = step.replace("_done", "_check");
+                const idx = updated.findLastIndex((s) => s.step === checkStep);
+                if (idx >= 0) {
+                  updated[idx] = {
+                    step: updated[idx].step,
+                    message: ev.data.message,
+                    done: true,
+                  };
+                } else {
+                  updated[updated.length - 1] = {
+                    step: prev[prev.length - 1].step,
+                    message: ev.data.message,
+                    done: true,
+                  };
+                }
+                return updated;
+              }
+              if (isCrawlProgress && prev.length > 0) {
+                const lastIdx = prev.findLastIndex((s) => s.step === step);
+                if (lastIdx >= 0) {
+                  const updated = [...prev];
+                  updated[lastIdx] = {
+                    step: ev.data.step,
+                    message: ev.data.message,
+                    done: false,
+                  };
+                  return updated;
+                }
+              }
+              return [
+                ...prev,
+                {
+                  step: ev.data.step,
+                  message: ev.data.message,
+                  done: false,
+                },
+              ];
+            });
+          } else if (ev.type === "result") {
+            const urls =
+              ev.data.urls.length > 0
+                ? ev.data.urls
+                : [{ url: urlToScan, type: "page", depth: 0 }];
+            setCrawledUrls(urls);
+            setCrawlTimeoutReached(ev.data.timeout_reached ?? false);
+            setCrawlAntiBotSuspected(ev.data.anti_bot_suspected ?? false);
+            setCrawlRequestsBlocked(ev.data.requests_blocked ?? false);
+            setCrawlDisallowPaths(ev.data.disallow_paths ?? []);
+            setState("validation");
+          } else if (ev.type === "error") {
+            setError({
+              message: ev.data.message,
+              status_code: ev.data.status_code,
+              i18nKey: ev.data.i18nKey,
+            });
+            setState("error");
+            setErrorModalOpen(true);
+          }
+        },
+        crawlMaxUrls,
+        crawlMode,
+      ).catch((err) => {
+        setError({
+          message: err instanceof Error ? err.message : t("scanner.crawlError"),
+          status_code: 500,
+        });
+        setState("error");
+        setErrorModalOpen(true);
+      });
+    },
+    [url, scanOnlyThisPage, crawlMaxUrls, crawlMode, runScanOnUrl, t],
+  );
+
+  const handleLaunchScanFromValidation = useCallback(() => {
+    runScanOnUrl(normalizeScanUrl(url.trim()));
+  }, [url, runScanOnUrl]);
+
+  const handleBackFromValidation = useCallback(() => {
+    setState("idle");
+    setCrawledUrls([]);
+    setCrawlTimeoutReached(false);
+    setCrawlAntiBotSuspected(false);
+    setCrawlRequestsBlocked(false);
+    setCrawlDisallowPaths([]);
+    setCrawlSteps([]);
+  }, []);
 
   const handleNewScan = useCallback(() => {
     setState("idle");
@@ -190,6 +321,11 @@ export default function ScannerContent() {
     setResult(null);
     setScanId(null);
     setError(null);
+    setCrawledUrls([]);
+    setCrawlTimeoutReached(false);
+    setCrawlAntiBotSuspected(false);
+    setCrawlRequestsBlocked(false);
+    setCrawlDisallowPaths([]);
   }, []);
 
   const handleAddScheduledScan = useCallback(async () => {
@@ -232,7 +368,8 @@ export default function ScannerContent() {
     t,
   ]);
 
-  const showHeader = state === "idle" || state === "error";
+  const showHeader =
+    state === "idle" || state === "error" || state === "validation";
 
   return (
     <div className="space-y-4 w-full">
@@ -291,6 +428,72 @@ export default function ScannerContent() {
                         required
                         className="auth-input w-full"
                       />
+                      <Checkbox
+                        label={t("scanner.scanOnlyThisPage")}
+                        checked={scanOnlyThisPage}
+                        onChange={(checked) => setScanOnlyThisPage(checked)}
+                      />
+                      {!scanOnlyThisPage && (
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--text)] mb-2">
+                            {t("scanner.crawlModeLabel")}
+                          </label>
+                          <DropdownSelector
+                            selectedValue={crawlMode}
+                            onChange={(v) =>
+                              setCrawlMode(v as "html" | "playwright" | "both")
+                            }
+                            options={[
+                              {
+                                value: "html",
+                                label: t("scanner.crawlModeHtml"),
+                              },
+                              {
+                                value: "playwright",
+                                label: t("scanner.crawlModePlaywright"),
+                              },
+                              {
+                                value: "both",
+                                label: t("scanner.crawlModeBoth"),
+                              },
+                            ]}
+                            width="100%"
+                          />
+                        </div>
+                      )}
+                      {!scanOnlyThisPage && (
+                        <div>
+                          <label
+                            htmlFor="crawl-max-urls"
+                            className="block text-sm font-medium text-[var(--text)] mb-1"
+                          >
+                            {t("scanner.crawlMaxUrlsLabel")}
+                          </label>
+                          <input
+                            id="crawl-max-urls"
+                            type="number"
+                            min={5}
+                            max={200}
+                            value={crawlMaxUrls}
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value, 10);
+                              setCrawlMaxUrls(
+                                Number.isNaN(v)
+                                  ? 50
+                                  : Math.min(200, Math.max(5, v)),
+                              );
+                            }}
+                            className="auth-input w-24"
+                            aria-describedby="crawl-max-urls-desc"
+                          />
+                          <span
+                            id="crawl-max-urls-desc"
+                            className="ml-2 text-sm text-[var(--muted)]"
+                          >
+                            {t("scanner.crawlMaxUrlsDesc")}
+                          </span>
+                        </div>
+                      )}
                       {isAuthenticated && !authLoading && (
                         <Checkbox
                           label={t("scheduledScans.scheduleScanCheckbox")}
@@ -383,6 +586,28 @@ export default function ScannerContent() {
             </>
           )}
 
+          {state === "crawling" && (
+            <ScanLoader
+              steps={crawlSteps}
+              titleKey="scanner.crawlLoading"
+              crawlMode={crawlMode}
+            />
+          )}
+
+          {state === "validation" && (
+            <CrawlValidationStep
+              urls={crawledUrls}
+              startUrl={url.trim()}
+              timeoutReached={crawlTimeoutReached}
+              antiBotSuspected={crawlAntiBotSuspected}
+              requestsBlocked={crawlRequestsBlocked}
+              disallowPaths={crawlDisallowPaths}
+              onUrlsChange={setCrawledUrls}
+              onLaunchScan={handleLaunchScanFromValidation}
+              onBack={handleBackFromValidation}
+            />
+          )}
+
           {state === "loading" && <ScanLoader steps={steps} />}
 
           {state === "success" &&
@@ -429,7 +654,7 @@ export default function ScannerContent() {
               maxWidth="500px"
             >
               <p className="text-[var(--text)] leading-relaxed">
-                {error.message}
+                {error.i18nKey ? t(error.i18nKey) : error.message}
               </p>
             </Modal>
           )}
