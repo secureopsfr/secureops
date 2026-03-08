@@ -19,6 +19,7 @@ PUBLIC_METHOD_PATHS: set[tuple[str, str]] = {
     ("POST", "/api/contact"),  # Protégé par captcha Turnstile
     ("POST", "/admin/api/analytics/ingest"),  # Protégé par validation + rate limiting
     ("POST", "/scan/api/scan"),  # MVP : scan posture sécurité public (disclaimer côté front)
+    ("POST", "/crawl/api/crawl/stream"),  # Crawler HTTP en streaming SSE (roadmap §7)
 }
 
 # ── Routes authentifiées sans vérification de groupe ────────────────
