@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Header from "../../../../components/ui/Header";
 import Footer from "../../../../components/ui/Footer";
+import CrawlersContent from "../../../../components/scan/CrawlersContent";
 import { getTranslation } from "../../../../i18n/server";
 import {
   SITE_URL,
@@ -52,12 +53,7 @@ export default async function ScannerCrawlersPage({
           >
             ← {t("scanner.hub.backToHub")}
           </Link>
-          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
-            <h1 className="page-title mb-4">{t("scanner.crawlers.title")}</h1>
-            <p className="text-[var(--color-text-muted)] max-w-xl mx-auto">
-              {t("scanner.crawlers.placeholder")}
-            </p>
-          </div>
+          <CrawlersContent />
         </div>
       </main>
       <Footer locale={locale} />

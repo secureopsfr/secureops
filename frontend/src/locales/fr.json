@@ -245,7 +245,9 @@
       "metaTitle": "Crawlers",
       "metaDesc": "Configuration des crawlers de découverte.",
       "title": "Crawlers",
-      "placeholder": "Cette page sera complétée prochainement."
+      "placeholder": "Cette page sera complétée prochainement.",
+      "formTitle": "Découvrir les pages d'un site",
+      "launchCrawl": "Lancer le crawl"
     },
     "backend": {
       "metaTitle": "Scan backend",
