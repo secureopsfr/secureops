@@ -75,6 +75,14 @@ export default function ScannerGestion() {
   const [filterScanType, setFilterScanType] = useState<string | null>(null);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [urlOptions, setUrlOptions] = useState<string[]>([]);
+  const [urlListExpanded, setUrlListExpanded] = useState(false);
+
+  const URL_DISPLAY_LIMIT = 5;
+  const displayedUrls = urlListExpanded
+    ? urlOptions
+    : urlOptions.slice(0, URL_DISPLAY_LIMIT);
+  const hasMoreUrls = urlOptions.length > URL_DISPLAY_LIMIT;
+  const hiddenCount = urlOptions.length - URL_DISPLAY_LIMIT;
 
   useEffect(() => {
     getScanHistory(1, 100)
@@ -157,7 +165,7 @@ export default function ScannerGestion() {
               >
                 {t("scanner.gestion.filterAllScans")}
               </button>
-              {urlOptions.map((u) => (
+              {displayedUrls.map((u) => (
                 <button
                   key={u}
                   type="button"
@@ -172,6 +180,19 @@ export default function ScannerGestion() {
                   {formatUrlDisplay(u)}
                 </button>
               ))}
+              {hasMoreUrls && (
+                <button
+                  type="button"
+                  onClick={() => setUrlListExpanded(!urlListExpanded)}
+                  className="w-full text-left px-4 py-2 text-sm text-[rgb(var(--primary))] hover:bg-[rgba(var(--primary),0.08)] rounded-lg transition-colors"
+                >
+                  {urlListExpanded
+                    ? t("scanner.gestion.filterUrlShowLess")
+                    : t("scanner.gestion.filterUrlShowMore", {
+                        count: hiddenCount,
+                      })}
+                </button>
+              )}
             </div>
           </div>
           <div>

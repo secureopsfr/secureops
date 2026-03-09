@@ -244,6 +244,8 @@
       "filterDrawerTitle": "Filters",
       "filterAllScans": "All scans",
       "filterByUrl": "Filter by URL",
+      "filterUrlShowMore": "Show more URLs ({{count}} more)",
+      "filterUrlShowLess": "Show less",
       "filterByScanType": "Scan type",
       "filterScanTypeAll": "All types"
     },
