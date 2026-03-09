@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, Key, Bot, Monitor, Server, BookOpen } from "lucide-react";
+import {
+  BarChart3,
+  Key,
+  Bot,
+  Monitor,
+  Server,
+  BookOpen,
+  Construction,
+} from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import Card from "../ui/cards/Card";
 
@@ -53,6 +61,13 @@ export default function ScannerHub() {
       bodyKey: "scanner.hub.cardDocsBody",
       href: lp("/scanner/docs"),
       icon: BookOpen,
+    },
+    {
+      id: "scans-personnalises",
+      titleKey: "scanner.hub.cardScansPersonnalises",
+      bodyKey: "scanner.hub.cardScansPersonnalisesBody",
+      href: lp("/scanner/scans-personnalises"),
+      icon: Construction,
     },
   ];
 

@@ -200,6 +200,8 @@
       "cardScanBackendBody": "Security posture scan for APIs and backend services.",
       "cardDocs": "Documentation",
       "cardDocsBody": "Scanner documentation, API docs and CI/CD integration.",
+      "cardScansPersonnalises": "Custom scans",
+      "cardScansPersonnalisesBody": "Configure and run custom scans.",
       "comingSoon": "Coming soon",
       "backToHub": "Back to hub"
     },
@@ -208,6 +210,12 @@
       "metaDesc": "Scanner and API documentation.",
       "title": "Documentation",
       "placeholder": "This page will be completed soon with scanner documentation, API docs and CI/CD integration."
+    },
+    "scansPersonnalises": {
+      "metaTitle": "Custom scans",
+      "metaDesc": "Custom scans.",
+      "title": "Custom scans",
+      "placeholder": "Under construction."
     },
     "gestion": {
       "metaTitle": "Scanner management",
@@ -219,7 +227,15 @@
       "tabPlanifies": "Scheduled",
       "tabClesApi": "API Keys",
       "historiquesTitle": "History",
-      "comingSoon": "Coming soon"
+      "comingSoon": "Coming soon",
+      "kpiFakeData": "Fake data for now",
+      "kpiScansThisMonth": "Scans this month",
+      "kpiTotalScans": "Total scans",
+      "kpiAverageScore": "Average score",
+      "kpiCriticalAnomalies": "Critical findings",
+      "kpiActiveScheduled": "Active scheduled",
+      "kpiLastScan": "Last scan",
+      "kpiLastScanValue": "2 hours ago"
     },
     "evolution": {
       "chartScore": "Score",
