@@ -444,9 +444,8 @@ Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.
   > **Fait :** Appel direct à `runScan(url)` sans crawler. Même pipeline que la page Scanner en mode « scanner uniquement cette page ». (pas de crawler : une seule URL récupérée), puis exécution d’un **scan basique** sur cette URL avec **uniquement les vérifications frontend** (TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, etc. — pas de tests actifs ni d’options avancées).
 - [x] **Connexion obligatoire pour les résultats** : réutiliser la même mécanique que sur la page Scanner — après le scan, l’utilisateur **doit se connecter** pour accéder aux résultats (gate « Connectez-vous pour accéder aux résultats », stockage temporaire en sessionStorage, restauration après connexion). Pas de résultats affichés sans auth.
   > **Fait :** `ScanResultsGate` + `FakeScanResultsBlurred`, sessionStorage, `returnTo=/`, sauvegarde historique au retour.
-- [x] Message clair sur la landing : scan basique (une page) + vérifications frontend ; pour un scan avec découverte multi-pages (crawler) ou des options, redirection vers la page Scanner.
-  > **Fait :** Texte `home.scanDesc` sous le formulaire.
-- [ ] À compléter selon les retours (ex. refonte page résultats, navigation Mon compte, onboarding, accessibilité).
+- [x] Message clair sur la landing : scan basique (une page) + vérifications frontend ; pour crawler ou options, redirection vers la page Scanner.
+  > **Fait :** Intro `home.scanIntro` au-dessus de l’input, texte `home.scanDesc` sous le formulaire. Refonte résultats, nav Mon compte, onboarding, accessibilité : à traiter selon les retours.
 
 ### 8.2 Refonte de la page Scanner (hub connecté)
 
