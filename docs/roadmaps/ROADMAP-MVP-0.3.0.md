@@ -449,7 +449,8 @@ Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.
 
 ### 8.2 Refonte de la page Scanner (hub connecté)
 
-- [ ] **Accès réservé aux utilisateurs connectés** : la page Scanner n’est accessible qu’après connexion (sinon redirection vers login ou landing).
+- [x] **Accès réservé aux utilisateurs connectés** : la page Scanner n'est accessible qu'après connexion (sinon redirection vers login ou landing).
+  > **Fait :** `ScannerGuard` dans `scanner/layout.tsx` ; redirection vers `/connexion?returnTo=/scanner` si non authentifié.
 - [ ] **Page d’intro type hub** : une fois connecté, l’utilisateur arrive sur une page d’accueil « Scanner » qui présente les fonctionnalités sous forme de **cards** cliquables (pas directement le formulaire de scan).
 
 #### Cards à prévoir
