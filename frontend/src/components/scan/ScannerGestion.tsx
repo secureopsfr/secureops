@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   BarChart3,
@@ -24,43 +24,72 @@ import { getScanHistory } from "../../services/scanHistoryService";
 import userService from "../../services/userService";
 import { formatUrlDisplay } from "../../utils/urlFormat";
 import { getDateRangeFromDays } from "../../utils/apiQueryParams";
+import { useScanOverview } from "../../hooks/swr/useScanOverview";
+import { getTimeAgo } from "../../utils/dateFormat";
+import type { ScanOverviewResponse } from "../../services/scanHistoryService";
 
-/** KPIs fictifs pour le tableau de bord — à remplacer par des données réelles. */
-function getFakeKpis(t: (key: string) => string): KpiItem[] {
+function buildKpiItems(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  kpis: ScanOverviewResponse["kpis"] | undefined,
+): KpiItem[] {
+  const scansInPeriod = kpis?.scans_in_period ?? "—";
+  const totalScans = kpis?.total_scans ?? "—";
+  const avgScore = kpis?.avg_score != null ? `${kpis.avg_score}/100` : "—";
+  const criticalCount = kpis?.critical_findings_count ?? "—";
+  const activeScheduled = kpis?.active_scheduled_count ?? "—";
+
+  let lastScanValue: string;
+  if (kpis?.last_scan_at) {
+    const ago = getTimeAgo(kpis.last_scan_at);
+    if (ago) {
+      const key =
+        ago.unit === "minutes"
+          ? "scanner.gestion.kpiLastScanAgoMinutes"
+          : ago.unit === "hours"
+            ? "scanner.gestion.kpiLastScanAgoHours"
+            : "scanner.gestion.kpiLastScanAgoDays";
+      lastScanValue = t(key, { value: ago.value });
+    } else {
+      lastScanValue = t("scanner.gestion.kpiLastScanNever");
+    }
+  } else {
+    lastScanValue = t("scanner.gestion.kpiLastScanNever");
+  }
+
   return [
     {
       label: t("scanner.gestion.kpiScansThisMonth"),
-      value: "12",
+      value: String(scansInPeriod),
       icon: <BarChart3 className="w-4 h-4 text-[rgb(var(--primary))]" />,
       bgColor: "rgba(var(--primary),0.15)",
     },
     {
       label: t("scanner.gestion.kpiTotalScans"),
-      value: "156",
+      value: String(totalScans),
       icon: <Activity className="w-4 h-4 text-[rgb(96,165,250)]" />,
       bgColor: "rgba(96,165,250,0.15)",
     },
     {
       label: t("scanner.gestion.kpiAverageScore"),
-      value: "78/100",
+      value: avgScore,
       icon: <Target className="w-4 h-4 text-[rgb(52,211,153)]" />,
       bgColor: "rgba(52,211,153,0.15)",
     },
     {
       label: t("scanner.gestion.kpiCriticalAnomalies"),
-      value: "3",
+      value: String(criticalCount),
       icon: <AlertTriangle className="w-4 h-4 text-[rgb(var(--danger))]" />,
       bgColor: "rgba(var(--danger),0.15)",
     },
     {
       label: t("scanner.gestion.kpiActiveScheduled"),
-      value: "2",
+      value: String(activeScheduled),
       icon: <Calendar className="w-4 h-4 text-[rgb(var(--warning))]" />,
       bgColor: "rgba(var(--warning),0.15)",
     },
     {
       label: t("scanner.gestion.kpiLastScan"),
-      value: t("scanner.gestion.kpiLastScanValue"),
+      value: lastScanValue,
       icon: <Clock className="w-4 h-4 text-[rgb(168,85,247)]" />,
       bgColor: "rgba(168,85,247,0.15)",
     },
@@ -126,10 +155,21 @@ export default function ScannerGestion() {
     }
   }, [historyRetentionDays, filterDateRange]);
 
-  const { date_from: filterDateFrom, date_to: filterDateTo } =
-    filterDateRange != null
-      ? getDateRangeFromDays(filterDateRange)
-      : { date_from: null, date_to: null };
+  const { date_from: filterDateFrom, date_to: filterDateTo } = useMemo(() => {
+    if (filterDateRange == null)
+      return {
+        date_from: null as string | null,
+        date_to: null as string | null,
+      };
+    return getDateRangeFromDays(filterDateRange);
+  }, [filterDateRange]);
+
+  const { overview, isLoading: overviewLoading } = useScanOverview(
+    filterUrl,
+    filterScanType,
+    filterDateFrom,
+    filterDateTo,
+  );
 
   const handleSelectFilter = useCallback(
     (url: string | null, scanType: string | null) => {
@@ -174,7 +214,7 @@ export default function ScannerGestion() {
     );
   }
 
-  const kpiItems = getFakeKpis(t);
+  const kpiItems = buildKpiItems(t, overview?.kpis);
 
   return (
     <>
@@ -339,11 +379,19 @@ export default function ScannerGestion() {
         <section>
           <div className="mb-4">
             <KpiGrid items={kpiItems} columns={6} />
-            <p className="text-xs text-[var(--muted)] mt-2">
-              {t("scanner.gestion.kpiFakeData")}
-            </p>
           </div>
-          <ScannerEvolutionChart />
+          <ScannerEvolutionChart
+            data={
+              overview?.chart_data ??
+              (
+                overview as
+                  | { chartData?: ScanOverviewResponse["chart_data"] }
+                  | undefined
+              )?.chartData ??
+              []
+            }
+            isLoading={!overview && overviewLoading}
+          />
         </section>
         <section>
           <ScannerHistoryAlertsSection

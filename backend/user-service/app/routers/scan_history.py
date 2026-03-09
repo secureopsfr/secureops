@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.db import get_async_session
 from app.schemas.scan import ScanCreateRequest, ScanDetailResponse, ScanListItem, ScanListResponse
+from app.services.scan_aggregation_service import get_scan_overview
 from app.services.scan_repository import (
     count_user_scans,
     create_scan,
@@ -161,6 +162,41 @@ async def list_scans(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erreur lors de la récupération de l'historique",
+        )
+
+
+@router.get("/history/overview")
+async def get_overview(
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
+    url: str | None = None,
+    scan_type: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+):
+    """KPIs et données du graphique pour la vue d'ensemble scanner.
+
+    Filtres optionnels: url, scan_type, date_from (ISO), date_to (ISO).
+    """
+    try:
+        date_from_dt = _parse_optional_datetime(date_from)
+        date_to_dt = _parse_optional_datetime(date_to)
+
+        async with get_async_session() as session:
+            return await get_scan_overview(
+                session,
+                user_id,
+                url=url,
+                scan_type=scan_type,
+                date_from=date_from_dt,
+                date_to=date_to_dt,
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Erreur lors de l'agrégation des scans: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de la récupération des statistiques",
         )
 
 

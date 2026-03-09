@@ -240,6 +240,10 @@
       "kpiActiveScheduled": "Planifiés actifs",
       "kpiLastScan": "Dernier scan",
       "kpiLastScanValue": "Il y a 2 h",
+      "kpiLastScanAgoMinutes": "Il y a {{value}} min",
+      "kpiLastScanAgoHours": "Il y a {{value}} h",
+      "kpiLastScanAgoDays": "Il y a {{value}} j",
+      "kpiLastScanNever": "Jamais",
       "filterButton": "Filtrer les scans",
       "filterDrawerTitle": "Filtres",
       "filterAllScans": "Tous les scans",
@@ -254,8 +258,12 @@
       "filterTimeWindowDays": "{{days}} derniers jours"
     },
     "evolution": {
+      "noData": "Aucune donnée d'évolution pour cette période.",
       "chartScore": "Score",
-      "chartAnomalies": "Anomalies"
+      "chartAnomalies": "Anomalies",
+      "chartScans": "Scans",
+      "curveViewScore": "Score",
+      "curveViewAnomalies": "Anomalies"
     },
     "crawlers": {
       "metaTitle": "Crawlers",

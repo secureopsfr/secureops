@@ -2,18 +2,10 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { BarChart3, Eye, TrendingUp } from "lucide-react";
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
 import Card from "../ui/cards/Card";
+import BarLineEvolutionChart, {
+  BarLineEvolutionChartToggles,
+} from "../charts/BarLineEvolutionChart";
 import Table from "../Table";
 import { DropdownSelector } from "../buttons";
 import adminService from "../../services/admin";
@@ -392,31 +384,18 @@ export default function RouteMetrics({
             </h3>
           </div>
 
-          {/* Toggles métriques (spécifiques au graphique) */}
-          <div className="flex gap-2 rounded-lg border border-[var(--border)] p-1 bg-[var(--color-surface-subtle)]">
-            <button
-              type="button"
-              onClick={() => handleToggle("count")}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
-                showCount
-                  ? "bg-[rgba(var(--primary),0.2)] text-[rgb(var(--primary))]"
-                  : "bg-transparent text-[var(--muted)] hover:text-[var(--text)]"
-              }`}
-            >
-              {t("admin.api.requestsToggle")}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleToggle("avgMs")}
-              className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
-                showAvgMs
-                  ? "bg-[rgba(96,165,250,0.2)] text-[rgb(96,165,250)]"
-                  : "bg-transparent text-[var(--muted)] hover:text-[var(--text)]"
-              }`}
-            >
-              {t("admin.api.avgTimeToggle")}
-            </button>
-          </div>
+          <BarLineEvolutionChartToggles
+            toggleOptions={[
+              { key: "count", label: t("admin.api.requestsToggle") },
+              {
+                key: "avgMs",
+                label: t("admin.api.avgTimeToggle"),
+                activeColor: "blue",
+              },
+            ]}
+            activeKeys={toggles}
+            onToggle={(k) => handleToggle(k as MetricToggle)}
+          />
         </div>
 
         {/* Contenu graphique */}
@@ -446,103 +425,26 @@ export default function RouteMetrics({
         )}
 
         {chartData.length > 0 && (
-          <div style={{ width: "100%", height: 320 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={chartData}
-                margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--border)"
-                  opacity={0.5}
-                />
-                <XAxis
-                  dataKey="ts"
-                  tick={{ fontSize: 11, fill: "var(--muted)" }}
-                  tickLine={false}
-                  axisLine={{ stroke: "var(--border)" }}
-                  interval="preserveStartEnd"
-                  minTickGap={40}
-                />
-
-                {showCount && (
-                  <YAxis
-                    yAxisId="left"
-                    orientation="left"
-                    tick={{ fontSize: 11, fill: "var(--muted)" }}
-                    tickLine={false}
-                    axisLine={{ stroke: "var(--border)" }}
-                    label={{
-                      value: t("admin.api.chartRequests"),
-                      angle: -90,
-                      position: "insideLeft",
-                      offset: 10,
-                      style: { fontSize: 11, fill: "var(--muted)" },
-                    }}
-                    allowDecimals={false}
-                  />
-                )}
-
-                {showAvgMs && (
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    tick={{ fontSize: 11, fill: "var(--muted)" }}
-                    tickLine={false}
-                    axisLine={{ stroke: "var(--border)" }}
-                    label={{
-                      value: "ms",
-                      angle: 90,
-                      position: "insideRight",
-                      offset: 10,
-                      style: { fontSize: 11, fill: "var(--muted)" },
-                    }}
-                  />
-                )}
-
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-overlay-panel-solid)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "0.5rem",
-                    fontSize: "0.8rem",
-                    color: "var(--text)",
-                  }}
-                  labelStyle={{ color: "var(--muted)", marginBottom: 4 }}
-                />
-
-                <Legend
-                  wrapperStyle={{ fontSize: "0.75rem", color: "var(--muted)" }}
-                />
-
-                {showCount && (
-                  <Bar
-                    yAxisId="left"
-                    dataKey="count"
-                    name={t("admin.api.chartRequests")}
-                    fill="rgba(var(--primary), 0.6)"
-                    radius={[3, 3, 0, 0]}
-                    maxBarSize={32}
-                  />
-                )}
-
-                {showAvgMs && (
-                  <Line
-                    yAxisId={showCount ? "right" : "left"}
-                    type="monotone"
-                    dataKey="avgMs"
-                    name={t("admin.api.chartAvgTime")}
-                    stroke="rgb(96, 165, 250)"
-                    strokeWidth={2}
-                    dot={chartData.length <= 60}
-                    activeDot={{ r: 4 }}
-                    connectNulls
-                  />
-                )}
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+          <BarLineEvolutionChart
+            data={chartData}
+            xAxisKey="ts"
+            height={320}
+            barSeries={{
+              dataKey: "count",
+              name: t("admin.api.chartRequests"),
+              yAxisId: "left",
+              fill: "rgba(var(--primary), 0.6)",
+              maxBarSize: 32,
+            }}
+            showBar={showCount}
+            curveSeries={{
+              type: "line",
+              dataKey: "avgMs",
+              name: t("admin.api.chartAvgTime"),
+            }}
+            showCurve={showAvgMs}
+            showDotsThreshold={60}
+          />
         )}
       </div>
 
