@@ -183,6 +183,66 @@
     "discoverPages": "Discover pages on the same domain then choose URLs to scan",
     "loading": "Scanning...",
     "checkingAccess": "Checking access...",
+    "hub": {
+      "title": "Scanner",
+      "subtitle": "Analyze your sites' security posture, view history and manage scheduled scans.",
+      "sectionGestion": "Management",
+      "sectionScanner": "Scanner",
+      "cardDashboards": "Dashboards",
+      "cardDashboardsBody": "Findings trends, scan history and scheduling.",
+      "cardClesApi": "API Keys",
+      "cardClesApiBody": "Manage API keys for external integration.",
+      "cardCrawlers": "Crawlers",
+      "cardCrawlersBody": "Configure and manage discovery crawlers.",
+      "cardScanFrontend": "Frontend scan",
+      "cardScanFrontendBody": "Run a security posture scan on a frontend URL.",
+      "cardScanBackend": "Backend scan",
+      "cardScanBackendBody": "Security posture scan for APIs and backend services.",
+      "cardDocs": "Documentation",
+      "cardDocsBody": "Scanner documentation, API docs and CI/CD integration.",
+      "comingSoon": "Coming soon",
+      "backToHub": "Back to hub"
+    },
+    "docs": {
+      "metaTitle": "Documentation",
+      "metaDesc": "Scanner and API documentation.",
+      "title": "Documentation",
+      "placeholder": "This page will be completed soon with scanner documentation, API docs and CI/CD integration."
+    },
+    "gestion": {
+      "metaTitle": "Scanner management",
+      "metaDesc": "Trends, scheduled scans and history.",
+      "pageTitle": "Scan monitoring",
+      "pageSubtitle": "Score trends, scheduled scans and history.",
+      "tabHistorique": "History",
+      "tabEvolution": "Trends",
+      "tabPlanifies": "Scheduled",
+      "tabClesApi": "API Keys",
+      "historiquesTitle": "History",
+      "comingSoon": "Coming soon"
+    },
+    "evolution": {
+      "chartScore": "Score",
+      "chartAnomalies": "Findings"
+    },
+    "crawlers": {
+      "metaTitle": "Crawlers",
+      "metaDesc": "Discovery crawler configuration.",
+      "title": "Crawlers",
+      "placeholder": "This page will be completed soon."
+    },
+    "backend": {
+      "metaTitle": "Backend scan",
+      "metaDesc": "Security posture scan for APIs and backend services.",
+      "title": "Backend scan",
+      "placeholder": "This page will be completed soon."
+    },
+    "clesApi": {
+      "metaTitle": "API Keys",
+      "metaDesc": "API key management.",
+      "title": "API Keys",
+      "placeholder": "This page will be completed soon."
+    },
     "crawlLoading": "Discovering pages...",
     "crawlValidationTitle": "Here is what the crawler found",
     "crawlValidationCount": "{{count}} URL(s) found",

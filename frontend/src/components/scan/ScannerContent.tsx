@@ -15,9 +15,6 @@ import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
 import ScanResultsGate from "./ScanResultsGate";
 import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
-import ScanHistoryBlock from "./ScanHistoryBlock";
-import ScheduledScansBlock from "./ScheduledScansBlock";
-import AlertHistoryBlock from "./AlertHistoryBlock";
 import { RecurrenceScheduleFields } from "../schedule";
 import { Checkbox } from "../inputs";
 import {
@@ -87,7 +84,6 @@ export default function ScannerContent() {
   const [scanId, setScanId] = useState<string | null>(null);
   const [error, setError] = useState<ScanError | null>(null);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
-  const [scheduleRefreshTrigger, setScheduleRefreshTrigger] = useState(0);
   const [formFrequency, setFormFrequency] = useState<Frequency>("daily");
   const [formTime, setFormTime] = useState("02:00");
   const [formDayOfWeek, setFormDayOfWeek] = useState(0);
@@ -396,7 +392,6 @@ export default function ScannerContent() {
         timezone: getUserTimezone(),
         scan_alerts_enabled: formScanAlertsEnabled,
       });
-      setScheduleRefreshTrigger((n) => n + 1);
       showSuccessToast(t("scheduledScans.createSuccess"));
     } catch (err) {
       showErrorToast(
@@ -609,27 +604,6 @@ export default function ScannerContent() {
                   </div>
                 </Card>
               </div>
-              {isAuthenticated && !authLoading && (
-                <>
-                  <ScheduledScansBlock
-                    refreshTrigger={scheduleRefreshTrigger}
-                  />
-                  <div className="flex flex-col lg:flex-row gap-6 mt-6">
-                    <div className="flex-1 min-w-0">
-                      <ScanHistoryBlock
-                        onSelectScan={(r, id) => {
-                          setResult(r);
-                          setScanId(id ?? null);
-                          setState("success");
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <AlertHistoryBlock />
-                    </div>
-                  </div>
-                </>
-              )}
             </>
           )}
 

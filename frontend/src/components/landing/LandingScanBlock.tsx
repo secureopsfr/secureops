@@ -130,7 +130,7 @@ export default function LandingScanBlock() {
     [url, runScanOnUrl],
   );
 
-  const signInHref = `${lp("/connexion")}?returnTo=${encodeURIComponent(lp("/scanner"))}`;
+  const signInHref = `${lp("/connexion")}?returnTo=${encodeURIComponent(lp("/scanner/analyses"))}`;
 
   if (state === "loading") {
     const overlay = (
@@ -141,7 +141,7 @@ export default function LandingScanBlock() {
           onAnimationComplete={
             result
               ? () => {
-                  router.push(lp("/scanner"));
+                  router.push(lp("/scanner/analyses"));
                 }
               : undefined
           }

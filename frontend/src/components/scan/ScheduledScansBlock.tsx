@@ -111,11 +111,7 @@ export default function ScheduledScansBlock({
 
   return (
     <>
-      <SectionCard
-        icon={CalendarClock}
-        title={t("scheduledScans.title")}
-        className="mt-6"
-      >
+      <SectionCard icon={CalendarClock} title={t("scheduledScans.title")}>
         {loading ? (
           <LoadingScreen
             variant="section"

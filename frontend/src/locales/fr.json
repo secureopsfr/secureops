@@ -183,6 +183,66 @@
     "discoverPages": "Découvrir les pages du même domaine puis choisir les URLs à scanner",
     "loading": "Scan en cours...",
     "checkingAccess": "Vérification de l'accès...",
+    "hub": {
+      "title": "Scanner",
+      "subtitle": "Analysez la posture sécurité de vos sites, consultez l'historique et gérez vos scans planifiés.",
+      "sectionGestion": "Gestion",
+      "sectionScanner": "Scanner",
+      "cardDashboards": "Dashboards",
+      "cardDashboardsBody": "Évolution des failles, historique des scans et planification.",
+      "cardClesApi": "Clés API",
+      "cardClesApiBody": "Gestion des clés API pour l'intégration externe.",
+      "cardCrawlers": "Crawlers",
+      "cardCrawlersBody": "Configurer et gérer les crawlers de découverte.",
+      "cardScanFrontend": "Scan frontend",
+      "cardScanFrontendBody": "Lancer un scan de posture sécurité sur une URL frontend.",
+      "cardScanBackend": "Scan backend",
+      "cardScanBackendBody": "Scan de posture sécurité pour les APIs et services backend.",
+      "cardDocs": "Documentation",
+      "cardDocsBody": "Documentation des scanners, de l'API et intégration CI/CD.",
+      "comingSoon": "Bientôt disponible",
+      "backToHub": "Retour au hub"
+    },
+    "docs": {
+      "metaTitle": "Documentation",
+      "metaDesc": "Documentation des scanners et de l'API.",
+      "title": "Documentation",
+      "placeholder": "Cette page sera complétée prochainement avec la documentation des scanners, de l'API et l'intégration CI/CD."
+    },
+    "gestion": {
+      "metaTitle": "Gestion du scanner",
+      "metaDesc": "Évolution, scans planifiés et historiques.",
+      "pageTitle": "Suivi des scans",
+      "pageSubtitle": "Évolution des scores, scans planifiés et historiques.",
+      "tabHistorique": "Historique",
+      "tabEvolution": "Évolution",
+      "tabPlanifies": "Planifiés",
+      "tabClesApi": "Clés API",
+      "historiquesTitle": "Historiques",
+      "comingSoon": "Bientôt disponible"
+    },
+    "evolution": {
+      "chartScore": "Score",
+      "chartAnomalies": "Anomalies"
+    },
+    "crawlers": {
+      "metaTitle": "Crawlers",
+      "metaDesc": "Configuration des crawlers de découverte.",
+      "title": "Crawlers",
+      "placeholder": "Cette page sera complétée prochainement."
+    },
+    "backend": {
+      "metaTitle": "Scan backend",
+      "metaDesc": "Scan de posture sécurité pour APIs et services backend.",
+      "title": "Scan backend",
+      "placeholder": "Cette page sera complétée prochainement."
+    },
+    "clesApi": {
+      "metaTitle": "Clés API",
+      "metaDesc": "Gestion des clés API.",
+      "title": "Clés API",
+      "placeholder": "Cette page sera complétée prochainement."
+    },
     "crawlLoading": "Découverte des pages en cours...",
     "crawlValidationTitle": "Voici ce que le crawler a trouvé",
     "crawlValidationCount": "{{count}} URL(s) trouvée(s)",
