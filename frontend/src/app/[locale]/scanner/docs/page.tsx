@@ -1,42 +1,31 @@
-import type { Metadata } from "next";
+"use client";
+
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import Header from "../../../../components/ui/Header";
 import Footer from "../../../../components/ui/Footer";
-import { getTranslation } from "../../../../i18n/server";
-import {
-  SITE_URL,
-  SLUG_MAP,
-  localePath,
-  type Locale,
-} from "../../../../i18n/config";
+import { useLanguage } from "../../../../components/LanguageProvider";
+import { getDocsList } from "../../../../services/docsService";
+import type { DocPageRecord } from "../../../../services/docsService";
+import { localePath, type Locale } from "../../../../i18n/config";
+import { FileText } from "lucide-react";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
-  const { locale } = await params;
-  const t = getTranslation(locale as Locale);
-  const l = locale as Locale;
-
-  return {
-    title: t("scanner.docs.metaTitle"),
-    description: t("scanner.docs.metaDesc"),
-    openGraph: {
-      title: `${t("scanner.docs.metaTitle")} – SecureOps`,
-      url: `${SITE_URL}/${locale}/${SLUG_MAP[l].scanner}/docs`,
-    },
-  };
-}
-
-export default async function ScannerDocsPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
-  const t = getTranslation(locale as Locale);
+export default function ScannerDocsPage() {
+  const params = useParams();
+  const locale = (params?.locale as string) || "fr";
   const lp = (path: string) => localePath(locale as Locale, path);
+  const { t } = useLanguage();
+  const [docs, setDocs] = useState<DocPageRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getDocsList()
+      .then((res) => setDocs(res.docs))
+      .catch(() => setError("Impossible de charger la documentation"))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <>
@@ -48,16 +37,57 @@ export default async function ScannerDocsPage({
         <div className="w-full max-w-[1400px] px-8">
           <Link
             href={lp("/scanner")}
-            className="inline-flex items-center gap-1 text-[rgb(var(--primary))] no-underline hover:underline mb-4"
+            className="inline-flex items-center gap-1 text-[rgb(var(--primary))] no-underline hover:underline mb-6"
           >
             ← {t("scanner.hub.backToHub")}
           </Link>
-          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
-            <h1 className="page-title mb-4">{t("scanner.docs.title")}</h1>
-            <p className="text-[var(--color-text-muted)] max-w-xl mx-auto">
-              {t("scanner.docs.placeholder")}
+          <div className="text-center max-w-2xl mx-auto mb-8">
+            <h1 className="page-title mb-2">{t("scanner.docs.title")}</h1>
+            <p className="text-[var(--color-text-muted)]">
+              {t("scanner.docs.intro")}
             </p>
           </div>
+
+          {loading ? (
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
+              <p className="text-[var(--color-text-muted)]">
+                {t("scanner.docs.loading")}
+              </p>
+            </div>
+          ) : error ? (
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
+              <p className="text-[rgb(var(--danger))]">{error}</p>
+            </div>
+          ) : docs.length === 0 ? (
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
+              <FileText className="w-12 h-12 text-[var(--muted)] mx-auto mb-4 opacity-40" />
+              <p className="text-[var(--color-text-muted)]">
+                {t("scanner.docs.empty")}
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {docs.map((doc) => (
+                <Link
+                  key={doc.slug}
+                  href={lp(`/scanner/docs/${doc.slug}`)}
+                  className="flex items-center gap-4 p-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[rgb(var(--primary))] hover:bg-[rgba(var(--primary),0.05)] transition-colors no-underline h-full min-h-[120px]"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-[rgba(var(--primary),0.1)] flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-[rgb(var(--primary))]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg font-semibold text-[var(--text)] mb-1 line-clamp-2">
+                      {doc.title}
+                    </h2>
+                    <p className="text-sm text-[var(--color-text-muted)]">
+                      <code className="text-xs">{doc.slug}</code>
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </main>
       <Footer locale={locale} />

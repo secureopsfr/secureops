@@ -21,6 +21,7 @@ from app.routers.analytics import router as analytics_router
 from app.routers.audit import router as audit_router
 from app.routers.contact import router as contact_router
 from app.routers.contact_public import router as contact_public_router
+from app.routers.doc_pages import router as doc_pages_router
 from app.routers.email_templates import router as email_templates_router
 from app.routers.health import router as health_router
 from app.routers.image_upload import router as image_upload_router
@@ -171,6 +172,7 @@ def create_app() -> FastAPI:
     app.include_router(notification_router, prefix=_API)
     app.include_router(mailing_list_router, prefix=_API)
     app.include_router(image_upload_router, prefix=_API)
+    app.include_router(doc_pages_router, prefix=_API)
     app.include_router(email_templates_router, prefix=_API)
     app.include_router(user_management_router, prefix=_API)
     app.include_router(subscription_router, prefix=_API)

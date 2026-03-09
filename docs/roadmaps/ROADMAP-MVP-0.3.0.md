@@ -462,8 +462,8 @@ Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.
   - [x] **Checkbox « Scanner uniquement cette page »** dans le formulaire : si cochée, pas de crawler (scan direct sur l’URL) ; si décochée, lancer le **crawler** (agent indépendant), réception du résultat au frontend, puis **étape de validation** (voir 7.3). Libellés clairs dans l’UI.
   - [x] **Écran « Voici ce que le crawler a trouvé »** (quand crawler activé) : afficher la liste d’URLs ; permettre de supprimer des URLs, d’en ajouter manuellement ; bouton « Lancer le scan » sur la liste finale.
   - [x] Possibilité d’ajouter plus tard d’autres types de scan (ex. scan actif, scan ciblé) dans la même rubrique : card « Scans personnalisés » (placeholder en construction).
-- [x] **Card « Gestion »** : renvoie vers un espace de gestion regroupant :
-  > **Fait :** Card « Dashboards » → `/scanner/gestion` ; card « Clés API » → `/scanner/cles-api` (placeholder).
+- [x] **Section « Vue d'ensemble » – card « Suivi des scans »** : renvoie vers un espace regroupant :
+  > **Fait :** Section « Vue d'ensemble », card « Suivi des scans » → `/scanner/vue-d-ensemble` ; card « Clés API » → `/scanner/cles-api` (placeholder).
   - [x] **Historique des scans** : liste des scans passés, filtres, détail, suppression.
   - [x] **Évolution des failles** : tendances (évolution du score dans le temps, nombre de findings par sévérité, comparaison entre scans). Graphique placeholder avec données fictives.
   - [ ] **Rapports et exports** : accès aux PDF, exports CSV/JSON si implémentés.
@@ -478,9 +478,9 @@ Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.
 
 #### Structure des routes (plusieurs pages)
 
-- [x] **Plusieurs pages obligatoires** : routes dédiées — `/scanner` (hub avec cards), `/scanner/analyses` ou `/scanner/analyses/posture` (premier scanner), `/scanner/gestion` (avec tabs ou sous-pages pour Historique, Évolution, Scans planifiés, Clés API). URLs claires, partageables, historique navigateur propre.
-  > **Fait :** `/scanner` (hub), `/scanner/analyses`, `/scanner/gestion`, `/scanner/docs`, `/scanner/crawlers`, `/scanner/backend`, `/scanner/cles-api`, `/scanner/scans-personnalises`.
-- [x] **Convention** : `/scanner` = hub cards ; `/scanner/analyses` (ou `/scanner/analyses/posture`) = premier scanner ; `/scanner/gestion` = une seule page avec contenu (évolution, scans planifiés, historiques) sans tabs.
+- [x] **Plusieurs pages obligatoires** : routes dédiées — `/scanner` (hub avec cards), `/scanner/analyses` ou `/scanner/analyses/posture` (premier scanner), `/scanner/vue-d-ensemble` (suivi des scans : Historique, Évolution, Scans planifiés, Clés API). URLs claires, partageables, historique navigateur propre.
+  > **Fait :** `/scanner` (hub), `/scanner/analyses`, `/scanner/vue-d-ensemble`, `/scanner/docs`, `/scanner/crawlers`, `/scanner/backend`, `/scanner/cles-api`, `/scanner/scans-personnalises`.
+- [x] **Convention** : `/scanner` = hub cards ; `/scanner/analyses` (ou `/scanner/analyses/posture`) = premier scanner ; `/scanner/vue-d-ensemble` = une seule page « Suivi des scans » avec contenu (évolution, scans planifiés, historiques) sans tabs.
   > **Fait :** Page gestion en scroll unique (évolution, planifiés, 2 historiques côte à côte). Pas de tabs.
 
 ### 8.3 Header / navigation

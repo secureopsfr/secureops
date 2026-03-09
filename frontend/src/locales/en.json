@@ -209,7 +209,11 @@
       "metaTitle": "Documentation",
       "metaDesc": "Scanner and API documentation.",
       "title": "Documentation",
-      "placeholder": "This page will be completed soon with scanner documentation, API docs and CI/CD integration."
+      "placeholder": "This page will be completed soon with scanner documentation, API docs and CI/CD integration.",
+      "intro": "Scanner, API and CI/CD integration documentation.",
+      "loading": "Loading documentation...",
+      "empty": "No documentation pages available.",
+      "backToList": "Back to documentation"
     },
     "scansPersonnalises": {
       "metaTitle": "Custom scans",
@@ -920,6 +924,11 @@
       "updateTemplate": "Unable to update template.",
       "createTemplate": "Unable to create template.",
       "deleteTemplate": "Unable to delete template.",
+      "loadDocs": "Unable to load documentation.",
+      "loadDoc": "Unable to load page.",
+      "updateDoc": "Unable to update page.",
+      "createDoc": "Unable to create page.",
+      "deleteDoc": "Unable to delete page.",
       "loadNewsletterEmails": "Unable to load newsletter emails.",
       "createNewsletterEmail": "Unable to create newsletter email.",
       "updateNewsletterEmail": "Unable to update newsletter email.",
@@ -1415,7 +1424,22 @@
       "deleteTemplateConfirm": "Are you sure you want to delete the template \"{{filename}}\"? This action is irreversible.",
       "viewGrid": "Grid view",
       "viewList": "List view",
-      "templatePreview": "Template preview"
+      "templatePreview": "Template preview",
+      "newDoc": "New page",
+      "editDoc": "Edit page",
+      "createDoc": "Create doc page",
+      "docSlug": "Slug (identifier)",
+      "docSlugHint": "Letters, numbers, dashes and underscores only (e.g. scan-frontend, crawler).",
+      "docTitle": "Title",
+      "docTitlePlaceholder": "Display title (optional)",
+      "docUpdated": "Page \"{{slug}}\" updated",
+      "docCreated": "Page \"{{slug}}\" created",
+      "docDeleted": "Page \"{{slug}}\" deleted",
+      "deleteDoc": "Delete page",
+      "deleteDocConfirm": "Delete page \"{{slug}}\"? This action is irreversible.",
+      "loadingDocs": "Loading documentation...",
+      "noDocs": "No documentation pages.",
+      "docLastModified": "Last modified"
     },
     "chart": {
       "free": "Free",
