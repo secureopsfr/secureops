@@ -45,9 +45,11 @@ export default function Header() {
     return () => document.removeEventListener("keydown", onEscape);
   }, [menuOpen, closeMenu]);
 
-  const NAV_LINKS = [
+  const navLinks = [
     { label: t("header.home"), href: lp("/") },
-    { label: t("header.scanner"), href: lp("/scanner") },
+    ...(isAuthenticated
+      ? [{ label: t("header.scanner"), href: lp("/scanner") }]
+      : []),
     { label: t("header.pricing"), href: lp("/tarifs") },
     { label: t("header.contact"), href: lp("/contact") },
   ];
@@ -112,7 +114,7 @@ export default function Header() {
           </span>
         </Link>
         <nav className="nav-links hidden md:flex">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <Link key={link.href} href={link.href}>
               {link.label}
             </Link>
@@ -228,7 +230,7 @@ export default function Header() {
               </button>
             </div>
             <div className="flex flex-col gap-1 p-4 overflow-y-auto">
-              {NAV_LINKS.map((link) => (
+              {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
