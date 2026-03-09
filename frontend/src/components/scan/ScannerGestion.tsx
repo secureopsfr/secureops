@@ -133,14 +133,15 @@ export default function ScannerGestion() {
         <p className="page-subtitle mt-0 max-w-2xl mx-auto">
           {t("scanner.gestion.pageSubtitle")}
         </p>
-        <GenericButton
-          variant="outline"
-          label={t("scanner.gestion.filterButton")}
-          icon={<Filter className="w-4 h-4" />}
-          iconPosition="left"
-          onClick={() => setFilterDrawerOpen(true)}
-          className="mt-3"
-        />
+        <div className="flex justify-center mt-3">
+          <GenericButton
+            variant="outline"
+            label={t("scanner.gestion.filterButton")}
+            icon={<Filter className="w-4 h-4" />}
+            iconPosition="left"
+            onClick={() => setFilterDrawerOpen(true)}
+          />
+        </div>
       </div>
 
       <Drawer
