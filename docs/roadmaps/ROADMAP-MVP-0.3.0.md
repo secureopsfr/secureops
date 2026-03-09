@@ -435,7 +435,8 @@ Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.
 
 ### 8.1 Refonte de la landing page
 
-- [ ] **Supprimer le contenu superflu** : retirer tout ce qui est « bullshit » (faux avis, témoignages factices, blocs marketing non essentiels).
+- [x] **Supprimer le contenu superflu** : retirer tout ce qui est « bullshit » (faux avis, témoignages factices, blocs marketing non essentiels).
+  > **Fait :** Suppression du badge « 4.9/5 — 120+ équipes » (faux avis), de la section logos partenaires (`TRUSTED_LOGOS`), de la section témoignages (`TestimonialCard` × 3), du bloc CTA redondant, et de la section features (« Une sécurité pensée pour les équipes modernes », Détection continue, Priorisation intelligente, Conformité intégrée). Landing réduite au hero (titre, sous-titre, CTA démo/docs).
 - [ ] **Input scan directement sur la landing** : placer un champ URL + CTA pour lancer un **scan basique** depuis l’accueil (sans aller sur la page Scanner dédiée).
 - [ ] **Parcours du scan basique** :
   - [ ] **Chargement de la page initiale uniquement** (pas de crawler : une seule URL récupérée), puis exécution d’un **scan basique** sur cette URL avec **uniquement les vérifications frontend** (TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, etc. — pas de tests actifs ni d’options avancées).
