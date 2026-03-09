@@ -239,7 +239,13 @@
       "kpiCriticalAnomalies": "Anomalies critiques",
       "kpiActiveScheduled": "Planifiés actifs",
       "kpiLastScan": "Dernier scan",
-      "kpiLastScanValue": "Il y a 2 h"
+      "kpiLastScanValue": "Il y a 2 h",
+      "filterButton": "Filtrer les scans",
+      "filterDrawerTitle": "Filtres",
+      "filterAllScans": "Tous les scans",
+      "filterByUrl": "Filtrer par URL",
+      "filterByScanType": "Type de scan",
+      "filterScanTypeAll": "Tous les types"
     },
     "evolution": {
       "chartScore": "Score",

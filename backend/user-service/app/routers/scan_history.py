@@ -89,15 +89,24 @@ async def list_scans(
     user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
     page: int = 1,
     limit: int = 20,
+    url: str | None = None,
+    scan_type: str | None = None,
 ) -> ScanListResponse:
-    """Liste les scans de l'utilisateur (pagination)."""
+    """Liste les scans de l'utilisateur (pagination). Filtres optionnels par url et scan_type."""
     try:
         limit = min(max(limit, 1), 100)
         offset = (page - 1) * limit
 
         async with get_async_session() as session:
-            total = await count_user_scans(session, user_id)
-            scans = await list_scans_by_user_id(session, user_id, limit=limit, offset=offset)
+            total = await count_user_scans(session, user_id, url=url, scan_type=scan_type)
+            scans = await list_scans_by_user_id(
+                session,
+                user_id,
+                limit=limit,
+                offset=offset,
+                url=url,
+                scan_type=scan_type,
+            )
 
             total_pages = max((total + limit - 1) // limit, 1) if total > 0 else 0
 

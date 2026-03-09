@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   BarChart3,
@@ -9,16 +9,19 @@ import {
   Calendar,
   Clock,
   Activity,
+  Filter,
 } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
-import ScanHistoryBlock from "./ScanHistoryBlock";
-import ScheduledScansBlock from "./ScheduledScansBlock";
-import AlertHistoryBlock from "./AlertHistoryBlock";
+import ScannerHistoryAlertsSection from "./ScannerHistoryAlertsSection";
 import ScanResults from "./ScanResults";
 import ScannerEvolutionChart from "./ScannerEvolutionChart";
 import KpiGrid from "../admin/KpiGrid";
 import type { KpiItem } from "../admin/KpiGrid";
 import type { ScanResult } from "../../services/scanService";
+import Drawer from "../ui/Drawer";
+import { GenericButton } from "../buttons";
+import { getScanHistory } from "../../services/scanHistoryService";
+import { formatUrlDisplay } from "../../utils/urlFormat";
 
 /** KPIs fictifs pour le tableau de bord — à remplacer par des données réelles. */
 function getFakeKpis(t: (key: string) => string): KpiItem[] {
@@ -68,6 +71,28 @@ export default function ScannerGestion() {
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   const [scheduleRefreshTrigger, setScheduleRefreshTrigger] = useState(0);
+  const [filterUrl, setFilterUrl] = useState<string | null>(null);
+  const [filterScanType, setFilterScanType] = useState<string | null>(null);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [urlOptions, setUrlOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    getScanHistory(1, 100)
+      .then((res) => {
+        const urls = [...new Set(res.items.map((i) => i.url))];
+        setUrlOptions(urls);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSelectFilter = useCallback(
+    (url: string | null, scanType: string | null) => {
+      setFilterUrl(url);
+      setFilterScanType(scanType);
+      setFilterDrawerOpen(false);
+    },
+    [],
+  );
 
   const handleSelectScan = (result: ScanResult, id?: string) => {
     setSelectedResult(result);
@@ -86,6 +111,7 @@ export default function ScannerGestion() {
         result={selectedResult}
         scanId={selectedScanId}
         onNewScan={handleNewScan}
+        onSelectScan={handleSelectScan}
       />
     );
   }
@@ -93,29 +119,134 @@ export default function ScannerGestion() {
   const kpiItems = getFakeKpis(t);
 
   return (
-    <div className="[&>section+section]:-mt-3">
-      <section>
-        <div className="mb-4">
-          <KpiGrid items={kpiItems} columns={6} />
-          <p className="text-xs text-[var(--muted)] mt-2">
-            {t("scanner.gestion.kpiFakeData")}
-          </p>
-        </div>
-        <ScannerEvolutionChart />
-      </section>
-      <section>
-        <ScheduledScansBlock refreshTrigger={scheduleRefreshTrigger} />
-      </section>
-      <section>
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="flex-1 min-w-0">
-            <ScanHistoryBlock onSelectScan={handleSelectScan} />
+    <>
+      <div className="text-center mb-6">
+        <h1 className="page-title mb-2">{t("scanner.gestion.pageTitle")}</h1>
+        <p className="page-subtitle mt-0 max-w-2xl mx-auto">
+          {t("scanner.gestion.pageSubtitle")}
+        </p>
+        <GenericButton
+          variant="outline"
+          label={t("scanner.gestion.filterButton")}
+          icon={<Filter className="w-4 h-4" />}
+          iconPosition="left"
+          onClick={() => setFilterDrawerOpen(true)}
+          className="mt-3"
+        />
+      </div>
+
+      <Drawer
+        isOpen={filterDrawerOpen}
+        onClose={() => setFilterDrawerOpen(false)}
+        title={t("scanner.gestion.filterDrawerTitle")}
+      >
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--text)] mb-2">
+              {t("scanner.gestion.filterByUrl")}
+            </h3>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => handleSelectFilter(null, filterScanType)}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  filterUrl === null
+                    ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
+                    : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
+                }`}
+              >
+                {t("scanner.gestion.filterAllScans")}
+              </button>
+              {urlOptions.map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => handleSelectFilter(u, filterScanType)}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors truncate ${
+                    filterUrl === u
+                      ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
+                      : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
+                  }`}
+                  title={u}
+                >
+                  {formatUrlDisplay(u)}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <AlertHistoryBlock />
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--text)] mb-2">
+              {t("scanner.gestion.filterByScanType")}
+            </h3>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => handleSelectFilter(filterUrl, null)}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  filterScanType === null
+                    ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
+                    : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
+                }`}
+              >
+                {t("scanner.gestion.filterScanTypeAll")}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectFilter(filterUrl, "frontend")}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  filterScanType === "frontend"
+                    ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
+                    : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
+                }`}
+              >
+                {t("scanner.scanTypeFrontend")}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectFilter(filterUrl, "backend")}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  filterScanType === "backend"
+                    ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
+                    : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
+                }`}
+              >
+                {t("scanner.scanTypeBackend")}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectFilter(filterUrl, "custom")}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  filterScanType === "custom"
+                    ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
+                    : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
+                }`}
+              >
+                {t("scanner.scanTypeCustom")}
+              </button>
+            </div>
           </div>
         </div>
-      </section>
-    </div>
+      </Drawer>
+
+      <div className="[&>section+section]:-mt-3">
+        <section>
+          <div className="mb-4">
+            <KpiGrid items={kpiItems} columns={6} />
+            <p className="text-xs text-[var(--muted)] mt-2">
+              {t("scanner.gestion.kpiFakeData")}
+            </p>
+          </div>
+          <ScannerEvolutionChart />
+        </section>
+        <section>
+          <ScannerHistoryAlertsSection
+            onSelectScan={handleSelectScan}
+            scheduleRefreshTrigger={scheduleRefreshTrigger}
+            filterUrl={filterUrl}
+            filterScanType={filterScanType}
+          />
+        </section>
+      </div>
+    </>
   );
 }

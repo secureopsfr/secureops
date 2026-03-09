@@ -21,7 +21,8 @@ interface UsePaginatedFetchOptions<T> {
   ) => Promise<{ items: T[]; total: number }>;
   perPage?: number;
   onError?: () => void;
-  refreshTrigger?: number;
+  /** Déclenche un rechargement quand la valeur change (ex. page, filterUrl). */
+  refreshTrigger?: number | string;
 }
 
 /**

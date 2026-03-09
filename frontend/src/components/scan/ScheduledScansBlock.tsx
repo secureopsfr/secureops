@@ -30,10 +30,16 @@ const FREQUENCY_OPTIONS = [
 
 interface ScheduledScansBlockProps {
   refreshTrigger?: number;
+  /** Filtre optionnel par URL (suivis limités à cette URL). */
+  filterUrl?: string | null;
+  /** Filtre optionnel par type de scan (frontend, backend, custom). */
+  filterScanType?: string | null;
 }
 
 export default function ScheduledScansBlock({
   refreshTrigger = 0,
+  filterUrl,
+  filterScanType,
 }: ScheduledScansBlockProps) {
   const { t } = useLanguage();
 
@@ -43,10 +49,19 @@ export default function ScheduledScansBlock({
   );
   const { items, setItems, page, setPage, loading, load, totalPages } =
     usePaginatedFetch<ScheduledScan>({
-      fetchFn: (p, perPage) => getScheduledScans(p, perPage),
+      fetchFn: (p, perPage) =>
+        getScheduledScans(
+          p,
+          perPage,
+          filterUrl ?? undefined,
+          filterScanType ?? undefined,
+        ),
       perPage: 10,
       onError,
-      refreshTrigger,
+      refreshTrigger:
+        filterUrl != null || filterScanType != null
+          ? `${filterUrl ?? ""}_${filterScanType ?? ""}`
+          : refreshTrigger,
     });
 
   const handleDeleteConfirm = useCallback(

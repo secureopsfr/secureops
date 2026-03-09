@@ -3,6 +3,7 @@
  */
 
 import { fetchJsonWithAuth, getApiBaseUrl } from "../utils/apiClient";
+import { buildPaginatedQuery } from "../utils/apiQueryParams";
 import type { PaginatedListResponse } from "../types/api";
 
 export type Frequency = "daily" | "weekly" | "monthly";
@@ -94,9 +95,12 @@ export type ScheduledScanListResponse = PaginatedListResponse<ScheduledScan>;
 export async function getScheduledScans(
   page = 1,
   limit = 10,
+  url?: string | null,
+  scan_type?: string | null,
 ): Promise<ScheduledScanListResponse> {
+  const query = buildPaginatedQuery({ page, limit, url, scan_type });
   return fetchJsonWithAuth<ScheduledScanListResponse>(
-    `${getApiBaseUrl()}/user/api/scans/schedule?page=${page}&limit=${limit}`,
+    `${getApiBaseUrl()}/user/api/scans/schedule?${query}`,
     { method: "GET" },
     "Erreur lors de la récupération des scans planifiés",
   );
@@ -141,9 +145,12 @@ export type ScanAlertHistoryListResponse =
 export async function getScanAlertHistory(
   page = 1,
   limit = 10,
+  url?: string | null,
+  scan_type?: string | null,
 ): Promise<ScanAlertHistoryListResponse> {
+  const query = buildPaginatedQuery({ page, limit, url, scan_type });
   return fetchJsonWithAuth<ScanAlertHistoryListResponse>(
-    `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history?page=${page}&limit=${limit}`,
+    `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history?${query}`,
     { method: "GET" },
     "Erreur lors de la récupération de l'historique des alertes",
   );

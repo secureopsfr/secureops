@@ -15,6 +15,7 @@ import CrawlValidationStep from "./CrawlValidationStep";
 import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
 import ScanResultsGate from "./ScanResultsGate";
+import ScannerHistoryAlertsSection from "./ScannerHistoryAlertsSection";
 import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
 import { RecurrenceScheduleFields } from "../schedule";
 import { Checkbox } from "../inputs";
@@ -359,6 +360,12 @@ export default function ScannerContent() {
     setCrawlSteps([]);
   }, []);
 
+  const handleSelectScan = useCallback((r: ScanResult, id?: string) => {
+    setResult(r);
+    setScanId(id ?? null);
+    setState("success");
+  }, []);
+
   const handleNewScan = useCallback(() => {
     setState("idle");
     setSteps([]);
@@ -661,6 +668,15 @@ export default function ScannerContent() {
                 )
               : null)}
 
+          {(state === "idle" || state === "error") &&
+            isAuthenticated &&
+            !authLoading && (
+              <ScannerHistoryAlertsSection
+                className="mt-6"
+                onSelectScan={handleSelectScan}
+              />
+            )}
+
           {state === "success" &&
             result &&
             !authLoading &&
@@ -669,6 +685,7 @@ export default function ScannerContent() {
                 result={result}
                 scanId={scanId}
                 onNewScan={handleNewScan}
+                onSelectScan={handleSelectScan}
               />
             ) : (
               <>

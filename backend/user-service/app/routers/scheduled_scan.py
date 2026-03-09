@@ -88,14 +88,23 @@ async def list_scheduled_scans(
     user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
     page: int = 1,
     limit: int = 10,
+    url: str | None = None,
+    scan_type: str | None = None,
 ) -> ScheduledScanListResponse:
-    """Liste les scans planifiés de l'utilisateur (pagination)."""
+    """Liste les scans planifiés de l'utilisateur (pagination). Filtre optionnel par url."""
     try:
         limit = min(max(limit, 1), 100)
         offset = (page - 1) * limit
         async with get_async_session() as session:
-            total = await count_scheduled_scans_by_user(session, user_id)
-            scans = await list_scheduled_scans_by_user(session, user_id, limit=limit, offset=offset)
+            total = await count_scheduled_scans_by_user(session, user_id, url=url, scan_type=scan_type)
+            scans = await list_scheduled_scans_by_user(
+                session,
+                user_id,
+                limit=limit,
+                offset=offset,
+                url=url,
+                scan_type=scan_type,
+            )
             total_pages = max((total + limit - 1) // limit, 1) if total > 0 else 0
             return ScheduledScanListResponse(
                 items=[_to_response(s) for s in scans],
@@ -179,14 +188,23 @@ async def list_scan_alert_history(
     user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
     page: int = 1,
     limit: int = 10,
+    url: str | None = None,
+    scan_type: str | None = None,
 ) -> ScanAlertHistoryListResponse:
-    """Liste l'historique des alertes déclenchées pour l'utilisateur (pagination)."""
+    """Liste l'historique des alertes déclenchées pour l'utilisateur (pagination). Filtre optionnel par url."""
     try:
         limit = min(max(limit, 1), 100)
         offset = (page - 1) * limit
         async with get_async_session() as session:
-            total = await count_scan_alert_events_by_user(session, user_id)
-            events = await list_scan_alert_events_by_user(session, user_id, limit=limit, offset=offset)
+            total = await count_scan_alert_events_by_user(session, user_id, url=url, scan_type=scan_type)
+            events = await list_scan_alert_events_by_user(
+                session,
+                user_id,
+                limit=limit,
+                offset=offset,
+                url=url,
+                scan_type=scan_type,
+            )
             total_pages = max((total + limit - 1) // limit, 1) if total > 0 else 0
             return ScanAlertHistoryListResponse(
                 items=[

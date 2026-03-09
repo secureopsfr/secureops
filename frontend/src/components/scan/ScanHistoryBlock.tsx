@@ -24,10 +24,16 @@ import { formatUrlDisplay } from "../../utils/urlFormat";
 
 interface ScanHistoryBlockProps {
   onSelectScan: (result: ScanResult, scanId?: string) => void;
+  /** Filtre optionnel par URL (historique limité à cette URL). */
+  filterUrl?: string | null;
+  /** Filtre optionnel par type de scan (frontend, backend, custom). */
+  filterScanType?: string | null;
 }
 
 export default function ScanHistoryBlock({
   onSelectScan,
+  filterUrl,
+  filterScanType,
 }: ScanHistoryBlockProps) {
   const { t, language } = useLanguage();
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
@@ -39,9 +45,16 @@ export default function ScanHistoryBlock({
   );
   const { items, setItems, setTotal, page, setPage, loading, totalPages } =
     usePaginatedFetch<ScanHistoryItem>({
-      fetchFn: (p, perPage) => getScanHistory(p, perPage),
+      fetchFn: (p, perPage) =>
+        getScanHistory(
+          p,
+          perPage,
+          filterUrl ?? undefined,
+          filterScanType ?? undefined,
+        ),
       perPage: 10,
       onError,
+      refreshTrigger: `${filterUrl ?? ""}_${filterScanType ?? ""}`,
     });
 
   const handleDeleteConfirm = useCallback(

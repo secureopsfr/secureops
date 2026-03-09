@@ -3,12 +3,13 @@
 import logging
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scan_alert_event import ScanAlertEvent
+from app.utils.query_utils import apply_scan_type_filter, apply_url_filter
 
 logger = logging.getLogger(__name__)
 
@@ -49,19 +50,27 @@ async def create_scan_alert_event(
     return event
 
 
-async def count_scan_alert_events_by_user(session: AsyncSession, user_id: uuid.UUID) -> int:
+async def count_scan_alert_events_by_user(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    url: Optional[str] = None,
+    scan_type: Optional[str] = None,
+) -> int:
     """Compte le nombre total d'événements d'alerte d'un utilisateur.
 
     Args:
         session: Session de base de données.
         user_id: UUID de l'utilisateur.
+        url: Filtre optionnel par URL exacte.
+        scan_type: Filtre optionnel (frontend, backend, custom).
 
     Returns:
         Nombre total d'événements.
     """
-    result = await session.execute(
-        select(func.count(ScanAlertEvent.id)).where(ScanAlertEvent.user_id == user_id),
-    )
+    stmt = select(func.count(ScanAlertEvent.id)).where(ScanAlertEvent.user_id == user_id)
+    stmt = apply_url_filter(stmt, ScanAlertEvent.url, url)
+    stmt = apply_scan_type_filter(stmt, ScanAlertEvent.scan_type, scan_type)
+    result = await session.execute(stmt)
     return result.scalar() or 0
 
 
@@ -70,6 +79,8 @@ async def list_scan_alert_events_by_user(
     user_id: uuid.UUID,
     limit: int = 20,
     offset: int = 0,
+    url: Optional[str] = None,
+    scan_type: Optional[str] = None,
 ) -> List[ScanAlertEvent]:
     """Liste les événements d'alerte d'un utilisateur (pagination, du plus récent au plus ancien).
 
@@ -78,13 +89,17 @@ async def list_scan_alert_events_by_user(
         user_id: UUID de l'utilisateur.
         limit: Nombre max d'éléments.
         offset: Décalage pour pagination.
+        url: Filtre optionnel par URL exacte.
+        scan_type: Filtre optionnel (frontend, backend, custom).
 
     Returns:
         Liste des ScanAlertEvent.
     """
-    result = await session.execute(
-        select(ScanAlertEvent).where(ScanAlertEvent.user_id == user_id).order_by(ScanAlertEvent.triggered_at.desc()).limit(limit).offset(offset),
-    )
+    stmt = select(ScanAlertEvent).where(ScanAlertEvent.user_id == user_id)
+    stmt = apply_url_filter(stmt, ScanAlertEvent.url, url)
+    stmt = apply_scan_type_filter(stmt, ScanAlertEvent.scan_type, scan_type)
+    stmt = stmt.order_by(ScanAlertEvent.triggered_at.desc()).limit(limit).offset(offset)
+    result = await session.execute(stmt)
     return list(result.scalars().all())
 
 

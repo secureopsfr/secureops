@@ -631,6 +631,17 @@
     transform: translateX(100%);
   }
 
+  /* Volet Drawer générique (réutilise les mêmes animations) */
+  .drawer-panel {
+    animation: header-drawer-in 0.25s ease-out;
+  }
+
+  .drawer-panel--closing {
+    animation: none;
+    transition: transform 0.25s ease-in;
+    transform: translateX(100%);
+  }
+
   /* ---------- Boutons ---------- */
 
   .btn {

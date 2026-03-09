@@ -7,6 +7,7 @@ import {
   fetchWithAuth,
   getApiBaseUrl,
 } from "../utils/apiClient";
+import { buildPaginatedQuery } from "../utils/apiQueryParams";
 import type { PaginatedListResponse } from "../types/api";
 import type { ScanResult } from "./scanService";
 
@@ -64,9 +65,12 @@ export async function saveScan(result: ScanResult): Promise<string | null> {
 export async function getScanHistory(
   page = 1,
   limit = 20,
+  url?: string | null,
+  scan_type?: string | null,
 ): Promise<ScanHistoryListResponse> {
+  const query = buildPaginatedQuery({ page, limit, url, scan_type });
   return fetchJsonWithAuth<ScanHistoryListResponse>(
-    `${getApiBaseUrl()}/user/api/scans/history?page=${page}&limit=${limit}`,
+    `${getApiBaseUrl()}/user/api/scans/history?${query}`,
     { method: "GET" },
     "Erreur lors de la récupération de l'historique",
   );

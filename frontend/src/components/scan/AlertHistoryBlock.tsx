@@ -20,7 +20,17 @@ import {
   showSuccessToast,
 } from "../../utils/toastNotifications";
 
-export default function AlertHistoryBlock() {
+interface AlertHistoryBlockProps {
+  /** Filtre optionnel par URL (alertes limitées à cette URL). */
+  filterUrl?: string | null;
+  /** Filtre optionnel par type de scan (frontend, backend, custom). */
+  filterScanType?: string | null;
+}
+
+export default function AlertHistoryBlock({
+  filterUrl,
+  filterScanType,
+}: AlertHistoryBlockProps) {
   const { t } = useLanguage();
 
   const onError = useCallback(
@@ -29,9 +39,16 @@ export default function AlertHistoryBlock() {
   );
   const { items, page, setPage, loading, load, totalPages } =
     usePaginatedFetch<ScanAlertEvent>({
-      fetchFn: (p, perPage) => getScanAlertHistory(p, perPage),
+      fetchFn: (p, perPage) =>
+        getScanAlertHistory(
+          p,
+          perPage,
+          filterUrl ?? undefined,
+          filterScanType ?? undefined,
+        ),
       perPage: 10,
       onError,
+      refreshTrigger: `${filterUrl ?? ""}_${filterScanType ?? ""}`,
     });
 
   const handleDeleteConfirm = useCallback(
