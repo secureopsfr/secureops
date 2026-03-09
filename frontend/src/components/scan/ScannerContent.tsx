@@ -660,13 +660,15 @@ export default function ScannerContent() {
           )}
 
           {state === "loading" && (
-            <ScanLoader
-              steps={steps}
-              crawlMode={scanOnlyThisPage ? undefined : crawlMode}
-              onAnimationComplete={
-                result ? () => setState("success") : undefined
-              }
-            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg)]">
+              <ScanLoader
+                steps={steps}
+                crawlMode={scanOnlyThisPage ? undefined : crawlMode}
+                onAnimationComplete={
+                  result ? () => setState("success") : undefined
+                }
+              />
+            </div>
           )}
 
           {state === "success" &&

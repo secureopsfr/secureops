@@ -437,11 +437,15 @@ Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.
 
 - [x] **Supprimer le contenu superflu** : retirer tout ce qui est « bullshit » (faux avis, témoignages factices, blocs marketing non essentiels).
   > **Fait :** Suppression du badge « 4.9/5 — 120+ équipes » (faux avis), de la section logos partenaires (`TRUSTED_LOGOS`), de la section témoignages (`TestimonialCard` × 3), du bloc CTA redondant, et de la section features (« Une sécurité pensée pour les équipes modernes », Détection continue, Priorisation intelligente, Conformité intégrée). Landing réduite au hero (titre, sous-titre, CTA démo/docs).
-- [ ] **Input scan directement sur la landing** : placer un champ URL + CTA pour lancer un **scan basique** depuis l’accueil (sans aller sur la page Scanner dédiée).
-- [ ] **Parcours du scan basique** :
-  - [ ] **Chargement de la page initiale uniquement** (pas de crawler : une seule URL récupérée), puis exécution d’un **scan basique** sur cette URL avec **uniquement les vérifications frontend** (TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, etc. — pas de tests actifs ni d’options avancées).
-- [ ] **Connexion obligatoire pour les résultats** : réutiliser la même mécanique que sur la page Scanner — après le scan, l’utilisateur **doit se connecter** pour accéder aux résultats (gate « Connectez-vous pour accéder aux résultats », stockage temporaire en sessionStorage, restauration après connexion). Pas de résultats affichés sans auth.
-- [ ] Message clair sur la landing : scan basique (une page) + vérifications frontend ; pour un scan avec découverte multi-pages (crawler) ou des options, redirection vers la page Scanner.
+- [x] **Input scan directement sur la landing** : placer un champ URL + CTA pour lancer un **scan basique** depuis l’accueil (sans aller sur la page Scanner dédiée).
+  > **Fait :** Composant `LandingScanBlock` : champ URL + bouton « Lancer le scan » dans le hero. Message `home.scanDesc` : scan basique, pour multi-pages → Scanner.
+- [x] **Parcours du scan basique** :
+  - [x] **Chargement de la page initiale uniquement** (pas de crawler : une seule URL récupérée), puis exécution d'un **scan basique** sur cette URL avec **uniquement les vérifications frontend** (TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, etc. — pas de tests actifs ni d'options avancées).
+  > **Fait :** Appel direct à `runScan(url)` sans crawler. Même pipeline que la page Scanner en mode « scanner uniquement cette page ». (pas de crawler : une seule URL récupérée), puis exécution d’un **scan basique** sur cette URL avec **uniquement les vérifications frontend** (TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, etc. — pas de tests actifs ni d’options avancées).
+- [x] **Connexion obligatoire pour les résultats** : réutiliser la même mécanique que sur la page Scanner — après le scan, l’utilisateur **doit se connecter** pour accéder aux résultats (gate « Connectez-vous pour accéder aux résultats », stockage temporaire en sessionStorage, restauration après connexion). Pas de résultats affichés sans auth.
+  > **Fait :** `ScanResultsGate` + `FakeScanResultsBlurred`, sessionStorage, `returnTo=/`, sauvegarde historique au retour.
+- [x] Message clair sur la landing : scan basique (une page) + vérifications frontend ; pour un scan avec découverte multi-pages (crawler) ou des options, redirection vers la page Scanner.
+  > **Fait :** Texte `home.scanDesc` sous le formulaire.
 - [ ] À compléter selon les retours (ex. refonte page résultats, navigation Mon compte, onboarding, accessibilité).
 
 ### 8.2 Refonte de la page Scanner (hub connecté)
