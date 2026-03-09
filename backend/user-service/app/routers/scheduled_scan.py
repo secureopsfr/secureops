@@ -37,6 +37,7 @@ def _to_response(scan) -> ScheduledScanResponse:
     return ScheduledScanResponse(
         id=str(scan.id),
         url=scan.url,
+        scan_type=getattr(scan, "scan_type", "frontend"),
         frequency=scan.frequency,
         schedule_hour=scan.schedule_hour,
         schedule_minute=scan.schedule_minute,
@@ -62,6 +63,7 @@ async def create_scheduled_scan_entry(
                 session=session,
                 user_id=user_id,
                 url=body.url,
+                scan_type=body.scan_type,
                 frequency=body.frequency,
                 schedule_hour=body.schedule_hour,
                 schedule_minute=body.schedule_minute,
@@ -191,6 +193,7 @@ async def list_scan_alert_history(
                     ScanAlertEventResponse(
                         id=str(e.id),
                         url=e.url,
+                        scan_type=getattr(e, "scan_type", "frontend"),
                         alert_type=e.alert_type,
                         email_sent=e.email_sent,
                         triggered_at=e.triggered_at,

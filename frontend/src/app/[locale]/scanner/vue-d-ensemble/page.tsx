@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Header from "../../../../components/ui/Header";
-import ScannerBackButton from "../../../../components/scan/ScannerBackButton";
 import Footer from "../../../../components/ui/Footer";
 import ScannerGestion from "../../../../components/scan/ScannerGestion";
 import { getTranslation } from "../../../../i18n/server";

@@ -109,6 +109,12 @@ export default function ScheduledScansBlock({
     return opt ? t(opt.labelKey) : freq;
   };
 
+  const getScanTypeLabel = (scanType: string) => {
+    if (scanType === "backend") return t("scanner.scanTypeBackend");
+    if (scanType === "custom") return t("scanner.scanTypeCustom");
+    return t("scanner.scanTypeFrontend");
+  };
+
   return (
     <>
       <SectionCard icon={CalendarClock} title={t("scheduledScans.title")}>
@@ -134,6 +140,9 @@ export default function ScheduledScansBlock({
                           {formatUrlDisplay(item.url)}
                         </p>
                         <p className="text-xs text-[var(--muted)] mt-0.5">
+                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
+                            {getScanTypeLabel(item.scan_type ?? "frontend")}
+                          </span>
                           {getFrequencyLabel(item.frequency)}
                           {item.enabled && (
                             <>

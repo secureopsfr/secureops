@@ -370,7 +370,10 @@
     "categoryRobotsTxt": "robots.txt",
     "categoryTechFingerprinting": "Tech fingerprinting",
     "categoryInformationDisclosure": "Information disclosure",
-    "categoryCorsCrossOrigin": "CORS and cross-origin"
+    "categoryCorsCrossOrigin": "CORS and cross-origin",
+    "scanTypeFrontend": "Frontend",
+    "scanTypeBackend": "Backend",
+    "scanTypeCustom": "Custom"
   },
   "auth": {
     "login": {

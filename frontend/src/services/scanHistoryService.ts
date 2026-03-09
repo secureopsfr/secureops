@@ -10,9 +10,12 @@ import {
 import type { PaginatedListResponse } from "../types/api";
 import type { ScanResult } from "./scanService";
 
+export type ScanType = "frontend" | "backend" | "custom";
+
 export interface ScanHistoryItem {
   id: string;
   url: string;
+  scan_type: ScanType;
   status: string;
   score: number | null;
   timestamp: string;
@@ -37,6 +40,7 @@ export interface ScanHistoryDetail extends ScanResult {
 export async function saveScan(result: ScanResult): Promise<string | null> {
   const body: Record<string, unknown> = {
     url: result.url,
+    scan_type: "frontend",
     status: "success",
     score: result.score,
     findings: result.findings,

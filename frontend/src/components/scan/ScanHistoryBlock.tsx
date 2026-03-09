@@ -120,6 +120,12 @@ export default function ScanHistoryBlock({
               <ul className="divide-y divide-[var(--color-border)]">
                 {items.map((item) => {
                   const badge = getScoreBadge(item.score ?? 0);
+                  const scanTypeKey =
+                    item.scan_type === "backend"
+                      ? "scanner.scanTypeBackend"
+                      : item.scan_type === "custom"
+                        ? "scanner.scanTypeCustom"
+                        : "scanner.scanTypeFrontend";
                   const isLoading = loadingDetailId === item.id;
                   const isPdfLoading = pdfLoadingId === item.id;
                   return (
@@ -137,6 +143,9 @@ export default function ScanHistoryBlock({
                           {formatUrlDisplay(item.url)}
                         </span>
                         <span className="text-xs text-[var(--muted)]">
+                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
+                            {t(scanTypeKey)}
+                          </span>
                           {formatDate(item.created_at)} · {item.score ?? "—"}
                           /100 · {t(badge.labelKey)}
                         </span>

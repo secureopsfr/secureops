@@ -39,6 +39,7 @@ async def create_scan_entry(
                 return ScanDetailResponse(
                     id="",
                     url=body.url,
+                    scan_type=body.scan_type,
                     status=body.status,
                     score=body.score,
                     findings=body.findings,
@@ -50,6 +51,7 @@ async def create_scan_entry(
                 session=session,
                 user_id=user_id,
                 url=body.url,
+                scan_type=body.scan_type,
                 status=body.status,
                 score=body.score,
                 findings=body.findings,
@@ -62,6 +64,7 @@ async def create_scan_entry(
             return ScanDetailResponse(
                 id=str(scan.id),
                 url=scan.url,
+                scan_type=getattr(scan, "scan_type", "frontend"),
                 status=scan.status,
                 score=scan.score,
                 findings=scan.findings_json,
@@ -103,6 +106,7 @@ async def list_scans(
                     ScanListItem(
                         id=str(s.id),
                         url=s.url,
+                        scan_type=getattr(s, "scan_type", "frontend"),
                         status=s.status,
                         score=s.score,
                         timestamp=s.timestamp,
@@ -150,6 +154,7 @@ async def get_scan_detail(
             return ScanDetailResponse(
                 id=str(scan.id),
                 url=scan.url,
+                scan_type=getattr(scan, "scan_type", "frontend"),
                 status=scan.status,
                 score=scan.score,
                 findings=scan.findings_json,

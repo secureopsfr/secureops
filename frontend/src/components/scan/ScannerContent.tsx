@@ -382,6 +382,7 @@ export default function ScannerContent() {
     try {
       await createScheduledScan({
         url: normalizedUrl,
+        scan_type: "frontend",
         frequency: formFrequency,
         schedule_hour: hour,
         schedule_minute: minute,

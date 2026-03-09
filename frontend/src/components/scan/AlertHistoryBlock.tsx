@@ -65,6 +65,12 @@ export default function AlertHistoryBlock() {
     return alertType;
   };
 
+  const getScanTypeLabel = (scanType: string) => {
+    if (scanType === "backend") return t("scanner.scanTypeBackend");
+    if (scanType === "custom") return t("scanner.scanTypeCustom");
+    return t("scanner.scanTypeFrontend");
+  };
+
   return (
     <SectionCard icon={Bell} title={t("scheduledScans.alertHistoryTitle")}>
       <div className="space-y-4">
@@ -90,6 +96,9 @@ export default function AlertHistoryBlock() {
                       {formatUrlDisplay(item.url)}
                     </span>
                     <span className="text-xs text-[var(--muted)]">
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
+                        {getScanTypeLabel(item.scan_type ?? "frontend")}
+                      </span>
                       {formatDate(item.triggered_at)} ·{" "}
                       {getAlertTypeLabel(item.alert_type)} ·{" "}
                       {item.email_sent

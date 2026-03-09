@@ -17,6 +17,7 @@ async def create_scan_alert_event(
     session: AsyncSession,
     user_id: uuid.UUID,
     url: str,
+    scan_type: str,
     alert_type: str,
     email_sent: bool,
     scheduled_scan_id: uuid.UUID | None = None,
@@ -38,6 +39,7 @@ async def create_scan_alert_event(
         user_id=user_id,
         scheduled_scan_id=scheduled_scan_id,
         url=url,
+        scan_type=scan_type,
         alert_type=alert_type,
         email_sent=email_sent,
     )

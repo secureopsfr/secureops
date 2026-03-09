@@ -17,6 +17,7 @@ async def create_scheduled_scan(
     session: AsyncSession,
     user_id: uuid.UUID,
     url: str,
+    scan_type: str,
     frequency: str,
     schedule_hour: int = 2,
     schedule_minute: int = 0,
@@ -54,6 +55,7 @@ async def create_scheduled_scan(
     scan = ScheduledScan(
         user_id=user_id,
         url=url,
+        scan_type=scan_type,
         frequency=frequency,
         schedule_hour=schedule_hour,
         schedule_minute=schedule_minute,
@@ -62,6 +64,7 @@ async def create_scheduled_scan(
         timezone=timezone_name,
         next_run_at=next_run_at,
         enabled=True,
+        scan_alerts_enabled=scan_alerts_enabled,
     )
     session.add(scan)
     await session.commit()

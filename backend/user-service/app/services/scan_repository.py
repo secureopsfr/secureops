@@ -29,6 +29,7 @@ async def create_scan(
     session: AsyncSession,
     user_id: uuid.UUID,
     url: str,
+    scan_type: str,
     status: str,
     score: Optional[int],
     findings: List[dict[str, Any]],
@@ -55,6 +56,7 @@ async def create_scan(
     scan = Scan(
         user_id=user_id,
         url=url,
+        scan_type=scan_type,
         status=status,
         score=score,
         findings_json=findings,

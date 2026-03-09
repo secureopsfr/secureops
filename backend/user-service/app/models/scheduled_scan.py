@@ -43,6 +43,13 @@ class ScheduledScan(Base):
 
     url = Column(String(2048), nullable=False, comment="URL à scanner")
 
+    scan_type = Column(
+        String(20),
+        nullable=False,
+        default="frontend",
+        comment="Type de scan : frontend, backend, custom",
+    )
+
     frequency = Column(String(20), nullable=False, comment="Fréquence : daily, weekly, monthly")
 
     schedule_hour = Column(Integer, nullable=False, default=2, comment="Heure d'exécution (0-23)")
