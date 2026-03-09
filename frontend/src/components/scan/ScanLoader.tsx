@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "../LanguageProvider";
 import { LoadingSpinner } from "../LoadingScreen";
-import { Check } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 import type { ScanStepDisplay } from "../../services/scanService";
 
 interface ScanLoaderProps {
@@ -20,6 +20,7 @@ const STEP_I18N_KEYS: Record<string, string> = {
   crawl_html_done: "scanner.crawlHtmlDone",
   crawl_playwright_done: "scanner.crawlPlaywrightDone",
   crawl_stopping_other: "scanner.crawlStoppingOther",
+  crawl_stopping_other_done: "scanner.crawlStoppingOtherDone",
   crawl_merging: "scanner.crawlMerging",
 };
 
@@ -47,9 +48,14 @@ function getStepColumn(
 function getDisplayMessage(
   step: string,
   message: string,
+  done: boolean,
   t: (key: string) => string,
 ): string {
-  return STEP_I18N_KEYS[step] ? t(STEP_I18N_KEYS[step]) : message;
+  const key =
+    step === "crawl_stopping_other" && done
+      ? STEP_I18N_KEYS["crawl_stopping_other_done"]
+      : STEP_I18N_KEYS[step];
+  return key ? t(key) : message;
 }
 
 const COLUMN_INDEX = { html: 0, common: 1, playwright: 2 } as const;
@@ -89,6 +95,8 @@ interface ConnectorSegment {
   key: string;
   /** Délai (ms) avant de démarrer l'animation, pour respecter l'ordre par colonne. */
   delayMs: number;
+  /** Couleur neutre pour le trait du crawler arrêté uniquement. */
+  muted?: boolean;
 }
 
 /** Rayon des coins split (vertical → branches). */
@@ -193,6 +201,11 @@ function computeConnectors(
   const splitAfter = commonRows
     .filter((r) => r < (htmlRows[0] ?? Infinity) && r < (pwRows[0] ?? Infinity))
     .pop();
+  const stoppingOtherCol = steps.findIndex((s) => s.step === "crawl_stopping_other");
+  const mutedMergeHtml =
+    stoppingOtherCol >= 0 && cols[stoppingOtherCol] === 0;
+  const mutedMergePw =
+    stoppingOtherCol >= 0 && cols[stoppingOtherCol] === 2;
   const mergeInto = commonRows.find(
     (r) =>
       r >
@@ -384,6 +397,7 @@ function computeConnectors(
         done: steps[lastHtml].done ?? false,
         key: "merge-html",
         delayMs: mergeDelay,
+        muted: mutedMergeHtml,
       });
     }
     if (lastPw !== undefined) {
@@ -400,6 +414,7 @@ function computeConnectors(
         done: steps[lastPw].done ?? false,
         key: "merge-pw",
         delayMs: mergeDelay,
+        muted: mutedMergePw,
       });
     }
     // Le point de fusion apparaît quand les traits merge sont finis (pas avant)
@@ -451,11 +466,13 @@ function AnimatedConnectorPath({
   done,
   segKey,
   delayMs,
+  muted = false,
 }: {
   d: string;
   done: boolean;
   segKey: string;
   delayMs: number;
+  muted?: boolean;
 }) {
   const pathRef = useRef<SVGPathElement>(null);
   const [length, setLength] = useState<number | null>(null);
@@ -467,9 +484,11 @@ function AnimatedConnectorPath({
     }
   }, [d]);
 
-  const strokeColor = done
-    ? "rgb(var(--success))"
-    : "rgba(var(--primary), 0.2)";
+  const strokeColor = muted
+    ? "rgba(255, 255, 255, 0.18)"
+    : done
+      ? "rgb(var(--success))"
+      : "rgba(var(--primary), 0.2)";
 
   if (length == null) {
     return (
@@ -524,10 +543,11 @@ function StepRow({
   pointDelay,
 }: StepRowProps) {
   const { t } = useLanguage();
-  const msg = getDisplayMessage(step, message, t);
+  const msg = getDisplayMessage(step, message, done, t);
   const colIdx = COLUMN_INDEX[column];
   const isHtml = column === "html";
   const isRight = column === "common" || column === "playwright";
+  const isStoppingOther = step === "crawl_stopping_other";
 
   return (
     <li
@@ -538,7 +558,13 @@ function StepRow({
       <div className="flex min-w-0 flex-1 justify-end pr-3">
         {isHtml && (
           <span
-            className={`text-sm scan-animate-point ${done ? "text-muted-theme" : "font-medium text-[var(--text)]"}`}
+            className={`text-sm scan-animate-point ${
+              isStoppingOther && done
+                ? "text-[rgba(255,255,255,0.3)]"
+                : done
+                  ? "text-muted-theme"
+                  : "font-medium text-[var(--text)]"
+            }`}
             style={{
               opacity: 0,
               animation: `scan-point-appear 0.25s ease-out ${pointDelay}ms forwards`,
@@ -557,28 +583,52 @@ function StepRow({
           className="flex shrink-0 items-center justify-center"
           style={{ width: COL_WIDTH }}
         >
-          {colIdx === 0 && <StepCircle done={done} animateDelay={pointDelay} />}
+          {colIdx === 0 && (
+            <StepCircle
+              done={done}
+              animateDelay={pointDelay}
+              muted={isStoppingOther && done}
+            />
+          )}
         </div>
         <div className="shrink-0" style={{ width: COL_GAP }} />
         <div
           className="flex shrink-0 items-center justify-center"
           style={{ width: COL_WIDTH }}
         >
-          {colIdx === 1 && <StepCircle done={done} animateDelay={pointDelay} />}
+          {colIdx === 1 && (
+            <StepCircle
+              done={done}
+              animateDelay={pointDelay}
+              muted={isStoppingOther && done}
+            />
+          )}
         </div>
         <div className="shrink-0" style={{ width: COL_GAP }} />
         <div
           className="flex shrink-0 items-center justify-center"
           style={{ width: COL_WIDTH }}
         >
-          {colIdx === 2 && <StepCircle done={done} animateDelay={pointDelay} />}
+          {colIdx === 2 && (
+            <StepCircle
+              done={done}
+              animateDelay={pointDelay}
+              muted={isStoppingOther && done}
+            />
+          )}
         </div>
       </div>
       {/* Zone droite : message Commun/Playwright, apparaît avec le point */}
       <div className="flex min-w-0 flex-1 justify-start pl-3">
         {isRight && (
           <span
-            className={`text-sm scan-animate-point ${done ? "text-muted-theme" : "font-medium text-[var(--text)]"}`}
+            className={`text-sm scan-animate-point ${
+              isStoppingOther && done
+                ? "text-[rgba(255,255,255,0.3)]"
+                : done
+                  ? "text-muted-theme"
+                  : "font-medium text-[var(--text)]"
+            }`}
             style={{
               opacity: 0,
               animation: `scan-point-appear 0.25s ease-out ${pointDelay}ms forwards`,
@@ -595,23 +645,34 @@ function StepRow({
 function StepCircle({
   done,
   animateDelay = 0,
+  muted = false,
 }: {
   done: boolean;
   animateDelay?: number;
+  muted?: boolean;
 }) {
+  const circleClass = muted
+    ? "bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.14)]"
+    : "bg-[rgba(var(--success),0.2)] text-[rgb(var(--success))]";
   return (
     <span
       className="flex h-6 w-6 shrink-0 items-center justify-center scan-animate-point"
       role="status"
-      aria-label={done ? "Terminé" : "En cours"}
+      aria-label={muted ? "Arrêté" : done ? "Terminé" : "En cours"}
       style={{
         opacity: 0,
         animation: `scan-point-appear 0.25s ease-out ${animateDelay}ms forwards`,
       }}
     >
       {done ? (
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[rgba(var(--success),0.2)] text-[rgb(var(--success))]">
-          <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+        <span
+          className={`flex h-6 w-6 items-center justify-center rounded-full ${circleClass}`}
+        >
+          {muted ? (
+            <Minus className="h-3 w-3 text-[rgba(255,255,255,0.35)]" strokeWidth={2.5} />
+          ) : (
+            <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+          )}
         </span>
       ) : (
         <LoadingSpinner size="sm" />
@@ -722,6 +783,7 @@ export default function ScanLoader({
                       done={seg.done}
                       segKey={seg.key}
                       delayMs={seg.delayMs}
+                      muted={seg.muted}
                     />
                   ))}
                 </svg>

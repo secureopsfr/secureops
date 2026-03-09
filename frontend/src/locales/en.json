@@ -165,6 +165,7 @@
     "crawlHtmlDone": "HTML crawl done. Stopping the other…",
     "crawlPlaywrightDone": "Playwright crawl done. Stopping the other…",
     "crawlStoppingOther": "Stopping the remaining crawler…",
+    "crawlStoppingOtherDone": "Stopping the remaining crawler",
     "crawlMerging": "Merging results…",
     "crawlColumnHtml": "HTML",
     "crawlColumnCommon": "Common",
