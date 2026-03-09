@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BarChart3,
-  Target,
+  Gauge,
   AlertTriangle,
   Calendar,
   Clock,
@@ -32,7 +31,6 @@ function buildKpiItems(
   t: (key: string, params?: Record<string, string | number>) => string,
   kpis: ScanOverviewResponse["kpis"] | undefined,
 ): KpiItem[] {
-  const scansInPeriod = kpis?.scans_in_period ?? "—";
   const totalScans = kpis?.total_scans ?? "—";
   const avgScore = kpis?.avg_score != null ? `${kpis.avg_score}/100` : "—";
   const criticalCount = kpis?.critical_findings_count ?? "—";
@@ -58,21 +56,15 @@ function buildKpiItems(
 
   return [
     {
-      label: t("scanner.gestion.kpiScansThisMonth"),
-      value: String(scansInPeriod),
-      icon: <BarChart3 className="w-4 h-4 text-[rgb(var(--primary))]" />,
-      bgColor: "rgba(var(--primary),0.15)",
-    },
-    {
       label: t("scanner.gestion.kpiTotalScans"),
       value: String(totalScans),
-      icon: <Activity className="w-4 h-4 text-[rgb(96,165,250)]" />,
-      bgColor: "rgba(96,165,250,0.15)",
+      icon: <Activity className="w-4 h-4 text-[rgb(249,115,22)]" />,
+      bgColor: "rgba(249,115,22,0.15)",
     },
     {
       label: t("scanner.gestion.kpiAverageScore"),
       value: avgScore,
-      icon: <Target className="w-4 h-4 text-[rgb(52,211,153)]" />,
+      icon: <Gauge className="w-4 h-4 text-[rgb(52,211,153)]" />,
       bgColor: "rgba(52,211,153,0.15)",
     },
     {
@@ -378,7 +370,7 @@ export default function ScannerGestion() {
       <div className="[&>section+section]:-mt-3">
         <section>
           <div className="mb-4">
-            <KpiGrid items={kpiItems} columns={6} />
+            <KpiGrid items={kpiItems} columns={5} />
           </div>
           <ScannerEvolutionChart
             data={
