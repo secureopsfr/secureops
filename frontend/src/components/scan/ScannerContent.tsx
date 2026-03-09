@@ -625,18 +625,24 @@ export default function ScannerContent() {
             </>
           )}
 
-          {state === "crawling" && (
-            <ScanLoader
-              steps={crawlSteps}
-              titleKey="scanner.crawlLoading"
-              crawlMode={crawlMode}
-              onAnimationComplete={
-                crawledUrls.length > 0
-                  ? () => setState("validation")
-                  : undefined
-              }
-            />
-          )}
+          {state === "crawling" &&
+            (typeof document !== "undefined"
+              ? createPortal(
+                  <div className="scan-loading-overlay fixed inset-0 z-[60]">
+                    <ScanLoader
+                      steps={crawlSteps}
+                      titleKey="scanner.crawlLoading"
+                      crawlMode={crawlMode}
+                      onAnimationComplete={
+                        crawledUrls.length > 0
+                          ? () => setState("validation")
+                          : undefined
+                      }
+                    />
+                  </div>,
+                  document.body,
+                )
+              : null)}
 
           {state === "validation" && (
             <CrawlValidationStep
