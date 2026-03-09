@@ -1,7 +1,6 @@
 "use client";
 
 import "./scanner-doc.css";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Header from "../../../../../components/ui/Header";
@@ -9,14 +8,12 @@ import { useDocBlockReveal } from "../../../../../hooks/useDocBlockReveal";
 import Footer from "../../../../../components/ui/Footer";
 import { useLanguage } from "../../../../../components/LanguageProvider";
 import { getDocBySlug } from "../../../../../services/docsService";
-import { localePath, type Locale } from "../../../../../i18n/config";
 import { FileText } from "lucide-react";
 
 export default function ScannerDocDetailPage() {
   const params = useParams();
   const slug = params?.slug as string;
   const locale = (params?.locale as string) || "fr";
-  const lp = (path: string) => localePath(locale as Locale, path);
   const { t } = useLanguage();
   const [content, setContent] = useState<string | null>(null);
   const [title, setTitle] = useState<string>("");
@@ -44,13 +41,6 @@ export default function ScannerDocDetailPage() {
         className="min-h-screen py-6 w-full flex justify-center scanner-page"
       >
         <div className="w-full max-w-[900px] px-8">
-          <Link
-            href={lp("/scanner/docs")}
-            className="inline-flex items-center gap-1 text-[rgb(var(--primary))] no-underline hover:underline mb-6"
-          >
-            ← {t("scanner.docs.backToList")}
-          </Link>
-
           {loading ? (
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
               <p className="text-[var(--color-text-muted)]">
@@ -61,12 +51,6 @@ export default function ScannerDocDetailPage() {
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
               <FileText className="w-12 h-12 text-[var(--muted)] mx-auto mb-4 opacity-40" />
               <p className="text-[rgb(var(--danger))]">{error}</p>
-              <Link
-                href={lp("/scanner/docs")}
-                className="inline-block mt-4 text-[rgb(var(--primary))] hover:underline"
-              >
-                {t("scanner.docs.backToList")}
-              </Link>
             </div>
           ) : content ? (
             <article

@@ -35,12 +35,6 @@ export default function ScannerDocsPage() {
         className="min-h-screen py-6 w-full flex justify-center scanner-page"
       >
         <div className="w-full max-w-[1400px] px-8">
-          <Link
-            href={lp("/scanner")}
-            className="inline-flex items-center gap-1 text-[rgb(var(--primary))] no-underline hover:underline mb-6"
-          >
-            ← {t("scanner.hub.backToHub")}
-          </Link>
           <div className="text-center max-w-2xl mx-auto mb-8">
             <h1 className="page-title mb-2">{t("scanner.docs.title")}</h1>
             <p className="text-[var(--color-text-muted)]">

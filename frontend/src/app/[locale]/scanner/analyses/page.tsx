@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import Header from "../../../../components/ui/Header";
 import Footer from "../../../../components/ui/Footer";
 import ScannerContent from "../../../../components/scan/ScannerContent";
 import { getTranslation } from "../../../../i18n/server";
-import {
-  SITE_URL,
-  SLUG_MAP,
-  localePath,
-  type Locale,
-} from "../../../../i18n/config";
+import { SITE_URL, SLUG_MAP, type Locale } from "../../../../i18n/config";
 
 export async function generateMetadata({
   params,
@@ -38,7 +32,6 @@ export default async function ScannerAnalysesPage({
 }) {
   const { locale } = await params;
   const t = getTranslation(locale as Locale);
-  const lp = (path: string) => localePath(locale as Locale, path);
 
   return (
     <>
@@ -48,12 +41,6 @@ export default async function ScannerAnalysesPage({
         className="min-h-screen py-6 w-full flex justify-center scanner-page"
       >
         <div className="w-full max-w-[1400px] px-8">
-          <Link
-            href={lp("/scanner")}
-            className="inline-flex items-center gap-1 text-[rgb(var(--primary))] no-underline hover:underline mb-4"
-          >
-            ← {t("scanner.hub.backToHub")}
-          </Link>
           <ScannerContent />
         </div>
       </main>
