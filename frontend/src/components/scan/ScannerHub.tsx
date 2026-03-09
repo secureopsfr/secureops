@@ -60,7 +60,10 @@ export default function ScannerHub() {
     const Icon = card.icon;
     return (
       <Link key={card.id} href={card.href} className="block h-full">
-        <Card className="h-full flex flex-col transition-all hover:border-[rgb(var(--primary))] hover:shadow-lg cursor-pointer">
+        <Card
+          disableHover
+          className="h-full flex flex-col pt-6 transition-all hover:border-[rgb(var(--primary))] hover:shadow-lg cursor-pointer"
+        >
           <div className="flex items-center gap-3 mb-3">
             <Icon
               className="w-6 h-6 shrink-0"
@@ -91,7 +94,7 @@ export default function ScannerHub() {
         <h2 className="text-xl sm:text-2xl font-semibold text-[var(--text)] pb-3 border-b border-[var(--color-border)]/60">
           {t("scanner.hub.sectionGestion")}
         </h2>
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
           {sectionGestion.map(renderCard)}
         </div>
       </section>
@@ -100,7 +103,7 @@ export default function ScannerHub() {
         <h2 className="text-xl sm:text-2xl font-semibold text-[var(--text)] pb-3 border-b border-[var(--color-border)]/60">
           {t("scanner.hub.sectionScanner")}
         </h2>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 sm:grid-rows-2 lg:grid-rows-none sm:min-h-[360px] lg:min-h-0 items-stretch">
           {sectionScanner.map(renderCard)}
         </div>
       </section>
