@@ -169,7 +169,7 @@ export default function ScannerContent() {
           } else if (ev.type === "result") {
             if (isAuthenticated) {
               setResult(ev.data);
-              setState("success");
+              // Rester en loading : ScanLoader appelle onAnimationComplete à la fin
             } else {
               savePendingScanResult(ev.data);
               setResult(ev.data);
@@ -221,11 +221,57 @@ export default function ScannerContent() {
           if (ev.type === "step") {
             const step = ev.data.step;
             const done = step.endsWith("_done");
+            const isCrawlMerging = step === "crawl_merging";
+            const isCrawlStoppingOther = step === "crawl_stopping_other";
             const isCrawlProgress =
               step === "crawl_progress" ||
               step === "html_crawl_progress" ||
               step === "playwright_crawl_progress";
             setCrawlSteps((prev) => {
+              if (isCrawlStoppingOther && prev.length > 0) {
+                const lastDone = prev.findLastIndex((s) =>
+                  ["crawl_html_done", "crawl_playwright_done"].includes(s.step),
+                );
+                const branchToReplace =
+                  lastDone >= 0 && prev[lastDone]?.step === "crawl_html_done"
+                    ? "playwright"
+                    : "html";
+                const targetStep =
+                  branchToReplace === "playwright"
+                    ? "playwright_crawl_progress"
+                    : "html_crawl_progress";
+                const idx = prev.findLastIndex((s) => s.step === targetStep);
+                if (idx >= 0) {
+                  const updated = [...prev];
+                  updated[idx] = {
+                    step: "crawl_stopping_other",
+                    message: ev.data.message,
+                    done: false,
+                  };
+                  return updated;
+                }
+              }
+              if (isCrawlMerging && prev.length > 0) {
+                const updated = [...prev];
+                const stopIdx = updated.findLastIndex(
+                  (s) => s.step === "crawl_stopping_other",
+                );
+                if (stopIdx >= 0) {
+                  updated[stopIdx] = {
+                    step: updated[stopIdx].step,
+                    message: updated[stopIdx].message,
+                    done: true,
+                  };
+                }
+                return [
+                  ...updated,
+                  {
+                    step: ev.data.step,
+                    message: ev.data.message,
+                    done: false,
+                  },
+                ];
+              }
               if (done && prev.length > 0) {
                 const updated = [...prev];
                 const checkStep = step.replace("_done", "_check");
@@ -276,7 +322,7 @@ export default function ScannerContent() {
             setCrawlAntiBotSuspected(ev.data.anti_bot_suspected ?? false);
             setCrawlRequestsBlocked(ev.data.requests_blocked ?? false);
             setCrawlDisallowPaths(ev.data.disallow_paths ?? []);
-            setState("validation");
+            // Rester en crawling : ScanLoader appelle onAnimationComplete à la fin
           } else if (ev.type === "error") {
             setError({
               message: ev.data.message,
@@ -591,6 +637,11 @@ export default function ScannerContent() {
               steps={crawlSteps}
               titleKey="scanner.crawlLoading"
               crawlMode={crawlMode}
+              onAnimationComplete={
+                crawledUrls.length > 0
+                  ? () => setState("validation")
+                  : undefined
+              }
             />
           )}
 
@@ -608,7 +659,17 @@ export default function ScannerContent() {
             />
           )}
 
-          {state === "loading" && <ScanLoader steps={steps} />}
+          {state === "loading" && (
+            <ScanLoader
+              steps={steps}
+              crawlMode={scanOnlyThisPage ? undefined : crawlMode}
+              onAnimationComplete={
+                result
+                  ? () => setState("success")
+                  : undefined
+              }
+            />
+          )}
 
           {state === "success" &&
             result &&
