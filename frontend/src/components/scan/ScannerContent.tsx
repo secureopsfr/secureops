@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { fetchAuthSession } from "aws-amplify/auth";
-import { AlertTriangle, Globe } from "lucide-react";
+import { AlertTriangle, FileText, Globe } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { DropdownSelector, GenericButton } from "../buttons";
@@ -428,6 +429,15 @@ export default function ScannerContent() {
             <div className="page-header text-center mb-4">
               <h1 className="page-title mb-2">{t("scanner.title")}</h1>
               <p className="page-subtitle mt-0">{t("scanner.subtitle")}</p>
+              <Link
+                href={lp("/scanner/docs/scan-frontend")}
+                className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
+              >
+                <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
+                  <FileText className="w-4 h-4" />
+                  {t("scanner.docsLink")}
+                </span>
+              </Link>
             </div>
           </div>
         </AnimateInView>

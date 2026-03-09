@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { FileText } from "lucide-react";
 import Header from "../../../../components/ui/Header";
 import Footer from "../../../../components/ui/Footer";
 import { getTranslation } from "../../../../i18n/server";
-import { SITE_URL, SLUG_MAP, type Locale } from "../../../../i18n/config";
+import {
+  SITE_URL,
+  SLUG_MAP,
+  localePath,
+  type Locale,
+} from "../../../../i18n/config";
 
 export async function generateMetadata({
   params,
@@ -46,6 +53,18 @@ export default async function ScannerScansPersonnalisesPage({
             <p className="text-[var(--color-text-muted)] max-w-xl mx-auto">
               {t("scanner.scansPersonnalises.placeholder")}
             </p>
+            <Link
+              href={localePath(
+                locale as Locale,
+                "/scanner/docs/scans-personnalises",
+              )}
+              className="group mt-4 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
+            >
+              <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
+                <FileText className="w-4 h-4" />
+                {t("scanner.docsLink")}
+              </span>
+            </Link>
           </div>
         </div>
       </main>

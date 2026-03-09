@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { fetchAuthSession } from "aws-amplify/auth";
-import { AlertTriangle, Bot } from "lucide-react";
+import { AlertTriangle, Bot, FileText } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { DropdownSelector, GenericButton } from "../buttons";
@@ -330,11 +331,22 @@ export default function CrawlersContent() {
     <div className="space-y-4 w-full">
       {(state === "idle" || state === "error") && (
         <Card disableHover>
-          <div className="flex items-center gap-3 mb-4 -mt-2">
-            <Bot className="w-6 h-6 text-[rgb(var(--primary))]" />
-            <h2 className="section-title !text-left !mb-0">
-              {t("scanner.crawlers.formTitle")}
-            </h2>
+          <div className="flex items-center justify-between gap-3 mb-4 -mt-2 flex-wrap">
+            <div className="flex items-center gap-3">
+              <Bot className="w-6 h-6 text-[rgb(var(--primary))]" />
+              <h2 className="section-title !text-left !mb-0">
+                {t("scanner.crawlers.formTitle")}
+              </h2>
+            </div>
+            <Link
+              href={lp("/scanner/docs/crawler")}
+              className="group inline-flex text-sm text-[rgb(var(--primary))] no-underline"
+            >
+              <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
+                <FileText className="w-4 h-4" />
+                {t("scanner.docsLink")}
+              </span>
+            </Link>
           </div>
           <form
             onSubmit={handleSubmit}

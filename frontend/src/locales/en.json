@@ -373,7 +373,8 @@
     "categoryCorsCrossOrigin": "CORS and cross-origin",
     "scanTypeFrontend": "Frontend",
     "scanTypeBackend": "Backend",
-    "scanTypeCustom": "Custom"
+    "scanTypeCustom": "Custom",
+    "docsLink": "Documentation"
   },
   "auth": {
     "login": {
