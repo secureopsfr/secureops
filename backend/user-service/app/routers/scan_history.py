@@ -173,9 +173,9 @@ async def get_overview(
     date_from: str | None = None,
     date_to: str | None = None,
 ):
-    """KPIs et données du graphique pour la vue d'ensemble scanner.
+    """Return KPIs and chart data for the scanner overview.
 
-    Filtres optionnels: url, scan_type, date_from (ISO), date_to (ISO).
+    Optional filters: url, scan_type, date_from (ISO), date_to (ISO).
     """
     try:
         date_from_dt = _parse_optional_datetime(date_from)

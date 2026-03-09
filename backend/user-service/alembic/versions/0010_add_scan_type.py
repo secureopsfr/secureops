@@ -23,6 +23,7 @@ depends_on: Optional[Sequence[str]] = None
 
 
 def upgrade() -> None:
+    """Add scan_type column to scans, scheduled_scans and scan_alert_events."""
     conn = op.get_bind()
     inspector = sa.inspect(conn)
 
@@ -73,6 +74,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Remove scan_type column from scans, scheduled_scans and scan_alert_events."""
     conn = op.get_bind()
     inspector = sa.inspect(conn)
 
