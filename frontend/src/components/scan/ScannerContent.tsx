@@ -674,6 +674,7 @@ export default function ScannerContent() {
               <ScannerHistoryAlertsSection
                 className="mt-6"
                 onSelectScan={handleSelectScan}
+                filterScanType="frontend"
               />
             )}
 
@@ -686,6 +687,7 @@ export default function ScannerContent() {
                 scanId={scanId}
                 onNewScan={handleNewScan}
                 onSelectScan={handleSelectScan}
+                filterScanType="frontend"
               />
             ) : (
               <>

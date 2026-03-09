@@ -49,6 +49,7 @@ export default function ScanTypePageContent({
         scanId={selectedScanId}
         onNewScan={handleNewScan}
         onSelectScan={handleSelectScan}
+        filterScanType={filterScanType}
       />
     );
   }

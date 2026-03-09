@@ -79,6 +79,9 @@ export default function ScannerGestion() {
   const [urlOptions, setUrlOptions] = useState<string[]>([]);
   const [urlListExpanded, setUrlListExpanded] = useState(false);
   const [filterDateRange, setFilterDateRange] = useState<number | null>(null);
+  const [historyRetentionDays, setHistoryRetentionDays] = useState<
+    number | null
+  >(null);
 
   const URL_DISPLAY_LIMIT = 5;
   const displayedUrls = urlListExpanded
@@ -100,12 +103,28 @@ export default function ScannerGestion() {
     userService.getSubscription().then((res) => {
       const raw = res.subscription?.history_retention;
       const retention = typeof raw === "string" ? raw : "30";
-      if (filterDateRange === null && retention !== "none") {
-        const days = parseInt(retention, 10);
-        if (!Number.isNaN(days)) setFilterDateRange(days);
+      const days = retention === "none" ? null : parseInt(retention, 10);
+      setHistoryRetentionDays(Number.isNaN(days) ? null : days);
+      if (filterDateRange === null && days != null) {
+        setFilterDateRange(days);
       }
     });
   }, []);
+
+  const timeWindowOptions =
+    historyRetentionDays == null
+      ? []
+      : [7, 30, 90, 365].filter((d) => d <= historyRetentionDays);
+
+  useEffect(() => {
+    if (
+      historyRetentionDays != null &&
+      filterDateRange != null &&
+      filterDateRange > historyRetentionDays
+    ) {
+      setFilterDateRange(historyRetentionDays);
+    }
+  }, [historyRetentionDays, filterDateRange]);
 
   const { date_from: filterDateFrom, date_to: filterDateTo } =
     filterDateRange != null
@@ -144,6 +163,13 @@ export default function ScannerGestion() {
         scanId={selectedScanId}
         onNewScan={handleNewScan}
         onSelectScan={handleSelectScan}
+        filterScanType={
+          filterScanType === "frontend" ||
+          filterScanType === "backend" ||
+          filterScanType === "custom"
+            ? filterScanType
+            : undefined
+        }
       />
     );
   }
@@ -290,7 +316,7 @@ export default function ScannerGestion() {
               >
                 {t("scanner.gestion.filterTimeWindowAll")}
               </button>
-              {([7, 30, 90, 365] as const).map((days) => (
+              {timeWindowOptions.map((days) => (
                 <button
                   key={days}
                   type="button"

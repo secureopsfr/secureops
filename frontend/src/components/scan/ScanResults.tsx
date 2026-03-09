@@ -41,6 +41,8 @@ interface ScanResultsProps {
   onNewScan: () => void;
   /** Callback quand l'utilisateur sélectionne un autre scan dans l'historique (optionnel). */
   onSelectScan?: (result: ScanResult, scanId?: string) => void;
+  /** Type de scan (masque le badge dans l'historique quand on est sur une page dédiée). */
+  filterScanType?: "frontend" | "backend" | "custom";
 }
 
 const EXPORT_FORMATS: {
@@ -116,6 +118,7 @@ export default function ScanResults({
   scanId,
   onNewScan,
   onSelectScan,
+  filterScanType,
 }: ScanResultsProps) {
   const { t, language } = useLanguage();
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -601,6 +604,7 @@ export default function ScanResults({
       >
         <ScannerHistoryAlertsSection
           filterUrl={result.url}
+          filterScanType={filterScanType}
           onSelectScan={onSelectScan ?? (() => {})}
         />
       </AnimateInView>

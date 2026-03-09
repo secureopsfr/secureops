@@ -164,9 +164,11 @@ export default function ScanHistoryBlock({
                           {formatUrlDisplay(item.url)}
                         </span>
                         <span className="text-xs text-[var(--muted)]">
-                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
-                            {t(scanTypeKey)}
-                          </span>
+                          {!filterScanType && (
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
+                              {t(scanTypeKey)}
+                            </span>
+                          )}
                           {formatDate(item.created_at)} · {item.score ?? "—"}
                           /100 · {t(badge.labelKey)}
                         </span>
