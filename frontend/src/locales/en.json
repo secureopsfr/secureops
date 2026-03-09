@@ -186,10 +186,10 @@
     "hub": {
       "title": "Scanner",
       "subtitle": "Analyze your sites' security posture, view history and manage scheduled scans.",
-      "sectionGestion": "Management",
+      "sectionVueEnsemble": "Overview",
       "sectionScanner": "Scanner",
-      "cardDashboards": "Dashboards",
-      "cardDashboardsBody": "Findings trends, scan history and scheduling.",
+      "cardSuiviScans": "Scan monitoring",
+      "cardSuiviScansBody": "Findings trends, scan history and scheduling.",
       "cardClesApi": "API Keys",
       "cardClesApiBody": "Manage API keys for external integration.",
       "cardCrawlers": "Crawlers",

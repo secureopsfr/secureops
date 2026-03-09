@@ -8,6 +8,7 @@ import {
   SITE_URL,
   SLUG_MAP,
   localePath,
+  SCANNER_SUBPATH_MAP,
   type Locale,
 } from "../../../../i18n/config";
 
@@ -25,12 +26,12 @@ export async function generateMetadata({
     description: t("scanner.gestion.metaDesc"),
     openGraph: {
       title: `${t("scanner.gestion.metaTitle")} – SecureOps`,
-      url: `${SITE_URL}/${locale}/${SLUG_MAP[l].scanner}/gestion`,
+      url: `${SITE_URL}/${locale}/${SLUG_MAP[l].scanner}/${SCANNER_SUBPATH_MAP[l]["vue-d-ensemble"]}`,
     },
   };
 }
 
-export default async function ScannerGestionPage({
+export default async function ScannerVueEnsemblePage({
   params,
 }: {
   params: Promise<{ locale: string }>;

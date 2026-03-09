@@ -55,6 +55,20 @@ export const EN_SLUG_TO_INTERNAL: Record<string, string> = Object.fromEntries(
 );
 
 /**
+ * Scanner sub-paths: internal (file-system) → locale-specific display.
+ * FR keeps "vue-d-ensemble", EN uses "overview".
+ */
+export const SCANNER_SUBPATH_MAP: Record<Locale, Record<string, string>> = {
+  fr: { "vue-d-ensemble": "vue-d-ensemble" },
+  en: { "vue-d-ensemble": "overview" },
+};
+
+/** EN scanner sub-path → internal (for middleware rewrite). */
+export const SCANNER_SUBPATH_EN_TO_INTERNAL: Record<string, string> = {
+  overview: "vue-d-ensemble",
+};
+
+/**
  * Build a locale-aware href.
  * @param locale  Current locale
  * @param internalPath  Internal path (e.g. "/tarifs", "/contact")
@@ -70,7 +84,20 @@ export function localePath(locale: Locale, internalPath: string): string {
   const [firstSegment, ...rest] = clean.split("/");
 
   const mappedSlug = SLUG_MAP[locale]?.[firstSegment] ?? firstSegment;
-  const suffix = rest.length > 0 ? `/${rest.join("/")}` : "";
+
+  // Scanner sub-paths: map vue-d-ensemble → overview for EN
+  let suffix = "";
+  if (rest.length > 0) {
+    if (
+      firstSegment === "scanner" &&
+      rest[0] &&
+      SCANNER_SUBPATH_MAP[locale]?.[rest[0]]
+    ) {
+      suffix = `/${SCANNER_SUBPATH_MAP[locale][rest[0]]}${rest.slice(1).length ? "/" + rest.slice(1).join("/") : ""}`;
+    } else {
+      suffix = `/${rest.join("/")}`;
+    }
+  }
 
   return `/${locale}/${mappedSlug}${suffix}`;
 }
@@ -102,8 +129,25 @@ export function switchLocalePath(
   // Map internal slug to target locale's slug
   const targetSlug = SLUG_MAP[targetLocale]?.[internalSlug] ?? internalSlug;
 
-  const suffix =
-    remainingSegments.length > 0 ? `/${remainingSegments.join("/")}` : "";
+  // Scanner sub-paths: EN "overview" → internal "vue-d-ensemble" → FR "vue-d-ensemble"
+  let suffix = "";
+  if (remainingSegments.length > 0) {
+    let internalSubpath = remainingSegments[0];
+    if (
+      internalSlug === "scanner" &&
+      currentLocale === "en" &&
+      remainingSegments[0] &&
+      SCANNER_SUBPATH_EN_TO_INTERNAL[remainingSegments[0]]
+    ) {
+      internalSubpath = SCANNER_SUBPATH_EN_TO_INTERNAL[remainingSegments[0]];
+    }
+    const targetSubpath =
+      internalSlug === "scanner" && internalSubpath
+        ? (SCANNER_SUBPATH_MAP[targetLocale]?.[internalSubpath] ??
+          internalSubpath)
+        : remainingSegments[0];
+    suffix = `/${targetSubpath}${remainingSegments.length > 1 ? "/" + remainingSegments.slice(1).join("/") : ""}`;
+  }
 
   return `/${targetLocale}/${targetSlug}${suffix}`;
 }

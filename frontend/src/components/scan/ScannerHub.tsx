@@ -18,10 +18,10 @@ export default function ScannerHub() {
 
   const sectionGestion = [
     {
-      id: "dashboards",
-      titleKey: "scanner.hub.cardDashboards",
-      bodyKey: "scanner.hub.cardDashboardsBody",
-      href: lp("/scanner/gestion"),
+      id: "suivi-scans",
+      titleKey: "scanner.hub.cardSuiviScans",
+      bodyKey: "scanner.hub.cardSuiviScansBody",
+      href: lp("/scanner/vue-d-ensemble"),
       icon: BarChart3,
     },
     {
@@ -30,6 +30,13 @@ export default function ScannerHub() {
       bodyKey: "scanner.hub.cardClesApiBody",
       href: lp("/scanner/cles-api"),
       icon: Key,
+    },
+    {
+      id: "documentation",
+      titleKey: "scanner.hub.cardDocs",
+      bodyKey: "scanner.hub.cardDocsBody",
+      href: lp("/scanner/docs"),
+      icon: BookOpen,
     },
   ];
 
@@ -54,13 +61,6 @@ export default function ScannerHub() {
       bodyKey: "scanner.hub.cardScanBackendBody",
       href: lp("/scanner/backend"),
       icon: Server,
-    },
-    {
-      id: "documentation",
-      titleKey: "scanner.hub.cardDocs",
-      bodyKey: "scanner.hub.cardDocsBody",
-      href: lp("/scanner/docs"),
-      icon: BookOpen,
     },
     {
       id: "scans-personnalises",
@@ -107,7 +107,7 @@ export default function ScannerHub() {
 
       <section className="space-y-4">
         <h2 className="text-xl sm:text-2xl font-semibold text-[var(--text)] pb-3 border-b border-[var(--color-border)]/60">
-          {t("scanner.hub.sectionGestion")}
+          {t("scanner.hub.sectionVueEnsemble")}
         </h2>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
           {sectionGestion.map(renderCard)}

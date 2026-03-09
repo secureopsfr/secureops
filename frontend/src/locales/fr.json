@@ -186,10 +186,10 @@
     "hub": {
       "title": "Scanner",
       "subtitle": "Analysez la posture sécurité de vos sites, consultez l'historique et gérez vos scans planifiés.",
-      "sectionGestion": "Gestion",
+      "sectionVueEnsemble": "Vue d'ensemble",
       "sectionScanner": "Scanner",
-      "cardDashboards": "Dashboards",
-      "cardDashboardsBody": "Évolution des failles, historique des scans et planification.",
+      "cardSuiviScans": "Suivi des scans",
+      "cardSuiviScansBody": "Évolution des failles, historique des scans et planification.",
       "cardClesApi": "Clés API",
       "cardClesApiBody": "Gestion des clés API pour l'intégration externe.",
       "cardCrawlers": "Crawlers",
