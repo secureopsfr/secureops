@@ -31,7 +31,6 @@ export default async function ScannerAnalysesPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = getTranslation(locale as Locale);
 
   return (
     <>

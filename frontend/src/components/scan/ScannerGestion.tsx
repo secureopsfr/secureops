@@ -93,7 +93,7 @@ export default function ScannerGestion() {
   const router = useRouter();
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
-  const [scheduleRefreshTrigger, setScheduleRefreshTrigger] = useState(0);
+  const [scheduleRefreshTrigger] = useState(0);
   const [filterUrl, setFilterUrl] = useState<string | null>(null);
   const [filterScanType, setFilterScanType] = useState<string | null>(null);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
@@ -126,9 +126,9 @@ export default function ScannerGestion() {
       const retention = typeof raw === "string" ? raw : "30";
       const days = retention === "none" ? null : parseInt(retention, 10);
       setHistoryRetentionDays(Number.isNaN(days) ? null : days);
-      if (filterDateRange === null && days != null) {
-        setFilterDateRange(days);
-      }
+      setFilterDateRange((prev) =>
+        prev === null && days != null ? days : prev,
+      );
     });
   }, []);
 

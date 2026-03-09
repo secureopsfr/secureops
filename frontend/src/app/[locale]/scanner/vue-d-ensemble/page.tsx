@@ -35,7 +35,6 @@ export default async function ScannerVueEnsemblePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = getTranslation(locale as Locale);
 
   return (
     <>

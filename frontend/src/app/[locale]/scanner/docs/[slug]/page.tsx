@@ -16,7 +16,6 @@ export default function ScannerDocDetailPage() {
   const locale = (params?.locale as string) || "fr";
   const { t } = useLanguage();
   const [content, setContent] = useState<string | null>(null);
-  const [title, setTitle] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const articleRef = useRef<HTMLElement>(null);
@@ -27,7 +26,9 @@ export default function ScannerDocDetailPage() {
     getDocBySlug(slug)
       .then((doc) => {
         setContent(doc.content);
-        setTitle(doc.title);
+        if (doc.title && typeof document !== "undefined") {
+          document.title = `${doc.title} – SecureOps`;
+        }
       })
       .catch(() => setError("Page introuvable"))
       .finally(() => setLoading(false));

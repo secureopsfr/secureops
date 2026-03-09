@@ -324,9 +324,6 @@ export default function CrawlersContent() {
     setCrawlDisallowPaths([]);
   }, []);
 
-  const showHeader =
-    state === "idle" || state === "error" || state === "validation";
-
   return (
     <div className="space-y-4 w-full">
       {(state === "idle" || state === "error") && (
