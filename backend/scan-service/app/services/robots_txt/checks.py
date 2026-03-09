@@ -41,6 +41,7 @@ class RobotsTxtCheckResult:
         sensitive_routes (tuple[SensitiveRoute, ...]): Routes sensibles détectées.
         findings (tuple[str, ...]): Messages des findings.
         fetch_ok (bool): True si la requête a abouti.
+        found (bool): True si robots.txt a été trouvé (status 200).
         crawl_delay (int | None): Valeur Crawl-delay en secondes si présente.
         sitemap_urls (tuple[str, ...]): URLs des directives Sitemap: extraites.
     """
@@ -50,6 +51,7 @@ class RobotsTxtCheckResult:
     sensitive_routes: tuple[SensitiveRoute, ...]
     findings: tuple[str, ...]
     fetch_ok: bool
+    found: bool
     crawl_delay: int | None
     sitemap_urls: tuple[str, ...]
 
@@ -201,7 +203,8 @@ async def run_robots_txt_checks(
         RobotsTxtCheckResult: Chemins extraits, routes sensibles et findings.
     """
     robots_url = build_url_with_path(base_url, "/robots.txt")
-    response = await get_with_client(client, robots_url, follow_redirects=False)
+    # Suivre les redirections (ex. seloger.com → www.seloger.com)
+    response = await get_with_client(client, robots_url, follow_redirects=True)
 
     if response is None:
         return RobotsTxtCheckResult(
@@ -210,6 +213,7 @@ async def run_robots_txt_checks(
             sensitive_routes=(),
             findings=(MSG_ROBOTS_TXT_UNAVAILABLE,),
             fetch_ok=False,
+            found=False,
             crawl_delay=None,
             sitemap_urls=(),
         )
@@ -221,6 +225,7 @@ async def run_robots_txt_checks(
             sensitive_routes=(),
             findings=(),
             fetch_ok=True,
+            found=False,
             crawl_delay=None,
             sitemap_urls=(),
         )
@@ -249,6 +254,7 @@ async def run_robots_txt_checks(
         sensitive_routes=tuple(sensitive),
         findings=tuple(findings),
         fetch_ok=True,
+        found=True,
         crawl_delay=crawl_delay,
         sitemap_urls=tuple(sitemap_urls),
     )

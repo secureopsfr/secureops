@@ -42,6 +42,7 @@ services:
       - admin-service
       - user-service
       - scan-service
+      - crawl-service
       - postgres
     networks: [app-network]
 
@@ -62,6 +63,8 @@ services:
       user-service:
         condition: service_healthy
       scan-service:
+        condition: service_healthy
+      crawl-service:
         condition: service_healthy
       pdf-service:
         condition: service_healthy
@@ -127,6 +130,21 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8012/api/health')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  crawl-service:
+    build:
+      context: ./backend
+      dockerfile: crawl-service/Dockerfile
+    environment:
+      - IS_DOCKER=true
+      - IS_PROD=false
+    networks: [app-network]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8014/api/health')\""]
       interval: 5s
       timeout: 5s
       retries: 12

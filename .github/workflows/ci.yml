@@ -24,6 +24,7 @@ jobs:
           echo "Working directory: $(pwd)"
           test -f frontend/Dockerfile || { echo "Missing frontend/Dockerfile"; exit 1; }
           test -f backend/scan-service/Dockerfile || { echo "Missing backend/scan-service/Dockerfile"; exit 1; }
+          test -f backend/crawl-service/Dockerfile || { echo "Missing backend/crawl-service/Dockerfile"; exit 1; }
           test -f backend/pdf-service/Dockerfile || { echo "Missing backend/pdf-service/Dockerfile"; exit 1; }
           (test -f backend/gateway/Dockerfile && test -f backend/admin-service/Dockerfile) || true
 
@@ -116,6 +117,32 @@ jobs:
             sleep 2
           done
 
+          # Attente crawl-service (health)
+          echo "Waiting for crawl-service..."
+          for i in $(seq 1 30); do
+            cid=$(docker compose -f docker-compose.ci.yml ps -q crawl-service 2>/dev/null)
+            status=$([ -n "$cid" ] && docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || echo "missing")
+            if [ "$status" = "missing" ]; then
+              echo "crawl-service container not found (build may have failed)."
+              docker compose -f docker-compose.ci.yml logs crawl-service 2>/dev/null || true
+              exit 1
+            fi
+            if [ "$status" = "exited" ]; then
+              echo "crawl-service has exited. Logs:"
+              docker compose -f docker-compose.ci.yml logs crawl-service || true
+              exit 1
+            fi
+            if docker compose -f docker-compose.ci.yml exec -T crawl-service python -c "import urllib.request; urllib.request.urlopen('http://localhost:8014/api/health')" 2>/dev/null; then
+              echo "crawl-service is up"; break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "crawl-service did not become ready. Logs:"
+              docker compose -f docker-compose.ci.yml logs crawl-service || true
+              exit 1
+            fi
+            sleep 2
+          done
+
           # Attente pdf-service (health)
           echo "Waiting for pdf-service..."
           for i in $(seq 1 30); do
@@ -145,7 +172,7 @@ jobs:
       # Lint Python + JS
       - name: Python Lint & Formatting
         run: |
-          for svc in gateway admin-service user-service scan-service pdf-service; do
+          for svc in gateway admin-service user-service scan-service crawl-service pdf-service; do
             docker compose -f docker-compose.ci.yml exec -T $svc black --check .
             docker compose -f docker-compose.ci.yml exec -T $svc isort --check-only .
             docker compose -f docker-compose.ci.yml exec -T $svc flake8 .
@@ -153,7 +180,7 @@ jobs:
 
       - name: Python Tests (pytest)
         run: |
-          for svc in gateway admin-service user-service scan-service pdf-service; do
+          for svc in gateway admin-service user-service scan-service crawl-service pdf-service; do
             echo "Running pytest in $svc..."
             docker compose -f docker-compose.ci.yml exec -T $svc pytest
           done

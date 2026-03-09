@@ -352,63 +352,65 @@ Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.
 
 ## 7) Crawler HTTP — agent indépendant
 
+> **Implémenté (v0.3.0).** Documentation détaillée : [docs/verifications/crawler.md](../verifications/crawler.md).
+
 **Objectif :** Le **crawler** est un **agent indépendant des scans** : il s’exécute à part, produit une liste d’URLs (et métadonnées), et **envoie ce résultat au frontend**. Le frontend affiche ensuite une étape de validation/édition avant tout scan. Le crawler ne déclenche pas lui‑même le scan ; il alimente l’utilisateur qui valide puis lance le scan sur la liste finale.
 
 **Fonctionnement :** télécharger la page initiale, parser le DOM, extraire liens et endpoints, produire une **liste d’URLs et de métadonnées** ; renvoyer cette liste au frontend. Le frontend présente : « Voici ce que le crawler a trouvé. C’est OK ? Tu veux supprimer des URLs ? Tu veux en ajouter manuellement ? » — l’utilisateur confirme ou édite la liste, puis lance le scan sur cette liste. Le crawler est entièrement implémenté dans la v0.3.0.
 
 ### 7.1 Noyau du crawler
 
-- [ ] **Téléchargement** : récupérer la page HTML de l’URL de départ (réutiliser le client HTTP existant, timeouts, suivi des redirections).
-- [ ] **Parsing DOM** : parser le HTML (ex. BeautifulSoup ou lxml) pour extraire les éléments utiles.
-- [ ] **Extraction des liens** :
-  - [ ] Liens `<a href="...">` (URLs absolues et relatives, normalisées).
-  - [ ] Formulaires `<form action="...">` (méthode, action, champs).
-  - [ ] Scripts `<script src="...">` et feuilles `<link rel="stylesheet" href="...">` (déjà partiellement fait pour SRI/cache ; les réutiliser ou les intégrer au flux crawler).
-  - [ ] Iframes `src` si pertinent (optionnel, avec limite).
-- [ ] **Détection d’endpoints type API** : repérer dans les liens ou attributs des patterns comme `/api`, `/graphql`, `/v1`, `/rest`, `/swagger`, etc. → marquer ces URLs comme « endpoint API » pour la phase scan (ex. CORS, headers, Content-Type).
-- [ ] **Normalisation et dédoublonnage** : normaliser les URLs (schéma, host, slash trailing, fragment), dédupliquer, filtrer les types inutiles (mailto:, tel:, ancres pures).
+- [x] **Téléchargement** : récupérer la page HTML de l’URL de départ (réutiliser le client HTTP existant, timeouts, suivi des redirections).
+- [x] **Parsing DOM** : parser le HTML (HTMLParser natif Python) pour extraire les éléments utiles.
+- [x] **Extraction des liens** :
+  - [x] Liens `<a href="...">` (URLs absolues et relatives, normalisées).
+  - [x] Formulaires `<form action="...">` (méthode, action, champs).
+  - [x] Scripts `<script src="...">` et feuilles `<link rel="stylesheet" href="...">` (déjà partiellement fait pour SRI/cache ; les réutiliser ou les intégrer au flux crawler).
+  - [x] Iframes `src` si pertinent (optionnel, avec limite).
+- [x] **Détection d’endpoints type API** : repérer dans les liens ou attributs des patterns comme `/api`, `/graphql`, `/v1`, `/rest`, `/swagger`, etc. → marquer ces URLs comme « endpoint API » pour la phase scan (ex. CORS, headers, Content-Type).
+- [x] **Normalisation et dédoublonnage** : normaliser les URLs (schéma, host, slash trailing, fragment), dédupliquer, filtrer les types inutiles (mailto:, tel:, ancres pures).
 
 ### 7.2 Suivi des routes (crawl en profondeur)
 
-- [ ] **Politique de suivi** : suivre les liens **même domaine** (et optionnellement sous-domaines configurables) pour découvrir d’autres pages.
-- [ ] **Limites** :
-  - [ ] Profondeur max (ex. 2 ou 3 niveaux à partir de l’URL de départ).
-  - [ ] Nombre max d’URLs à crawler (ex. 50–100) pour rester dans les timeouts et coûts raisonnables.
-  - [ ] Timeout global du crawl (ex. 30 s).
-- [ ] **File d’URLs** : traiter les URLs en file (BFS ou DFS), en évitant de re-visiter une URL déjà vue.
-- [ ] **Respect de robots.txt** : avant de crawler une URL, vérifier qu’elle n’est pas interdite par `Disallow` (réutiliser la logique robots.txt existante). Option : respecter aussi `Crawl-delay` si présent (attente entre requêtes).
+- [x] **Politique de suivi** : suivre les liens **même domaine** (et optionnellement sous-domaines configurables) pour découvrir d’autres pages.
+- [x] **Limites** :
+  - [x] Profondeur max (2 niveaux par défaut à partir de l’URL de départ).
+  - [x] Nombre max d’URLs à crawler (ex. 50–100) pour rester dans les timeouts et coûts raisonnables.
+  - [x] Timeout global du crawl (30 s par défaut).
+- [x] **File d’URLs** : traiter les URLs en file (BFS ou DFS), en évitant de re-visiter une URL déjà vue.
+- [x] **Respect de robots.txt** : avant de crawler une URL, vérifier qu’elle n’est pas interdite par `Disallow` (réutiliser la logique robots.txt existante). Option : respecter aussi `Crawl-delay` si présent (attente entre requêtes).
 
 ### 7.3 Sortie du crawler, envoi au frontend et étape de validation
 
-- [ ] **Structure de sortie** : liste d’entrées `{ url, type?, depth? }` (type = page, formulaire, script, api_endpoint, etc.) avec métadonnées utiles.
-- [ ] **Réception du résultat crawler par le frontend** — à préciser pour l’implémentation, documenter le choix en 7.5 :
+- [x] **Structure de sortie** : liste d’entrées `{ url, type?, depth? }` (type = page, formulaire, script, api_endpoint, etc.) avec métadonnées utiles.
+- [x] **Réception du résultat crawler par le frontend** — à préciser pour l’implémentation, documenter le choix en 7.5 :
   - **Option A (crawl court)** : endpoint synchrone type `POST /api/crawl` (ou équivalent) : body = `{ url }`, réponse = liste d’URLs après crawl (timeout côté client ex. 30–60 s). Le frontend attend la réponse puis affiche l’étape de validation.
   - **Option B (crawl long)** : `POST /api/crawl` retourne un `crawl_job_id` ; le frontend poll `GET /api/crawl/{crawl_job_id}` jusqu’à statut `completed` (ou `failed`), puis récupère la liste via `GET /api/crawl/{crawl_job_id}/result`. Adapter si usage de SSE/WebSocket plutôt que polling.
   - Choisir A ou B selon durée attendue du crawl et contraintes timeout ; documenter le contrat (payload, format de la liste, codes erreur) dans la doc technique (7.5).
-- [ ] **Envoi du résultat au frontend** : le crawler (agent indépendant) renvoie sa liste d’URLs au frontend via le mécanisme retenu ci‑dessus. Aucun scan n’est lancé automatiquement après le crawl.
-- [ ] **Option utilisateur « Scanner uniquement cette page »** (checkbox dans le formulaire du scanner) :
-  - [ ] Si **coché** : **aucun crawler** — pas d’étape de découverte ; scan directement sur l’URL saisie. Indiquer dans l’UI : « Scanner uniquement cette page (pas de découverte des autres pages du site) ».
-  - [ ] Si **décoché** (comportement par défaut) : **lancer le crawler** ; le résultat est envoyé au frontend ; le frontend affiche l’étape de validation (voir ci‑dessous) ; le scan ne s’exécute qu’après validation par l’utilisateur. Indiquer dans l’UI : « Découvrir les pages du même domaine puis choisir les URLs à scanner » (ou équivalent).
-- [ ] **Étape frontend après réception du résultat du crawler** :
-  - [ ] Afficher : « Voici ce que le crawler a trouvé. C’est OK ? Tu veux supprimer des URLs ? Tu veux en ajouter manuellement ? »
-  - [ ] Liste des URLs découvrables (avec type/depth si utile) : cases à cocher ou bouton « supprimer » par ligne pour retirer des URLs.
-  - [ ] Champ ou bouton pour **ajouter des URLs manuellement** (une ou plusieurs).
-  - [ ] Bouton type « Lancer le scan » (ou « C’est bon, scanner ces URLs ») : envoi de la **liste finale** (validée/éditée) au backend pour exécution du scan sur cet ensemble.
-- [ ] **Alimentation du scan** : le scan s’exécute sur la liste validée par l’utilisateur (URL initiale + URLs conservées/ajoutées). L’URL de départ reste la cible principale ; les autres URLs sont traitées selon la politique (checks ciblés, rapport « URLs découvertes », etc.).
+- [x] **Envoi du résultat au frontend** : le crawler (agent indépendant) renvoie sa liste d’URLs au frontend via le mécanisme retenu ci‑dessus. Aucun scan n’est lancé automatiquement après le crawl.
+- [x] **Option utilisateur « Scanner uniquement cette page »** (checkbox dans le formulaire du scanner) :
+  - [x] Si **coché** : **aucun crawler** — pas d’étape de découverte ; scan directement sur l’URL saisie. Indiquer dans l’UI : « Scanner uniquement cette page (pas de découverte des autres pages du site) ».
+  - [x] Si **décoché** (comportement par défaut) : **lancer le crawler** ; le résultat est envoyé au frontend ; le frontend affiche l’étape de validation (voir ci‑dessous) ; le scan ne s’exécute qu’après validation par l’utilisateur. Indiquer dans l’UI : « Découvrir les pages du même domaine puis choisir les URLs à scanner » (ou équivalent).
+- [x] **Étape frontend après réception du résultat du crawler** :
+  - [x] Afficher : « Voici ce que le crawler a trouvé. C’est OK ? Tu veux supprimer des URLs ? Tu veux en ajouter manuellement ? »
+  - [x] Liste des URLs découvrables (avec type/depth si utile) : cases à cocher ou bouton « supprimer » par ligne pour retirer des URLs.
+  - [x] Champ ou bouton pour **ajouter des URLs manuellement** (une ou plusieurs).
+  - [x] Bouton type « Lancer le scan » (ou « C’est bon, scanner ces URLs ») : envoi de la **liste finale** (validée/éditée) au backend pour exécution du scan sur cet ensemble.
+- [x] **Alimentation du scan** : le scan s’exécute sur la liste validée par l’utilisateur (URL initiale + URLs conservées/ajoutées). L’URL de départ reste la cible principale ; les autres URLs sont traitées selon la politique (checks ciblés, rapport « URLs découvertes », etc.).
 
 ### 7.4 Bonnes pratiques et suggestions
 
-- [ ] **User-Agent** : envoyer un User-Agent identifié (ex. `SecureOps-Crawler/1.0`) pour transparence côté serveur cible.
-- [ ] **Même domaine strict** par défaut : ne pas suivre les liens vers d’autres domaines (éviter crawl sauvage et SSRF).
-- [ ] **Exclusion des ressources binaires** : ne pas mettre en file les URLs dont l’extension ou le type suggère un binaire (images, PDF, ZIP, etc.) sauf si configuré.
-- [ ] **Détection d’URL « backend »** : si une URL crawlé ressemble à une API (pattern `api.`, `backend.`, chemin `/api`, `/graphql`), la marquer pour la feature « scanner aussi le backend » (option future ou option utilisateur « URL backend »).
-- [ ] **Logs et observabilité** : nombre d’URLs découvertes, nombre crawlé, durée, erreurs (timeout, 403, etc.) pour le rapport ou les métriques.
-- [ ] **Configuration** : paramètres dans `settings.yml` (profondeur max, max URLs, timeout, respect robots.txt on/off, domaines autorisés).
+- [x] **User-Agent** : envoyer un User-Agent identifié (ex. `SecureOps-Crawler/1.0`) pour transparence côté serveur cible.
+- [x] **Même domaine strict** par défaut : ne pas suivre les liens vers d’autres domaines (éviter crawl sauvage et SSRF).
+- [x] **Exclusion des ressources binaires** : ne pas mettre en file les URLs dont l’extension ou le type suggère un binaire (images, PDF, ZIP, etc.) sauf si configuré.
+- [x] **Détection d’URL « backend »** : si une URL crawlé ressemble à une API (pattern `api.`, `backend.`, chemin `/api`, `/graphql`), la marquer pour la feature « scanner aussi le backend » (option future ou option utilisateur « URL backend »).
+- [x] **Logs et observabilité** : nombre d’URLs découvertes, nombre crawlé, durée, erreurs (timeout, 403, etc.) pour le rapport ou les métriques.
+- [x] **Configuration** : paramètres dans `settings.yml` (profondeur max, max URLs, timeout, respect robots.txt on/off, domaines autorisés).
 
 ### 7.5 Documentation et tests
 
-- [ ] Documenter dans `docs/verifications/` ou un fichier dédié (ex. `docs/crawler.md`) : objectif, limites, respect robots.txt, impact sur le scan.
-- [ ] Documenter le **contrat API crawler** retenu (option A synchrone ou B job_id + polling, payload, format de la liste, codes erreur) pour le frontend et les tests.
+- [x] Documenter dans `docs/verifications/crawler.md` : objectif, limites, respect robots.txt, impact sur le scan, choix techniques.
+- [x] Documenter le **contrat API crawler** (option A synchrone, payload, format de la liste, codes erreur) dans la doc.
 - [ ] Tests unitaires : parsing HTML → liste d’URLs attendue ; respect Disallow ; limites (profondeur, max URLs).
 - [ ] Test d’intégration : crawl d’une page de test (ex. `bad_crawl_server` ou fixture HTML) → vérifier la sortie et l’absence de fuite hors domaine.
 
@@ -419,9 +421,9 @@ Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.
 - [ ] **Limites d’usage du crawler** :
   - [ ] Nombre max de crawls/jour par utilisateur (ou par clé API), aligné ou dérivé des quotas 1.3 (ex. 1 crawl = 1 unité quota ou quota dédié crawl).
   - [ ] Option : limite par domaine cible (ex. pas plus de X crawls/jour vers le même host) pour éviter le harcèlement d’un même site.
-- [ ] **URLs interdites / listes noires** :
-  - [ ] Bloquer systématiquement les URLs vers localhost, IP privées (RFC 1918), IP de bouclage, et domaines réservés (cf. règles SSRF existantes en scan) pour le **crawl** et l’**entrée utilisateur** (URL de départ, URLs ajoutées manuellement). Réutiliser la logique de validation URL / SSRF du scan-service.
-  - [ ] Liste noire configurable (ex. dans `settings.yml` ou en base) : domaines ou patterns d’URL interdits (modération, conformité). Vérifier l’URL de départ et, si pertinent, les URLs découvertes avant de les accepter.
+- [x] **URLs interdites / SSRF** :
+  - [x] Bloquer localhost, IP privées (RFC 1918), IP de bouclage pour l'**URL de départ** (`check_ssrf`) et les **URLs découvertes** (`is_hostname_blocked`). Réutilisation de la logique SSRF du scan-service.
+  - [ ] Liste noire configurable (ex. dans `settings.yml`) : à implémenter ultérieurement.
 - [ ] **Modération** (optionnel pour la v0.3.0) : possibilité d’ajouter a posteriori des domaines bloqués et de logger les tentatives (audit). À documenter comme évolution si non implémenté en 0.3.0.
 - [ ] Documenter dans la doc crawler (7.5) et dans la doc limites/quotas : comportement en cas de dépassement (429), message utilisateur en cas d’URL refusée (liste noire ou interdite).
 

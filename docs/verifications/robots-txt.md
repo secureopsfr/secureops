@@ -183,3 +183,7 @@ Les directives **`Allow`** peuvent affiner les règles (ex. `Disallow: /api/` pu
 ## Vérification Sitemap (séparée)
 
 La vérification du **sitemap** (présence de `Sitemap:` dans robots.txt, fallback à l'emplacement classique, analyse des URLs sensibles) est documentée dans [sitemap.md](sitemap.md).
+
+## Crawler HTTP (réutilisation)
+
+Le **crawler HTTP** réutilise la logique robots.txt pour respecter les directives `Disallow` et `Allow` avant de crawler une URL. Voir [crawler.md](crawler.md).

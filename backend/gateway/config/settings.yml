@@ -33,6 +33,9 @@ services:
     scan:
       prefix: "scan"
       url: "http://scan-service:8012"
+    crawl:
+      prefix: "crawl"
+      url: "http://crawl-service:8014"
     pdf:
       prefix: "pdf"
       url: "http://pdf-service:8013"
@@ -48,6 +51,9 @@ services:
     scan:
       prefix: "scan"
       url: "http://localhost:8012"
+    crawl:
+      prefix: "crawl"
+      url: "http://localhost:8014"
     pdf:
       prefix: "pdf"
       url: "http://localhost:8013"
@@ -55,6 +61,7 @@ services:
 # Configuration des timeouts
 timeouts:
   request_timeout: 20.0  # Timeout en secondes pour les requêtes HTTP (augmenté pour autocomplétion)
+  crawl_timeout: 90.0    # Timeout pour POST /crawl/api/crawl (crawl SPA peut prendre 60s+)
 
 # Configuration des headers
 headers:

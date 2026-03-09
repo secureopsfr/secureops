@@ -1372,6 +1372,33 @@
   }
 }
 
+/** Ligne qui se dessine progressivement (stroke-dashoffset). */
+@keyframes scan-draw-path {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/** Point qui apparaît en douceur (opacité + scale). */
+@keyframes scan-point-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-animate-path,
+  .scan-animate-point {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
+}
+
 /* ---------- Landing : apparition au chargement et au scroll (bas → haut) ---------- */
 
 @keyframes landing-fade-in-up {

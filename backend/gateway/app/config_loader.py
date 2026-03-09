@@ -49,6 +49,7 @@ class TimeoutsConf(BaseModel):
     """Configuration des timeouts."""
 
     request_timeout: float
+    crawl_timeout: float = 90.0
 
 
 class HeadersConf(BaseModel):

@@ -46,6 +46,12 @@ repos:
         files: ^backend/pdf-service/.*\.py$
         args:
           - --config=backend/pdf-service/pyproject.toml
+      - id: black
+        name: Black crawl-service
+        language_version: python3
+        files: ^backend/crawl-service/.*\.py$
+        args:
+          - --config=backend/crawl-service/pyproject.toml
 
   # ──────────────────────────────────────────────────────────────────────────────
   # isort (Python) — un hook par service, pour prendre la config locale
@@ -110,6 +116,11 @@ repos:
         files: ^backend/pdf-service/.*\.py$
         args:
           - --config=backend/pdf-service/.flake8
+      - id: flake8
+        name: Flake8 crawl-service
+        files: ^backend/crawl-service/.*\.py$
+        args:
+          - --config=backend/crawl-service/.flake8
 
   # ──────────────────────────────────────────────────────────────────────────────
   # ESLint (TypeScript/React) pour frontend Next.js

@@ -55,6 +55,8 @@ export interface ScanError {
   message: string;
   status_code: number;
   error_type?: string;
+  /** Clé i18n pour afficher un message traduit (ex. scanner.crawlStreamError). */
+  i18nKey?: string;
 }
 
 export type ScanEventType =

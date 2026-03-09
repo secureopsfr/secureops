@@ -45,6 +45,8 @@ services:
         condition: service_healthy
       scan-service:
         condition: service_healthy
+      crawl-service:
+        condition: service_healthy
       pdf-service:
         condition: service_healthy
       postgres:
@@ -123,6 +125,24 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  crawl-service:
+    build:
+      context: ./backend
+      dockerfile: crawl-service/Dockerfile
+    ports:
+      - "8014:8014"
+    environment:
+      - IS_DOCKER=true
+      - IS_PROD=false
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8014/api/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   pdf-service:
     build:

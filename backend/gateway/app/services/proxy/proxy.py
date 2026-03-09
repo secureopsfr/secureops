@@ -60,7 +60,7 @@ async def proxy_buffer_request(
     if body_content is None:
         body_content = await request.body()
 
-    # Timeout : on désactive pour les rafraîchissements longs (cadastre/land-register/analytics-ingestion)
+    # Timeout : on désactive pour les rafraîchissements longs ; crawl SPA utilise un timeout étendu
     timeout = config.timeouts.request_timeout
     if (
         "analytics-ingestion" in service_url
@@ -69,6 +69,10 @@ async def proxy_buffer_request(
         or "land-register" in service_url
     ):
         timeout = None
+    elif path == "api/crawl" or path.startswith("api/crawl/"):
+        # Crawl : timeout étendu (sitemap + BFS peuvent prendre 60s+)
+        timeout = config.timeouts.crawl_timeout
+        logger.info("Crawl endpoint : timeout étendu à %.0fs", timeout)
 
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
@@ -140,6 +144,7 @@ async def proxy_stream_request(
         proxied_headers["X-Correlation-ID"] = cid
 
     # Timeout : on désactive pour les flux longs cadastre/land-register/analytics-ingestion
+    # Crawl stream : timeout étendu (sitemap + BFS peuvent prendre 60s+)
     timeout = config.timeouts.request_timeout
     if (
         "land-register" in service_url
@@ -148,6 +153,10 @@ async def proxy_stream_request(
         or path.startswith("cadastre/refresh")
     ):
         timeout = None
+    elif path == "api/crawl/stream" or path.startswith("api/crawl/"):
+        # Crawl stream : timeout étendu
+        timeout = config.timeouts.crawl_timeout
+        logger.info("Crawl stream : timeout étendu à %.0fs", timeout)
 
     # Créer le client avec timeout
     client = httpx.AsyncClient(timeout=timeout)
