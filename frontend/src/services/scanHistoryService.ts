@@ -67,8 +67,17 @@ export async function getScanHistory(
   limit = 20,
   url?: string | null,
   scan_type?: string | null,
+  date_from?: string | null,
+  date_to?: string | null,
 ): Promise<ScanHistoryListResponse> {
-  const query = buildPaginatedQuery({ page, limit, url, scan_type });
+  const query = buildPaginatedQuery({
+    page,
+    limit,
+    url,
+    scan_type,
+    date_from,
+    date_to,
+  });
   return fetchJsonWithAuth<ScanHistoryListResponse>(
     `${getApiBaseUrl()}/user/api/scans/history?${query}`,
     { method: "GET" },

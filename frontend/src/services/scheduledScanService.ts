@@ -147,8 +147,17 @@ export async function getScanAlertHistory(
   limit = 10,
   url?: string | null,
   scan_type?: string | null,
+  date_from?: string | null,
+  date_to?: string | null,
 ): Promise<ScanAlertHistoryListResponse> {
-  const query = buildPaginatedQuery({ page, limit, url, scan_type });
+  const query = buildPaginatedQuery({
+    page,
+    limit,
+    url,
+    scan_type,
+    date_from,
+    date_to,
+  });
   return fetchJsonWithAuth<ScanAlertHistoryListResponse>(
     `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history?${query}`,
     { method: "GET" },

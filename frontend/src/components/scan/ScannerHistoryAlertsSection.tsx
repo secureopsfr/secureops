@@ -12,6 +12,10 @@ interface ScannerHistoryAlertsSectionProps {
   filterUrl?: string | null;
   /** Filtre optionnel par type de scan (frontend, backend, custom). */
   filterScanType?: string | null;
+  /** Filtre optionnel date de début (historique des scans et alertes uniquement). */
+  filterDateFrom?: string | null;
+  /** Filtre optionnel date de fin (historique des scans et alertes uniquement). */
+  filterDateTo?: string | null;
   /** Déclencheur de rafraîchissement pour ScheduledScansBlock (ex. après création). */
   scheduleRefreshTrigger?: number;
   /** Classes supplémentaires pour le conteneur. */
@@ -22,6 +26,8 @@ export default function ScannerHistoryAlertsSection({
   onSelectScan,
   filterUrl,
   filterScanType,
+  filterDateFrom,
+  filterDateTo,
   scheduleRefreshTrigger = 0,
   className = "",
 }: ScannerHistoryAlertsSectionProps) {
@@ -40,6 +46,8 @@ export default function ScannerHistoryAlertsSection({
             onSelectScan={onSelectScan}
             filterUrl={filterUrl}
             filterScanType={filterScanType}
+            filterDateFrom={filterDateFrom}
+            filterDateTo={filterDateTo}
           />
         </div>
         <div className="flex-1 min-w-0">

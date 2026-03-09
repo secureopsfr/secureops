@@ -247,7 +247,11 @@
       "filterUrlShowMore": "Show more URLs ({{count}} more)",
       "filterUrlShowLess": "Show less",
       "filterByScanType": "Scan type",
-      "filterScanTypeAll": "All types"
+      "filterScanTypeAll": "All types",
+      "filterByTimeWindow": "Time window",
+      "filterTimeWindowAlertExclude": "Does not apply to alert history",
+      "filterTimeWindowAll": "All dates",
+      "filterTimeWindowDays": "Last {{days}} days"
     },
     "evolution": {
       "chartScore": "Score",

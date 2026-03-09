@@ -1,5 +1,6 @@
 """Utilitaires pour les requêtes SQLAlchemy."""
 
+from datetime import datetime
 from typing import Any, Optional
 
 from sqlalchemy import ColumnElement
@@ -21,4 +22,18 @@ def apply_scan_type_filter(
     """Ajoute un filtre par type de scan (frontend, backend, custom) si fourni."""
     if scan_type and scan_type in ("frontend", "backend", "custom"):
         return stmt.where(scan_type_column == scan_type)
+    return stmt
+
+
+def apply_date_filter(
+    stmt: Select[Any],
+    date_column: ColumnElement[datetime],
+    date_from: Optional[datetime],
+    date_to: Optional[datetime],
+) -> Select[Any]:
+    """Ajoute un filtre par plage de dates si fourni."""
+    if date_from is not None:
+        stmt = stmt.where(date_column >= date_from)
+    if date_to is not None:
+        stmt = stmt.where(date_column <= date_to)
     return stmt

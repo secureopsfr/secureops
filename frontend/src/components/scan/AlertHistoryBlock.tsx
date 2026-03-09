@@ -25,11 +25,17 @@ interface AlertHistoryBlockProps {
   filterUrl?: string | null;
   /** Filtre optionnel par type de scan (frontend, backend, custom). */
   filterScanType?: string | null;
+  /** Filtre optionnel date de début (ISO string). */
+  filterDateFrom?: string | null;
+  /** Filtre optionnel date de fin (ISO string). */
+  filterDateTo?: string | null;
 }
 
 export default function AlertHistoryBlock({
   filterUrl,
   filterScanType,
+  filterDateFrom,
+  filterDateTo,
 }: AlertHistoryBlockProps) {
   const { t } = useLanguage();
 
@@ -45,10 +51,12 @@ export default function AlertHistoryBlock({
           perPage,
           filterUrl ?? undefined,
           filterScanType ?? undefined,
+          filterDateFrom ?? undefined,
+          filterDateTo ?? undefined,
         ),
       perPage: 10,
       onError,
-      refreshTrigger: `${filterUrl ?? ""}_${filterScanType ?? ""}`,
+      refreshTrigger: `${filterUrl ?? ""}_${filterScanType ?? ""}_${filterDateFrom ?? ""}_${filterDateTo ?? ""}`,
     });
 
   const handleDeleteConfirm = useCallback(

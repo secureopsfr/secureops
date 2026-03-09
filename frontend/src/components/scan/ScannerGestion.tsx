@@ -21,7 +21,9 @@ import type { ScanResult } from "../../services/scanService";
 import Drawer from "../ui/Drawer";
 import { GenericButton } from "../buttons";
 import { getScanHistory } from "../../services/scanHistoryService";
+import userService from "../../services/userService";
 import { formatUrlDisplay } from "../../utils/urlFormat";
+import { getDateRangeFromDays } from "../../utils/apiQueryParams";
 
 /** KPIs fictifs pour le tableau de bord — à remplacer par des données réelles. */
 function getFakeKpis(t: (key: string) => string): KpiItem[] {
@@ -76,6 +78,7 @@ export default function ScannerGestion() {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [urlOptions, setUrlOptions] = useState<string[]>([]);
   const [urlListExpanded, setUrlListExpanded] = useState(false);
+  const [filterDateRange, setFilterDateRange] = useState<number | null>(null);
 
   const URL_DISPLAY_LIMIT = 5;
   const displayedUrls = urlListExpanded
@@ -93,6 +96,22 @@ export default function ScannerGestion() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    userService.getSubscription().then((res) => {
+      const raw = res.subscription?.history_retention;
+      const retention = typeof raw === "string" ? raw : "30";
+      if (filterDateRange === null && retention !== "none") {
+        const days = parseInt(retention, 10);
+        if (!Number.isNaN(days)) setFilterDateRange(days);
+      }
+    });
+  }, []);
+
+  const { date_from: filterDateFrom, date_to: filterDateTo } =
+    filterDateRange != null
+      ? getDateRangeFromDays(filterDateRange)
+      : { date_from: null, date_to: null };
+
   const handleSelectFilter = useCallback(
     (url: string | null, scanType: string | null) => {
       setFilterUrl(url);
@@ -101,6 +120,11 @@ export default function ScannerGestion() {
     },
     [],
   );
+
+  const handleSelectDateRange = useCallback((days: number | null) => {
+    setFilterDateRange(days);
+    setFilterDrawerOpen(false);
+  }, []);
 
   const handleSelectScan = (result: ScanResult, id?: string) => {
     setSelectedResult(result);
@@ -247,6 +271,41 @@ export default function ScannerGestion() {
               </button>
             </div>
           </div>
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--text)] mb-1">
+              {t("scanner.gestion.filterByTimeWindow")}
+            </h3>
+            <p className="text-xs text-[var(--muted)] mb-2">
+              {t("scanner.gestion.filterTimeWindowAlertExclude")}
+            </p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => handleSelectDateRange(null)}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  filterDateRange === null
+                    ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
+                    : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
+                }`}
+              >
+                {t("scanner.gestion.filterTimeWindowAll")}
+              </button>
+              {([7, 30, 90, 365] as const).map((days) => (
+                <button
+                  key={days}
+                  type="button"
+                  onClick={() => handleSelectDateRange(days)}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                    filterDateRange === days
+                      ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
+                      : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
+                  }`}
+                >
+                  {t("scanner.gestion.filterTimeWindowDays", { days })}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </Drawer>
 
@@ -266,6 +325,8 @@ export default function ScannerGestion() {
             scheduleRefreshTrigger={scheduleRefreshTrigger}
             filterUrl={filterUrl}
             filterScanType={filterScanType}
+            filterDateFrom={filterDateFrom ?? undefined}
+            filterDateTo={filterDateTo ?? undefined}
           />
         </section>
       </div>

@@ -2,7 +2,8 @@
 
 import logging
 import uuid
-from typing import Annotated
+from datetime import datetime
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -183,6 +184,17 @@ async def patch_scheduled_scan(
         )
 
 
+def _parse_optional_datetime(value: Optional[str]) -> Optional[datetime]:
+    """Parse une chaîne ISO en datetime timezone-aware, ou None si vide/invalide."""
+    if not value or not value.strip():
+        return None
+    try:
+        s = value.strip().replace("Z", "+00:00")
+        return datetime.fromisoformat(s)
+    except (ValueError, TypeError):
+        return None
+
+
 @router.get("/schedule/alerts/history", response_model=ScanAlertHistoryListResponse)
 async def list_scan_alert_history(
     user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
@@ -190,13 +202,24 @@ async def list_scan_alert_history(
     limit: int = 10,
     url: str | None = None,
     scan_type: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> ScanAlertHistoryListResponse:
-    """Liste l'historique des alertes déclenchées pour l'utilisateur (pagination). Filtre optionnel par url."""
+    """Liste l'historique des alertes déclenchées pour l'utilisateur (pagination). Filtres optionnels par url et plage de dates."""
     try:
         limit = min(max(limit, 1), 100)
         offset = (page - 1) * limit
+        date_from_dt = _parse_optional_datetime(date_from)
+        date_to_dt = _parse_optional_datetime(date_to)
         async with get_async_session() as session:
-            total = await count_scan_alert_events_by_user(session, user_id, url=url, scan_type=scan_type)
+            total = await count_scan_alert_events_by_user(
+                session,
+                user_id,
+                url=url,
+                scan_type=scan_type,
+                date_from=date_from_dt,
+                date_to=date_to_dt,
+            )
             events = await list_scan_alert_events_by_user(
                 session,
                 user_id,
@@ -204,6 +227,8 @@ async def list_scan_alert_history(
                 offset=offset,
                 url=url,
                 scan_type=scan_type,
+                date_from=date_from_dt,
+                date_to=date_to_dt,
             )
             total_pages = max((total + limit - 1) // limit, 1) if total > 0 else 0
             return ScanAlertHistoryListResponse(
