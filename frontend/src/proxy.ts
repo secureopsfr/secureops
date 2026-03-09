@@ -3,6 +3,7 @@ import {
   LOCALES,
   DEFAULT_LOCALE,
   EN_SLUG_TO_INTERNAL,
+  SCANNER_SUBPATH_EN_TO_INTERNAL,
   type Locale,
 } from "./i18n/config";
 
@@ -95,6 +96,19 @@ export function proxy(request: NextRequest) {
       const url = request.nextUrl.clone();
       const remainingSegments = segments.slice(2);
       url.pathname = `/${locale}/${internalSlug}${remainingSegments.length ? "/" + remainingSegments.join("/") : ""}`;
+      return NextResponse.rewrite(url);
+    }
+
+    // Scanner sub-paths: /en/scanner/overview → /en/scanner/vue-d-ensemble
+    if (
+      slug === "scanner" &&
+      segments.length >= 3 &&
+      SCANNER_SUBPATH_EN_TO_INTERNAL[segments[2]]
+    ) {
+      const url = request.nextUrl.clone();
+      const internalSubpath = SCANNER_SUBPATH_EN_TO_INTERNAL[segments[2]];
+      const afterSubpath = segments.slice(3);
+      url.pathname = `/${locale}/scanner/${internalSubpath}${afterSubpath.length ? "/" + afterSubpath.join("/") : ""}`;
       return NextResponse.rewrite(url);
     }
   }

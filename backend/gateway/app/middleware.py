@@ -102,6 +102,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
             _, error_response = _authenticate(request, require_admin=False)
             return error_response or await call_next(request)
 
+        # Lecture des docs : GET /admin/api/docs* — authentification simple (pas admin)
+        if method == "GET" and (path == "/admin/api/docs" or path.startswith("/admin/api/docs/")):
+            _, error_response = _authenticate(request, require_admin=False)
+            return error_response or await call_next(request)
+
         # Routes admin — nécessitent le groupe « admin »
         if path.startswith("/admin/"):
             _, error_response = _authenticate(request, require_admin=True)

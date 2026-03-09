@@ -35,6 +35,7 @@ async def save_scan_to_history(
     url = f"{GATEWAY_URL.rstrip('/')}/user/api/scans/history"
     body = {
         "url": payload["url"],
+        "scan_type": payload.get("scan_type", "frontend"),
         "status": "success",
         "score": payload["score"],
         "findings": payload["findings"],

@@ -9,6 +9,7 @@ from sqlalchemy import delete, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scan import Scan
+from app.utils.query_utils import apply_date_filter, apply_scan_type_filter, apply_url_filter
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ async def create_scan(
     session: AsyncSession,
     user_id: uuid.UUID,
     url: str,
+    scan_type: str,
     status: str,
     score: Optional[int],
     findings: List[dict[str, Any]],
@@ -55,6 +57,7 @@ async def create_scan(
     scan = Scan(
         user_id=user_id,
         url=url,
+        scan_type=scan_type,
         status=status,
         score=score,
         findings_json=findings,
@@ -108,6 +111,10 @@ async def list_scans_by_user_id(
     user_id: uuid.UUID,
     limit: int = 20,
     offset: int = 0,
+    url: Optional[str] = None,
+    scan_type: Optional[str] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
 ) -> List[Scan]:
     """Liste les scans d'un utilisateur (pagination, tri par date décroissante).
 
@@ -116,25 +123,49 @@ async def list_scans_by_user_id(
         user_id: UUID de l'utilisateur.
         limit: Nombre max d'éléments.
         offset: Décalage pour pagination.
+        url: Filtre optionnel par URL exacte.
+        scan_type: Filtre optionnel (frontend, backend, custom).
+        date_from: Filtre optionnel date de début (timestamp du scan).
+        date_to: Filtre optionnel date de fin (timestamp du scan).
 
     Returns:
         Liste des scans.
     """
-    result = await session.execute(select(Scan).where(Scan.user_id == user_id).order_by(desc(Scan.created_at)).limit(limit).offset(offset))
+    stmt = select(Scan).where(Scan.user_id == user_id)
+    stmt = apply_url_filter(stmt, Scan.url, url)
+    stmt = apply_scan_type_filter(stmt, Scan.scan_type, scan_type)
+    stmt = apply_date_filter(stmt, Scan.timestamp, date_from, date_to)
+    stmt = stmt.order_by(desc(Scan.created_at)).limit(limit).offset(offset)
+    result = await session.execute(stmt)
     return list(result.scalars().all())
 
 
-async def count_user_scans(session: AsyncSession, user_id: uuid.UUID) -> int:
+async def count_user_scans(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    url: Optional[str] = None,
+    scan_type: Optional[str] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+) -> int:
     """Compte le nombre total de scans d'un utilisateur.
 
     Args:
         session: Session de base de données.
         user_id: UUID de l'utilisateur.
+        url: Filtre optionnel par URL exacte.
+        scan_type: Filtre optionnel (frontend, backend, custom).
+        date_from: Filtre optionnel date de début (timestamp du scan).
+        date_to: Filtre optionnel date de fin (timestamp du scan).
 
     Returns:
         Nombre total de scans.
     """
-    result = await session.execute(select(func.count(Scan.id)).where(Scan.user_id == user_id))
+    stmt = select(func.count(Scan.id)).where(Scan.user_id == user_id)
+    stmt = apply_url_filter(stmt, Scan.url, url)
+    stmt = apply_scan_type_filter(stmt, Scan.scan_type, scan_type)
+    stmt = apply_date_filter(stmt, Scan.timestamp, date_from, date_to)
+    result = await session.execute(stmt)
     return result.scalar() or 0
 
 

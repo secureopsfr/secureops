@@ -7,12 +7,16 @@ import {
   fetchWithAuth,
   getApiBaseUrl,
 } from "../utils/apiClient";
+import { buildPaginatedQuery } from "../utils/apiQueryParams";
 import type { PaginatedListResponse } from "../types/api";
 import type { ScanResult } from "./scanService";
+
+export type ScanType = "frontend" | "backend" | "custom";
 
 export interface ScanHistoryItem {
   id: string;
   url: string;
+  scan_type: ScanType;
   status: string;
   score: number | null;
   timestamp: string;
@@ -37,6 +41,7 @@ export interface ScanHistoryDetail extends ScanResult {
 export async function saveScan(result: ScanResult): Promise<string | null> {
   const body: Record<string, unknown> = {
     url: result.url,
+    scan_type: "frontend",
     status: "success",
     score: result.score,
     findings: result.findings,
@@ -57,12 +62,66 @@ export async function saveScan(result: ScanResult): Promise<string | null> {
   return data?.id && data.id.length > 0 ? data.id : null;
 }
 
+export interface ScanOverviewResponse {
+  kpis: {
+    scans_in_period: number;
+    total_scans: number;
+    avg_score: number | null;
+    critical_findings_count: number;
+    active_scheduled_count: number;
+    last_scan_at: string | null;
+  };
+  chart_data: Array<{
+    ts: string;
+    scans: number;
+    score: number;
+    anomalies: number;
+  }>;
+}
+
+/**
+ * Récupère les KPIs et les données du graphique pour la vue d'ensemble scanner.
+ * Respecte les mêmes filtres que l'historique (url, scan_type, date_from, date_to).
+ */
+export async function getScanOverview(
+  url?: string | null,
+  scan_type?: string | null,
+  date_from?: string | null,
+  date_to?: string | null,
+): Promise<ScanOverviewResponse> {
+  const params = new URLSearchParams();
+  if (url?.trim()) params.set("url", url.trim());
+  if (scan_type && ["frontend", "backend", "custom"].includes(scan_type)) {
+    params.set("scan_type", scan_type);
+  }
+  if (date_from?.trim()) params.set("date_from", date_from.trim());
+  if (date_to?.trim()) params.set("date_to", date_to.trim());
+  const query = params.toString();
+  return fetchJsonWithAuth<ScanOverviewResponse>(
+    `${getApiBaseUrl()}/user/api/scans/history/overview${query ? `?${query}` : ""}`,
+    { method: "GET" },
+    "Erreur lors de la récupération des statistiques",
+  );
+}
+
 export async function getScanHistory(
   page = 1,
   limit = 20,
+  url?: string | null,
+  scan_type?: string | null,
+  date_from?: string | null,
+  date_to?: string | null,
 ): Promise<ScanHistoryListResponse> {
+  const query = buildPaginatedQuery({
+    page,
+    limit,
+    url,
+    scan_type,
+    date_from,
+    date_to,
+  });
   return fetchJsonWithAuth<ScanHistoryListResponse>(
-    `${getApiBaseUrl()}/user/api/scans/history?page=${page}&limit=${limit}`,
+    `${getApiBaseUrl()}/user/api/scans/history?${query}`,
     { method: "GET" },
     "Erreur lors de la récupération de l'historique",
   );

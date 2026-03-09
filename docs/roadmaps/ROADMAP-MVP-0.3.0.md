@@ -435,58 +435,73 @@ Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.
 
 ### 8.1 Refonte de la landing page
 
-- [ ] **Supprimer le contenu superflu** : retirer tout ce qui est « bullshit » (faux avis, témoignages factices, blocs marketing non essentiels).
-- [ ] **Input scan directement sur la landing** : placer un champ URL + CTA pour lancer un **scan basique** depuis l’accueil (sans aller sur la page Scanner dédiée).
-- [ ] **Parcours du scan basique** :
-  - [ ] **Chargement de la page initiale uniquement** (pas de crawler : une seule URL récupérée), puis exécution d’un **scan basique** sur cette URL avec **uniquement les vérifications frontend** (TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, etc. — pas de tests actifs ni d’options avancées).
-- [ ] **Connexion obligatoire pour les résultats** : réutiliser la même mécanique que sur la page Scanner — après le scan, l’utilisateur **doit se connecter** pour accéder aux résultats (gate « Connectez-vous pour accéder aux résultats », stockage temporaire en sessionStorage, restauration après connexion). Pas de résultats affichés sans auth.
-- [ ] Message clair sur la landing : scan basique (une page) + vérifications frontend ; pour un scan avec découverte multi-pages (crawler) ou des options, redirection vers la page Scanner.
-- [ ] À compléter selon les retours (ex. refonte page résultats, navigation Mon compte, onboarding, accessibilité).
+- [x] **Supprimer le contenu superflu** : retirer tout ce qui est « bullshit » (faux avis, témoignages factices, blocs marketing non essentiels).
+  > **Fait :** Suppression du badge « 4.9/5 — 120+ équipes » (faux avis), de la section logos partenaires (`TRUSTED_LOGOS`), de la section témoignages (`TestimonialCard` × 3), du bloc CTA redondant, et de la section features (« Une sécurité pensée pour les équipes modernes », Détection continue, Priorisation intelligente, Conformité intégrée). Landing réduite au hero (titre, sous-titre, CTA démo/docs).
+- [x] **Input scan directement sur la landing** : placer un champ URL + CTA pour lancer un **scan basique** depuis l’accueil (sans aller sur la page Scanner dédiée).
+  > **Fait :** Composant `LandingScanBlock` : champ URL + bouton « Lancer le scan » dans le hero. Message `home.scanDesc` : scan basique, pour multi-pages → Scanner.
+- [x] **Parcours du scan basique** :
+  - [x] **Chargement de la page initiale uniquement** (pas de crawler : une seule URL récupérée), puis exécution d'un **scan basique** sur cette URL avec **uniquement les vérifications frontend** (TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, etc. — pas de tests actifs ni d'options avancées).
+  > **Fait :** Appel direct à `runScan(url)` sans crawler. Même pipeline que la page Scanner en mode « scanner uniquement cette page ». (pas de crawler : une seule URL récupérée), puis exécution d’un **scan basique** sur cette URL avec **uniquement les vérifications frontend** (TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, etc. — pas de tests actifs ni d’options avancées).
+- [x] **Connexion obligatoire pour les résultats** : réutiliser la même mécanique que sur la page Scanner — après le scan, l’utilisateur **doit se connecter** pour accéder aux résultats (gate « Connectez-vous pour accéder aux résultats », stockage temporaire en sessionStorage, restauration après connexion). Pas de résultats affichés sans auth.
+  > **Fait :** `ScanResultsGate` + `FakeScanResultsBlurred`, sessionStorage, `returnTo=/`, sauvegarde historique au retour.
+- [x] Message clair sur la landing : scan basique (une page) + vérifications frontend ; pour crawler ou options, redirection vers la page Scanner.
+  > **Fait :** Intro `home.scanIntro` au-dessus de l’input, texte `home.scanDesc` sous le formulaire. Refonte résultats, nav Mon compte, onboarding, accessibilité : à traiter selon les retours.
 
 ### 8.2 Refonte de la page Scanner (hub connecté)
 
-- [ ] **Accès réservé aux utilisateurs connectés** : la page Scanner n’est accessible qu’après connexion (sinon redirection vers login ou landing).
-- [ ] **Page d’intro type hub** : une fois connecté, l’utilisateur arrive sur une page d’accueil « Scanner » qui présente les fonctionnalités sous forme de **cards** cliquables (pas directement le formulaire de scan).
+- [x] **Accès réservé aux utilisateurs connectés** : la page Scanner n'est accessible qu'après connexion (sinon redirection vers login ou landing).
+  > **Fait :** `ScannerGuard` dans `scanner/layout.tsx` ; redirection vers `/connexion?returnTo=/scanner` si non authentifié.
+- [x] **Page d’intro type hub** : une fois connecté, l’utilisateur arrive sur une page d’accueil « Scanner » qui présente les fonctionnalités sous forme de **cards** cliquables (pas directement le formulaire de scan).
+  > **Fait :** `ScannerHub` avec deux sections (Gestion, Scanner) et cartes cliquables.
 
 #### Cards à prévoir
 
-- [ ] **Card « Analyses »** (ou « Espace scan » / « Scans » — à trancher) : accès aux scanners disponibles.
-  - [ ] Dedans : accès au **premier scanner** (scan de posture sécurité, URL + options + lancement) dans une sous-vue ou sous-page.
-  - [ ] **Checkbox « Scanner uniquement cette page »** dans le formulaire : si cochée, pas de crawler (scan direct sur l’URL) ; si décochée, lancer le **crawler** (agent indépendant), réception du résultat au frontend, puis **étape de validation** (voir 7.3). Libellés clairs dans l’UI.
-  - [ ] **Écran « Voici ce que le crawler a trouvé »** (quand crawler activé) : afficher la liste d’URLs ; permettre de supprimer des URLs, d’en ajouter manuellement ; bouton « Lancer le scan » sur la liste finale.
-  - [ ] Possibilité d’ajouter plus tard d’autres types de scan (ex. scan actif, scan ciblé) dans la même rubrique.
-- [ ] **Card « Gestion »** : renvoie vers un espace de gestion regroupant :
-  - [ ] **Historique des scans** : liste des scans passés, filtres, détail, suppression.
-  - [ ] **Évolution des failles** : tendances (évolution du score dans le temps, nombre de findings par sévérité, comparaison entre scans).
+- [x] **Card « Analyses »** (ou « Espace scan » / « Scans » — à trancher) : accès aux scanners disponibles.
+  > **Fait :** Card « Scan frontend » → `/scanner/analyses`.
+  - [x] Dedans : accès au **premier scanner** (scan de posture sécurité, URL + options + lancement) dans une sous-vue ou sous-page.
+  - [x] **Checkbox « Scanner uniquement cette page »** dans le formulaire : si cochée, pas de crawler (scan direct sur l’URL) ; si décochée, lancer le **crawler** (agent indépendant), réception du résultat au frontend, puis **étape de validation** (voir 7.3). Libellés clairs dans l’UI.
+  - [x] **Écran « Voici ce que le crawler a trouvé »** (quand crawler activé) : afficher la liste d’URLs ; permettre de supprimer des URLs, d’en ajouter manuellement ; bouton « Lancer le scan » sur la liste finale.
+  - [x] Possibilité d’ajouter plus tard d’autres types de scan (ex. scan actif, scan ciblé) dans la même rubrique : card « Scans personnalisés » (placeholder en construction).
+- [x] **Section « Vue d'ensemble » – card « Suivi des scans »** : renvoie vers un espace regroupant :
+  > **Fait :** Section « Vue d'ensemble », card « Suivi des scans » → `/scanner/vue-d-ensemble` ; card « Clés API » → `/scanner/cles-api` (placeholder).
+  - [x] **Historique des scans** : liste des scans passés, filtres, détail, suppression.
+  - [x] **Évolution des failles** : tendances (évolution du score dans le temps, nombre de findings par sévérité). Graphique avec **données réelles** : barres = nombre de scans par jour, courbe = score ou anomalies (toggle). Données agrégées via endpoint `GET /user/api/scans/history/overview`, filtres (URL, type de scan, période) appliqués.
   - [ ] **Rapports et exports** : accès aux PDF, exports CSV/JSON si implémentés.
-  - [ ] **Scans planifiés** : création, modification, pause des scans récurrents.
-  - [ ] **Lien vers la gestion des clés API** : accès à la page « Clés API » (création, révocation, doc).
-  - [ ] Autres éléments pertinents : résumé tableau de bord (nombre de scans ce mois, score moyen), alertes configurées, préférences de notification.
-- [ ] **Card « Documentation »** : section sur la home du hub Scanner qui renvoie vers la documentation (scanners, API, etc.).
-  - [ ] Liens vers une **page ou section doc** regroupant : doc du **scan de posture** (vérifications, crawling, interprétation des résultats), doc des **autres scanners** si présents, doc de l’**API publique** (endpoints, clés API, exemples curl, intégration CI/CD).
+  - [x] **Scans planifiés** : création, modification, pause des scans récurrents.
+  - [x] **Lien vers la gestion des clés API** : accès à la page « Clés API » (création, révocation, doc). Card dédiée sur le hub.
+  - [x] **KPIs tableau de bord** : Total scans, Score moyen, Anomalies critiques, Planifiés actifs, Dernier scan. **Données réelles** via l’endpoint overview, mises à jour lors des changements de filtres (URL, type, période).
+  - [ ] Alertes configurées, préférences de notification.
+- [x] **Card « Documentation »** : section sur la home du hub Scanner qui renvoie vers la documentation (scanners, API, etc.).
+  > **Fait :** Card → `/scanner/docs` (page placeholder). Cards additionnelles : Crawlers, Scan backend (placeholders).
+  - [ ] Liens vers une **page ou section doc** regroupant : doc du **scan de posture** (vérifications, crawling, interprétation des résultats), doc des **autres scanners** si présents, doc de l’**API publique** (endpoints, clés API, exemples curl, intégration CI/CD). Page doc à compléter.
   - [ ] **Doc accessible depuis la page concernée** : la documentation d’un scanner en particulier (ex. scan de posture) doit aussi être disponible depuis la page de ce scanner (lien « Aide » ou « Documentation » sur la page `/scanner/analyses/posture`). De même, la doc de l’API doit être accessible depuis la page de gestion des clés API (lien « Documentation API »). Ainsi, l’utilisateur trouve la doc soit depuis le hub (section Documentation), soit depuis la page du sujet (scanner ou API).
 
 #### Structure des routes (plusieurs pages)
 
-- [ ] **Plusieurs pages obligatoires** : routes dédiées — `/scanner` (hub avec cards), `/scanner/analyses` ou `/scanner/analyses/posture` (premier scanner), `/scanner/gestion` (avec tabs ou sous-pages pour Historique, Évolution, Scans planifiés, Clés API). URLs claires, partageables, historique navigateur propre.
-- [ ] **Convention** : `/scanner` = hub cards ; `/scanner/analyses` (ou `/scanner/analyses/posture`) = premier scanner ; `/scanner/gestion` = une seule page avec **tabs** (Historique | Évolution | Planifiés | Clés API) pour limiter le nombre de routes.
+- [x] **Plusieurs pages obligatoires** : routes dédiées — `/scanner` (hub avec cards), `/scanner/analyses` ou `/scanner/analyses/posture` (premier scanner), `/scanner/vue-d-ensemble` (suivi des scans : Historique, Évolution, Scans planifiés, Clés API). URLs claires, partageables, historique navigateur propre.
+  > **Fait :** `/scanner` (hub), `/scanner/analyses`, `/scanner/vue-d-ensemble`, `/scanner/docs`, `/scanner/crawlers`, `/scanner/backend`, `/scanner/cles-api`, `/scanner/scans-personnalises`.
+- [x] **Convention** : `/scanner` = hub cards ; `/scanner/analyses` (ou `/scanner/analyses/posture`) = premier scanner ; `/scanner/vue-d-ensemble` = une seule page « Suivi des scans » avec contenu (évolution, scans planifiés, historiques) sans tabs.
+  > **Fait :** Page gestion en scroll unique (évolution, planifiés, 2 historiques côte à côte). Pas de tabs.
 
 ### 8.3 Header / navigation
 
-- [ ] **Nav adaptée à l’état de connexion** : le header (barre de navigation) change selon que l’utilisateur est connecté ou non :
-  - [ ] **Déconnecté** : liens type Accueil, Tarifs, Contact, Connexion / Inscription (pas d’entrée « Scanner » en tant que page hub réservée aux connectés, ou alors libellé du type « Découvrir le scanner » qui mène vers la landing avec l’input scan basique).
-  - [ ] **Connecté** : ajout des entrées utiles (ex. Scanner [hub], Mon compte, Déconnexion) ; le lien « Scanner » mène vers le hub (page d’intro avec cards).
-- [ ] **En mode Scanner (pages /scanner, /scanner/…)** : ne jamais afficher la nav en mode « déconnecté » pour ces URLs. Si l’utilisateur n’est pas connecté et atterrit sur une URL scanner (bookmark, lien direct), rediriger vers la connexion (ou la landing) au lieu d’afficher le hub avec un header déconnecté. Ainsi, dès qu’on est dans l’espace scanner, le header reflète toujours un utilisateur connecté (ou on n’a pas accès à la page).
-- [ ] Cohérence : sur la landing, le header reste « déconnecté » (Accueil, Connexion, etc.) ; après connexion, le header bascule et inclut Scanner / Mon compte / Déconnexion.
+- [x] **Nav adaptée à l’état de connexion** : le header (barre de navigation) change selon que l’utilisateur est connecté ou non :
+  > **Fait :** `navLinks` filtrés selon `isAuthenticated` ; lien « Scanner » masqué si déconnecté.
+  - [x] **Déconnecté** : liens type Accueil, Tarifs, Contact, Connexion / Inscription (pas d’entrée « Scanner » en tant que page hub réservée aux connectés, ou alors libellé du type « Découvrir le scanner » qui mène vers la landing avec l’input scan basique).
+  - [x] **Connecté** : ajout des entrées utiles (ex. Scanner [hub], Mon compte, Déconnexion) ; le lien « Scanner » mène vers le hub (page d’intro avec cards).
+- [x] **En mode Scanner (pages /scanner, /scanner/…)** : ne jamais afficher la nav en mode « déconnecté » pour ces URLs. Si l’utilisateur n’est pas connecté et atterrit sur une URL scanner (bookmark, lien direct), rediriger vers la connexion (ou la landing) au lieu d’afficher le hub avec un header déconnecté. Ainsi, dès qu’on est dans l’espace scanner, le header reflète toujours un utilisateur connecté (ou on n’a pas accès à la page).
+  > **Fait :** `ScannerGuard` redirige vers `/connexion?returnTo=/scanner` si non authentifié.
+- [x] Cohérence : sur la landing, le header reste « déconnecté » (Accueil, Connexion, etc.) ; après connexion, le header bascule et inclut Scanner / Mon compte / Déconnexion.
 
 ### 8.4 Affichage du scanner : chargement et anomalies
 
 **Objectif :** Lors du chargement ou de l’affichage des résultats du scan, ne pas utiliser le vert pour les points qui correspondent à une **anomalie détectée** ; indiquer clairement qu’**on a trouvé quelque chose** (alerte / attention), pour que l’utilisateur distingue immédiatement « vérification OK » vs « problème détecté ».
 
-- [ ] **Réservoir le vert aux vérifications OK** : afficher en vert uniquement les points pour lesquels **aucune anomalie** n’a été trouvée (vérification passée).
-- [ ] **Anomalies = « on a trouvé quelque chose »** : pour toute vérification qui remonte une anomalie, **ne pas** l’afficher comme un point « validé » (vert). Utiliser un traitement visuel dédié (icône, couleur, libellé du type « Anomalie détectée » / « Trouvé ») pour signaler qu’il y a un finding.
-- [ ] **S’appliquer à toutes les anomalies sauf « info »** : ce comportement vaut pour tous les niveaux de sévérité d’anomalie (critique, haute, moyenne, basse). Le niveau **info** peut rester avec un traitement distinct (neutre ou informatif), sans être affiché comme « validé » en vert.
-- [ ] Cohérence sur l’écran de chargement / progression et sur la page de résultats : même logique (vert = OK, pas d’anomalie ; autre traitement = quelque chose a été trouvé, pour toutes les anomalies hors info).
+- [x] **Réservoir le vert aux vérifications OK** : afficher en vert uniquement les points pour lesquels **aucune anomalie** n’a été trouvée (vérification passée).
+- [ ] **Anomalies = « on a trouvé quelque chose »**
+  > **En cours :** Couleurs dédiées (error, warning) pour les sévérités. Libellé « anomalie(s) » présent. Manque : icône dédiée dans le résumé/table ; libellé explicite « Anomalie détectée »/« Trouvé ».
+- [x] **S’appliquer à toutes les anomalies sauf « info »** : ce comportement vaut pour tous les niveaux de sévérité d’anomalie (critique, haute, moyenne, basse). Le niveau **info** peut rester avec un traitement distinct (neutre ou informatif), sans être affiché comme « validé » en vert.
+- [x] Cohérence sur l’écran de chargement / progression et sur la page de résultats : même logique (vert = OK, pas d’anomalie ; autre traitement = quelque chose a été trouvé, pour toutes les anomalies hors info).
 
 ---
 

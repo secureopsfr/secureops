@@ -3,13 +3,17 @@
  */
 
 import { fetchJsonWithAuth, getApiBaseUrl } from "../utils/apiClient";
+import { buildPaginatedQuery } from "../utils/apiQueryParams";
 import type { PaginatedListResponse } from "../types/api";
 
 export type Frequency = "daily" | "weekly" | "monthly";
 
+export type ScanType = "frontend" | "backend" | "custom";
+
 export interface ScheduledScan {
   id: string;
   url: string;
+  scan_type: ScanType;
   frequency: string;
   schedule_hour: number;
   schedule_minute: number;
@@ -24,6 +28,7 @@ export interface ScheduledScan {
 export interface ScanAlertEvent {
   id: string;
   url: string;
+  scan_type: ScanType;
   alert_type: string;
   email_sent: boolean;
   triggered_at: string;
@@ -31,6 +36,7 @@ export interface ScanAlertEvent {
 
 export interface CreateScheduledScanInput {
   url: string;
+  scan_type: ScanType;
   frequency: Frequency;
   schedule_hour?: number;
   schedule_minute?: number;
@@ -70,6 +76,7 @@ export async function createScheduledScan(
       method: "POST",
       body: JSON.stringify({
         url: input.url,
+        scan_type: input.scan_type,
         frequency: input.frequency,
         schedule_hour: input.schedule_hour ?? 2,
         schedule_minute: input.schedule_minute ?? 0,
@@ -88,9 +95,12 @@ export type ScheduledScanListResponse = PaginatedListResponse<ScheduledScan>;
 export async function getScheduledScans(
   page = 1,
   limit = 10,
+  url?: string | null,
+  scan_type?: string | null,
 ): Promise<ScheduledScanListResponse> {
+  const query = buildPaginatedQuery({ page, limit, url, scan_type });
   return fetchJsonWithAuth<ScheduledScanListResponse>(
-    `${getApiBaseUrl()}/user/api/scans/schedule?page=${page}&limit=${limit}`,
+    `${getApiBaseUrl()}/user/api/scans/schedule?${query}`,
     { method: "GET" },
     "Erreur lors de la récupération des scans planifiés",
   );
@@ -135,9 +145,21 @@ export type ScanAlertHistoryListResponse =
 export async function getScanAlertHistory(
   page = 1,
   limit = 10,
+  url?: string | null,
+  scan_type?: string | null,
+  date_from?: string | null,
+  date_to?: string | null,
 ): Promise<ScanAlertHistoryListResponse> {
+  const query = buildPaginatedQuery({
+    page,
+    limit,
+    url,
+    scan_type,
+    date_from,
+    date_to,
+  });
   return fetchJsonWithAuth<ScanAlertHistoryListResponse>(
-    `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history?page=${page}&limit=${limit}`,
+    `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history?${query}`,
     { method: "GET" },
     "Erreur lors de la récupération de l'historique des alertes",
   );

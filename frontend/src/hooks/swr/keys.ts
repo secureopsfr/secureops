@@ -56,6 +56,13 @@ export const ADMIN_TEMPLATES_KEY = "admin-templates";
 export const adminTemplateContentKey = (filename: string) =>
   ["admin-template-content", filename] as const;
 
+/* ─────────────────── Admin Docs ─────────────────── */
+
+export const ADMIN_DOCS_KEY = "admin-docs";
+
+export const adminDocContentKey = (slug: string) =>
+  ["admin-doc-content", slug] as const;
+
 /* ─────────────────── Admin Alerts ─────────────────── */
 
 export const adminAlertEventsKey = (params: {

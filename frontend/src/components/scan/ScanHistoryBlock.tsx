@@ -24,10 +24,22 @@ import { formatUrlDisplay } from "../../utils/urlFormat";
 
 interface ScanHistoryBlockProps {
   onSelectScan: (result: ScanResult, scanId?: string) => void;
+  /** Filtre optionnel par URL (historique limité à cette URL). */
+  filterUrl?: string | null;
+  /** Filtre optionnel par type de scan (frontend, backend, custom). */
+  filterScanType?: string | null;
+  /** Filtre optionnel date de début (ISO string). */
+  filterDateFrom?: string | null;
+  /** Filtre optionnel date de fin (ISO string). */
+  filterDateTo?: string | null;
 }
 
 export default function ScanHistoryBlock({
   onSelectScan,
+  filterUrl,
+  filterScanType,
+  filterDateFrom,
+  filterDateTo,
 }: ScanHistoryBlockProps) {
   const { t, language } = useLanguage();
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
@@ -39,9 +51,18 @@ export default function ScanHistoryBlock({
   );
   const { items, setItems, setTotal, page, setPage, loading, totalPages } =
     usePaginatedFetch<ScanHistoryItem>({
-      fetchFn: (p, perPage) => getScanHistory(p, perPage),
+      fetchFn: (p, perPage) =>
+        getScanHistory(
+          p,
+          perPage,
+          filterUrl ?? undefined,
+          filterScanType ?? undefined,
+          filterDateFrom ?? undefined,
+          filterDateTo ?? undefined,
+        ),
       perPage: 10,
       onError,
+      refreshTrigger: `${filterUrl ?? ""}_${filterScanType ?? ""}_${filterDateFrom ?? ""}_${filterDateTo ?? ""}`,
     });
 
   const handleDeleteConfirm = useCallback(
@@ -120,6 +141,12 @@ export default function ScanHistoryBlock({
               <ul className="divide-y divide-[var(--color-border)]">
                 {items.map((item) => {
                   const badge = getScoreBadge(item.score ?? 0);
+                  const scanTypeKey =
+                    item.scan_type === "backend"
+                      ? "scanner.scanTypeBackend"
+                      : item.scan_type === "custom"
+                        ? "scanner.scanTypeCustom"
+                        : "scanner.scanTypeFrontend";
                   const isLoading = loadingDetailId === item.id;
                   const isPdfLoading = pdfLoadingId === item.id;
                   return (
@@ -137,6 +164,11 @@ export default function ScanHistoryBlock({
                           {formatUrlDisplay(item.url)}
                         </span>
                         <span className="text-xs text-[var(--muted)]">
+                          {!filterScanType && (
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
+                              {t(scanTypeKey)}
+                            </span>
+                          )}
                           {formatDate(item.created_at)} · {item.score ?? "—"}
                           /100 · {t(badge.labelKey)}
                         </span>

@@ -8,12 +8,14 @@ from pydantic import BaseModel, Field, field_validator
 from app.utils.url_utils import URLValidationError, normalize_scan_url
 
 FrequencyType = Literal["daily", "weekly", "monthly"]
+ScanType = Literal["frontend", "backend", "custom"]
 
 
 class ScheduledScanCreateRequest(BaseModel):
     """Schéma pour la création d'un scan planifié."""
 
     url: str = Field(..., description="URL à scanner (http ou https, ex. https://example.com)")
+    scan_type: ScanType = Field(..., description="Type de scan : frontend, backend, custom")
     frequency: FrequencyType = Field(..., description="Fréquence : daily, weekly, monthly")
     schedule_hour: int = Field(2, ge=0, le=23, description="Heure d'exécution (0-23) dans le fuseau utilisateur")
     schedule_minute: int = Field(0, ge=0, le=59, description="Minute d'exécution (0-59)")
@@ -60,6 +62,7 @@ class ScheduledScanResponse(BaseModel):
 
     id: str = Field(..., description="UUID du scan planifié")
     url: str = Field(..., description="URL à scanner")
+    scan_type: str = Field(..., description="Type de scan : frontend, backend, custom")
     frequency: str = Field(..., description="Fréquence")
     schedule_hour: int = Field(..., description="Heure d'exécution")
     schedule_minute: int = Field(..., description="Minute d'exécution")
@@ -77,6 +80,7 @@ class ScanAlertEventResponse(BaseModel):
 
     id: str = Field(..., description="UUID de l'événement")
     url: str = Field(..., description="URL scannée")
+    scan_type: str = Field(..., description="Type de scan : frontend, backend, custom")
     alert_type: str = Field(..., description="Type : regression ou critical_finding")
     email_sent: bool = Field(..., description="True si l'email a été envoyé avec succès")
     triggered_at: datetime = Field(..., description="Date/heure du déclenchement")

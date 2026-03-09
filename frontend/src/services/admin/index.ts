@@ -7,6 +7,7 @@
 import * as adminUsers from "./adminUsersService";
 import * as adminSubscriptions from "./adminSubscriptionsService";
 import * as adminContact from "./adminContactService";
+import * as adminDocs from "./adminDocsService";
 import * as adminMedia from "./adminMediaService";
 import * as adminAnalytics from "./adminAnalyticsService";
 import * as adminMetrics from "./adminMetricsService";
@@ -25,6 +26,7 @@ const adminService = {
   ...adminUsers,
   ...adminSubscriptions,
   ...adminContact,
+  ...adminDocs,
   ...adminMedia,
   ...adminAnalytics,
   ...adminMetrics,

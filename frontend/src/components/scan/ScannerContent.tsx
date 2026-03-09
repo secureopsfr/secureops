@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
+import Link from "next/link";
 import { fetchAuthSession } from "aws-amplify/auth";
-import { AlertTriangle, Globe } from "lucide-react";
+import { AlertTriangle, FileText, Globe } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { DropdownSelector, GenericButton } from "../buttons";
@@ -13,10 +15,8 @@ import CrawlValidationStep from "./CrawlValidationStep";
 import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
 import ScanResultsGate from "./ScanResultsGate";
+import ScannerHistoryAlertsSection from "./ScannerHistoryAlertsSection";
 import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
-import ScanHistoryBlock from "./ScanHistoryBlock";
-import ScheduledScansBlock from "./ScheduledScansBlock";
-import AlertHistoryBlock from "./AlertHistoryBlock";
 import { RecurrenceScheduleFields } from "../schedule";
 import { Checkbox } from "../inputs";
 import {
@@ -86,7 +86,6 @@ export default function ScannerContent() {
   const [scanId, setScanId] = useState<string | null>(null);
   const [error, setError] = useState<ScanError | null>(null);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
-  const [scheduleRefreshTrigger, setScheduleRefreshTrigger] = useState(0);
   const [formFrequency, setFormFrequency] = useState<Frequency>("daily");
   const [formTime, setFormTime] = useState("02:00");
   const [formDayOfWeek, setFormDayOfWeek] = useState(0);
@@ -361,6 +360,12 @@ export default function ScannerContent() {
     setCrawlSteps([]);
   }, []);
 
+  const handleSelectScan = useCallback((r: ScanResult, id?: string) => {
+    setResult(r);
+    setScanId(id ?? null);
+    setState("success");
+  }, []);
+
   const handleNewScan = useCallback(() => {
     setState("idle");
     setSteps([]);
@@ -385,6 +390,7 @@ export default function ScannerContent() {
     try {
       await createScheduledScan({
         url: normalizedUrl,
+        scan_type: "frontend",
         frequency: formFrequency,
         schedule_hour: hour,
         schedule_minute: minute,
@@ -395,7 +401,6 @@ export default function ScannerContent() {
         timezone: getUserTimezone(),
         scan_alerts_enabled: formScanAlertsEnabled,
       });
-      setScheduleRefreshTrigger((n) => n + 1);
       showSuccessToast(t("scheduledScans.createSuccess"));
     } catch (err) {
       showErrorToast(
@@ -431,6 +436,15 @@ export default function ScannerContent() {
             <div className="page-header text-center mb-4">
               <h1 className="page-title mb-2">{t("scanner.title")}</h1>
               <p className="page-subtitle mt-0">{t("scanner.subtitle")}</p>
+              <Link
+                href={lp("/scanner/docs/scan-frontend")}
+                className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
+              >
+                <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
+                  <FileText className="w-4 h-4" />
+                  {t("scanner.docsLink")}
+                </span>
+              </Link>
             </div>
           </div>
         </AnimateInView>
@@ -608,42 +622,27 @@ export default function ScannerContent() {
                   </div>
                 </Card>
               </div>
-              {isAuthenticated && !authLoading && (
-                <>
-                  <ScheduledScansBlock
-                    refreshTrigger={scheduleRefreshTrigger}
-                  />
-                  <div className="flex flex-col lg:flex-row gap-6 mt-6">
-                    <div className="flex-1 min-w-0">
-                      <ScanHistoryBlock
-                        onSelectScan={(r, id) => {
-                          setResult(r);
-                          setScanId(id ?? null);
-                          setState("success");
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <AlertHistoryBlock />
-                    </div>
-                  </div>
-                </>
-              )}
             </>
           )}
 
-          {state === "crawling" && (
-            <ScanLoader
-              steps={crawlSteps}
-              titleKey="scanner.crawlLoading"
-              crawlMode={crawlMode}
-              onAnimationComplete={
-                crawledUrls.length > 0
-                  ? () => setState("validation")
-                  : undefined
-              }
-            />
-          )}
+          {state === "crawling" &&
+            (typeof document !== "undefined"
+              ? createPortal(
+                  <div className="scan-loading-overlay fixed inset-0 z-[60]">
+                    <ScanLoader
+                      steps={crawlSteps}
+                      titleKey="scanner.crawlLoading"
+                      crawlMode={crawlMode}
+                      onAnimationComplete={
+                        crawledUrls.length > 0
+                          ? () => setState("validation")
+                          : undefined
+                      }
+                    />
+                  </div>,
+                  document.body,
+                )
+              : null)}
 
           {state === "validation" && (
             <CrawlValidationStep
@@ -659,15 +658,31 @@ export default function ScannerContent() {
             />
           )}
 
-          {state === "loading" && (
-            <ScanLoader
-              steps={steps}
-              crawlMode={scanOnlyThisPage ? undefined : crawlMode}
-              onAnimationComplete={
-                result ? () => setState("success") : undefined
-              }
-            />
-          )}
+          {state === "loading" &&
+            (typeof document !== "undefined"
+              ? createPortal(
+                  <div className="scan-loading-overlay fixed inset-0 z-[60]">
+                    <ScanLoader
+                      steps={steps}
+                      crawlMode={scanOnlyThisPage ? undefined : crawlMode}
+                      onAnimationComplete={
+                        result ? () => setState("success") : undefined
+                      }
+                    />
+                  </div>,
+                  document.body,
+                )
+              : null)}
+
+          {(state === "idle" || state === "error") &&
+            isAuthenticated &&
+            !authLoading && (
+              <ScannerHistoryAlertsSection
+                className="mt-6"
+                onSelectScan={handleSelectScan}
+                filterScanType="frontend"
+              />
+            )}
 
           {state === "success" &&
             result &&
@@ -677,6 +692,8 @@ export default function ScannerContent() {
                 result={result}
                 scanId={scanId}
                 onNewScan={handleNewScan}
+                onSelectScan={handleSelectScan}
+                filterScanType="frontend"
               />
             ) : (
               <>

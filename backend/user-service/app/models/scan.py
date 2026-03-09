@@ -39,6 +39,13 @@ class Scan(Base):
 
     url = Column(String(2048), nullable=False, comment="URL scannée")
 
+    scan_type = Column(
+        String(20),
+        nullable=False,
+        default="frontend",
+        comment="Type de scan : frontend, backend, custom",
+    )
+
     status = Column(String(50), nullable=False, default="success", comment="Statut du scan (success, error)")
 
     score = Column(Integer, nullable=True, comment="Note /100 (nullable si erreur)")

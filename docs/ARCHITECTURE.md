@@ -58,7 +58,7 @@ Le **pdf-service** expose `POST /api/report/pdf` (body : payload scan + options 
 Le gateway expose :
 
 - **`/health`** — Health check (public).
-- **`/admin/*`** — Proxifié vers admin-service. Requiert **JWT + groupe Cognito `admin`** (sauf routes explicitement publiques).
+- **`/admin/*`** — Proxifié vers admin-service. Requiert **JWT + groupe Cognito `admin`** (sauf exceptions ci-dessous).
 - **`/user/*`** — Proxifié vers user-service. Requiert **JWT** (utilisateur authentifié).
 - **`/scan/*`** — Proxifié vers scan-service. `POST /scan/api/scan` est **public** (MVP) ; les autres routes requièrent **JWT**.
 - **`/pdf/*`** — Proxifié vers pdf-service (génération de rapports PDF). Appelé en interne par le scan-service ; le gateway peut ajouter le header `X-Internal-Api-Key` si configuré.
@@ -71,6 +71,8 @@ Routes **publiques** (sans auth) :
 - `POST /admin/api/analytics/ingest` (ingestion analytics depuis le front)
 - `POST /scan/api/scan` (scanner de posture sécurité — MVP)
 - `POST /user/api/user/init` (création/initialisation du compte utilisateur après première connexion)
+
+**Exception lecture docs** (utilisateurs connectés, pas admin) : `GET /admin/api/docs` et `GET /admin/api/docs/*` — utilisateurs authentifiés peuvent lire la documentation (page Scanner → Documentation) sans être dans le groupe `admin`. Voir la note ci-dessous.
 
 La configuration des URLs des services (Docker vs local) est dans `backend/gateway/config/settings.yml` (clés `services.docker` et `services.local`). Le mode est choisi via la variable d’environnement `IS_DOCKER`.
 
@@ -119,3 +121,16 @@ Le répertoire **backend/common** est un package Python installé en mode édita
 - Pages : accueil, tarifs, contact, connexion, inscription, mot de passe oublié, confirmation, mon compte, admin (réservé aux utilisateurs du groupe `admin`), politique de confidentialité.
 
 Pour plus de détails sur les pages et la config Amplify, voir [frontend/README.md](../frontend/README.md).
+
+---
+
+## ⚠️ Note — Documentation éditable (admin-service)
+
+La **documentation des scanners** (scan frontend, crawler, etc.) est hébergée dans l’**admin-service** (`data/docs/`, router `doc_pages`), éditable via la Galerie admin et lisible par **tous les utilisateurs connectés** via `GET /admin/api/docs*`.
+
+**Point d’attention** : cela implique des appels vers l’admin-service depuis des utilisateurs non-admin, ce qui brouille la frontière de responsabilité du service admin. Une approche plus rigoureuse consisterait à :
+
+- héberger la doc du scan dans le **scan-service** (`/scan/api/docs/*`) ;
+- héberger la doc du crawler dans le **crawl-service** (`/crawl/api/docs/*`).
+
+Chaque service porterait sa propre doc, et la lecture par les users resterait sémantiquement cohérente. Pour l’instant, la solution centralisée dans l’admin est conservée par pragmatisme.
