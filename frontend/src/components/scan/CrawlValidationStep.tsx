@@ -34,7 +34,6 @@ function isValidUrl(s: string): boolean {
 
 export default function CrawlValidationStep({
   urls,
-  startUrl,
   timeoutReached,
   antiBotSuspected,
   requestsBlocked,

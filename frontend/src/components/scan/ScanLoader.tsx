@@ -151,10 +151,8 @@ function pathWithRoundedCorners(
   const c2x = goLeft ? x1 + radius : x1 - radius;
   const k = radius * KAPPA;
 
-  const approach1 =
-    y0 < yMid ? yMid - radius : yMid + radius;
-  const approach2 =
-    y1 > yMid ? yMid + radius : yMid - radius;
+  const approach1 = y0 < yMid ? yMid - radius : yMid + radius;
+  const approach2 = y1 > yMid ? yMid + radius : yMid - radius;
 
   const cp1x = x0;
   const cp1y = y0 < yMid ? approach1 + k : approach1 - k;
@@ -180,13 +178,15 @@ const STEP_DURATION = 630;
  */
 const POINT_ANIM_DURATION = 250;
 
-function computeConnectors(
-  steps: ScanStepDisplay[],
-): { segments: ConnectorSegment[]; pointDelays: number[]; totalDurationMs: number } {
+function computeConnectors(steps: ScanStepDisplay[]): {
+  segments: ConnectorSegment[];
+  pointDelays: number[];
+  totalDurationMs: number;
+} {
   const segments: ConnectorSegment[] = [];
   const pointDelays = new Array<number>(steps.length).fill(0);
-  const cols = steps.map((s, i) =>
-    COLUMN_INDEX[getStepColumn(s.step, steps, i)],
+  const cols = steps.map(
+    (s, i) => COLUMN_INDEX[getStepColumn(s.step, steps, i)],
   );
 
   const htmlRows: number[] = [];
@@ -201,11 +201,11 @@ function computeConnectors(
   const splitAfter = commonRows
     .filter((r) => r < (htmlRows[0] ?? Infinity) && r < (pwRows[0] ?? Infinity))
     .pop();
-  const stoppingOtherCol = steps.findIndex((s) => s.step === "crawl_stopping_other");
-  const mutedMergeHtml =
-    stoppingOtherCol >= 0 && cols[stoppingOtherCol] === 0;
-  const mutedMergePw =
-    stoppingOtherCol >= 0 && cols[stoppingOtherCol] === 2;
+  const stoppingOtherCol = steps.findIndex(
+    (s) => s.step === "crawl_stopping_other",
+  );
+  const mutedMergeHtml = stoppingOtherCol >= 0 && cols[stoppingOtherCol] === 0;
+  const mutedMergePw = stoppingOtherCol >= 0 && cols[stoppingOtherCol] === 2;
   const mergeInto = commonRows.find(
     (r) =>
       r >
@@ -253,10 +253,7 @@ function computeConnectors(
         : circleTopY(pwRows[0]!);
     const y2 = pwRows[0] !== undefined ? circleTopY(pwRows[0]) : y1;
     const yMidAvg = (y1 + y2) / 2;
-    const ySplit = Math.min(
-      y0 + SPLIT_MERGE_PADDING,
-      (y0 + yMidAvg) / 2,
-    );
+    const ySplit = Math.min(y0 + SPLIT_MERGE_PADDING, (y0 + yMidAvg) / 2);
 
     const rLeft =
       htmlRows[0] !== undefined
@@ -354,7 +351,8 @@ function computeConnectors(
     const lastHtml = htmlRows[htmlRows.length - 1];
     const lastPw = pwRows[pwRows.length - 1];
     const yTarget = circleTopY(mergeInto);
-    const bottomHtml = lastHtml !== undefined ? circleBottomY(lastHtml) : yTarget;
+    const bottomHtml =
+      lastHtml !== undefined ? circleBottomY(lastHtml) : yTarget;
     const bottomPw = lastPw !== undefined ? circleBottomY(lastPw) : yTarget;
     const maxBottom =
       lastHtml !== undefined && lastPw !== undefined
@@ -464,7 +462,6 @@ const PATH_DRAW_DURATION = 500;
 function AnimatedConnectorPath({
   d,
   done,
-  segKey,
   delayMs,
   muted = false,
 }: {
@@ -534,14 +531,7 @@ interface StepRowProps {
   pointDelay: number;
 }
 
-function StepRow({
-  step,
-  message,
-  done,
-  column,
-  index,
-  pointDelay,
-}: StepRowProps) {
+function StepRow({ step, message, done, column, pointDelay }: StepRowProps) {
   const { t } = useLanguage();
   const msg = getDisplayMessage(step, message, done, t);
   const colIdx = COLUMN_INDEX[column];
@@ -669,7 +659,10 @@ function StepCircle({
           className={`flex h-6 w-6 items-center justify-center rounded-full ${circleClass}`}
         >
           {muted ? (
-            <Minus className="h-3 w-3 text-[rgba(255,255,255,0.35)]" strokeWidth={2.5} />
+            <Minus
+              className="h-3 w-3 text-[rgba(255,255,255,0.35)]"
+              strokeWidth={2.5}
+            />
           ) : (
             <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
           )}

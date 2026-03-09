@@ -664,9 +664,7 @@ export default function ScannerContent() {
               steps={steps}
               crawlMode={scanOnlyThisPage ? undefined : crawlMode}
               onAnimationComplete={
-                result
-                  ? () => setState("success")
-                  : undefined
+                result ? () => setState("success") : undefined
               }
             />
           )}
