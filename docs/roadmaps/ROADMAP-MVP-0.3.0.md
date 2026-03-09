@@ -465,11 +465,11 @@ Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.
 - [x] **Section « Vue d'ensemble » – card « Suivi des scans »** : renvoie vers un espace regroupant :
   > **Fait :** Section « Vue d'ensemble », card « Suivi des scans » → `/scanner/vue-d-ensemble` ; card « Clés API » → `/scanner/cles-api` (placeholder).
   - [x] **Historique des scans** : liste des scans passés, filtres, détail, suppression.
-  - [x] **Évolution des failles** : tendances (évolution du score dans le temps, nombre de findings par sévérité, comparaison entre scans). Graphique placeholder avec données fictives.
+  - [x] **Évolution des failles** : tendances (évolution du score dans le temps, nombre de findings par sévérité). Graphique avec **données réelles** : barres = nombre de scans par jour, courbe = score ou anomalies (toggle). Données agrégées via endpoint `GET /user/api/scans/history/overview`, filtres (URL, type de scan, période) appliqués.
   - [ ] **Rapports et exports** : accès aux PDF, exports CSV/JSON si implémentés.
   - [x] **Scans planifiés** : création, modification, pause des scans récurrents.
   - [x] **Lien vers la gestion des clés API** : accès à la page « Clés API » (création, révocation, doc). Card dédiée sur le hub.
-  - [x] Autres éléments pertinents : résumé tableau de bord (nombre de scans ce mois, score moyen). KPIs en mode fictif.
+  - [x] **KPIs tableau de bord** : Total scans, Score moyen, Anomalies critiques, Planifiés actifs, Dernier scan. **Données réelles** via l’endpoint overview, mises à jour lors des changements de filtres (URL, type, période).
   - [ ] Alertes configurées, préférences de notification.
 - [x] **Card « Documentation »** : section sur la home du hub Scanner qui renvoie vers la documentation (scanners, API, etc.).
   > **Fait :** Card → `/scanner/docs` (page placeholder). Cards additionnelles : Crawlers, Scan backend (placeholders).
@@ -497,10 +497,11 @@ Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.
 
 **Objectif :** Lors du chargement ou de l’affichage des résultats du scan, ne pas utiliser le vert pour les points qui correspondent à une **anomalie détectée** ; indiquer clairement qu’**on a trouvé quelque chose** (alerte / attention), pour que l’utilisateur distingue immédiatement « vérification OK » vs « problème détecté ».
 
-- [ ] **Réservoir le vert aux vérifications OK** : afficher en vert uniquement les points pour lesquels **aucune anomalie** n’a été trouvée (vérification passée).
-- [ ] **Anomalies = « on a trouvé quelque chose »** : pour toute vérification qui remonte une anomalie, **ne pas** l’afficher comme un point « validé » (vert). Utiliser un traitement visuel dédié (icône, couleur, libellé du type « Anomalie détectée » / « Trouvé ») pour signaler qu’il y a un finding.
-- [ ] **S’appliquer à toutes les anomalies sauf « info »** : ce comportement vaut pour tous les niveaux de sévérité d’anomalie (critique, haute, moyenne, basse). Le niveau **info** peut rester avec un traitement distinct (neutre ou informatif), sans être affiché comme « validé » en vert.
-- [ ] Cohérence sur l’écran de chargement / progression et sur la page de résultats : même logique (vert = OK, pas d’anomalie ; autre traitement = quelque chose a été trouvé, pour toutes les anomalies hors info).
+- [x] **Réservoir le vert aux vérifications OK** : afficher en vert uniquement les points pour lesquels **aucune anomalie** n’a été trouvée (vérification passée).
+- [ ] **Anomalies = « on a trouvé quelque chose »**
+  > **En cours :** Couleurs dédiées (error, warning) pour les sévérités. Libellé « anomalie(s) » présent. Manque : icône dédiée dans le résumé/table ; libellé explicite « Anomalie détectée »/« Trouvé ».
+- [x] **S’appliquer à toutes les anomalies sauf « info »** : ce comportement vaut pour tous les niveaux de sévérité d’anomalie (critique, haute, moyenne, basse). Le niveau **info** peut rester avec un traitement distinct (neutre ou informatif), sans être affiché comme « validé » en vert.
+- [x] Cohérence sur l’écran de chargement / progression et sur la page de résultats : même logique (vert = OK, pas d’anomalie ; autre traitement = quelque chose a été trouvé, pour toutes les anomalies hors info).
 
 ---
 
