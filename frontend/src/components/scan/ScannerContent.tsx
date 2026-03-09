@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { AlertTriangle, Globe } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
@@ -659,17 +660,21 @@ export default function ScannerContent() {
             />
           )}
 
-          {state === "loading" && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg)]">
-              <ScanLoader
-                steps={steps}
-                crawlMode={scanOnlyThisPage ? undefined : crawlMode}
-                onAnimationComplete={
-                  result ? () => setState("success") : undefined
-                }
-              />
-            </div>
-          )}
+          {state === "loading" &&
+            (typeof document !== "undefined"
+              ? createPortal(
+                  <div className="scan-loading-overlay fixed inset-0 z-[60]">
+                    <ScanLoader
+                      steps={steps}
+                      crawlMode={scanOnlyThisPage ? undefined : crawlMode}
+                      onAnimationComplete={
+                        result ? () => setState("success") : undefined
+                      }
+                    />
+                  </div>,
+                  document.body,
+                )
+              : null)}
 
           {state === "success" &&
             result &&

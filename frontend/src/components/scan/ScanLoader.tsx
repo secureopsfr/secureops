@@ -715,6 +715,17 @@ function TimelineStep({ step, message, done, isLast }: TimelineStepProps) {
 
 const CIRCLE_AREA_WIDTH = COL_WIDTH * 3 + COL_GAP * 2;
 
+/** Points de suspension animés (opacité en cascade). */
+function AnimatedEllipsis() {
+  return (
+    <span className="inline-flex scan-loading-ellipsis" aria-hidden="true">
+      <span>.</span>
+      <span>.</span>
+      <span>.</span>
+    </span>
+  );
+}
+
 export default function ScanLoader({
   steps,
   titleKey = "scanner.loading",
@@ -743,18 +754,23 @@ export default function ScanLoader({
   }, [onAnimationComplete, connectors]);
 
   return (
-    <div className="mx-auto max-w-4xl p-10 text-center">
-      <h3 className="section-title -mt-2 mb-10 text-center text-2xl">
-        {t(titleKey)}
+    <div className="flex w-full max-w-4xl flex-col items-center px-6 pb-10">
+      {/* Titre fixe en haut — ne bouge pas quand les étapes s'ajoutent */}
+      <h3 className="section-title shrink-0 text-center text-2xl">
+        {t(titleKey).replace(/\.{3}$/, "")}
+        <AnimatedEllipsis />
       </h3>
 
       {steps.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 py-8">
+        <div className="mt-8 flex flex-col items-center gap-4">
           <LoadingSpinner size="md" />
-          <span className="text-base text-muted-theme">{t(titleKey)}</span>
+          <span className="text-base text-muted-theme">
+            {t(titleKey).replace(/\.{3}$/, "")}
+            <AnimatedEllipsis />
+          </span>
         </div>
       ) : useBoth ? (
-        <div className="mx-auto flex w-full max-w-2xl flex-col items-center">
+        <div className="mt-8 mx-auto flex w-full max-w-2xl flex-col items-center">
           <div
             className="relative w-full"
             style={{ minHeight: steps.length * ROW_STRIDE }}
@@ -798,7 +814,7 @@ export default function ScanLoader({
           </div>
         </div>
       ) : (
-        <ul className="mx-auto flex w-full max-w-md flex-col items-stretch">
+        <ul className="mt-8 mx-auto flex w-full max-w-md flex-col items-stretch">
           {steps.map((s, i) => (
             <TimelineStep
               key={`${s.step}-${i}`}

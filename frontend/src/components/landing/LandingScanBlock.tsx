@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
@@ -132,8 +133,8 @@ export default function LandingScanBlock() {
   const signInHref = `${lp("/connexion")}?returnTo=${encodeURIComponent(lp("/scanner"))}`;
 
   if (state === "loading") {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg)]">
+    const overlay = (
+      <div className="scan-loading-overlay fixed inset-0 z-[60]">
         <ScanLoader
           steps={steps}
           titleKey="scanner.loading"
@@ -147,6 +148,9 @@ export default function LandingScanBlock() {
         />
       </div>
     );
+    return typeof document !== "undefined"
+      ? createPortal(overlay, document.body)
+      : overlay;
   }
 
   if (state === "success" && result && !authLoading && !isAuthenticated) {
