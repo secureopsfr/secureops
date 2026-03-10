@@ -1,5 +1,7 @@
 "use client";
 
+import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
 // Side-effect: configure Amplify before any auth hook runs.
 // The OAuth listener is lazy-loaded only in OAuthCallbackHandler.
@@ -11,6 +13,9 @@ import { SWRProvider } from "../providers/SWRProvider";
 import ErrorBoundary, { ErrorBoundaryFallback } from "./ErrorBoundary";
 import type { Locale } from "../i18n/config";
 
+/** z-index maximum pour que les toasts restent au-dessus des modals (blur) partout. */
+const TOAST_Z_INDEX = 2147483647;
+
 export function Providers({
   children,
   locale,
@@ -18,6 +23,12 @@ export function Providers({
   children: React.ReactNode;
   locale: Locale;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <SWRProvider>
       <ThemeProvider>
@@ -35,7 +46,32 @@ export function Providers({
             )}
           >
             <AnalyticsProvider>{children}</AnalyticsProvider>
-            <Toaster />
+            {mounted &&
+              createPortal(
+                <div
+                  style={{
+                    position: "fixed",
+                    zIndex: TOAST_Z_INDEX,
+                    inset: 0,
+                    pointerEvents: "none",
+                    isolation: "isolate",
+                  }}
+                  aria-hidden="true"
+                >
+                  <div style={{ pointerEvents: "auto", position: "relative" }}>
+                    <Toaster
+                      position="bottom-center"
+                      containerStyle={{
+                        zIndex: TOAST_Z_INDEX,
+                      }}
+                      toastOptions={{
+                        style: { position: "relative" },
+                      }}
+                    />
+                  </div>
+                </div>,
+                document.body,
+              )}
           </ErrorBoundary>
         </LanguageProvider>
       </ThemeProvider>

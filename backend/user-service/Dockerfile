@@ -2,10 +2,12 @@ FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Dépendances système minimales
+# Dépendances système minimales (libpq pour asyncpg/psycopg2)
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       build-essential \
+      libpq5 \
+      libpq-dev \
  && rm -rf /var/lib/apt/lists/*
 
 # Utilisateur non-root

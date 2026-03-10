@@ -19,6 +19,66 @@ config = settings()
 HOP_BY_HOP = set(config.headers.hop_by_hop)
 
 
+def _log_proxy_request(service_url: str, path: str, request: Request, mode: str = "buffer") -> None:
+    """Log une requête proxy (buffer ou stream) avec infos utilisateur si présentes."""
+    if hasattr(request.state, "user") and request.state.user:
+        u = request.state.user
+        ident = u.get("username") or u.get("email") or u.get("user_id") or "unknown"
+        auth_type = u.get("auth_type", "jwt")
+        logger.info("Requête proxy %s de %s [%s] vers %s/%s", mode, ident, auth_type, service_url, path)
+    else:
+        logger.info("Requête proxy %s (sans auth) vers %s/%s", mode, service_url, path)
+
+
+def _build_proxied_headers(request: Request, extra_headers: dict[str, str] | None) -> dict[str, str]:
+    """Construit les headers à envoyer au backend (filtrés + extra + api_key + correlation_id)."""
+    headers = {name: value for name, value in request.headers.items() if name.lower() not in HOP_BY_HOP and name.lower() != "accept-encoding"}
+    if extra_headers:
+        headers.update(extra_headers)
+    if hasattr(request.state, "api_key_to_forward") and request.state.api_key_to_forward:
+        headers["Authorization"] = f"Bearer {request.state.api_key_to_forward}"
+    cid = correlation_id_ctx.get()
+    if cid:
+        headers["X-Correlation-ID"] = cid
+    return headers
+
+
+def _get_timeout_buffer(service_url: str, path: str, request: Request) -> float | None:
+    """Retourne le timeout pour une requête buffer (None = désactivé)."""
+    if (
+        "analytics-ingestion" in service_url
+        or request.url.path.startswith("/analytics-ingestion")
+        or path.startswith("cadastre/refresh")
+        or "land-register" in service_url
+    ):
+        return None
+    if path == "api/crawl" or path.startswith("api/crawl/"):
+        logger.info("Crawl endpoint : timeout étendu à %.0fs", config.timeouts.crawl_timeout)
+        return config.timeouts.crawl_timeout
+    return config.timeouts.request_timeout
+
+
+def _get_timeout_stream(service_url: str, path: str, request: Request) -> float | None:
+    """Retourne le timeout pour une requête stream (None = désactivé)."""
+    if (
+        "land-register" in service_url
+        or "analytics-ingestion" in service_url
+        or request.url.path.startswith("/analytics-ingestion")
+        or path.startswith("cadastre/refresh")
+    ):
+        return None
+    if path == "api/crawl/stream" or path.startswith("api/crawl/"):
+        logger.info("Crawl stream : timeout étendu à %.0fs", config.timeouts.crawl_timeout)
+        return config.timeouts.crawl_timeout
+    return config.timeouts.request_timeout
+
+
+def _filter_response_headers(resp: httpx.Response) -> dict[str, str]:
+    """Filtre les headers de réponse (hop-by-hop, content-encoding, transfer-encoding)."""
+    exclude = HOP_BY_HOP | {"content-encoding", "transfer-encoding"}
+    return {k: v for k, v in resp.headers.items() if k.lower() not in exclude}
+
+
 async def proxy_buffer_request(
     service_url: str,
     request: Request,
@@ -38,42 +98,14 @@ async def proxy_buffer_request(
     Returns:
         tuple[Response, int | None]: Réponse HTTP et taille du corps.
     """
-    # Log des informations utilisateur si disponibles
-    if hasattr(request.state, "user") and request.state.user:
-        logger.info("Requête proxy buffer de %s vers %s/%s", request.state.user.get("username", "unknown"), service_url, path)  # noqa: Q000
-    else:
-        logger.info("Requête proxy buffer (sans auth) vers %s/%s", service_url, path)
+    _log_proxy_request(service_url, path, request, "buffer")
+    proxied_headers = _build_proxied_headers(request, extra_headers)
 
-    # 1) Filtrer les headers à forwarder
-    proxied_headers = {name: value for name, value in request.headers.items() if name.lower() not in HOP_BY_HOP and name.lower() != "accept-encoding"}
-    if extra_headers:
-        proxied_headers.update(extra_headers)
-
-    # Propager le correlation_id vers les services en aval
-    cid = correlation_id_ctx.get()
-    if cid:
-        proxied_headers["X-Correlation-ID"] = cid
-
-    # 2) Requête et bufferisation
-    # Utiliser le body depuis request.state si disponible (déjà lu pour calculer la taille)
     body_content = getattr(request.state, "body", None)
     if body_content is None:
         body_content = await request.body()
 
-    # Timeout : on désactive pour les rafraîchissements longs ; crawl SPA utilise un timeout étendu
-    timeout = config.timeouts.request_timeout
-    if (
-        "analytics-ingestion" in service_url
-        or request.url.path.startswith("/analytics-ingestion")
-        or path.startswith("cadastre/refresh")
-        or "land-register" in service_url
-    ):
-        timeout = None
-    elif path == "api/crawl" or path.startswith("api/crawl/"):
-        # Crawl : timeout étendu (sitemap + BFS peuvent prendre 60s+)
-        timeout = config.timeouts.crawl_timeout
-        logger.info("Crawl endpoint : timeout étendu à %.0fs", timeout)
-
+    timeout = _get_timeout_buffer(service_url, path, request)
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
             resp = await client.request(
@@ -88,10 +120,7 @@ async def proxy_buffer_request(
         except httpx.RequestError as exc:
             raise HTTPException(status_code=502, detail=f"{service_url} unreachable: {exc}")
 
-    # 3) Filtrer les headers de réponse
-    filtered_headers = {
-        k: v for k, v in resp.headers.items() if k.lower() not in HOP_BY_HOP and k.lower() not in ("content-encoding", "transfer-encoding")
-    }
+    filtered_headers = _filter_response_headers(resp)
 
     # 4) Calculer la taille de la réponse
     response_size_bytes = len(resp.content) if resp.content else None
@@ -127,36 +156,9 @@ async def proxy_stream_request(
     Returns:
         StreamingResponse: Réponse streaming.
     """
-    # Log des informations utilisateur si disponibles
-    if hasattr(request.state, "user") and request.state.user:
-        logger.info("Requête proxy stream de %s vers %s/%s", request.state.user.get("username", "unknown"), service_url, path)  # noqa: Q000
-    else:
-        logger.info("Requête proxy stream (sans auth) vers %s/%s", service_url, path)
-
-    # Filtrer les headers à forwarder
-    proxied_headers = {name: value for name, value in request.headers.items() if name.lower() not in HOP_BY_HOP and name.lower() != "accept-encoding"}
-    if extra_headers:
-        proxied_headers.update(extra_headers)
-
-    # Propager le correlation_id vers les services en aval
-    cid = correlation_id_ctx.get()
-    if cid:
-        proxied_headers["X-Correlation-ID"] = cid
-
-    # Timeout : on désactive pour les flux longs cadastre/land-register/analytics-ingestion
-    # Crawl stream : timeout étendu (sitemap + BFS peuvent prendre 60s+)
-    timeout = config.timeouts.request_timeout
-    if (
-        "land-register" in service_url
-        or "analytics-ingestion" in service_url
-        or request.url.path.startswith("/analytics-ingestion")
-        or path.startswith("cadastre/refresh")
-    ):
-        timeout = None
-    elif path == "api/crawl/stream" or path.startswith("api/crawl/"):
-        # Crawl stream : timeout étendu
-        timeout = config.timeouts.crawl_timeout
-        logger.info("Crawl stream : timeout étendu à %.0fs", timeout)
+    _log_proxy_request(service_url, path, request, "stream")
+    proxied_headers = _build_proxied_headers(request, extra_headers)
+    timeout = _get_timeout_stream(service_url, path, request)
 
     # Créer le client avec timeout
     client = httpx.AsyncClient(timeout=timeout)
@@ -185,7 +187,6 @@ async def proxy_stream_request(
         await client.aclose()
         raise HTTPException(status_code=502, detail=f"{service_url} unreachable: {exc}")
 
-    # Filtrer les headers de réponse (seulement hop-by-hop)
     filtered_headers = {k: v for k, v in resp.headers.items() if k.lower() not in HOP_BY_HOP}
 
     # Fermer resp+client en arrière-plan

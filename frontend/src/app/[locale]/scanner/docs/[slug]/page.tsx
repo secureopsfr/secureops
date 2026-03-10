@@ -9,6 +9,7 @@ import Footer from "../../../../../components/ui/Footer";
 import { useLanguage } from "../../../../../components/LanguageProvider";
 import { getDocBySlug } from "../../../../../services/docsService";
 import { FileText } from "lucide-react";
+import LoadingScreen from "../../../../../components/LoadingScreen";
 
 export default function ScannerDocDetailPage() {
   const params = useParams();
@@ -43,10 +44,11 @@ export default function ScannerDocDetailPage() {
       >
         <div className="w-full max-w-[900px] px-8">
           {loading ? (
-            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
-              <p className="text-[var(--color-text-muted)]">
-                {t("scanner.docs.loading")}
-              </p>
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
+              <LoadingScreen
+                variant="section"
+                message={t("scanner.docs.loading")}
+              />
             </div>
           ) : error ? (
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
