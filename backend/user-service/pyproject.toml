@@ -9,3 +9,6 @@ line_length = 150
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q -ra"
+filterwarnings = [
+  "ignore:Please use `import python_multipart` instead\\.:PendingDeprecationWarning",
+]
