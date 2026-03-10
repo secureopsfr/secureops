@@ -1,8 +1,9 @@
 """Protection SSRF — délègue à common."""
 
-from app.config_loader import get_ssrf_settings
+from common.ssrf import check_ssrf as _check_ssrf
+from common.ssrf import is_hostname_blocked as _is_hostname_blocked
 
-from common.ssrf import check_ssrf as _check_ssrf, is_hostname_blocked as _is_hostname_blocked
+from app.config_loader import get_ssrf_settings
 
 
 def is_hostname_blocked(hostname: str | None) -> bool:
