@@ -8,11 +8,14 @@ Table api_keys : clés API pour l'API publique (roadmap §1).
 - id, user_id, key_hash, name, prefix, created_at, last_used_at
 - Contrainte unique (user_id, name)
 - Contrainte unique key_hash
+
+Idempotent: skips creation if table already exists (e.g. from partial migration run).
 """
 
 from typing import Optional, Sequence
 
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 from alembic import op
 
@@ -23,7 +26,26 @@ depends_on: Optional[Sequence[str]] = None
 
 
 def upgrade() -> None:
-    """Create api_keys table."""
+    """Create api_keys table (idempotent)."""
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    if "api_keys" in inspector.get_table_names():
+        # Table already exists (e.g. partial run), ensure indexes/constraint exist
+        op.execute("CREATE INDEX IF NOT EXISTS ix_api_keys_key_hash ON api_keys (key_hash)")
+        op.execute("CREATE INDEX IF NOT EXISTS ix_api_keys_user_id ON api_keys (user_id)")
+        op.execute("""
+            DO $$
+            BEGIN
+              IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint WHERE conname = 'uq_api_keys_user_id_name'
+              ) THEN
+                ALTER TABLE api_keys ADD CONSTRAINT uq_api_keys_user_id_name
+                  UNIQUE (user_id, name);
+              END IF;
+            END $$;
+            """)
+        return
+
     op.create_table(
         "api_keys",
         sa.Column(
@@ -77,5 +99,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Drop api_keys table."""
-    op.drop_table("api_keys")
+    """Drop api_keys table (idempotent)."""
+    op.execute("DROP TABLE IF EXISTS api_keys")
