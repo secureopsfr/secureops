@@ -112,11 +112,11 @@ def build_finding_block(
     how_to_fix_label = t("how_to_fix", lang)
     learn_more = t("learn_more", lang)
 
-    refs_html = build_ref_links(f.references, lang, max_count=render.references_max_list)
+    refs_html = build_ref_links(f.references, max_count=render.references_max_list)
 
     detail_html = ""
     if detail_text:
-        refs_line = build_inline_ref_links(f.references, lang, max_count=render.references_max_inline, prefix=learn_more)
+        refs_line = build_inline_ref_links(f.references, max_count=render.references_max_inline, prefix=learn_more)
         detail_html = f"""
         <div class="finding-detail">
             <p><strong>{detail_label}:</strong> {escape(detail_text)}</p>

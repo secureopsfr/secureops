@@ -162,6 +162,7 @@ def create_simple_settings(
     default_port: int,
     *,
     caller_file: str,
+    require_database_url: bool = True,
 ) -> Callable[[], AppSettings]:
     """Factory qui génère une fonction ``settings()`` pour un service simple.
 
@@ -174,6 +175,9 @@ def create_simple_settings(
         default_port: port par défaut si absent du YAML.
         caller_file: ``__file__`` du module appelant — sert à localiser le
             fichier ``config/settings.yml`` relatif à la racine du service.
+        require_database_url: Si ``True`` (défaut), lève une erreur quand
+            ``DATABASE_URL`` est absente. Mettre ``False`` pour un service sans
+            base de données.
 
     Returns:
         Callable[[], AppSettings]: fonction ``settings()`` prête à l'emploi.
@@ -198,7 +202,7 @@ def create_simple_settings(
         general_data = data.get("general", {})
 
         database_url = os.environ.get("DATABASE_URL", "")
-        if not database_url:
+        if require_database_url and not database_url:
             raise RuntimeError(
                 "La variable d'environnement DATABASE_URL n'est pas définie. " "Utilisez launch_dev.sh, docker-compose ou exportez-la manuellement."
             )

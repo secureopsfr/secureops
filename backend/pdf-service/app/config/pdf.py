@@ -12,6 +12,9 @@ class PdfRenderSettings:
 
     evidence_max_len: int
     recommendation_max_len: int
+    cover_url_max_len: int
+    cover_logo_primary_color: str
+    cover_logo_secondary_color: str
     score_good: int
     score_medium: int
     score_color_good: str
@@ -46,6 +49,9 @@ class PdfSettings:
 _DEFAULT_RENDER = PdfRenderSettings(
     evidence_max_len=800,
     recommendation_max_len=800,
+    cover_url_max_len=60,
+    cover_logo_primary_color="#38bdf8",
+    cover_logo_secondary_color="#0f172a",
     score_good=80,
     score_medium=50,
     score_color_good="#10b981",
@@ -144,6 +150,9 @@ def get_pdf_settings() -> PdfSettings:
     render = PdfRenderSettings(
         evidence_max_len=int(r.get("evidence_max_len") or _DEFAULT_RENDER.evidence_max_len),
         recommendation_max_len=int(r.get("recommendation_max_len") or _DEFAULT_RENDER.recommendation_max_len),
+        cover_url_max_len=int(r.get("cover_url_max_len") or _DEFAULT_RENDER.cover_url_max_len),
+        cover_logo_primary_color=str(r.get("cover_logo_primary_color") or _DEFAULT_RENDER.cover_logo_primary_color),
+        cover_logo_secondary_color=str(r.get("cover_logo_secondary_color") or _DEFAULT_RENDER.cover_logo_secondary_color),
         score_good=int(r.get("score_good") or _DEFAULT_RENDER.score_good),
         score_medium=int(r.get("score_medium") or _DEFAULT_RENDER.score_medium),
         score_color_good=str(r.get("score_color_good") or _DEFAULT_RENDER.score_color_good),
