@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useDropdown } from "../../hooks/useDropdown";
 
@@ -13,6 +13,8 @@ interface FormSelectProps {
   value: string;
   onChange: (value: string) => void;
   options: Option[];
+  /** Si true, le volet s'ouvre uniquement au clic (pas au survol). */
+  clickOnly?: boolean;
 }
 
 /**
@@ -23,6 +25,7 @@ export default function FormSelect({
   value,
   onChange,
   options,
+  clickOnly = false,
 }: FormSelectProps) {
   const {
     isOpen,
@@ -32,11 +35,25 @@ export default function FormSelect({
     buttonHandlers,
     close,
   } = useDropdown({
-    closeDelay: 300,
+    closeDelay: 250,
+    clickOnly,
   });
 
   const selectedOption =
     options.find((opt) => opt.value === value) ?? options[0];
+
+  // Animation : montage avec style fermé, puis transition vers ouvert
+  const [isAnimatedIn, setIsAnimatedIn] = useState(false);
+  useEffect(() => {
+    if (isOpen && !isClosing) {
+      const raf = requestAnimationFrame(() => setIsAnimatedIn(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    setIsAnimatedIn(false);
+  }, [isOpen, isClosing]);
+
+  const showPanel = isOpen || isClosing;
+  const panelVisible = !isClosing && isAnimatedIn;
 
   return (
     <div
@@ -61,16 +78,18 @@ export default function FormSelect({
         </button>
 
         {/* Zone invisible pour éviter la fermeture du menu */}
-        {(isOpen || isClosing) && (
-          <div className="absolute top-full left-0 h-2 w-full" />
-        )}
+        {showPanel && <div className="absolute top-full left-0 h-2 w-full" />}
 
-        {/* Menu déroulant */}
-        {(isOpen || isClosing) && (
+        {/* Menu déroulant : animation apparition / disparition */}
+        {showPanel && (
           <ul
-            className={`absolute left-0 mt-1 w-full max-h-60 overflow-auto bg-[var(--color-overlay-panel)] backdrop-blur-sm border border-[var(--border)] rounded-lg z-[70] text-base ${
-              isClosing ? "opacity-0" : "opacity-100"
-            } transition-opacity duration-300`}
+            className="absolute left-0 mt-1 w-full max-h-60 overflow-auto bg-[var(--color-overlay-panel)] backdrop-blur-sm border border-[var(--border)] rounded-lg z-[70] text-base origin-top transition-all duration-200 ease-out"
+            style={{
+              opacity: panelVisible ? 1 : 0,
+              transform: panelVisible
+                ? "translateY(0) scale(1)"
+                : "translateY(-6px) scale(0.97)",
+            }}
           >
             {options.map((opt) => (
               <li key={opt.value}>

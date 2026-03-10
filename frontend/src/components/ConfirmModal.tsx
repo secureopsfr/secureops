@@ -9,7 +9,7 @@ import { useLanguage } from "./LanguageProvider";
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   title: string;
   message: string;
   confirmText?: string;
@@ -17,6 +17,8 @@ interface ConfirmModalProps {
   variant?: "default" | "danger";
   confirmationText?: string;
   icon?: React.ComponentType<{ className?: string }>;
+  /** Si true, désactive le bouton de confirmation et affiche un état de chargement */
+  loading?: boolean;
 }
 
 /**
@@ -34,6 +36,7 @@ export default function ConfirmModal({
   variant = "default",
   confirmationText,
   icon: Icon,
+  loading = false,
 }: ConfirmModalProps) {
   const { t } = useLanguage();
   const [confirmationInput, setConfirmationInput] = useState("");
@@ -47,7 +50,7 @@ export default function ConfirmModal({
     }
   }, [isOpen]);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (
       confirmationText &&
       confirmationInput.toLowerCase().trim() !==
@@ -55,8 +58,13 @@ export default function ConfirmModal({
     ) {
       return;
     }
-    onConfirm();
-    onClose();
+    const result = onConfirm();
+    if (result instanceof Promise) {
+      await result;
+      // Le parent ferme le modal dans son handler (ex. après révocation)
+    } else {
+      onClose();
+    }
   };
 
   const isDanger = variant === "danger";
@@ -122,9 +130,9 @@ export default function ConfirmModal({
             variant="secondary"
           />
           <GenericButton
-            label={displayConfirmText}
+            label={loading ? t("common.loading") : displayConfirmText}
             onClick={handleConfirm}
-            disabled={isConfirmDisabled}
+            disabled={isConfirmDisabled || loading}
             variant={isDanger ? "danger" : "primary"}
           />
         </div>

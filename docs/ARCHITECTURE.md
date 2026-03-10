@@ -4,7 +4,7 @@ Ce document décrit l’architecture des services, le flux d’authentification 
 
 ## Vue d’ensemble
 
-SecureOps est organisé en **microservices** derrière un **API Gateway** unique. Le frontend (Next.js) ne parle qu’au gateway ; le gateway authentifie les requêtes (JWT Cognito) et proxy vers les services backend.
+SecureOps est organisé en **microservices** derrière un **API Gateway** unique. Le frontend (Next.js) ne parle qu’au gateway ; le gateway authentifie les requêtes (JWT Cognito ou clé API) et proxy vers les services backend.
 
 ```
                     ┌─────────────────────────────────────────────────────────┐
@@ -12,11 +12,11 @@ SecureOps est organisé en **microservices** derrière un **API Gateway** unique
                     │  Port 3000 • Cognito (Auth) • i18n fr/en • Tailwind     │
                     └───────────────────────────┬─────────────────────────────┘
                                                 │
-                                                │ HTTP (Bearer JWT pour API)
+                                                │ HTTP (Bearer JWT ou X-API-Key)
                                                 ▼
                     ┌─────────────────────────────────────────────────────────┐
                     │                     API Gateway                         │
-                    │  Port 8000 • Auth middleware • CORS • Proxy             │
+                    │  Port 8000 • Auth JWT + clés API • CORS • Proxy        │
                     │  Routes : /health, /admin/*, /user/*, /scan/*, /pdf/*   │
                     └───┬─────────┬─────────┬─────────┬─────────┬────────────┘
                         │         │         │         │         │
@@ -43,9 +43,9 @@ SecureOps est organisé en **microservices** derrière un **API Gateway** unique
 
 | Service | Port | Rôle | Base de données |
 |--------|------|------|------------------|
-| **gateway** | 8000 | Authentification JWT (Cognito), CORS, proxy vers les services. Ne stocke pas de données. | — |
+| **gateway** | 8000 | Authentification JWT (Cognito) ou clé API (X-API-Key / Bearer), CORS, proxy vers les services. Ne stocke pas de données. | — |
 | **admin-service** | 8010 | Administration : contacts, newsletter, emails, analytics, KPIs, alerting, gestion utilisateurs, upload d’images. | PostgreSQL (async), Alembic |
-| **user-service** | 8011 | Utilisateurs : profil, préférences, abonnements, favoris, sécurité, confidentialité. | PostgreSQL, Alembic |
+| **user-service** | 8011 | Utilisateurs : profil, préférences, abonnements, favoris, clés API, sécurité, confidentialité. Table `api_keys` pour l’API publique. | PostgreSQL, Alembic |
 | **pdf-service** | 8013 | Génération de rapports PDF (WeasyPrint). Appelé par le scan-service pour l’export PDF ; pas de base de données. | — |
 | **scan-service** | 8012 | Scanner de posture sécurité : TLS/HTTPS, headers, cookies, exposition fichiers, directory listing, robots.txt, fingerprinting. Score /100, findings normalisés. Export PDF via appel HTTP au pdf-service. | — |
 
@@ -58,10 +58,12 @@ Le **pdf-service** expose `POST /api/report/pdf` (body : payload scan + options 
 Le gateway expose :
 
 - **`/health`** — Health check (public).
-- **`/admin/*`** — Proxifié vers admin-service. Requiert **JWT + groupe Cognito `admin`** (sauf exceptions ci-dessous).
-- **`/user/*`** — Proxifié vers user-service. Requiert **JWT** (utilisateur authentifié).
-- **`/scan/*`** — Proxifié vers scan-service. `POST /scan/api/scan` est **public** (MVP) ; les autres routes requièrent **JWT**.
+- **`/admin/*`** — Proxifié vers admin-service. Requiert **JWT + groupe Cognito `admin`** (sauf exceptions ci-dessous). Les clés API ne donnent **pas** accès aux routes admin.
+- **`/user/*`** — Proxifié vers user-service. Requiert **JWT** (utilisateur authentifié). La gestion des clés (`POST/GET/DELETE /user/api/keys`) est réservée au JWT (interface web).
+- **`/scan/*`** — Proxifié vers scan-service. `POST /scan/api/scan` est **public** (MVP) ; les autres routes (ex. `POST /scan/api/scan/fake`) acceptent **JWT ou clé API**.
 - **`/pdf/*`** — Proxifié vers pdf-service (génération de rapports PDF). Appelé en interne par le scan-service ; le gateway peut ajouter le header `X-Internal-Api-Key` si configuré.
+
+**Authentification** : une requête peut être authentifiée soit par **JWT** (header `Authorization: Bearer <token>`), soit par **clé API** (`X-API-Key: sk_...` ou `Authorization: Bearer sk_...` si le token n’est pas un JWT). Le gateway appelle le user-service (`POST /api/internal/keys/verify`) pour valider les clés API. Voir [API-PUBLIQUE.md](API-PUBLIQUE.md) pour le détail.
 
 Routes **publiques** (sans auth) :
 
@@ -80,10 +82,17 @@ La configuration des URLs des services (Docker vs local) est dans `backend/gatew
 
 1. **Frontend** : l’utilisateur se connecte via **AWS Cognito** (Amplify UI : email/mot de passe ou Google OAuth).
 2. **Frontend** : après connexion, le client récupère le **JWT** (idToken) via `fetchAuthSession()` et envoie les requêtes API avec l’en-tête `Authorization: Bearer <token>`.
-3. **Gateway** : le middleware d’auth lit `Authorization`, appelle **common.common.jwt_verifier.verify_cognito_jwt(token)** (vérification JWKS Cognito, RS256, expiration, issuer, audience). Si la route est sous `/admin/*`, il vérifie en plus la présence du groupe Cognito `admin`.
+3. **Gateway** : le middleware d’auth tente d'abord l'auth par clé API (voir ci-dessous). Sinon, il lit `Authorization` et appelle **common.jwt_verifier.verify_cognito_jwt(token)** (vérification JWKS Cognito, RS256, expiration, issuer, audience). Si la route est sous `/admin/*`, il vérifie en plus la présence du groupe Cognito `admin`.
 4. **Gateway** : il transmet la requête au service backend concerné en repassant les headers (dont `Authorization`). Les services comme **user-service** peuvent à leur tour résoudre l’utilisateur (email depuis le JWT, puis `get_or_create_user` en base).
 
-Les variables Cognito (User Pool ID, Client ID, région, domaine) sont configurées côté backend (gateway, user-service, admin-service) via les variables d’environnement décrites dans [VARIABLES-ENVIRONNEMENT.md](VARIABLES-ENVIRONNEMENT.md).
+### Auth clé API (intégrations, CI/CD)
+
+1. Le client envoie `X-API-Key: sk_...` ou `Authorization: Bearer sk_...` (si le token n'est pas un JWT).
+2. **Gateway** : le middleware appelle le user-service `POST /api/internal/keys/verify` avec la clé en clair. Protection par `X-Internal-Api-Key` si `USER_SERVICE_INTERNAL_API_KEY` est définie.
+3. Le user-service vérifie le hash, met à jour `last_used_at` et retourne `user_id`, `email`, `sub`. Le gateway stocke `request.state.user` avec `auth_type: "api_key"`.
+4. Pour les appels proxy, le gateway transmet la clé en `Authorization: Bearer <clé>`.
+
+Les variables Cognito (User Pool ID, Client ID, région, domaine) sont configurées côté backend (gateway, user-service, admin-service) via les variables d’environnement décrites dans [VARIABLES-ENVIRONNEMENT.md](VARIABLES-ENVIRONNEMENT.md). Pour les clés API : [API-PUBLIQUE.md](API-PUBLIQUE.md).
 
 ## Bases de données
 
@@ -118,7 +127,7 @@ Le répertoire **backend/common** est un package Python installé en mode édita
 - **AWS Amplify** (Cognito) pour l’auth ; formulaire de contact protégé par **Cloudflare Turnstile**.
 - **Tailwind CSS** avec thème clair/sombre et variables CSS (design system).
 - Appels API via un client qui envoie le Bearer token (refresh sur 401).
-- Pages : accueil, tarifs, contact, connexion, inscription, mot de passe oublié, confirmation, mon compte, admin (réservé aux utilisateurs du groupe `admin`), politique de confidentialité.
+- Pages : accueil, tarifs, contact, connexion, inscription, mot de passe oublié, confirmation, mon compte, admin (réservé aux utilisateurs du groupe `admin`), politique de confidentialité. Section **Scanner** : hub, scan, historique, clés API (`/scanner/cles-api`), documentation API publique (`/scanner/docs/api`).
 
 Pour plus de détails sur les pages et la config Amplify, voir [frontend/README.md](../frontend/README.md).
 

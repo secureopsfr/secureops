@@ -8,6 +8,7 @@ from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
 
+from .utils.api_key_auth import _get_client_ip, authenticate_via_api_key, extract_api_key_from_request
 from .utils.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ PUBLIC_METHOD_PATHS: set[tuple[str, str]] = {
     ("POST", "/api/contact"),  # Protégé par captcha Turnstile
     ("POST", "/admin/api/analytics/ingest"),  # Protégé par validation + rate limiting
     ("POST", "/scan/api/scan"),  # MVP : scan posture sécurité public (disclaimer côté front)
+    # POST /scan/api/scan/fake : requiert auth (JWT ou clé API) pour tester l'API publique
     ("POST", "/crawl/api/crawl/stream"),  # Crawler HTTP en streaming SSE (roadmap §7)
 }
 
@@ -28,15 +30,49 @@ AUTH_ONLY_METHOD_PATHS: set[tuple[str, str]] = {
 }
 
 
-def _authenticate(request: Request, *, require_admin: bool = False) -> Tuple[Optional[dict], Optional[JSONResponse]]:
-    """Authentifie l'utilisateur à partir du header Authorization.
+async def _authenticate(request: Request, *, require_admin: bool = False) -> Tuple[Optional[dict], Optional[JSONResponse]]:
+    """Authentifie l'utilisateur (JWT ou clé API).
 
-    Returns:
-        (user, None) en cas de succès, (None, error_response) en cas d'échec.
+    Priorité : JWT si Bearer ressemble à un JWT, sinon clé API (X-API-Key ou Bearer).
     """
     authorization = request.headers.get("Authorization")
+    x_api_key = request.headers.get("X-API-Key")
+
+    # 1) Tenter l'auth par clé API (X-API-Key ou Bearer avec token non-JWT)
+    api_key = extract_api_key_from_request(authorization, x_api_key)
+    if api_key:
+        client_ip = _get_client_ip(request)
+        user = await authenticate_via_api_key(api_key, client_ip=client_ip)
+        if user and "_error" not in user:
+            if require_admin:
+                # Les clés API n'ont pas de groupe admin
+                return None, JSONResponse(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    content={"detail": "Accès refusé. Les clés API ne permettent pas l'accès admin."},
+                )
+            request.state.user = user
+            request.state.api_key_to_forward = api_key  # Pour le proxy (historique scans)
+            logger.debug("Auth via clé API: user_id=%s", user.get("user_id"))
+            return user, None
+        # Clé API invalide — ne pas retenter en JWT
+        detail = user.get("_error", "Clé API invalide ou révoquée") if (isinstance(user, dict) and user) else "Clé API invalide ou révoquée"
+        return None, JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"detail": detail},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 2) Auth JWT (Authorization: Bearer obligatoire)
+    if not authorization:
+        return None, JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"detail": "Authentification requise"},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     try:
         user = get_current_user(authorization)
+        user["auth_type"] = "jwt"
 
         if require_admin:
             groups = user.get("cognito:groups", [])
@@ -99,19 +135,19 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         # Routes auth-only (pas de vérification de groupe)
         if (method, path) in AUTH_ONLY_METHOD_PATHS:
-            _, error_response = _authenticate(request, require_admin=False)
+            _, error_response = await _authenticate(request, require_admin=False)
             return error_response or await call_next(request)
 
         # Lecture des docs : GET /admin/api/docs* — authentification simple (pas admin)
         if method == "GET" and (path == "/admin/api/docs" or path.startswith("/admin/api/docs/")):
-            _, error_response = _authenticate(request, require_admin=False)
+            _, error_response = await _authenticate(request, require_admin=False)
             return error_response or await call_next(request)
 
         # Routes admin — nécessitent le groupe « admin »
         if path.startswith("/admin/"):
-            _, error_response = _authenticate(request, require_admin=True)
+            _, error_response = await _authenticate(request, require_admin=True)
             return error_response or await call_next(request)
 
         # Toutes les autres routes — authentification simple
-        _, error_response = _authenticate(request, require_admin=False)
+        _, error_response = await _authenticate(request, require_admin=False)
         return error_response or await call_next(request)

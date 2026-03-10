@@ -242,13 +242,21 @@ Les sections suivantes de la roadmap v0.3.0 (nouvelles fonctionnalités, tests a
 
 ### 1.1 Modèle
 
-- [ ] Schéma : `api_keys` (id, user_id, key_hash, name, created_at, last_used_at)
-- [ ] Génération : clé aléatoire (ex. 32 caractères) ; stocker uniquement le hash
+- [x] Schéma : `api_keys` (id, user_id, key_hash, name, prefix, created_at, last_used_at, expires_at, tags, allowed_ips)
+  > **Fait :** Table `api_keys`, migrations 0011–0013. Contrainte unique (user_id, name) et key_hash unique. Préfixe `sk_`, hash SHA-256. Colonnes optionnelles : `expires_at` (TIMESTAMPTZ), `tags` (JSONB), `allowed_ips` (JSONB).
+- [x] Génération : clé aléatoire (ex. 32 caractères) ; stocker uniquement le hash
+  > **Fait :** `secrets.token_urlsafe(24)` → ~32 caractères. Hash SHA-256 hex. Préfixe affiché `sk_xxx...` pour la liste.
 
 ### 1.2 Authentification
 
-- [ ] Header `X-API-Key` ou `Authorization: Bearer <api_key>`
-- [ ] Middleware : vérifier la clé, résoudre l’utilisateur, appliquer quotas
+- [x] Header `X-API-Key` ou `Authorization: Bearer <api_key>`
+  > **Fait :** Gateway extrait la clé depuis X-API-Key ou Bearer si non-JWT. User-service : endpoint interne POST /api/internal/keys/verify protégé par X-Internal-Api-Key.
+- [x] Middleware : vérifier la clé, résoudre l’utilisateur, appliquer quotas
+  > **Fait :** Gateway appelle user-service pour vérifier ; request.state.user avec auth_type api_key. Proxy transmet Authorization Bearer aux backends. Quotas : non (voir 1.3).
+- [x] Expiration des clés : vérifier `expires_at` ; rejeter si dépassée (401 « Clé API expirée »)
+  > **Fait :** Par défaut TTL 30 jours ; options 90, 180, 365, ou 0 (jamais). Config `api_keys.default_ttl_days`, `allowed_ttl_days`.
+- [x] Restriction IP : si `allowed_ips` défini, vérifier l'IP client (X-Forwarded-For, X-Real-IP) ; 401 « Clé API : IP non autorisée » si hors whitelist
+  > **Fait :** Gateway transmet `client_ip` au verify ; user-service vérifie contre les plages CIDR ou IP autorisées.
 
 ### 1.3 Quotas et rate limiting (web + API)
 
@@ -262,15 +270,23 @@ Politique **unifiée** : mêmes principes pour les scans lancés depuis l’UI (
 
 ### 1.4 API
 
-- [ ] `POST /api/keys` : créer une clé (nom, retourne la clé en clair une seule fois)
-- [ ] `GET /api/keys` : liste des clés (sans valeur)
-- [ ] `DELETE /api/keys/{id}` : révoquer une clé
+- [x] `POST /api/keys` : créer une clé (nom, options, retourne la clé en clair une seule fois)
+  > **Fait :** POST /user/api/keys. Body { name, ttl_days?, tags?, allowed_ips? }. Réponse { id, key, name, created_at, expires_at }. Erreurs 403 limite, 409 nom existant.
+- [x] `GET /api/keys` : liste des clés (sans valeur)
+  > **Fait :** GET /user/api/keys. Réponse { items: [{ id, name, prefix, created_at, last_used_at, expires_at, tags, allowed_ips }] }.
+- [x] `DELETE /api/keys/{id}` : révoquer une clé
+  > **Fait :** DELETE /user/api/keys/{id}. 204 No Content. Erreur 404 si non trouvée.
 
 ### 1.5 Frontend
 
-- [ ] Page « Clés API » dans Mon compte
-- [ ] Création, affichage (une fois), révocation
-- [ ] Documentation : exemple curl avec `X-API-Key`
+- [x] Page « Clés API » dans Mon compte
+  > **Fait :** Page /scanner/cles-api (hub Scanner). Composant ApiKeysContent.
+- [x] Création, affichage (une fois), révocation
+  > **Fait :** Modal création : nom, durée de validité (1 mois défaut, 3/6/12 mois, jamais), tags (optionnel), restriction IP (optionnel). Modal clé avec Copier + avertissement « Ne sera plus visible ». Modal confirmation révocation.
+- [x] Liste : affichage de expires_at, tags, allowed_ips par clé
+  > **Fait :** Chaque clé affiche créée le, expire le, tags (badges), IP autorisées. Dernière utilisation si renseignée.
+- [x] Documentation : exemple curl avec `X-API-Key`
+  > **Fait :** Page /scanner/docs/api avec auth, exemple curl pour POST /scan/api/scan/fake, lien vers clés.
 
 ---
 

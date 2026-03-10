@@ -36,6 +36,8 @@ interface DatePickerProps {
   /** Afficher le champ de saisie manuelle (AAAA-MM-JJ). Défaut: true */
   showInput?: boolean;
   placeholder?: string;
+  /** Variante compacte (taille réduite) */
+  compact?: boolean;
 }
 
 /**
@@ -48,6 +50,7 @@ export default function DatePicker({
   className = "",
   showInput = true,
   placeholder = "AAAA-MM-JJ",
+  compact = false,
 }: DatePickerProps) {
   const { t } = useLanguage();
   const minDate = useMemo(
@@ -167,7 +170,9 @@ export default function DatePicker({
   const canNext = true;
 
   return (
-    <div className={`theme-calendar ${className}`.trim()}>
+    <div
+      className={`theme-calendar ${compact ? "theme-calendar-compact" : ""} ${className}`.trim()}
+    >
       {showInput && (
         <input
           type="text"

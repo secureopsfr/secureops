@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   BarChart3,
-  Key,
+  Terminal,
   Bot,
   Monitor,
   Server,
@@ -26,10 +26,10 @@ export default function ScannerHub() {
     },
     {
       id: "cles-api",
-      titleKey: "scanner.hub.cardClesApi",
-      bodyKey: "scanner.hub.cardClesApiBody",
+      titleKey: "scanner.hub.cardApiPublique",
+      bodyKey: "scanner.hub.cardApiPubliqueBody",
       href: lp("/scanner/cles-api"),
-      icon: Key,
+      icon: Terminal,
     },
     {
       id: "documentation",

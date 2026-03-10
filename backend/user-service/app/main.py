@@ -12,8 +12,10 @@ from fastapi import FastAPI
 
 from app.config_loader import settings
 from app.db import init_db
+from app.routers.api_keys import router as api_keys_router
 from app.routers.favorites import router as favorites_router
 from app.routers.health import router as health_router
+from app.routers.internal_api_keys import router as internal_api_keys_router
 from app.routers.preferences import router as preferences_router
 from app.routers.privacy import router as privacy_router
 from app.routers.profile import router as profile_router
@@ -76,6 +78,8 @@ def create_app() -> FastAPI:
     app.add_middleware(CorrelationIdMiddleware)
 
     app.include_router(health_router)
+    app.include_router(api_keys_router)
+    app.include_router(internal_api_keys_router)
     app.include_router(profile_router)
     app.include_router(security_router)
     app.include_router(favorites_router)

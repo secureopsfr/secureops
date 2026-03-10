@@ -4,6 +4,8 @@ interface UseDropdownOptions {
   closeDelay?: number;
   isOpen?: boolean;
   setIsOpen?: (isOpen: boolean) => void;
+  /** Si true, le volet s'ouvre uniquement au clic (pas au survol). */
+  clickOnly?: boolean;
   /** Additional refs to exclude from click-outside detection (e.g. portal menus). */
   excludeRefs?: React.RefObject<HTMLElement | null>[];
 }
@@ -40,6 +42,7 @@ export function useDropdown({
   closeDelay = 300,
   isOpen: externalIsOpen,
   setIsOpen: externalSetIsOpen,
+  clickOnly = false,
   excludeRefs = [],
 }: UseDropdownOptions = {}): UseDropdownReturn {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
@@ -142,16 +145,19 @@ export function useDropdown({
     return () => mediaQuery.removeEventListener("change", updateCapability);
   }, []);
 
-  // Handlers pour les événements de souris sur le conteneur
+  // Handlers pour les événements de souris sur le conteneur (désactivés si clickOnly)
   const mouseHandlers = useMemo(
-    () => ({
-      onMouseEnter: canHover ? handleOpen : undefined,
-      onMouseLeave: canHover ? handleClose : undefined,
-    }),
-    [canHover, handleOpen, handleClose],
+    () =>
+      clickOnly
+        ? {}
+        : {
+            onMouseEnter: canHover ? handleOpen : undefined,
+            onMouseLeave: canHover ? handleClose : undefined,
+          },
+    [clickOnly, canHover, handleOpen, handleClose],
   );
 
-  // Handlers pour le bouton
+  // Handlers pour le bouton (toujours toggle au clic si clickOnly)
   const buttonHandlers = useMemo(
     () => ({
       onMouseDown: (e: React.MouseEvent) => {
@@ -159,12 +165,12 @@ export function useDropdown({
         e.preventDefault();
       },
       onClick: () => {
-        if (!canHover) {
+        if (clickOnly || !canHover) {
           handleToggle();
         }
       },
     }),
-    [canHover, handleToggle],
+    [clickOnly, canHover, handleToggle],
   );
 
   return {

@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from app.schemas.scan import ScanRequest
 from app.services.scan_runner import ScanRunError, run_scan_to_result
 from app.services.scan_stream import scan_stream_generator
+from app.services.scan_stream_fake import fake_scan_stream_generator
 from app.utils.url_validator import URLValidationError
 
 # Clé API pour les appels service-to-service (endpoint interne).
@@ -167,6 +168,22 @@ async def post_scan(body: ScanRequest, request: Request) -> StreamingResponse:
     authorization = request.headers.get("Authorization")
     return StreamingResponse(
         scan_stream_generator(body.url, authorization=authorization),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.post(
+    "/scan/fake",
+    summary="[Dév] Scan factice — toujours OK",
+    description="Pipeline simulée qui retourne toujours score 100, aucun finding. "
+    "Utilisé pour développer l'API publique (clés, quotas) sans dépendre du scan réel.",
+)
+async def post_scan_fake(body: ScanRequest, request: Request) -> StreamingResponse:
+    """Scan factice : valide l'URL, émet des étapes simulées, retourne toujours OK (score 100)."""
+    authorization = request.headers.get("Authorization")
+    return StreamingResponse(
+        fake_scan_stream_generator(body.url, authorization=authorization),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
