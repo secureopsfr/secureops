@@ -34,6 +34,17 @@ jobs:
         run: |
           docker compose -f docker-compose.ci.yml up -d --build
           docker compose -f docker-compose.ci.yml ps
+          # Si user-service a déjà crashé, afficher les logs et échouer immédiatement
+          status_early=$(docker compose -f docker-compose.ci.yml ps -q user-service 2>/dev/null | xargs -r docker inspect -f '{{.State.Status}}' 2>/dev/null || echo "")
+          if [ "$status_early" = "exited" ]; then
+            echo "user-service exited during startup. Status/inspect:"
+            docker compose -f docker-compose.ci.yml ps user-service 2>/dev/null || true
+            cid=$(docker compose -f docker-compose.ci.yml ps -q user-service 2>/dev/null)
+            [ -n "$cid" ] && docker inspect "$cid" 2>/dev/null || true
+            echo "user-service logs:"
+            docker compose -f docker-compose.ci.yml logs --no-color --tail=300 user-service 2>/dev/null || true
+            exit 1
+          fi
           docker compose -f docker-compose.ci.yml logs --no-color user-service 2>/dev/null || true
           # Attente de la disponibilité de Postgres
           until docker compose -f docker-compose.ci.yml exec -T postgres pg_isready -U user -d template_db; do
@@ -76,8 +87,11 @@ jobs:
               exit 1
             fi
             if [ "$status" = "exited" ]; then
-              echo "user-service has exited. Logs:"
-              docker compose -f docker-compose.ci.yml logs user-service || true
+              echo "user-service has exited. Status/inspect:"
+              docker compose -f docker-compose.ci.yml ps user-service 2>/dev/null || true
+              [ -n "$cid" ] && docker inspect "$cid" 2>/dev/null || true
+              echo "user-service logs:"
+              docker compose -f docker-compose.ci.yml logs --no-color --tail=300 user-service 2>/dev/null || true
               exit 1
             fi
             if docker compose -f docker-compose.ci.yml exec -T user-service python -c "import urllib.request; urllib.request.urlopen('http://localhost:8011/api/health')" 2>/dev/null; then
