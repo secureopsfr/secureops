@@ -5,8 +5,8 @@ import os
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import Response
-from pydantic import BaseModel, Field
 
+from app.schemas.report import ReportPdfBody
 from app.services.pdf_report import generate_pdf
 
 logger = logging.getLogger(__name__)
@@ -32,16 +32,6 @@ async def _verify_internal_api_key(
 
 
 _VERIFY_INTERNAL_API_KEY = Depends(_verify_internal_api_key)
-
-
-class ReportPdfBody(BaseModel):
-    """Payload attendu pour la génération PDF (résultat de scan)."""
-
-    url: str = Field(..., description="URL scannée")
-    score: int | None = Field(None, description="Score /100")
-    timestamp: str = Field("", description="Horodatage ISO du scan")
-    duration: float = Field(0.0, description="Durée du scan en secondes")
-    findings: list[dict] = Field(default_factory=list, description="Liste des findings")
 
 
 @router.post(

@@ -1,17 +1,17 @@
 """Section Synthèse du rapport PDF."""
 
 from html import escape
-from typing import Any
 
 from app.catalogue.category_summaries import get_checks_count
 from app.config.pdf import get_category_labels, get_pdf_settings
+from app.schemas.finding import Finding
 from app.services.pdf_report.pdf_i18n import t
 
 
 def build_synthese(
-    by_category: dict[str, list[dict[str, Any]]],
+    by_category: dict[str, list[Finding]],
     ordered_cats: list[str],
-    findings: list[dict[str, Any]],
+    findings: list[Finding],
     score_val: int,
     score_color: str,
     lang: str,
