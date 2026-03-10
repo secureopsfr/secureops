@@ -20,9 +20,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install common + dev deps
-        run: |
-          pip install -e backend/common
-          pip install -r backend/common/requirements-dev.txt
+        run: pip install -e backend/common[dev]
       - name: Black
         run: black --check --config backend/common/pyproject.toml backend/common
       - name: isort
