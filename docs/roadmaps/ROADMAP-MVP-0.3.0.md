@@ -71,41 +71,43 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
   - [x] `Dockerfile` / `requirements.txt`
   > **Fait :** Refactoring structurel du gateway avec nettoyage des artefacts legacy et consolidation des responsabilités dans `app/routers`, `app/services/proxy` et `config_loader`. Côté proxy : suppression des comportements hérités non utilisés (Mapbox/vector tiles, timeouts/services historiques), conservation du flux buffer/stream et normalisation des métriques (route extraction simplifiée). Côté config : simplification du schéma settings (`content_types` retiré), gestion d’erreur robuste (`ValueError` sur config invalide), et règles d’accès clarifiées dans le middleware (auth-only docs admin via constantes dédiées). Côté sécurité/maintenabilité : suppression du mock de package `app/__init__.py`, pseudonymisation IP IPv4/IPv6 fiabilisée via `ipaddress`, cache local de l’URL user-service pour l’auth API key. Côté qualité : ajout d’une vraie base de tests unitaires (`middleware`, `config_loader`, `metrics`, `api_key_auth`, `pseudonymizer`) en remplacement du placeholder seul. Côté build/deps : séparation runtime/dev (`requirements.txt` + `requirements-dev.txt`), Dockerfile gateway supportant l’installation optionnelle des dev deps via build arg, CI et `launch_dev.sh` adaptés pour installer les dépendances de dev uniquement dans les contextes lint/test.
 
-- [ ] `backend/admin-service/`
-  - [ ] `app/`
-    - [ ] `routers/` (contact, newsletter, images, analytics, notifications, admin)
-    - [ ] `models/` (events, audit, etc.)
-    - [ ] `services/` (contact, mailing list, kpis, alerting, materialized views…)
-    - [ ] `db.py` / `db_sync.py` / `email_config.py`
-  - [ ] `config/settings.yml`
-  - [ ] `alembic/` + `alembic.ini`
-  - [ ] `tests/`
-  - [ ] `Dockerfile` / `pyproject.toml` / `requirements.txt`
+- [x] `backend/admin-service/`
+  - [x] `app/`
+    - [x] `routers/` (contact, newsletter, images, analytics, notifications, admin)
+    - [x] `models/` (events, audit, etc.)
+    - [x] `services/` (contact, mailing list, kpis, alerting, materialized views…)
+    - [x] `db.py` / `db_sync.py` / `email_config.py`
+  - [x] `config/settings.yml`
+  - [x] `alembic/` + `alembic.ini`
+  - [x] `tests/`
+  - [x] `Dockerfile` / `pyproject.toml` / `requirements.txt`
+  > **Fait :** Refactoring admin-service finalisé avec durcissement sécurité, fiabilité, maintenabilité et base de tests. Côté sécurité : ajout d’une vérification JWT admin in-service (`require_admin_user`) et application au montage des routers admin principaux ; endpoint interne notifications mis en fail-closed si clé non configurée. Côté robustesse : correction `newsletter.schedule` (`scheduled_at` string), alignement contrat mailing list (`success=True`), correction de validation `kpis` (`window_minutes.ge`) et suppression des logs sensibles de préfixes de clé API. Côté async/sync : appels sync dans `newsletter`/`mailing_list`/`notification` déplacés via `run_in_threadpool` avec helpers dédiés pour éviter le blocage event loop. Côté qualité : ajout de tests ciblés (`auth`, `internal_notifications`, `mailing_list_router`, `mailing_list_service`, `newsletter_router`, `notification_router`) + smoke migrations. Côté build/deps : séparation runtime/dev (`requirements.txt` + `requirements-dev.txt`), Dockerfile avec installation optionnelle des dev deps via `INSTALL_DEV_DEPS`, activée en CI.
 
-- [ ] `backend/user-service/`
-  - [ ] `app/`
-    - [ ] `routers/` (profil, préférences, sécurité, favoris, scans, scheduled scans, health)
-    - [ ] `models/` (user, subscription, favorites, scans, scheduled_scans, alerts…)
-    - [ ] `services/`
-      - [ ] `user_repository.py`
-      - [ ] `subscription_repository.py`
-      - [ ] `favorite_repository.py`
-      - [ ] `scan_repository.py`
-      - [ ] `scan_alert_repository.py`
-      - [ ] `scheduled_scan_repository.py`
-      - [ ] `scheduled_scan_scheduler.py`
-      - [ ] `scheduled_scan_utils.py`
-      - [ ] `scan_alert_service.py`
-      - [ ] `user_service.py`
-      - [ ] `cognito_service.py`
-    - [ ] `schemas/`
-    - [ ] `utils/` (auth, URL utils)
-    - [ ] `db.py` / `config_loader.py`
-  - [ ] `config/settings.yml`
-  - [ ] `alembic/` + `alembic.ini`
-  - [ ] `scripts/` (cleanup, tâches ponctuelles)
-  - [ ] `tests/`
-  - [ ] `Dockerfile` / `requirements.txt`
+- [x] `backend/user-service/`
+  - [x] `app/`
+    - [x] `routers/` (profil, préférences, sécurité, favoris, scans, scheduled scans, health)
+    - [x] `models/` (user, subscription, favorites, scans, scheduled_scans, alerts…)
+    - [x] `services/`
+      - [x] `user_repository.py`
+      - [x] `subscription_repository.py`
+      - [x] `favorite_repository.py`
+      - [x] `scan_repository.py`
+      - [x] `scan_alert_repository.py`
+      - [x] `scheduled_scan_repository.py`
+      - [x] `scheduled_scan_scheduler.py`
+      - [x] `scheduled_scan_utils.py`
+      - [x] `scan_alert_service.py`
+      - [x] `user_service.py`
+      - [x] `cognito_service.py`
+    - [x] `schemas/`
+    - [x] `utils/` (auth, URL utils)
+    - [x] `db.py` / `config_loader.py`
+  - [x] `config/settings.yml`
+  - [x] `alembic/` + `alembic.ini`
+  - [x] `scripts/` (cleanup, tâches ponctuelles)
+  - [x] `tests/`
+  - [x] `Dockerfile` / `requirements.txt`
+  > **Fait :** Refactoring user-service finalisé avec corrections de sécurité, fiabilité et qualité. Sécurité : endpoints sensibles passés en JWT-only via `require_jwt_user` (security, privacy, profile, preferences, subscription, favorites), endpoint interne `/api/internal/keys/verify` en fail-closed (503 si clé interne absente). Fiabilité : bug scheduler corrigé (`scan_type` transmis à `create_scan`) et validation stricte des fuseaux horaires dans `scheduled_scan_utils` avec propagation explicite en `400` dans `scheduled_scan` pour fuseaux invalides. Auth : messages d’erreur JWT rendus génériques pour limiter l’exposition d’informations internes. Qualité : ajout de tests ciblés (`auth_jwt_only`, `internal_api_keys`, `scheduled_scan_scheduler`, `scheduled_scan_utils`) + smoke migrations, avec conformité `pytest-asyncio`. Côté build/deps : séparation runtime/dev (`requirements.txt` + `requirements-dev.txt`) et Dockerfile compatible `INSTALL_DEV_DEPS` en CI.
 
 - [ ] `backend/scan-service/`
   - [ ] `app/`

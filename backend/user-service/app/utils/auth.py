@@ -147,7 +147,7 @@ async def get_current_user(
         logger.error("Token JWT invalide: %s", e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token JWT invalide: {str(e)}",
+            detail="Token JWT invalide ou expiré.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:
@@ -156,7 +156,7 @@ async def get_current_user(
         logger.error("Erreur de vérification JWT (%s): %s", error_type, e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Erreur d'authentification: {str(e)}",
+            detail="Erreur d'authentification.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -179,6 +179,18 @@ async def get_current_user_id(
         HTTPException: 401 si sub manquant, 404 si utilisateur non trouvé.
     """
     return await resolve_user_id(current_user)
+
+
+async def require_jwt_user(
+    current_user: Annotated[Dict[str, Any], Depends(get_current_user)],
+) -> Dict[str, Any]:
+    """Exige une authentification JWT (et refuse les clés API)."""
+    if current_user.get("auth_type") != "jwt":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cette opération nécessite une authentification utilisateur JWT.",
+        )
+    return current_user
 
 
 async def _get_user_from_api_key(plain_key: str) -> Dict[str, Any]:

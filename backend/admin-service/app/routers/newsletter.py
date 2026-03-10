@@ -3,6 +3,7 @@
 from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.concurrency import run_in_threadpool
 
 from app.schemas.common import (
     ErrorResponse,
@@ -24,6 +25,59 @@ router = APIRouter()
 newsletter_service = NewsletterService()
 
 
+def _delete_newsletter_email_sync(email_id: int) -> Dict[str, Any]:
+    """Supprime un email newsletter via session sync (hors boucle async)."""
+    from app.db_sync import get_sync_session
+    from app.models.email import NewsletterEmail
+
+    with get_sync_session() as db:
+        email = db.query(NewsletterEmail).filter(NewsletterEmail.id == email_id).first()
+        if not email:
+            raise ValueError(f"Email {email_id} non trouvé")
+        db.delete(email)
+        db.commit()
+        return {"message": f"Email {email_id} supprimé avec succès", "email_id": email_id}
+
+
+def _get_scheduled_emails_sync() -> Dict[str, Any]:
+    """Récupère les emails newsletter programmés via session sync."""
+    from datetime import datetime, timezone
+
+    from app.db_sync import get_sync_session
+    from app.models.email import NewsletterEmail
+
+    with get_sync_session() as db:
+        scheduled_emails = (
+            db.query(NewsletterEmail).filter(NewsletterEmail.status == "scheduled", NewsletterEmail.scheduled_at > datetime.now(timezone.utc)).all()
+        )
+        emails_list = [
+            {
+                "id": email.id,
+                "subject": email.subject,
+                "scheduled_at": email.scheduled_at.isoformat() if email.scheduled_at else None,
+            }
+            for email in scheduled_emails
+        ]
+        return {"scheduled_emails": emails_list, "count": len(emails_list)}
+
+
+def _cancel_scheduled_email_sync(email_id: int) -> Dict[str, Any]:
+    """Annule un email newsletter planifié via session sync."""
+    from app.db_sync import get_sync_session
+    from app.models.email import NewsletterEmail
+
+    with get_sync_session() as db:
+        email = db.query(NewsletterEmail).filter(NewsletterEmail.id == email_id, NewsletterEmail.status == "scheduled").first()
+        if not email:
+            raise ValueError(f"Email {email_id} non trouvé ou non programmé")
+
+        email.status = "draft"
+        email.is_scheduled = False
+        email.scheduled_at = None
+        db.commit()
+        return {"message": f"Programmation de l'email {email_id} annulée avec succès", "email_id": email_id, "status": "draft"}
+
+
 @router.get("/newsletter", responses={500: {"model": ErrorResponse}})
 async def get_newsletter_emails(limit: int = DEFAULT_QUERY_50, offset: int = DEFAULT_QUERY_0) -> Dict[str, Any]:
     """
@@ -42,8 +96,8 @@ async def get_newsletter_emails(limit: int = DEFAULT_QUERY_50, offset: int = DEF
     try:
         result = await newsletter_service.get_newsletter_emails(limit=limit, offset=offset)
         return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @router.post("/newsletter", response_model=NewsletterEmailCreateResponse, responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
@@ -72,8 +126,8 @@ async def create_newsletter_email(email_data: NewsletterEmailRequest) -> Newslet
         return NewsletterEmailCreateResponse(**result)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @router.put(
@@ -100,8 +154,8 @@ async def update_newsletter_email(email_id: int, email_data: NewsletterEmailRequ
         return NewsletterEmailCreateResponse(**result)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @router.delete("/newsletter/{email_id}", response_model=dict, responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
@@ -119,24 +173,11 @@ async def delete_newsletter_email(email_id: int) -> Dict[str, Any]:
         HTTPException: Erreur 404 si email non trouvé, 500 en cas d'erreur serveur
     """
     try:
-        from app.db_sync import get_sync_session
-
-        with get_sync_session() as db:
-            from app.models.email import NewsletterEmail
-
-            email = db.query(NewsletterEmail).filter(NewsletterEmail.id == email_id).first()
-
-            if not email:
-                raise ValueError(f"Email {email_id} non trouvé")
-
-            db.delete(email)
-            db.commit()
-
-            return {"message": f"Email {email_id} supprimé avec succès", "email_id": email_id}
+        return await run_in_threadpool(_delete_newsletter_email_sync, email_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @router.post("/newsletter/send", response_model=dict, responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
@@ -164,8 +205,8 @@ async def send_newsletter_email(send_data: NewsletterSendRequest) -> Dict[str, A
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @router.post(
@@ -187,19 +228,19 @@ async def schedule_newsletter_email(schedule_data: NewsletterEmailScheduleReques
         HTTPException: Erreur 400 si données invalides, 404 si email non trouvé, 500 en cas d'erreur serveur
     """
     try:
-        result = newsletter_service.schedule_newsletter_email(schedule_data.email_id, schedule_data.scheduled_at)
+        result = await run_in_threadpool(newsletter_service.schedule_newsletter_email, schedule_data.email_id, schedule_data.scheduled_at)
         await log_action(
             admin_email="admin",
             action="newsletter.schedule",
             entity_type="newsletter",
             entity_id=str(schedule_data.email_id),
-            details={"scheduled_at": schedule_data.scheduled_at.isoformat() if schedule_data.scheduled_at else None},
+            details={"scheduled_at": schedule_data.scheduled_at},
         )
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @router.get("/newsletter/scheduled", response_model=dict, responses={500: {"model": ErrorResponse}})
@@ -214,31 +255,9 @@ async def get_scheduled_emails() -> Dict[str, Any]:
         HTTPException: Erreur 500 en cas d'erreur serveur
     """
     try:
-        from app.db_sync import get_sync_session
-
-        with get_sync_session() as db:
-            from datetime import datetime, timezone
-
-            from app.models.email import NewsletterEmail
-
-            scheduled_emails = (
-                db.query(NewsletterEmail)
-                .filter(NewsletterEmail.status == "scheduled", NewsletterEmail.scheduled_at > datetime.now(timezone.utc))
-                .all()
-            )
-
-            emails_list = [
-                {
-                    "id": email.id,
-                    "subject": email.subject,
-                    "scheduled_at": email.scheduled_at.isoformat() if email.scheduled_at else None,
-                }
-                for email in scheduled_emails
-            ]
-
-            return {"scheduled_emails": emails_list, "count": len(emails_list)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {str(e)}")
+        return await run_in_threadpool(_get_scheduled_emails_sync)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 
 @router.post("/newsletter/cancel-schedule/{email_id}", response_model=dict, responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
@@ -256,23 +275,8 @@ async def cancel_scheduled_email(email_id: int) -> Dict[str, Any]:
         HTTPException: Erreur 404 si email non trouvé ou non programmé, 500 en cas d'erreur serveur
     """
     try:
-        from app.db_sync import get_sync_session
-
-        with get_sync_session() as db:
-            from app.models.email import NewsletterEmail
-
-            email = db.query(NewsletterEmail).filter(NewsletterEmail.id == email_id, NewsletterEmail.status == "scheduled").first()
-
-            if not email:
-                raise ValueError(f"Email {email_id} non trouvé ou non programmé")
-
-            email.status = "draft"
-            email.is_scheduled = False
-            email.scheduled_at = None
-            db.commit()
-
-            return {"message": f"Programmation de l'email {email_id} annulée avec succès", "email_id": email_id, "status": "draft"}
+        return await run_in_threadpool(_cancel_scheduled_email_sync, email_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur interne du serveur: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Erreur interne du serveur")

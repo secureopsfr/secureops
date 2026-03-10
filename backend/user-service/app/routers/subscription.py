@@ -12,7 +12,7 @@ from app.schemas.user import SubscriptionPreferencesUpdateRequest, SubscriptionR
 from app.services.scan_alert_repository import delete_alert_events_older_than_days, delete_all_alert_events_by_user
 from app.services.scan_repository import delete_all_user_scans, delete_scans_older_than_days
 from app.services.subscription_repository import get_subscription_by_user_id
-from app.utils.auth import get_current_user, resolve_user
+from app.utils.auth import require_jwt_user, resolve_user
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/user", tags=["user – abonnement"])
 
 @router.get("/subscription", response_model=SubscriptionResponse)
 async def get_subscription(
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    current_user: Annotated[Dict, Depends(require_jwt_user)],
 ) -> SubscriptionResponse:
     """Récupère l'abonnement de l'utilisateur."""
     try:
@@ -109,7 +109,7 @@ async def _apply_preferences(
 @router.patch("/subscription/preferences", response_model=SubscriptionResponse)
 async def update_subscription_preferences(
     preferences: SubscriptionPreferencesUpdateRequest,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    current_user: Annotated[Dict, Depends(require_jwt_user)],
 ) -> SubscriptionResponse:
     """Met à jour les préférences d'abonnement (newsletter, notifications)."""
     try:

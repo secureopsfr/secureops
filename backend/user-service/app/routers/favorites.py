@@ -15,7 +15,7 @@ from app.services.favorite_repository import (
     delete_user_favorites,
     get_user_favorites,
 )
-from app.utils.auth import get_current_user, resolve_user
+from app.utils.auth import require_jwt_user, resolve_user
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/user", tags=["user – favoris"])
 @router.post("/favorites", response_model=FavoriteResponse)
 async def create_favorite_entry(
     favorite_data: FavoriteCreateRequest,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    current_user: Annotated[Dict, Depends(require_jwt_user)],
 ) -> FavoriteResponse:
     """Crée une nouvelle entrée de favori."""
     try:
@@ -58,7 +58,7 @@ async def create_favorite_entry(
 
 @router.get("/favorites", response_model=FavoriteListResponse)
 async def get_favorites(
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    current_user: Annotated[Dict, Depends(require_jwt_user)],
     limit: int = 20,
     offset: int = 0,
 ) -> FavoriteListResponse:
@@ -103,7 +103,7 @@ async def get_favorites(
 @router.delete("/favorites/{favorite_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_favorite(
     favorite_id: str,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    current_user: Annotated[Dict, Depends(require_jwt_user)],
 ) -> None:
     """Supprime un favori par son ID."""
     try:
@@ -136,7 +136,7 @@ async def delete_favorite(
 
 @router.delete("/favorites", status_code=status.HTTP_200_OK)
 async def delete_all_favorites(
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    current_user: Annotated[Dict, Depends(require_jwt_user)],
 ) -> Dict[str, int]:
     """Supprime tous les favoris de l'utilisateur."""
     try:

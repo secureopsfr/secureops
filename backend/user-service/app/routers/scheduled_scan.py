@@ -76,6 +76,11 @@ async def create_scheduled_scan_entry(
             return _to_response(scan)
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
         logger.error("Erreur lors de la création du scan planifié: %s", e, exc_info=True)
         raise HTTPException(
@@ -176,6 +181,11 @@ async def patch_scheduled_scan(
             return _to_response(scan)
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
     except Exception as e:
         logger.error("Erreur lors de la modification du scan planifié: %s", e, exc_info=True)
         raise HTTPException(
