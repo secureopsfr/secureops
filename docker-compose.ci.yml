@@ -50,6 +50,8 @@ services:
     build:
       context: ./backend
       dockerfile: gateway/Dockerfile
+      args:
+        INSTALL_DEV_DEPS: "true"
     environment:
       - IS_DOCKER=true
       - ADMIN_METRICS_API_KEY=${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}
