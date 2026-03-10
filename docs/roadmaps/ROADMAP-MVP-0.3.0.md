@@ -53,9 +53,13 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
 
 ## 0.1 Backend — Refactoring par dossier
 
-- [ ] `backend/common/`
-  - [ ] `common/` (utils partagés : config, JWT, DB, logging, middleware, health, URL utils)
-  - [ ] `pyproject.toml` / packaging du module commun
+- [x] `backend/common/`
+  - [x] `common/` (utils partagés : config, JWT, DB, logging, middleware, health, URL utils)
+    > **Fait :** Module complet avec config_base (load_yaml, create_simple_settings, create_load_settings_yml, SsrfSettings, UrlValidationSettings, parse_ssrf_settings, parse_url_validation_settings), jwt_verifier, cognito, async_database, logging_config, middleware (CorrelationIdMiddleware), health (create_health_router), url_utils, url_helpers (extract_host, extract_port, build_url_with_path, etc.), url_validator (validate_and_normalize_url), env_utils (is_prod_env), ssrf (check_ssrf, is_hostname_blocked, is_ip_blocked), schemas (make_pagination_meta), error_handlers, datetime_utils. Centralisation des duplications : SSRF (scan + crawl → common), url_helpers (scan + crawl → common), validate_and_normalize_url (scan + crawl → common), make_pagination_meta (admin → common). Wrappers minces restent dans scan-service et crawl-service pour la config locale.
+  - [x] `pyproject.toml` / packaging du module commun
+    > **Fait :** pyproject.toml avec dependencies, optional-dependencies [dev], [tool.black], [tool.isort], [tool.pytest.ini_options]. Pre-commit (Black, isort, Flake8), CI job lint-common (pip install -e backend/common[dev], black, isort, flake8, pytest), .flake8, requirements-dev.txt, Makefile (install, test, lint). Tests : test_url_utils, test_health, test_datetime_utils, test_schemas, test_config_base, test_env_utils, test_url_helpers.
+  - [x] **Composants créés en plus** (centralisation des duplications)
+    > **Fait :** `env_utils.py` (is_prod_env) ; `url_helpers.py` (extract_host_from_url, extract_port_from_url, build_url_with_path, build_https_url, build_http_url, get_host_from_url, get_https_port_from_url, get_scan_base_url, location_redirects_to_https) ; `url_validator.py` (validate_and_normalize_url avec validation des ports) ; `ssrf.py` (check_ssrf, is_hostname_blocked, is_ip_blocked, resolve_host) ; config_base : create_load_settings_yml, SsrfSettings, UrlValidationSettings, parse_ssrf_settings, parse_url_validation_settings ; schemas : make_pagination_meta. Fichiers config : .flake8, requirements-dev.txt, Makefile.
 
 - [ ] `backend/gateway/`
   - [ ] `app/`
