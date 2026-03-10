@@ -3,9 +3,7 @@
 from common.ssrf import check_ssrf as _check_ssrf
 from common.ssrf import is_hostname_blocked as _is_hostname_blocked
 from common.ssrf import is_ip_blocked as _is_ip_blocked
-from common.ssrf import (
-    resolve_host,
-)
+from common.ssrf import resolve_host
 
 from app.config_loader import get_ssrf_settings
 

@@ -10,10 +10,13 @@ from typing import Any
 
 import httpx
 
+from app.config_loader import get_external_services_settings
+
 logger = logging.getLogger(__name__)
 
-GATEWAY_URL = os.getenv("GATEWAY_URL", "http://localhost:8000")
-SAVE_TIMEOUT = 15.0
+_EXTERNAL = get_external_services_settings()
+GATEWAY_URL = os.getenv("GATEWAY_URL", _EXTERNAL.gateway_url)
+SAVE_TIMEOUT = _EXTERNAL.save_timeout
 
 
 async def save_scan_to_history(
@@ -35,7 +38,7 @@ async def save_scan_to_history(
     url = f"{GATEWAY_URL.rstrip('/')}/user/api/scans/history"
     body = {
         "url": payload["url"],
-        "scan_type": payload.get("scan_type", "frontend"),
+        "scan_type": payload["scan_type"],
         "status": "success",
         "score": payload["score"],
         "findings": payload["findings"],

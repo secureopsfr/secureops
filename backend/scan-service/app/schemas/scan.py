@@ -18,3 +18,13 @@ class ScanRequest(BaseModel):
         min_length=1,
         max_length=get_url_validation_settings().max_url_length,
     )
+
+
+class ScanForPdfSchema(BaseModel):
+    """Schéma attendu pour la génération PDF (réponse user-service)."""
+
+    url: str
+    score: int | None = None
+    timestamp: str = ""
+    duration: float = 0.0
+    findings: list[dict] = Field(default_factory=list)

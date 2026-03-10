@@ -109,32 +109,33 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
   - [x] `Dockerfile` / `requirements.txt`
   > **Fait :** Refactoring user-service finalisé avec corrections de sécurité, fiabilité et qualité. Sécurité : endpoints sensibles passés en JWT-only via `require_jwt_user` (security, privacy, profile, preferences, subscription, favorites), endpoint interne `/api/internal/keys/verify` en fail-closed (503 si clé interne absente). Fiabilité : bug scheduler corrigé (`scan_type` transmis à `create_scan`) et validation stricte des fuseaux horaires dans `scheduled_scan_utils` avec propagation explicite en `400` dans `scheduled_scan` pour fuseaux invalides. Auth : messages d’erreur JWT rendus génériques pour limiter l’exposition d’informations internes. Qualité : ajout de tests ciblés (`auth_jwt_only`, `internal_api_keys`, `scheduled_scan_scheduler`, `scheduled_scan_utils`) + smoke migrations, avec conformité `pytest-asyncio`. Côté build/deps : séparation runtime/dev (`requirements.txt` + `requirements-dev.txt`) et Dockerfile compatible `INSTALL_DEV_DEPS` en CI.
 
-- [ ] `backend/scan-service/`
-  - [ ] `app/`
-    - [ ] `routers/` (scan, health, export PDF via proxy vers pdf-service, endpoints internes)
-    - [ ] `services/`
-      - [ ] `tls/`
-      - [ ] `security_headers/`
-      - [ ] `cookies/`
-      - [ ] `exposed_files/`
-      - [ ] `directory_listing/`
-      - [ ] `robots_txt/`
-      - [ ] `sitemap/`
-      - [ ] `tech_fingerprinting/`
-      - [ ] `information_disclosure/`
-      - [ ] `cache/`
-      - [ ] `cors_cross_origin/`
-      - [ ] `integrity/`
-      - [ ] `subresources/`
-      - [ ] `normalization/`
-      - [ ] `scan_history_save/`
-      - [ ] `scan_runner.py`
-    - [ ] `catalogue/` (reco, matrices, catégories — hors PDF, voir pdf-service)
-    - [ ] `config/` (TLS, cache, CORS, scoring, SSRS, timeouts, URL validation…)
-    - [ ] `utils/` (url_validator, ssrf, url_helpers, headers, http_fetch, ssl_scan…)
-    - [ ] `models/`, `schemas/`, `errors/`, `static/`
-  - [ ] `tests/` (checks, scoring, router, SSRF, URL validator…)
-  - [ ] `Dockerfile`
+- [x] `backend/scan-service/`
+  - [x] `app/`
+    - [x] `routers/` (scan, health, export PDF via proxy vers pdf-service, endpoints internes)
+    - [x] `services/`
+      - [x] `tls/`
+      - [x] `security_headers/`
+      - [x] `cookies/`
+      - [x] `exposed_files/`
+      - [x] `directory_listing/`
+      - [x] `robots_txt/`
+      - [x] `sitemap/`
+      - [x] `tech_fingerprinting/`
+      - [x] `information_disclosure/`
+      - [x] `cache/`
+      - [x] `cors_cross_origin/`
+      - [x] `integrity/`
+      - [x] `subresources/`
+      - [x] `normalization/`
+      - [x] `scan_history_save.py`
+      - [x] `scan_runner.py`
+    - [x] `catalogue/` (reco, matrices, catégories — hors PDF, voir pdf-service)
+    - [x] `config/` (TLS, cache, CORS, scoring, SSRS, timeouts, URL validation…)
+    - [x] `utils/` (url_validator, ssrf, url_helpers, headers, http_fetch, ssl_scan…)
+    - [x] `models/`, `schemas/`, `errors/`, `static/`
+  - [x] `tests/` (checks, scoring, router, SSRF, URL validator…)
+  - [x] `Dockerfile`
+  > **Fait :** Refactoring scan-service finalisé avec amélioration de la maintenabilité, de la cohérence des payloads et du socle de configuration. **Noyau de scan mutualisé :** création de `app/services/_scan_core.py` (source de vérité unique pour `ScanContext`, `SCAN_STEPS` et construction du payload), suppression des duplications entre `scan_stream` et `scan_runner`. **Payload homogène :** alignement du format de sortie entre SSE et endpoint interne avec `status="success"` et `scan_type` dans les deux chemins. **Structure et séparation :** déplacement de `ScanForPdfSchema` vers `app/schemas/scan.py`, suppression des imports lazy dans les générateurs, déplacement de `subresources.py` vers `services/subresources/`. **Configuration :** ajout de `app/config/external_services.py`, branchement dans `config_loader`, centralisation des URLs/timeouts externes dans `settings.yml`, suppression de la section `database` résiduelle non utilisée. **Normalisation :** réduction du couplage aux messages texte dans `normalization/normalizers.py` (usage prioritaire des champs structurés des résultats de checks, fallback conservé pour compatibilité). **Catalogue :** labels de catégories surchargeables depuis `settings.yml` (`category_labels`) avec fallback JSON. **Qualité :** ajout de tests ciblés (`test_scan_runner.py`, `test_scan_stream.py`, `test_scan_history_save.py`) et adaptation des mocks existants ; suite non-intégration validée (`pytest -m "not integration"`).
 
 - [ ] `backend/` racine
   - [ ] Fichiers de configuration Docker / compose backend

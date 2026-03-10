@@ -9,12 +9,9 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
-from app.config_loader import get_robots_txt_settings
+from app.config_loader import get_robots_txt_settings, get_sitemap_fallback_paths
 from app.utils.http_fetch import get_with_client
 from app.utils.url_helpers import build_url_with_path
-
-# Chemins classiques pour le fallback si Sitemap: absent.
-_SITEMAP_FALLBACK_PATHS = ("/sitemap.xml", "/sitemap_index.xml", "/sitemap-index.xml")
 
 
 @dataclass
@@ -119,7 +116,7 @@ def _resolve_sitemap_urls(base_url: str, robots_txt_result) -> tuple[list[str], 
     sitemap_urls = getattr(robots_txt_result, "sitemap_urls", None) if robots_txt_result else None
     if sitemap_urls:
         return list(sitemap_urls), False
-    return [build_url_with_path(base_url, p) for p in _SITEMAP_FALLBACK_PATHS], True
+    return [build_url_with_path(base_url, p) for p in get_sitemap_fallback_paths()], True
 
 
 def _is_sitemap_xml_response(response) -> bool:
