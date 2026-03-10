@@ -33,7 +33,8 @@ def upgrade() -> None:
         # Table already exists (e.g. partial run), ensure indexes/constraint exist
         op.execute("CREATE INDEX IF NOT EXISTS ix_api_keys_key_hash ON api_keys (key_hash)")
         op.execute("CREATE INDEX IF NOT EXISTS ix_api_keys_user_id ON api_keys (user_id)")
-        op.execute("""
+        op.execute(
+            """
             DO $$
             BEGIN
               IF NOT EXISTS (
@@ -43,7 +44,8 @@ def upgrade() -> None:
                   UNIQUE (user_id, name);
               END IF;
             END $$;
-            """)
+            """
+        )
         return
 
     op.create_table(
