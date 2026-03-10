@@ -1,6 +1,6 @@
-"""Tests placeholder pour vérifier l'exécution de la suite pytest du gateway."""
+"""Test smoke basique pour la suite gateway."""
 
 
-def test_always_true() -> None:
-    """Placeholder : vérifie que pytest s'exécute correctement."""
-    assert True
+def test_smoke() -> None:
+    """Vérifie que la suite pytest s'exécute correctement."""
+    assert 1 + 1 == 2
