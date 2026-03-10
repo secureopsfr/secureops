@@ -1,6 +1,32 @@
 # SecureOps — Idées à envisager plus tard
 
-Ce document regroupe des fonctionnalités envisagées mais non planifiées pour le MVP 0.2.0.
+Ce document regroupe des fonctionnalités envisagées mais non planifiées pour les MVP actuels.
+
+---
+
+## Quotas et rate limiting (web + API)
+
+> **Contexte :** Contenu retiré du scope roadmap 0.3.0 (section 1.3). Politique unifiée : mêmes principes pour les scans lancés depuis l'UI (compte utilisateur) et pour les appels API (clé). Les seuils peuvent être distincts (ex. quota par compte vs par clé) mais la mécanique (comptage, 429) est centralisée.
+
+### Objectif
+
+Limiter les abus et gérer la charge : quotas par compte/clé, rate limiting, réponse 429.
+
+### Tâches
+
+- [ ] **Quotas par compte (web)** : ex. nombre max de scans/jour par utilisateur connecté (à définir).
+- [ ] **Quotas par clé API** : ex. 100 scans/jour par clé (ou aligné sur le quota compte).
+- [ ] **Rate limiting** : ex. 10 req/min par clé ; par IP ou par compte pour l'UI (à définir).
+- [ ] **Réponse 429** (Too Many Requests) en cas de dépassement, avec en-tête `Retry-After` si pertinent.
+- [ ] Documenter les seuils retenus (section limites ou doc dédiée) et les faire évoluer selon l'usage.
+- [ ] **Limites crawler** : nombre max de crawls/jour par utilisateur (ou par clé API), aligné ou dérivé des quotas (ex. 1 crawl = 1 unité quota ou quota dédié crawl).
+- [ ] **Option crawler** : limite par domaine cible (ex. pas plus de X crawls/jour vers le même host) pour éviter le harcèlement.
+- [ ] Documenter dans la doc crawler et dans la doc limites/quotas : comportement en cas de dépassement (429), message utilisateur en cas d'URL refusée (liste noire ou interdite).
+
+### Référence
+
+- API publique : [docs/API-PUBLIQUE.md](API-PUBLIQUE.md) — section « Quotas et rate limiting » non implémentés.
+- Roadmap ex-0.3.0 : section 1.3, 5, 7.6.
 
 ---
 
