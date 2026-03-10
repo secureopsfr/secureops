@@ -5,6 +5,7 @@ from common.schemas import (
     ErrorResponse,
     PaginatedResponse,
     SuccessResponse,
+    make_pagination_meta,
 )
 
 
@@ -43,3 +44,12 @@ def test_paginated_response() -> None:
     assert r.total == 100
     assert r.limit == 10
     assert r.offset == 0
+
+
+def test_make_pagination_meta() -> None:
+    """make_pagination_meta calcule page, per_page, total_pages."""
+    meta = make_pagination_meta(total=95, limit=10, offset=20)
+    assert meta["total"] == 95
+    assert meta["page"] == 3
+    assert meta["per_page"] == 10
+    assert meta["total_pages"] == 10

@@ -7,7 +7,14 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-from common.config_base import create_simple_settings, load_yaml
+from common.config_base import (
+    SsrfSettings,
+    UrlValidationSettings,
+    create_simple_settings,
+    load_yaml,
+    parse_ssrf_settings,
+    parse_url_validation_settings,
+)
 
 # Ce service n'utilise pas de BDD ; create_simple_settings exige DATABASE_URL → valeur factice si absente.
 if not os.environ.get("DATABASE_URL"):
@@ -28,32 +35,11 @@ def _get_data() -> dict:
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class SsrfSettings:
-    """Configuration de la protection SSRF (hostnames, plages IP, timeout DNS)."""
-
-    dns_timeout: float
-    blocked_hostnames: frozenset[str]
-    blocked_ipv4_networks: tuple[str, ...]
-    blocked_ipv6_networks: tuple[str, ...]
-
-
-_DEFAULT_SSRF_HOSTNAMES = ("localhost", "localhost.", "127.0.0.1", "::1", "[::1]", "0.0.0.0")
-_DEFAULT_SSRF_IPV4 = ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "127.0.0.0/8", "0.0.0.0/8")
-_DEFAULT_SSRF_IPV6 = ("::1/128", "fe80::/10", "fc00::/7")
-
-
 @lru_cache(maxsize=1)
 def get_ssrf_settings() -> SsrfSettings:
     """Charge la section SSRF depuis config/settings.yml."""
     data = _get_data()
-    ssrf = data.get("ssrf") or {}
-    return SsrfSettings(
-        dns_timeout=float(ssrf.get("dns_timeout", 5.0)),
-        blocked_hostnames=frozenset(str(h) for h in (ssrf.get("blocked_hostnames") or _DEFAULT_SSRF_HOSTNAMES)),
-        blocked_ipv4_networks=tuple(str(n) for n in (ssrf.get("blocked_ipv4_networks") or _DEFAULT_SSRF_IPV4)),
-        blocked_ipv6_networks=tuple(str(n) for n in (ssrf.get("blocked_ipv6_networks") or _DEFAULT_SSRF_IPV6)),
-    )
+    return parse_ssrf_settings(data.get("ssrf"))
 
 
 # ---------------------------------------------------------------------------
@@ -61,27 +47,11 @@ def get_ssrf_settings() -> SsrfSettings:
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class UrlValidationSettings:
-    """Configuration de la validation d'URL (schémas, ports, longueur max)."""
-
-    max_url_length: int
-    allowed_schemes: tuple[str, ...]
-    allowed_ports: tuple[int, ...]
-
-
 @lru_cache(maxsize=1)
 def get_url_validation_settings() -> UrlValidationSettings:
     """Charge la section url_validation depuis config/settings.yml."""
     data = _get_data()
-    uv = data.get("url_validation") or {}
-    schemes = uv.get("allowed_schemes") or ["http", "https"]
-    ports = uv.get("allowed_ports") or [80, 443, 1010, 1011]
-    return UrlValidationSettings(
-        max_url_length=int(uv.get("max_url_length", 2048)),
-        allowed_schemes=tuple(str(s) for s in schemes),
-        allowed_ports=tuple(int(p) for p in ports),
-    )
+    return parse_url_validation_settings(data.get("url_validation"))
 
 
 # ---------------------------------------------------------------------------

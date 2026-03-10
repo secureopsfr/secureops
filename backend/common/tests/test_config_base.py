@@ -11,6 +11,8 @@ from common.config_base import (
     parse_database_settings,
     parse_router_config,
     parse_server_settings,
+    parse_ssrf_settings,
+    parse_url_validation_settings,
 )
 
 
@@ -87,3 +89,19 @@ def test_server_settings_frozen() -> None:
     s = ServerSettings(port=8000)
     with pytest.raises(AttributeError):
         s.port = 9000  # type: ignore[misc]
+
+
+def test_parse_ssrf_settings_defaults() -> None:
+    """parse_ssrf_settings utilise les défauts si données vides."""
+    s = parse_ssrf_settings(None)
+    assert s.dns_timeout == 5.0
+    assert "localhost" in s.blocked_hostnames
+    assert "127.0.0.0/8" in s.blocked_ipv4_networks
+
+
+def test_parse_url_validation_settings_defaults() -> None:
+    """parse_url_validation_settings utilise les défauts si données vides."""
+    s = parse_url_validation_settings(None)
+    assert s.max_url_length == 2048
+    assert 80 in s.allowed_ports
+    assert 443 in s.allowed_ports

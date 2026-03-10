@@ -8,7 +8,6 @@ import logging
 from typing import AsyncIterator
 
 import httpx
-
 from app.config_loader import get_crawler_settings
 from app.utils.ssl_scan import ssl_context_for_scan
 

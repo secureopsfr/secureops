@@ -16,6 +16,12 @@ from typing import Any, Callable, Dict
 
 import yaml
 
+# Constantes par défaut pour SSRF et URL validation (utilisées par parse_*)
+_DEFAULT_SSRF_HOSTNAMES = ("localhost", "localhost.", "127.0.0.1", "::1", "[::1]", "0.0.0.0")
+_DEFAULT_SSRF_IPV4 = ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "127.0.0.0/8", "0.0.0.0/8")
+_DEFAULT_SSRF_IPV6 = ("::1/128", "fe80::/10", "fc00::/7")
+_DEFAULT_URL_VALIDATION_PORTS = (80, 443, 1010, 1011)
+
 
 @dataclass(frozen=True)
 class DatabaseSettings:
@@ -217,3 +223,95 @@ def create_simple_settings(
         )
 
     return settings
+
+
+# ---------------------------------------------------------------------------
+# Factory _load_settings_yml (item 6)
+# ---------------------------------------------------------------------------
+
+
+def create_load_settings_yml(caller_file: str, depth: int = 2) -> Callable[[], Dict[str, Any]]:
+    """Factory qui retourne une fonction chargeant config/settings.yml du service.
+
+    Pour un fichier dans app/config/_base.py, depth=2 donne la racine du service.
+
+    Args:
+        caller_file: __file__ du module appelant.
+        depth: Nombre de niveaux parents pour atteindre la racine du service.
+
+    Returns:
+        Callable[[], Dict]: fonction mise en cache chargeant le YAML.
+    """
+    _service_root = Path(caller_file).resolve().parents[depth]
+
+    @lru_cache(maxsize=1)
+    def _load() -> Dict[str, Any]:
+        return load_yaml(_service_root / "config" / "settings.yml")
+
+    return _load
+
+
+# ---------------------------------------------------------------------------
+# SsrfSettings et parse_ssrf_settings (item 7)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SsrfSettings:
+    """Configuration de la protection SSRF (hostnames, plages IP, timeout DNS)."""
+
+    dns_timeout: float
+    blocked_hostnames: frozenset[str]
+    blocked_ipv4_networks: tuple[str, ...]
+    blocked_ipv6_networks: tuple[str, ...]
+
+
+def parse_ssrf_settings(data: Dict[str, Any] | None) -> SsrfSettings:
+    """Construit SsrfSettings depuis la section ssrf du YAML.
+
+    Args:
+        data: Section ssrf (dict) ou None.
+
+    Returns:
+        SsrfSettings: configuration SSRF.
+    """
+    ssrf = data or {}
+    return SsrfSettings(
+        dns_timeout=float(ssrf.get("dns_timeout", 5.0)),
+        blocked_hostnames=frozenset(str(h) for h in (ssrf.get("blocked_hostnames") or _DEFAULT_SSRF_HOSTNAMES)),
+        blocked_ipv4_networks=tuple(str(n) for n in (ssrf.get("blocked_ipv4_networks") or _DEFAULT_SSRF_IPV4)),
+        blocked_ipv6_networks=tuple(str(n) for n in (ssrf.get("blocked_ipv6_networks") or _DEFAULT_SSRF_IPV6)),
+    )
+
+
+# ---------------------------------------------------------------------------
+# UrlValidationSettings et parse_url_validation_settings (item 8)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class UrlValidationSettings:
+    """Configuration de la validation d'URL (schémas, ports, longueur max)."""
+
+    max_url_length: int
+    allowed_schemes: tuple[str, ...]
+    allowed_ports: tuple[int, ...]
+
+
+def parse_url_validation_settings(data: Dict[str, Any] | None) -> UrlValidationSettings:
+    """Construit UrlValidationSettings depuis la section url_validation du YAML.
+
+    Args:
+        data: Section url_validation (dict) ou None.
+
+    Returns:
+        UrlValidationSettings: configuration validation URL.
+    """
+    uv = data or {}
+    schemes = uv.get("allowed_schemes") or ["http", "https"]
+    ports = uv.get("allowed_ports") or list(_DEFAULT_URL_VALIDATION_PORTS)
+    return UrlValidationSettings(
+        max_url_length=int(uv.get("max_url_length", 2048)),
+        allowed_schemes=tuple(str(s) for s in schemes),
+        allowed_ports=tuple(int(p) for p in ports),
+    )
