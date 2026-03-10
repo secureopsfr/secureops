@@ -13,7 +13,7 @@ def test_load_config_raises_value_error_on_invalid_config(monkeypatch) -> None:
         return {"general": {"project_name": "x"}}  # structure incomplète
 
     monkeypatch.setattr(config_loader_module, "_read_yaml", fake_read_yaml)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Configuration invalide"):
         load_config()
 
 

@@ -113,5 +113,5 @@ def test_unsubscribe_email_missing_user_raises_value_error(monkeypatch) -> None:
     monkeypatch.setattr(mailing_list_service_module, "get_sync_session", lambda: _Ctx(db))
 
     service = mailing_list_service_module.MailingListService()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Utilisateur avec l'email"):
         service.unsubscribe_email("nobody@example.com")
