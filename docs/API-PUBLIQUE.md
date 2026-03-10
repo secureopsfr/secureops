@@ -8,7 +8,7 @@ Documentation exhaustive de la gestion de l'API publique et des clés API dans S
 
 L'API publique permet d'authentifier les requêtes avec une **clé API** à la place d'un JWT. Elle cible principalement les intégrations CI/CD, scripts et outils automatisés. Les clés sont créées depuis l'interface utilisateur, stockées sous forme de hash, et peuvent être révoquées à tout moment.
 
-**État actuel :** Modèle, authentification, CRUD des clés, frontend et documentation sont implémentés. **Quotas et rate limiting** (section 1.3) ne sont pas encore en place.
+**État actuel :** Modèle, authentification, CRUD des clés, frontend et documentation sont implémentés. **Quotas et rate limiting** ne sont pas encore en place (voir [A-PENSER-PLUS-TARD.md](./A-PENSER-PLUS-TARD.md)).
 
 ---
 

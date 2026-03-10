@@ -2,7 +2,7 @@
 
 ## Sommaire
 
-**Ordre recommandé pour la lecture et l’implémentation :** 0 (refactoring) → 1 (API + quotas) → 2 (tests) → 3 (GitHub Action) → 4–5 (placeholders) → 7 (crawler) → 8 (UX) → 6 (async, si besoin).
+**Ordre recommandé pour la lecture et l’implémentation :** 0 (refactoring) → 1 (API) → 2 (tests) → 3 (GitHub Action) → 4–5 (placeholders) → 7 (crawler) → 8 (UX) → 6 (async, si besoin).
 
 - [0) Refactoring de la base de code](#0-refactoring-de-la-base-de-code)
   - [0.1 Backend — Refactoring par dossier](#01-backend--refactoring-par-dossier)
@@ -250,22 +250,16 @@ Les sections suivantes de la roadmap v0.3.0 (nouvelles fonctionnalités, tests a
 
 - [x] Header `X-API-Key` ou `Authorization: Bearer <api_key>`
   > **Fait :** Gateway extrait la clé depuis X-API-Key ou Bearer si non-JWT. User-service : endpoint interne POST /api/internal/keys/verify protégé par X-Internal-Api-Key.
-- [x] Middleware : vérifier la clé, résoudre l’utilisateur, appliquer quotas
-  > **Fait :** Gateway appelle user-service pour vérifier ; request.state.user avec auth_type api_key. Proxy transmet Authorization Bearer aux backends. Quotas : non (voir 1.3).
+- [x] Middleware : vérifier la clé, résoudre l’utilisateur (quotas reportés)
+  > **Fait :** Gateway appelle user-service pour vérifier ; request.state.user avec auth_type api_key. Proxy transmet Authorization Bearer aux backends. Quotas et rate limiting reportés → [A-PENSER-PLUS-TARD.md](../A-PENSER-PLUS-TARD.md).
 - [x] Expiration des clés : vérifier `expires_at` ; rejeter si dépassée (401 « Clé API expirée »)
   > **Fait :** Par défaut TTL 30 jours ; options 90, 180, 365, ou 0 (jamais). Config `api_keys.default_ttl_days`, `allowed_ttl_days`.
 - [x] Restriction IP : si `allowed_ips` défini, vérifier l'IP client (X-Forwarded-For, X-Real-IP) ; 401 « Clé API : IP non autorisée » si hors whitelist
   > **Fait :** Gateway transmet `client_ip` au verify ; user-service vérifie contre les plages CIDR ou IP autorisées.
 
-### 1.3 Quotas et rate limiting (web + API)
+### 1.3 Quotas et rate limiting (reporté)
 
-Politique **unifiée** : mêmes principes pour les scans lancés depuis l’UI (compte utilisateur) et pour les appels API (clé). Les seuils peuvent être distincts (ex. quota par compte vs par clé) mais la mécanique (comptage, 429) est centralisée.
-
-- [ ] **Quotas par compte (web)** : ex. nombre max de scans/jour par utilisateur connecté (à définir).
-- [ ] **Quotas par clé API** : ex. 100 scans/jour par clé (ou aligné sur le quota compte).
-- [ ] **Rate limiting** : ex. 10 req/min par clé ; par IP ou par compte pour l’UI (à définir).
-- [ ] **Réponse 429** (Too Many Requests) en cas de dépassement, avec en-tête `Retry-After` si pertinent.
-- [ ] Documenter les seuils retenus (section 5 ou doc dédiée) et les faire évoluer selon l’usage.
+Quotas, rate limiting et réponse 429 sont reportés à plus tard. Voir [A-PENSER-PLUS-TARD.md](../A-PENSER-PLUS-TARD.md) pour le détail (quotas par compte/clé, limites crawler, doc 429).
 
 ### 1.4 API
 
@@ -359,9 +353,9 @@ Objectif : proposer aux utilisateurs une **GitHub Action** officielle pour inté
 
 ---
 
-## 5) Limites (renvoi vers 1.3)
+## 5) Limites (reporté)
 
-Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.3](#13-quotas-et-rate-limiting-web--api). Cette section reste un **placeholder** pour d’éventuelles évolutions (seuils différenciés, périmètres spécifiques crawl/scan, abus — voir aussi [7.6](#76-gestion-des-urls-limites-et-prévention-des-abus)).
+Quotas, rate limiting et limites crawler sont reportés. Voir [A-PENSER-PLUS-TARD.md](../A-PENSER-PLUS-TARD.md). La section [7.6](#76-gestion-des-urls-limites-et-prévention-des-abus) couvre les URLs interdites / SSRF (implémenté).
 
 ---
 
@@ -433,14 +427,12 @@ Les **quotas et le rate limiting** (web + API) sont définis dans la [section 1.
 
 **Objectif :** Limiter les abus (crawl sauvage, ciblage de domaines sensibles) et sécuriser l’usage du crawler et du scan (URLs interdites, listes noires).
 
-- [ ] **Limites d’usage du crawler** :
-  - [ ] Nombre max de crawls/jour par utilisateur (ou par clé API), aligné ou dérivé des quotas 1.3 (ex. 1 crawl = 1 unité quota ou quota dédié crawl).
-  - [ ] Option : limite par domaine cible (ex. pas plus de X crawls/jour vers le même host) pour éviter le harcèlement d’un même site.
+
 - [x] **URLs interdites / SSRF** :
   - [x] Bloquer localhost, IP privées (RFC 1918), IP de bouclage pour l'**URL de départ** (`check_ssrf`) et les **URLs découvertes** (`is_hostname_blocked`). Réutilisation de la logique SSRF du scan-service.
   - [ ] Liste noire configurable (ex. dans `settings.yml`) : à implémenter ultérieurement.
-- [ ] **Modération** (optionnel pour la v0.3.0) : possibilité d’ajouter a posteriori des domaines bloqués et de logger les tentatives (audit). À documenter comme évolution si non implémenté en 0.3.0.
-- [ ] Documenter dans la doc crawler (7.5) et dans la doc limites/quotas : comportement en cas de dépassement (429), message utilisateur en cas d’URL refusée (liste noire ou interdite).
+- [ ] **Modération** (optionnel) : possibilité d’ajouter a posteriori des domaines bloqués et de logger les tentatives (audit). À documenter comme évolution si non implémenté.
+- [ ] **Quotas crawler, rate limiting, 429** : reportés → [A-PENSER-PLUS-TARD.md](../A-PENSER-PLUS-TARD.md).
 
 ---
 
