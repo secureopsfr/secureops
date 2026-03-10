@@ -587,3 +587,138 @@ Ce projet est scanné par [SecureOps](https://secureops.io) à chaque push sur `
 
 - [API publique SecureOps](./API-PUBLIQUE.md) — authentification et clés API
 - [Roadmap MVP 0.3.0](./roadmaps/ROADMAP-MVP-0.3.0.md) — section 3 (Intégration CI/CD)
+
+---
+
+## 10. Roadmap d'intégration (côté SecureOps)
+
+Roadmap détaillée pour développer, publier et maintenir l'action GitHub SecureOps dans le projet.
+
+### Phase 1 : Créer l'action
+
+| Étape | Tâche | Détails |
+|-------|-------|---------|
+| 1.1 | Choisir l'emplacement | **Option A** : repo dédié `secureops/secureops-scan` (recommandé pour action publique). **Option B** : monorepo `.github/actions/secureops-scan/` (action interne). |
+| 1.2 | Créer la structure | Créer les dossiers et fichiers : `action.yml`, `package.json`, `src/index.js` (voir sections 3.1–3.3). |
+| 1.3 | Écrire le script | Copier/adapter le script Node.js (§3.3) : appel POST, parsing SSE, outputs `score`/`passed`, exit 1 si échec. |
+| 1.4 | Tester en local | `npm install` puis `node src/index.js` avec variables `INPUT_URL`, `INPUT_API_KEY`, etc. Valider contre l'API réelle ou `/scan/api/scan/fake`. |
+
+**Exemple structure initiale :**
+
+```
+.github/actions/secureops-scan/
+├── action.yml
+├── package.json          # { "type": "commonjs", "scripts": { "build": "cp src/index.js dist/index.js" } }
+├── dist/
+│   └── index.js
+└── src/
+    └── index.js
+```
+
+---
+
+### Phase 2 : GitHub — Repo et configuration
+
+| Étape | Tâche | Détails |
+|-------|-------|---------|
+| 2.1 | Créer le dépôt GitHub | **Si repo dédié** : `github.com/secureops/secureops-scan` — repo public, description « GitHub Action pour scanner la posture sécurité avec SecureOps ». |
+| 2.2 | Push du code | Initialiser git, ajouter les fichiers, push sur `main`. |
+| 2.3 | README du repo | Rédiger un README avec : description, usage (`uses: secureops/secureops-scan@v1`), inputs, exemples, lien vers la doc complète. |
+| 2.4 | `.gitignore` | Ignorer `node_modules/`, `.env`, `*.log`. Optionnel : builder `dist/` en CI plutôt que le committer. |
+
+---
+
+### Phase 3 : Workflow de release (tags/versions)
+
+| Étape | Tâche | Détails |
+|-------|-------|---------|
+| 3.1 | Workflow de build | Créer `.github/workflows/build.yml` : sur push/PR, lancer `npm install` et `npm run build`, vérifier que `dist/index.js` est généré. |
+| 3.2 | Workflow de release | Créer `.github/workflows/release.yml` : sur création d'un tag `v*`, builder, créer une GitHub Release, attacher les artefacts si besoin. |
+| 3.3 | Tag v1 | Créer le tag `v1` (ou `v1.0.0`) : `git tag v1 && git push origin v1`. Les utilisateurs pourront utiliser `secureops/secureops-scan@v1`. |
+| 3.4 | Versionnement sémantique | Pour les mises à jour : `v1.1.0` (patch), `v2.0.0` (breaking). Documenter dans le README les changements par version. |
+
+**Exemple workflow de build :**
+
+```yaml
+# .github/workflows/build.yml
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run build
+      - name: Verify dist
+        run: test -f dist/index.js
+```
+
+---
+
+### Phase 4 : Tests automatisés
+
+| Étape | Tâche | Détails |
+|-------|-------|---------|
+| 4.1 | Test du script (fake) | Job dans la CI : appeler l'API `/scan/api/scan/fake` avec une clé de test (secret `SECUREOPS_API_KEY` dans le repo SecureOps). Vérifier exit 0 et sortie attendue. |
+| 4.2 | Test d'intégration | Optionnel : workflow qui utilise `uses: ./.github/actions/secureops-scan` (action locale) sur une URL de staging connue. |
+| 4.3 | Tests unitaires | Optionnel : extraire la logique de parsing SSE dans un module testable ; ajouter Jest ou Node native test. |
+
+---
+
+### Phase 5 : Documentation et communication
+
+| Étape | Tâche | Détails |
+|-------|-------|---------|
+| 5.1 | README du repo action | Titre, badges (build, release), installation, inputs, outputs, exemples minimaux, lien vers `docs/INTEGRATION-GITHUB-ACTION.md`. |
+| 5.2 | Marketplace GitHub (optionnel) | Soumettre l'action au [GitHub Marketplace](https://github.com/marketplace?type=actions) : formulaire, catégories, icône, description. |
+| 5.3 | Page doc SecureOps | S'assurer que la page docs/INTEGRATION-GITHUB-ACTION.md est accessible (ex. `/scanner/docs/ci-cd` ou équivalent). |
+| 5.4 | Badge « Scan SecureOps » | Documenter le badge dans le README du repo action et dans la doc utilisateur (§7). |
+
+---
+
+### Phase 6 : Intégration dans le monorepo SecureOps (si action locale)
+
+Si l'action reste dans le monorepo SecureOps plutôt que dans un repo dédié :
+
+| Étape | Tâche | Détails |
+|-------|-------|---------|
+| 6.1 | Emplacement | Créer `.github/actions/secureops-scan/` à la racine du monorepo. |
+| 6.2 | Réutiliser dans la CI SecureOps | Ajouter un workflow dans SecureOps qui teste l'action en conditions réelles (ex. scan du site de démo après déploiement). |
+| 6.3 | Référence pour les users | Les utilisateurs externes ne pourront pas utiliser `uses: secureops/secureops-scan@v1` tant que l'action n'est pas dans un repo public dédié. Documenter l'option B (workflow manuel §4) en attendant. |
+
+---
+
+### Phase 7 : Checklist finale avant publication
+
+- [ ] Action testée contre `POST /scan/api/scan` et `POST /scan/api/scan/fake`
+- [ ] Secret `SECUREOPS_API_KEY` configuré dans le repo (pour les tests CI)
+- [ ] Tag `v1` créé et poussé
+- [ ] README à jour avec exemples
+- [ ] Lien vers la doc dans `docs/INTEGRATION-GITHUB-ACTION.md`
+- [ ] Workflow de build vert
+- [ ] (Optionnel) Action publiée sur le Marketplace
+
+---
+
+### Récapitulatif des fichiers à créer (repo dédié)
+
+| Fichier | Rôle |
+|---------|------|
+| `action.yml` | Métadonnées, inputs, outputs, `runs` |
+| `package.json` | Dépendances (minimales), script build |
+| `src/index.js` | Script principal (appel API, parsing SSE) |
+| `dist/index.js` | Build (ou généré en CI) |
+| `README.md` | Usage, exemples, liens |
+| `.gitignore` | node_modules, .env, etc. |
+| `.github/workflows/build.yml` | Build et vérification |
+| `.github/workflows/release.yml` | (Optionnel) Release sur tag |
