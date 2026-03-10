@@ -12,7 +12,20 @@ dependencies = [
     "PyJWT>=2.10.0",
     "cryptography>=43.0.0",
     "python-dotenv>=1.0.0",
+    "PyYAML>=6.0.0",
 ]
 
 [tool.setuptools.packages.find]
 include = ["common*"]
+
+[tool.black]
+line-length = 150
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 150
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -ra"

@@ -1,0 +1,32 @@
+[flake8]
+max-line-length = 150
+
+exclude =
+    .git,
+    __pycache__,
+    venv,
+    build,
+    dist,
+    template_common.egg-info
+
+# ignore D401: First line should be in imperative mood
+# ignore D403: First word capitalization (conflits with docstrings multi-lignes)
+ignore = D401, D403
+
+# Plugins activés : docstrings, naming, quotes, bugbear, simplify, comprehensions, pytest
+select =
+    D,        # flake8-docstrings
+    E, F, W,  # pycodestyle + pyflakes
+    C,        # mccabe (complexité cyclomatique)
+    Q,        # flake8-quotes
+    B,        # flake8-bugbear
+    SIM,      # flake8-simplify
+    C4,       # flake8-comprehensions
+    PT        # flake8-pytest-style
+
+max-complexity = 10
+
+# flake8-quotes config
+inline-quotes = "
+multiline-quotes = """
+docstring-quotes = """

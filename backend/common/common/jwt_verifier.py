@@ -12,9 +12,10 @@ from functools import lru_cache
 from typing import Any, Dict
 
 import jwt
-from common.cognito import CLIENT_ID, ISSUER, JWKS_URL
 from jwt import PyJWKClient
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+
+from common.cognito import CLIENT_ID, ISSUER, JWKS_URL
 
 logger = logging.getLogger(__name__)
 

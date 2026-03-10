@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import uuid
 
-from common.logging_config import correlation_id_ctx
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
+
+from common.logging_config import correlation_id_ctx
 
 # Nom du header HTTP pour le correlation ID
 CORRELATION_ID_HEADER = "X-Correlation-ID"

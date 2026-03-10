@@ -17,6 +17,12 @@ repos:
     rev: 26.1.0
     hooks:
       - id: black
+        name: Black common
+        language_version: python3
+        files: ^backend/common/.*\.py$
+        args:
+          - --config=backend/common/pyproject.toml
+      - id: black
         name: Black Gateway
         language_version: python3
         files: ^backend/gateway/.*\.py$
@@ -60,6 +66,11 @@ repos:
     rev: 8.0.1
     hooks:
       - id: isort
+        name: isort common
+        files: ^backend/common/.*\.py$
+        args:
+          - --profile=black
+      - id: isort
         name: isort Gateway
         files: ^backend/gateway/.*\.py$
         args:
@@ -91,6 +102,11 @@ repos:
   - repo: https://github.com/PyCQA/flake8
     rev: 7.3.0
     hooks:
+      - id: flake8
+        name: Flake8 common
+        files: ^backend/common/.*\.py$
+        args:
+          - --config=backend/common/.flake8
       - id: flake8
         name: Flake8 Gateway
         files: ^backend/gateway/.*\.py$

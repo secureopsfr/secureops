@@ -10,7 +10,6 @@ directement par les services qui en ont besoin :
 """
 
 from common.config_base import AppSettings, GeneralSettings, RoutersSettings, create_simple_settings
-from common.version import get_app_version
 from common.datetime_utils import now_utc
 from common.error_handlers import register_exception_handlers
 from common.health import create_health_router
@@ -18,6 +17,7 @@ from common.logging_config import get_logger, mask_email, setup_logging
 from common.middleware import CorrelationIdMiddleware
 from common.schemas import DeleteResponse, ErrorResponse, PaginatedResponse, SuccessResponse
 from common.url_utils import URLValidationError, normalize_scan_url
+from common.version import get_app_version
 
 __all__ = [
     # config_base

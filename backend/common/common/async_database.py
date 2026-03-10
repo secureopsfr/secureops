@@ -35,9 +35,10 @@ import sys
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
-from common.config_base import DatabaseSettings
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
+
+from common.config_base import DatabaseSettings
 
 logger = logging.getLogger(__name__)
 

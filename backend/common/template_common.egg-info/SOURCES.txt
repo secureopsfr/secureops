@@ -18,3 +18,8 @@ template_common.egg-info/SOURCES.txt
 template_common.egg-info/dependency_links.txt
 template_common.egg-info/requires.txt
 template_common.egg-info/top_level.txt
+tests/test_config_base.py
+tests/test_datetime_utils.py
+tests/test_health.py
+tests/test_schemas.py
+tests/test_url_utils.py
