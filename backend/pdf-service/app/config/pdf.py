@@ -1,9 +1,30 @@
-"""Configuration PDF : catégories, libellés i18n, footer (settings.yml)."""
+"""Configuration PDF : rendu, catégories, libellés i18n, footer (settings.yml)."""
 
 from dataclasses import dataclass
 from functools import lru_cache
 
 from app.config._base import _load_settings_yml
+
+
+@dataclass(frozen=True)
+class PdfRenderSettings:
+    """Paramètres de rendu du rapport PDF (limites de texte, seuils de score)."""
+
+    evidence_max_len: int
+    recommendation_max_len: int
+    cover_url_max_len: int
+    cover_logo_primary_color: str
+    cover_logo_secondary_color: str
+    score_good: int
+    score_medium: int
+    score_color_good: str
+    score_color_medium: str
+    score_color_low: str
+    references_max_list: int
+    references_max_inline: int
+    severity_badges: dict[str, dict[str, str]]
+    matrix_border_color: str
+    matrix_cells: tuple[tuple[str, ...], ...]
 
 
 @dataclass(frozen=True)
@@ -18,12 +39,41 @@ class PdfCategoryConfig:
 
 @dataclass(frozen=True)
 class PdfSettings:
-    """Configuration PDF : footer et catégories."""
+    """Configuration PDF : rendu, footer et catégories."""
 
     footer_url: str
+    render: PdfRenderSettings
     categories: PdfCategoryConfig
 
 
+_DEFAULT_RENDER = PdfRenderSettings(
+    evidence_max_len=800,
+    recommendation_max_len=800,
+    cover_url_max_len=60,
+    cover_logo_primary_color="#38bdf8",
+    cover_logo_secondary_color="#0f172a",
+    score_good=80,
+    score_medium=50,
+    score_color_good="#10b981",
+    score_color_medium="#f59e0b",
+    score_color_low="#ef4444",
+    references_max_list=10,
+    references_max_inline=3,
+    severity_badges={
+        "critical": {"bg": "#fef2f2", "text": "#dc2626"},
+        "high": {"bg": "#fffbeb", "text": "#d97706"},
+        "medium": {"bg": "#fffbeb", "text": "#d97706"},
+        "low": {"bg": "#eff6ff", "text": "#2563eb"},
+        "info": {"bg": "#eff6ff", "text": "#2563eb"},
+    },
+    matrix_border_color="#333333",
+    matrix_cells=(
+        ("#22c55e", "#22c55e", "#facc15", "#facc15"),
+        ("#22c55e", "#facc15", "#f97316", "#f97316"),
+        ("#facc15", "#f97316", "#ef4444", "#ef4444"),
+        ("#f97316", "#ef4444", "#ef4444", "#ef4444"),
+    ),
+)
 _DEFAULT_ORDER = (
     "tls",
     "headers",
@@ -91,6 +141,36 @@ def get_pdf_settings() -> PdfSettings:
     data = _load_settings_yml()
     p = data.get("pdf") or {}
     footer_url = str(p.get("footer_url") or "https://secureops.example.com")
+
+    r = p.get("render") or {}
+    severity_badges = r.get("severity_badges") or _DEFAULT_RENDER.severity_badges
+    matrix = r.get("matrix") or {}
+    matrix_cells_raw = matrix.get("cells") or _DEFAULT_RENDER.matrix_cells
+    matrix_cells = tuple(tuple(str(color) for color in row) for row in matrix_cells_raw)
+    render = PdfRenderSettings(
+        evidence_max_len=int(r.get("evidence_max_len") or _DEFAULT_RENDER.evidence_max_len),
+        recommendation_max_len=int(r.get("recommendation_max_len") or _DEFAULT_RENDER.recommendation_max_len),
+        cover_url_max_len=int(r.get("cover_url_max_len") or _DEFAULT_RENDER.cover_url_max_len),
+        cover_logo_primary_color=str(r.get("cover_logo_primary_color") or _DEFAULT_RENDER.cover_logo_primary_color),
+        cover_logo_secondary_color=str(r.get("cover_logo_secondary_color") or _DEFAULT_RENDER.cover_logo_secondary_color),
+        score_good=int(r.get("score_good") or _DEFAULT_RENDER.score_good),
+        score_medium=int(r.get("score_medium") or _DEFAULT_RENDER.score_medium),
+        score_color_good=str(r.get("score_color_good") or _DEFAULT_RENDER.score_color_good),
+        score_color_medium=str(r.get("score_color_medium") or _DEFAULT_RENDER.score_color_medium),
+        score_color_low=str(r.get("score_color_low") or _DEFAULT_RENDER.score_color_low),
+        references_max_list=int(r.get("references_max_list") or _DEFAULT_RENDER.references_max_list),
+        references_max_inline=int(r.get("references_max_inline") or _DEFAULT_RENDER.references_max_inline),
+        severity_badges={
+            str(k): {
+                "bg": str(v.get("bg", "")) if isinstance(v, dict) else "",
+                "text": str(v.get("text", "")) if isinstance(v, dict) else "",
+            }
+            for k, v in severity_badges.items()
+        },
+        matrix_border_color=str(matrix.get("border_color") or _DEFAULT_RENDER.matrix_border_color),
+        matrix_cells=matrix_cells,
+    )
+
     cats = p.get("categories") or {}
     order = tuple(cats.get("order") or _DEFAULT_ORDER)
     checked = tuple(cats.get("checked") or _DEFAULT_CHECKED)
@@ -98,6 +178,7 @@ def get_pdf_settings() -> PdfSettings:
     labels_en = dict(cats.get("labels_en") or _DEFAULT_LABELS_EN)
     return PdfSettings(
         footer_url=footer_url,
+        render=render,
         categories=PdfCategoryConfig(
             order=order,
             checked=checked,

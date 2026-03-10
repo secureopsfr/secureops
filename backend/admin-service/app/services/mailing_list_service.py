@@ -26,33 +26,30 @@ class MailingListService:
             Liste des utilisateurs abonnés à la newsletter
         """
         with get_sync_session() as db:
-            try:
-                # Récupérer les utilisateurs avec newsletter_enabled=True via la jointure avec subscriptions
-                query = (
-                    db.query(User)
-                    .join(Subscription, User.id == Subscription.user_id)
-                    .filter(Subscription.newsletter_enabled.is_(True))
-                    .filter(User.email.isnot(None))
-                    .order_by(User.created_at.desc())
-                )
+            # Récupérer les utilisateurs avec newsletter_enabled=True via la jointure avec subscriptions
+            query = (
+                db.query(User)
+                .join(Subscription, User.id == Subscription.user_id)
+                .filter(Subscription.newsletter_enabled.is_(True))
+                .filter(User.email.isnot(None))
+                .order_by(User.created_at.desc())
+            )
 
-                entries = query.offset(offset).limit(limit).all()
-                total = query.count()
+            entries = query.offset(offset).limit(limit).all()
+            total = query.count()
 
-                entries_data = []
-                for user in entries:
-                    entry_dict = {
-                        "id": str(user.id),
-                        "email": user.email,
-                        "is_verified": True,  # Les utilisateurs sont toujours considérés comme vérifiés
-                        "created_at": user.created_at.isoformat() if user.created_at else None,
-                        "updated_at": user.subscription.updated_at.isoformat() if user.subscription and user.subscription.updated_at else None,
-                    }
-                    entries_data.append(entry_dict)
+            entries_data = []
+            for user in entries:
+                entry_dict = {
+                    "id": str(user.id),
+                    "email": user.email,
+                    "is_verified": True,  # Les utilisateurs sont toujours considérés comme vérifiés
+                    "created_at": user.created_at.isoformat() if user.created_at else None,
+                    "updated_at": user.subscription.updated_at.isoformat() if user.subscription and user.subscription.updated_at else None,
+                }
+                entries_data.append(entry_dict)
 
-                return {"entries": entries_data, **make_pagination_meta(total=total, limit=limit, offset=offset)}
-            except Exception as e:
-                raise e
+            return {"entries": entries_data, **make_pagination_meta(total=total, limit=limit, offset=offset)}
 
     def verify_email(self, email: str) -> Dict[str, Any]:
         """
@@ -84,10 +81,10 @@ class MailingListService:
 
                 db.commit()
 
-                return {"email": email, "message": "Newsletter activée avec succès", "is_verified": True}
-            except Exception as e:
+                return {"success": True, "email": email, "message": "Newsletter activée avec succès", "is_verified": True}
+            except Exception:
                 db.rollback()
-                raise e
+                raise
 
     def unsubscribe_email(self, email: str) -> Dict[str, Any]:
         """
@@ -118,10 +115,10 @@ class MailingListService:
                     db.add(subscription)
                     db.commit()
 
-                return {"email": email, "message": "Désinscription réussie. Vous ne recevrez plus nos actualités."}
-            except Exception as e:
+                return {"success": True, "email": email, "message": "Désinscription réussie. Vous ne recevrez plus nos actualités."}
+            except Exception:
                 db.rollback()
-                raise e
+                raise
 
     def get_notification_subscribers(self, limit: int = 100, offset: int = 0) -> Dict[str, Any]:
         """
@@ -135,30 +132,27 @@ class MailingListService:
             Liste des utilisateurs abonnés aux notifications
         """
         with get_sync_session() as db:
-            try:
-                # Récupérer les utilisateurs avec new_features_notifications_enabled=True via la jointure avec subscriptions
-                query = (
-                    db.query(User)
-                    .join(Subscription, User.id == Subscription.user_id)
-                    .filter(Subscription.new_features_notifications_enabled.is_(True))
-                    .filter(User.email.isnot(None))
-                    .order_by(User.created_at.desc())
-                )
+            # Récupérer les utilisateurs avec new_features_notifications_enabled=True via la jointure avec subscriptions
+            query = (
+                db.query(User)
+                .join(Subscription, User.id == Subscription.user_id)
+                .filter(Subscription.new_features_notifications_enabled.is_(True))
+                .filter(User.email.isnot(None))
+                .order_by(User.created_at.desc())
+            )
 
-                entries = query.offset(offset).limit(limit).all()
-                total = query.count()
+            entries = query.offset(offset).limit(limit).all()
+            total = query.count()
 
-                entries_data = []
-                for user in entries:
-                    entry_dict = {
-                        "id": str(user.id),
-                        "email": user.email,
-                        "is_verified": True,  # Les utilisateurs sont toujours considérés comme vérifiés
-                        "created_at": user.created_at.isoformat() if user.created_at else None,
-                        "updated_at": user.subscription.updated_at.isoformat() if user.subscription and user.subscription.updated_at else None,
-                    }
-                    entries_data.append(entry_dict)
+            entries_data = []
+            for user in entries:
+                entry_dict = {
+                    "id": str(user.id),
+                    "email": user.email,
+                    "is_verified": True,  # Les utilisateurs sont toujours considérés comme vérifiés
+                    "created_at": user.created_at.isoformat() if user.created_at else None,
+                    "updated_at": user.subscription.updated_at.isoformat() if user.subscription and user.subscription.updated_at else None,
+                }
+                entries_data.append(entry_dict)
 
-                return {"entries": entries_data, **make_pagination_meta(total=total, limit=limit, offset=offset)}
-            except Exception as e:
-                raise e
+            return {"entries": entries_data, **make_pagination_meta(total=total, limit=limit, offset=offset)}

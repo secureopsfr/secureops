@@ -7,53 +7,23 @@ Gère aussi les 403 sur chemins sensibles (existence révélée).
 
 import re
 
-from app.config_loader import get_directory_listing_max_body, get_directory_listing_settings
-from app.services.path_checks import PathCheckResult, PathFinding, run_path_checks
-
-# Chemins sensibles : un 403 indique l'existence du répertoire (protection active).
-_SENSITIVE_FOR_403 = frozenset(("/config/", "/backup/", "/logs/", "/tmp/", "/data/"))
-
-# Extensions de fichiers typiques dans un listing partiel.
-_PARTIAL_LISTING_EXTENSIONS = (
-    ".pdf",
-    ".zip",
-    ".csv",
-    ".xlsx",
-    ".xls",
-    ".txt",
-    ".log",
-    ".sql",
-    ".bak",
-    ".env",
-    ".json",
-    ".xml",
-    ".yaml",
-    ".yml",
-    ".conf",
-    ".ini",
-    ".config",
-    ".tar",
-    ".gz",
-    ".doc",
-    ".docx",
-    ".ppt",
-    ".pptx",
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".gif",
+from app.config_loader import (
+    get_directory_listing_max_body,
+    get_directory_listing_partial_extensions,
+    get_directory_listing_partial_min_links,
+    get_directory_listing_sensitive_403_paths,
+    get_directory_listing_settings,
 )
-
-# Seuil minimum de liens pour considérer un listing partiel (éviter faux positifs).
-_PARTIAL_LISTING_MIN_LINKS = 3
+from app.services.path_checks import PathCheckResult, PathFinding, run_path_checks
 
 
 def _make_on_403_handler():
     """Retourne le callback pour les 403 sur chemins sensibles."""
+    sensitive_paths = frozenset((p.rstrip("/") + "/") if p else "/" for p in get_directory_listing_sensitive_403_paths())
 
     def handler(path: str) -> PathFinding | None:
         path_norm = (path.rstrip("/") + "/") if path else "/"
-        if path_norm in _SENSITIVE_FOR_403:
+        if path_norm in sensitive_paths:
             return PathFinding(
                 path=path,
                 severity="medium",
@@ -102,6 +72,8 @@ def _is_partial_listing_body(text: str) -> bool:
     Returns:
         bool: True si listing partiel détecté (≥ N liens vers fichiers/dossiers).
     """
+    partial_extensions = get_directory_listing_partial_extensions()
+    min_links = get_directory_listing_partial_min_links()
     if "<a href=" not in text and "<a " not in text:
         return False
     # Recherche des liens <a href="...">
@@ -117,13 +89,13 @@ def _is_partial_listing_body(text: str) -> bool:
             count += 1
             continue
         # Fichier : extension connue
-        if any(href.endswith(ext) for ext in _PARTIAL_LISTING_EXTENSIONS):
+        if any(href.endswith(ext) for ext in partial_extensions):
             count += 1
             continue
         # Lien relatif simple (ex. "fichier.pdf" ou "sous-dossier/")
         if "/" not in href and "." in href:
             count += 1
-    return count >= _PARTIAL_LISTING_MIN_LINKS
+    return count >= min_links
 
 
 async def run_directory_listing_checks(

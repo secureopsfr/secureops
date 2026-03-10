@@ -74,6 +74,7 @@ async def _persist_result_and_schedule_next(scan, data: dict, now: datetime) -> 
                 session=session,
                 user_id=scan.user_id,
                 url=data["url"],
+                scan_type=getattr(scan, "scan_type", "frontend"),
                 status=data.get("status", "success"),
                 score=data.get("score"),
                 findings=data.get("findings", []),

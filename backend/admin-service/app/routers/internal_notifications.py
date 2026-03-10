@@ -21,9 +21,9 @@ _X_INTERNAL_API_KEY_HEADER = Header(default=None, alias="X-Internal-Api-Key")
 async def _verify_internal_api_key(
     x_internal_api_key: str | None = _X_INTERNAL_API_KEY_HEADER,
 ) -> None:
-    """Vérifie la clé API interne si ADMIN_SERVICE_INTERNAL_API_KEY est définie."""
+    """Vérifie strictement la clé API interne."""
     if not INTERNAL_API_KEY:
-        return
+        raise HTTPException(status_code=503, detail="Clé API interne non configurée")
     if x_internal_api_key != INTERNAL_API_KEY:
         raise HTTPException(status_code=401, detail="Clé API interne invalide ou manquante")
 

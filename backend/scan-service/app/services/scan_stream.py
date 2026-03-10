@@ -12,12 +12,9 @@ import asyncio
 import logging
 import time
 from collections.abc import AsyncGenerator, Callable
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
 
 from common.logging_config import correlation_id_ctx
 
-from app.catalogue.category_summaries import build_category_summaries
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
 from app.errors.fetch_errors import (
     build_sse_error_payload,
@@ -25,22 +22,8 @@ from app.errors.fetch_errors import (
     build_unexpected_error_payload,
     build_validation_error_payload,
 )
-from app.models.scan_result import ScanResult
-from app.services.cache import checks as cache_checks
-from app.services.cookies import check_cookies_from_response
-from app.services.cors_cross_origin import run_cors_cross_origin_checks
-from app.services.directory_listing import run_directory_listing_checks
-from app.services.exposed_files import run_exposed_files_checks
-from app.services.information_disclosure import check_information_disclosure_from_response
-from app.services.integrity import check_integrity_from_response
-from app.services.normalization import normalize_results
-from app.services.robots_txt import run_robots_txt_checks
-from app.services.scoring import compute_score
-from app.services.security_headers import check_security_headers_from_response
-from app.services.sitemap import run_sitemap_checks
-from app.services.tech_fingerprinting import check_tech_fingerprinting_from_response
-from app.services.tls import run_tls_checks
-from app.services.tls.posture import compute_tls_posture
+from app.services._scan_core import SCAN_STEPS, ScanContext, build_result_payload
+from app.services.scan_history_save import save_scan_to_history
 from app.utils.http_fetch import get_with_client_or_error, scan_client
 from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
@@ -74,25 +57,6 @@ def _log_scan_complete(
     )
 
 
-@dataclass
-class ScanContext:
-    """Contexte partagé entre les étapes de la pipeline.
-
-    Attributes:
-        normalized_url: URL normalisée scannée.
-        https_url: URL HTTPS de base (pour path checks).
-        client: Client httpx partagé.
-        https_response: Réponse de la requête HTTPS initiale.
-        results: Résultats des étapes (rempli au fur et à mesure).
-    """
-
-    normalized_url: str
-    https_url: str
-    client: object
-    https_response: object
-    results: dict[str, object] = field(default_factory=dict)
-
-
 async def _emit_step_and_run(step_name: str, msg_check: str, msg_done: str, step_fn: Callable, ctx: ScanContext) -> tuple[list[str], object]:
     """Émet step_check, exécute la vérification, émet step_done. Retourne (chunks, result).
 
@@ -119,135 +83,80 @@ def _timeout_error_message() -> str:
     return sse_message("error", build_timeout_global_error_payload())
 
 
-def _build_result_payload(
-    url: str,
-    results: dict[str, object],
-    start_time: float,
-) -> dict:
-    """Construit le payload normalisé (ScanResult) pour l'événement SSE result.
-
-    Args:
-        url: URL normalisée scannée.
-        results: Dict clé → résultat (tls, headers, cookies, exposed_files, directory_listing, robots_txt, tech_fingerprinting).
-        start_time: Timestamp monotonic du début du scan.
-
-    Returns:
-        dict: Payload sérialisable pour {event: result, data: {...}}.
-    """
-    findings = normalize_results(results)
-    findings_tuple = tuple(findings)
-    score = compute_score(findings_tuple)
-    duration = time.monotonic() - start_time
-    timestamp = datetime.now(timezone.utc).isoformat()
-    scan_result = ScanResult(
-        url=url,
-        timestamp=timestamp,
-        duration=duration,
-        score=score,
-        findings=findings_tuple,
-    )
-    payload = scan_result.to_dict()
-    tls_result = results["tls"]
-    tls_posture = compute_tls_posture(tls_result)
-    tls_version = getattr(tls_result, "tls_version", None)
-    category_summaries = build_category_summaries(findings_tuple, tls_posture=tls_posture, tls_version=tls_version)
-    payload["category_summaries"] = category_summaries
-    payload["total_tests_count"] = sum(s.get("checks_count", 0) for s in category_summaries)
-    return payload
-
-
-# Étapes de la pipeline : (step_name, msg_check, msg_done, step_fn)
-_SCAN_STEPS: list[tuple[str, str, str, Callable]] = [
+# Étapes SSE: (step_name, msg_check, msg_done, step_fn)
+_SCAN_STEP_FN_MAP = dict(SCAN_STEPS)
+_SCAN_SSE_STEPS: list[tuple[str, str, str, Callable]] = [
     (
         "tls",
         "Vérification TLS/HTTPS…",
         "TLS/HTTPS vérifié.",
-        lambda ctx: run_tls_checks(
-            ctx.normalized_url,
-            https_response=ctx.https_response,
-            client=ctx.client,
-        ),
+        _SCAN_STEP_FN_MAP["tls"],
     ),
     (
         "headers",
         "Vérification Security Headers…",
         "Security Headers vérifiés.",
-        lambda ctx: check_security_headers_from_response(ctx.https_response),
+        _SCAN_STEP_FN_MAP["headers"],
     ),
     (
         "cache",
         "Vérification Cache et performances…",
         "Cache et performances vérifiés.",
-        lambda ctx: cache_checks.check_cache_from_response(
-            ctx.https_response,
-            ctx.https_url,
-            ctx.client,
-        ),
+        _SCAN_STEP_FN_MAP["cache"],
     ),
     (
         "cookies",
         "Vérification Cookies…",
         "Cookies vérifiés.",
-        lambda ctx: check_cookies_from_response(
-            ctx.https_response,
-            is_https=ctx.results["tls"].https_enabled,
-        ),
+        _SCAN_STEP_FN_MAP["cookies"],
     ),
     (
         "exposed_files",
         "Vérification fichiers sensibles exposés…",
         "Fichiers sensibles vérifiés.",
-        lambda ctx: run_exposed_files_checks(ctx.https_url, client=ctx.client),
+        _SCAN_STEP_FN_MAP["exposed_files"],
     ),
     (
         "directory_listing",
         "Vérification directory listing…",
         "Directory listing vérifié.",
-        lambda ctx: run_directory_listing_checks(ctx.https_url, client=ctx.client),
+        _SCAN_STEP_FN_MAP["directory_listing"],
     ),
     (
         "robots_txt",
         "Vérification robots.txt…",
         "robots.txt vérifié.",
-        lambda ctx: run_robots_txt_checks(ctx.https_url, client=ctx.client),
+        _SCAN_STEP_FN_MAP["robots_txt"],
     ),
     (
         "sitemap",
         "Vérification sitemap…",
         "Sitemap vérifié.",
-        lambda ctx: run_sitemap_checks(
-            ctx.https_url,
-            robots_txt_result=ctx.results.get("robots_txt"),
-            client=ctx.client,
-        ),
+        _SCAN_STEP_FN_MAP["sitemap"],
     ),
     (
         "tech_fingerprinting",
         "Fingerprinting technologique…",
         "Tech fingerprinting vérifié.",
-        lambda ctx: check_tech_fingerprinting_from_response(ctx.https_response),
+        _SCAN_STEP_FN_MAP["tech_fingerprinting"],
     ),
     (
         "information_disclosure",
         "Vérification fuites d'information…",
         "Fuites d'information vérifiées.",
-        lambda ctx: check_information_disclosure_from_response(ctx.https_response),
+        _SCAN_STEP_FN_MAP["information_disclosure"],
     ),
     (
         "integrity",
         "Vérification intégrité et sous-ressources…",
         "Intégrité et sous-ressources vérifiées.",
-        lambda ctx: check_integrity_from_response(ctx.https_response, ctx.https_url),
+        _SCAN_STEP_FN_MAP["integrity"],
     ),
     (
         "cors_cross_origin",
         "Vérification CORS et cross-origin…",
         "CORS et cross-origin vérifiés.",
-        lambda ctx: run_cors_cross_origin_checks(
-            ctx.https_response,
-            ctx.https_url,
-            ctx.client,
-        ),
+        _SCAN_STEP_FN_MAP["cors_cross_origin"],
     ),
 ]
 
@@ -280,7 +189,7 @@ async def _run_checks_with_client(
         https_response=https_response,
     )
 
-    for step_name, msg_check, msg_done, step_fn in _SCAN_STEPS:
+    for step_name, msg_check, msg_done, step_fn in _SCAN_SSE_STEPS:
         chunks, result = await _emit_step_and_run(step_name, msg_check, msg_done, step_fn, ctx)
         ctx.results[step_name] = result
         for c in chunks:
@@ -291,7 +200,7 @@ async def _run_checks_with_client(
             yield _timeout_error_message()
             return
 
-    payload = _build_result_payload(normalized_url, ctx.results, start_time)
+    payload = build_result_payload(normalized_url, ctx.results, start_time)
     nb_findings = len(payload["findings"])
     duration = payload["duration"]
     _log_scan_complete(duration, nb_findings, "success")
@@ -300,8 +209,6 @@ async def _run_checks_with_client(
     # Sauvegarde dans l'historique si utilisateur connecté (roadmap 0.2.0 §2)
     if authorization:
         try:
-            from app.services.scan_history_save import save_scan_to_history
-
             scan_id = await save_scan_to_history(payload, authorization)
             if scan_id:
                 yield sse_message("save_done", {"scan_id": scan_id})

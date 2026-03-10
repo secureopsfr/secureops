@@ -257,7 +257,14 @@ launch_service() {
         # Installer/mettre à jour les dépendances (+ package commun partagé)
         echo -e "${YELLOW}Installation/mise à jour des dépendances pour ${service_name}...${NC}"
         if [ -f "${service_dir}/venv/bin/activate" ]; then
-            (cd "$service_dir" && . venv/bin/activate && pip install -e ../common && pip install -r requirements.txt && deactivate)
+            (
+                cd "$service_dir" && . venv/bin/activate && pip install -e ../common && pip install -r requirements.txt
+                if [ -f "requirements-dev.txt" ]; then
+                    echo -e "${BLUE}requirements-dev.txt détecté pour ${service_name}, installation des dépendances de dev...${NC}"
+                    pip install -r requirements-dev.txt
+                fi
+                deactivate
+            )
         else
             echo -e "${RED}Erreur: Impossible d'activer l'environnement virtuel pour ${service_name}${NC}"
             return 1

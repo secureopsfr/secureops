@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 from typing import Optional
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from dateutil.relativedelta import relativedelta
 
@@ -15,8 +15,8 @@ def _get_ref_in_tz(from_dt: datetime, tz_name: Optional[str]) -> datetime:
         try:
             tz = ZoneInfo(tz_name)
             return from_dt.astimezone(tz)
-        except Exception:
-            pass
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError(f"Fuseau horaire invalide: {tz_name}") from exc
     return from_dt
 
 
@@ -28,8 +28,8 @@ def _to_utc(local_dt: datetime, tz_name: Optional[str]) -> datetime:
             if local_dt.tzinfo is None:
                 local_dt = local_dt.replace(tzinfo=tz)
             return local_dt.astimezone(timezone.utc)
-        except Exception:
-            pass
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError(f"Fuseau horaire invalide: {tz_name}") from exc
     if local_dt.tzinfo is None:
         local_dt = local_dt.replace(tzinfo=timezone.utc)
     return local_dt

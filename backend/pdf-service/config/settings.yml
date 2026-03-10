@@ -31,9 +31,45 @@ routers:
     tags:
       - "health"
 
-# PDF (rapport de scan) : catégories, libellés i18n, footer.
+# PDF (rapport de scan) : rendu, catégories, libellés i18n, footer.
 pdf:
   footer_url: "https://secureops.example.com"
+  render:
+    evidence_max_len: 800
+    recommendation_max_len: 800
+    cover_url_max_len: 60
+    cover_logo_primary_color: "#38bdf8"
+    cover_logo_secondary_color: "#0f172a"
+    score_good: 80
+    score_medium: 50
+    score_color_good: "#10b981"
+    score_color_medium: "#f59e0b"
+    score_color_low: "#ef4444"
+    references_max_list: 10
+    references_max_inline: 3
+    severity_badges:
+      critical:
+        bg: "#fef2f2"
+        text: "#dc2626"
+      high:
+        bg: "#fffbeb"
+        text: "#d97706"
+      medium:
+        bg: "#fffbeb"
+        text: "#d97706"
+      low:
+        bg: "#eff6ff"
+        text: "#2563eb"
+      info:
+        bg: "#eff6ff"
+        text: "#2563eb"
+    matrix:
+      border_color: "#333333"
+      cells:
+        - ["#22c55e", "#22c55e", "#facc15", "#facc15"]
+        - ["#22c55e", "#facc15", "#f97316", "#f97316"]
+        - ["#facc15", "#f97316", "#ef4444", "#ef4444"]
+        - ["#f97316", "#ef4444", "#ef4444", "#ef4444"]
   categories:
     order:
       - tls

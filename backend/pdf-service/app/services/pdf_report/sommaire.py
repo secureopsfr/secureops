@@ -1,21 +1,15 @@
 """Sommaire du rapport PDF (sections et sous-parties)."""
 
 from html import escape
-from typing import Any
 
 from app.config.pdf import get_category_labels
+from app.schemas.finding import Finding
+from app.services.pdf_report.constants import severity_index
 from app.services.pdf_report.pdf_i18n import t
 
 
-def _severity_index(severity: str) -> int:
-    """Retourne l'index de tri pour la sévérité (critical=0, info=4)."""
-    order = ["critical", "high", "medium", "low", "info"]
-    s = severity or "info"
-    return order.index(s) if s in order else 99
-
-
 def build_sommaire(
-    by_category: dict[str, list[dict[str, Any]]],
+    by_category: dict[str, list[Finding]],
     ordered_cats: list[str],
     lang: str,
 ) -> str:
@@ -46,8 +40,8 @@ def build_sommaire(
             f'<li class="toc-item toc-sub"><a href="#sect-{cat}-intro" class="toc-link">'
             f'<span class="toc-num">{section_num}.1</span> {escape(summary_label)}</a></li>'
         )
-        for idx, f in enumerate(sorted(cat_findings, key=lambda x: _severity_index(x.get("severity"))), start=2):
-            title = escape(str(f.get("title", "")))
+        for idx, f in enumerate(sorted(cat_findings, key=lambda x: severity_index(x.severity)), start=2):
+            title = escape(f.title)
             items.append(
                 f'<li class="toc-item toc-sub"><a href="#finding-{section_num}-{idx}" class="toc-link">'
                 f'<span class="toc-num">{section_num}.{idx}</span> {title}</a></li>'

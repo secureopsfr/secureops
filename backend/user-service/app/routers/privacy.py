@@ -13,7 +13,7 @@ from app.services.scan_alert_repository import list_scan_alert_events_by_user
 from app.services.scan_repository import list_scans_by_user_id
 from app.services.scheduled_scan_repository import list_scheduled_scans_by_user
 from app.services.subscription_repository import get_subscription_by_user_id
-from app.utils.auth import get_current_user, resolve_user
+from app.utils.auth import require_jwt_user, resolve_user
 
 logger = logging.getLogger(__name__)
 
@@ -193,7 +193,7 @@ async def _build_export_content(session: AsyncSession, user) -> str:
 
 @router.get("/export", response_class=PlainTextResponse)
 async def export_user_data(
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    current_user: Annotated[Dict, Depends(require_jwt_user)],
 ) -> PlainTextResponse:
     """Exporte toutes les données personnelles de l'utilisateur (RGPD)."""
     try:

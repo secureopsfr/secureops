@@ -8,7 +8,7 @@ import re
 from typing import Callable, TypedDict
 
 from app.catalogue.recommendations import get_recommendation, get_references
-from app.config_loader import get_exposed_files_severity_upgrade, get_security_headers_settings
+from app.config_loader import get_cookies_settings, get_exposed_files_severity_upgrade, get_security_headers_settings
 from app.constants import (
     MSG_COOKIES_UNAVAILABLE,
     MSG_HEADERS_ANALYSIS_UNAVAILABLE,
@@ -18,7 +18,7 @@ from app.constants import (
 )
 from app.models.finding import Finding
 from app.services.cache.checks import CacheCheckResult
-from app.services.cookies.checks import CookieCheckResult
+from app.services.cookies.checks import CookieCheckResult, CookieInfo
 from app.services.cors_cross_origin.checks import CorsCrossOriginCheckResult
 from app.services.information_disclosure.checks import InformationDisclosureCheckResult
 from app.services.integrity import IntegrityCheckResult
@@ -106,9 +106,81 @@ def _normalize_tls(result: TlsCheckResult) -> list[Finding]:
     if not result.https_enabled:
         findings.append(_finding("tls-https-disabled", "tls", "HTTPS non activé", "critical", MSG_HTTPS_UNAVAILABLE))
         return findings
-    for msg in result.findings:
-        slug, title, severity = _tls_msg_to_finding(msg)
-        findings.append(_finding(slug, "tls", title, severity, msg))
+
+    if result.http_redirects_to_https is False:
+        findings.append(
+            _finding(
+                "tls-no-redirect",
+                "tls",
+                "Pas de redirection HTTP→HTTPS",
+                "high",
+                "Pas de redirection HTTP→HTTPS détectée.",
+            )
+        )
+    if result.certificate_status == "expired":
+        findings.append(
+            _finding(
+                "tls-cert-expired",
+                "tls",
+                "Certificat expiré",
+                "critical",
+                "Le certificat présenté par le serveur est expiré.",
+            )
+        )
+    elif result.certificate_status == "self_signed":
+        findings.append(
+            _finding(
+                "tls-cert-self-signed",
+                "tls",
+                "Certificat auto-signé",
+                "high",
+                "Le certificat présenté par le serveur est auto-signé.",
+            )
+        )
+    elif result.certificate_status == "not_yet_valid":
+        findings.append(
+            _finding(
+                "tls-cert-not-yet-valid",
+                "tls",
+                "Certificat pas encore valide",
+                "medium",
+                "Le certificat présenté par le serveur n'est pas encore valide.",
+            )
+        )
+    elif result.certificate_status == "expires_soon":
+        expiry_msg = next((m for m in result.findings if "expire bientôt" in m.lower() or "expires soon" in m.lower()), "")
+        days = _extract_days_until_expiry(expiry_msg)
+        severity = "low" if days is not None and days >= 15 else "medium"
+        findings.append(
+            _finding(
+                "tls-cert-expires-soon",
+                "tls",
+                "Certificat expire bientôt",
+                severity,
+                expiry_msg or "Le certificat approche de son expiration.",
+            )
+        )
+    if result.chain_incomplete or any("chaîne" in m.lower() and "incomplète" in m.lower() for m in result.findings):
+        findings.append(
+            _finding(
+                "tls-chain-incomplete",
+                "tls",
+                "Chaîne de certificats incomplète",
+                "medium",
+                "La chaîne de certificats est incomplète (intermédiaires manquants).",
+            )
+        )
+    if result.tls_versions_obsolete:
+        versions = ", ".join(result.tls_versions_obsolete)
+        findings.append(
+            _finding(
+                "tls-versions-obsolete",
+                "tls",
+                "Versions TLS obsolètes",
+                "medium",
+                f"Versions TLS obsolètes détectées: {versions}.",
+            )
+        )
     return findings
 
 
@@ -129,46 +201,19 @@ def _normalize_headers(result: SecurityHeadersCheckResult) -> list[Finding]:
     headers_config = get_security_headers_settings()
     header_to_slug = {cfg.name: cfg.slug for cfg in headers_config}
     header_to_severity = {cfg.name: cfg.severity for cfg in headers_config}
+    for header_name in result.headers_missing:
+        slug = header_to_slug.get(header_name, "headers-connection-failed")
+        severity = header_to_severity.get(header_name, "medium")
+        findings.append(_finding(slug, "headers", f"{header_name} absent", severity, f"{header_name} absent."))
+
     for msg in result.findings:
-        if "valeur incorrecte" in msg.lower() or "incorrecte" in msg.lower():
-            findings.append(
-                _finding(
-                    "headers-xcto-wrong-value",
-                    "headers",
-                    "X-Content-Type-Options valeur incorrecte",
-                    "medium",
-                    msg,
-                )
-            )
-        elif "report-uri" in msg and "report-to" in msg and "sans" in msg:
-            findings.append(
-                _finding(
-                    "headers-csp-no-report-uri",
-                    "headers",
-                    "CSP sans report-uri ni report-to",
-                    "low",
-                    msg,
-                )
-            )
-        elif "unsafe-inline" in msg or "unsafe-eval" in msg:
-            findings.append(
-                _finding(
-                    "headers-csp-unsafe-directives",
-                    "headers",
-                    "CSP avec directives unsafe",
-                    "low",
-                    msg,
-                )
-            )
-        else:
-            for h in sorted(header_to_slug, key=len, reverse=True):
-                if h in msg and h in result.headers_missing:
-                    slug = header_to_slug[h]
-                    severity = header_to_severity.get(h, "medium")
-                    findings.append(_finding(slug, "headers", f"{h} absent", severity, msg))
-                    break
-            else:
-                findings.append(_finding("headers-connection-failed", "headers", "En-tête manquant", "medium", msg))
+        msg_l = msg.lower()
+        if "valeur incorrecte" in msg_l or "incorrecte" in msg_l:
+            findings.append(_finding("headers-xcto-wrong-value", "headers", "X-Content-Type-Options valeur incorrecte", "medium", msg))
+        elif "report-uri" in msg_l and "report-to" in msg_l and "sans" in msg_l:
+            findings.append(_finding("headers-csp-no-report-uri", "headers", "CSP sans report-uri ni report-to", "low", msg))
+        elif "unsafe-inline" in msg_l or "unsafe-eval" in msg_l:
+            findings.append(_finding("headers-csp-unsafe-directives", "headers", "CSP avec directives unsafe", "low", msg))
     return findings
 
 
@@ -193,6 +238,73 @@ def _cookie_msg_to_finding(msg: str) -> tuple[str, str, str]:
     return ("cookies-connection-failed", "Problème cookie", "medium")
 
 
+def _normalize_cookie_structured(cookie: CookieInfo, settings) -> list[Finding]:
+    """Normalise un cookie à partir des attributs structurés."""
+    cookie_findings: list[Finding] = []
+    name_lower = cookie.name.lower()
+    session_like = any(p in name_lower for p in settings.session_like_names)
+    third_party_like = any(p in name_lower for p in settings.third_party_like_names)
+
+    if session_like and not (cookie.httponly and cookie.secure and cookie.samesite == "Strict"):
+        return [
+            _finding(
+                "cookies-session-incomplete",
+                "cookies",
+                "Cookie de session sans triple protection",
+                "high",
+                f"Cookie de session '{cookie.name}' sans HttpOnly + Secure + SameSite=Strict.",
+            )
+        ]
+
+    if not cookie.secure:
+        cookie_findings.append(_finding("cookies-no-secure", "cookies", "Cookie sans Secure", "high", f"Cookie '{cookie.name}' sans Secure."))
+    if not cookie.httponly:
+        cookie_findings.append(_finding("cookies-no-httponly", "cookies", "Cookie sans HttpOnly", "medium", f"Cookie '{cookie.name}' sans HttpOnly."))
+    if cookie.samesite is None:
+        cookie_findings.append(_finding("cookies-no-samesite", "cookies", "Cookie sans SameSite", "medium", f"Cookie '{cookie.name}' sans SameSite."))
+    if cookie.samesite == "None" and not cookie.secure:
+        cookie_findings.append(
+            _finding(
+                "cookies-samesite-none-requires-secure",
+                "cookies",
+                "SameSite=None sans Secure",
+                "high",
+                f"Cookie '{cookie.name}' avec SameSite=None sans Secure.",
+            )
+        )
+    if session_like and not cookie.has_host_prefix and not cookie.has_secure_prefix:
+        cookie_findings.append(
+            _finding(
+                "cookies-no-host-secure-prefix",
+                "cookies",
+                "Cookie sensible sans préfixe __Host-/__Secure-",
+                "info",
+                f"Cookie sensible '{cookie.name}' sans préfixe __Host- ou __Secure-.",
+            )
+        )
+    if third_party_like and not cookie.partitioned:
+        cookie_findings.append(
+            _finding(
+                "cookies-no-partitioned",
+                "cookies",
+                "Cookie tiers sans Partitioned (CHIPS)",
+                "low",
+                f"Cookie tiers '{cookie.name}' sans Partitioned.",
+            )
+        )
+    if session_like and cookie.max_age_seconds is not None and cookie.max_age_seconds > settings.session_max_age_seconds:
+        cookie_findings.append(
+            _finding(
+                "cookies-session-expires-long",
+                "cookies",
+                "Cookie de session avec durée trop longue",
+                "low",
+                f"Cookie de session '{cookie.name}' avec Expires/Max-Age > 24h.",
+            )
+        )
+    return cookie_findings
+
+
 def _normalize_cookies(result: CookieCheckResult) -> list[Finding]:
     """Convertit CookieCheckResult en list[Finding]."""
     if not result.fetch_ok:
@@ -206,6 +318,14 @@ def _normalize_cookies(result: CookieCheckResult) -> list[Finding]:
             )
         ]
     findings: list[Finding] = []
+    settings = get_cookies_settings()
+    for cookie in result.cookies:
+        findings.extend(_normalize_cookie_structured(cookie, settings))
+
+    if findings:
+        return findings
+
+    # Compatibilité rétroactive (tests/unitaires legacy construits à partir des messages bruts).
     for msg in result.findings:
         slug, title, severity = _cookie_msg_to_finding(msg)
         findings.append(_finding(slug, "cookies", title, severity, msg))
@@ -442,19 +562,47 @@ def _normalize_tech_fingerprinting(result: TechFingerprintingCheckResult) -> lis
                 ev,
             )
         )
-    for msg in result.findings:
-        if "Version potentiellement vulnérable" in msg:
-            continue
-        if "Serveur détecté" in msg:
-            findings.append(_finding("tech_fingerprinting-server-detected", "tech_fingerprinting", "Serveur détecté", "info", msg))
-        elif "Runtime" in msg:
-            findings.append(_finding("tech_fingerprinting-runtime-detected", "tech_fingerprinting", "Runtime détecté", "info", msg))
-        elif "Framework/CMS" in msg:
-            findings.append(_finding("tech_fingerprinting-framework-detected", "tech_fingerprinting", "Framework/CMS détecté", "info", msg))
-        elif "non identifiée" in msg or "masquée" in msg:
-            findings.append(_finding("tech_fingerprinting-stack-unknown", "tech_fingerprinting", "Stack non identifiée", "info", msg))
-        else:
-            findings.append(_finding("tech_fingerprinting-server-detected", "tech_fingerprinting", "Info stack", "info", msg))
+    if result.server:
+        findings.append(
+            _finding(
+                "tech_fingerprinting-server-detected",
+                "tech_fingerprinting",
+                "Serveur détecté",
+                "info",
+                f"Serveur détecté : {result.server}",
+            )
+        )
+    if result.runtime:
+        findings.append(
+            _finding(
+                "tech_fingerprinting-runtime-detected",
+                "tech_fingerprinting",
+                "Runtime détecté",
+                "info",
+                f"Runtime détecté : {result.runtime}",
+            )
+        )
+    if result.framework_cms:
+        txt = result.framework_cms if not result.framework_cms_version else f"{result.framework_cms} {result.framework_cms_version}"
+        findings.append(
+            _finding(
+                "tech_fingerprinting-framework-detected",
+                "tech_fingerprinting",
+                "Framework/CMS détecté",
+                "info",
+                f"Framework/CMS détecté : {txt}",
+            )
+        )
+    if not findings:
+        findings.append(
+            _finding(
+                "tech_fingerprinting-stack-unknown",
+                "tech_fingerprinting",
+                "Stack non identifiée",
+                "info",
+                "Stack : non identifiée (ou masquée).",
+            )
+        )
     return findings
 
 

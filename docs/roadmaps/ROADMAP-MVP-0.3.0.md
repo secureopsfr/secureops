@@ -53,85 +53,89 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
 
 ## 0.1 Backend — Refactoring par dossier
 
-- [ ] `backend/common/`
-  - [ ] `common/` (utils partagés : config, JWT, DB, logging, middleware, health, URL utils)
-  - [ ] `pyproject.toml` / packaging du module commun
+- [x] `backend/common/`
+  - [x] `common/` (utils partagés : config, JWT, DB, logging, middleware, health, URL utils)
+    > **Fait :** Module complet avec config_base (load_yaml, create_simple_settings, create_load_settings_yml, SsrfSettings, UrlValidationSettings, parse_ssrf_settings, parse_url_validation_settings), jwt_verifier, cognito, async_database, logging_config, middleware (CorrelationIdMiddleware), health (create_health_router), url_utils, url_helpers (extract_host, extract_port, build_url_with_path, etc.), url_validator (validate_and_normalize_url), env_utils (is_prod_env), ssrf (check_ssrf, is_hostname_blocked, is_ip_blocked), schemas (make_pagination_meta), error_handlers, datetime_utils. Centralisation des duplications : SSRF (scan + crawl → common), url_helpers (scan + crawl → common), validate_and_normalize_url (scan + crawl → common), make_pagination_meta (admin → common). Wrappers minces restent dans scan-service et crawl-service pour la config locale.
+  - [x] `pyproject.toml` / packaging du module commun
+    > **Fait :** pyproject.toml avec dependencies, optional-dependencies [dev], [tool.black], [tool.isort], [tool.pytest.ini_options]. Pre-commit (Black, isort, Flake8), CI job lint-common (pip install -e backend/common[dev], black, isort, flake8, pytest), .flake8, requirements-dev.txt, Makefile (install, test, lint). Tests : test_url_utils, test_health, test_datetime_utils, test_schemas, test_config_base, test_env_utils, test_url_helpers.
+  - [x] **Composants créés en plus** (centralisation des duplications)
+    > **Fait :** `env_utils.py` (is_prod_env) ; `url_helpers.py` (extract_host_from_url, extract_port_from_url, build_url_with_path, build_https_url, build_http_url, get_host_from_url, get_https_port_from_url, get_scan_base_url, location_redirects_to_https) ; `url_validator.py` (validate_and_normalize_url avec validation des ports) ; `ssrf.py` (check_ssrf, is_hostname_blocked, is_ip_blocked, resolve_host) ; config_base : create_load_settings_yml, SsrfSettings, UrlValidationSettings, parse_ssrf_settings, parse_url_validation_settings ; schemas : make_pagination_meta. Fichiers config : .flake8, requirements-dev.txt, Makefile.
 
-- [ ] `backend/gateway/`
-  - [ ] `app/`
-    - [ ] `routers/` (proxy, health, routes publiques)
-    - [ ] `services/proxy/` (logique de proxy, métriques)
-    - [ ] `config_loader.py` / settings
-  - [ ] `config/` (YAML des services, CORS, timeouts)
-  - [ ] `tests/`
-  - [ ] `Dockerfile` / `requirements.txt`
+- [x] `backend/gateway/`
+  - [x] `app/`
+    - [x] `routers/` (proxy, health, routes publiques)
+    - [x] `services/proxy/` (logique de proxy, métriques)
+    - [x] `config_loader.py` / settings
+  - [x] `config/` (YAML des services, CORS, timeouts)
+  - [x] `tests/`
+  - [x] `Dockerfile` / `requirements.txt`
+  > **Fait :** Refactoring structurel du gateway avec nettoyage des artefacts legacy et consolidation des responsabilités dans `app/routers`, `app/services/proxy` et `config_loader`. Côté proxy : suppression des comportements hérités non utilisés (Mapbox/vector tiles, timeouts/services historiques), conservation du flux buffer/stream et normalisation des métriques (route extraction simplifiée). Côté config : simplification du schéma settings (`content_types` retiré), gestion d’erreur robuste (`ValueError` sur config invalide), et règles d’accès clarifiées dans le middleware (auth-only docs admin via constantes dédiées). Côté sécurité/maintenabilité : suppression du mock de package `app/__init__.py`, pseudonymisation IP IPv4/IPv6 fiabilisée via `ipaddress`, cache local de l’URL user-service pour l’auth API key. Côté qualité : ajout d’une vraie base de tests unitaires (`middleware`, `config_loader`, `metrics`, `api_key_auth`, `pseudonymizer`) en remplacement du placeholder seul. Côté build/deps : séparation runtime/dev (`requirements.txt` + `requirements-dev.txt`), Dockerfile gateway supportant l’installation optionnelle des dev deps via build arg, CI et `launch_dev.sh` adaptés pour installer les dépendances de dev uniquement dans les contextes lint/test.
 
-- [ ] `backend/admin-service/`
-  - [ ] `app/`
-    - [ ] `routers/` (contact, newsletter, images, analytics, notifications, admin)
-    - [ ] `models/` (events, audit, etc.)
-    - [ ] `services/` (contact, mailing list, kpis, alerting, materialized views…)
-    - [ ] `db.py` / `db_sync.py` / `email_config.py`
-  - [ ] `config/settings.yml`
-  - [ ] `alembic/` + `alembic.ini`
-  - [ ] `tests/`
-  - [ ] `Dockerfile` / `pyproject.toml` / `requirements.txt`
+- [x] `backend/admin-service/`
+  - [x] `app/`
+    - [x] `routers/` (contact, newsletter, images, analytics, notifications, admin)
+    - [x] `models/` (events, audit, etc.)
+    - [x] `services/` (contact, mailing list, kpis, alerting, materialized views…)
+    - [x] `db.py` / `db_sync.py` / `email_config.py`
+  - [x] `config/settings.yml`
+  - [x] `alembic/` + `alembic.ini`
+  - [x] `tests/`
+  - [x] `Dockerfile` / `pyproject.toml` / `requirements.txt`
+  > **Fait :** Refactoring admin-service finalisé avec durcissement sécurité, fiabilité, maintenabilité et base de tests. Côté sécurité : ajout d’une vérification JWT admin in-service (`require_admin_user`) et application au montage des routers admin principaux ; endpoint interne notifications mis en fail-closed si clé non configurée. Côté robustesse : correction `newsletter.schedule` (`scheduled_at` string), alignement contrat mailing list (`success=True`), correction de validation `kpis` (`window_minutes.ge`) et suppression des logs sensibles de préfixes de clé API. Côté async/sync : appels sync dans `newsletter`/`mailing_list`/`notification` déplacés via `run_in_threadpool` avec helpers dédiés pour éviter le blocage event loop. Côté qualité : ajout de tests ciblés (`auth`, `internal_notifications`, `mailing_list_router`, `mailing_list_service`, `newsletter_router`, `notification_router`) + smoke migrations. Côté build/deps : séparation runtime/dev (`requirements.txt` + `requirements-dev.txt`), Dockerfile avec installation optionnelle des dev deps via `INSTALL_DEV_DEPS`, activée en CI.
 
-- [ ] `backend/user-service/`
-  - [ ] `app/`
-    - [ ] `routers/` (profil, préférences, sécurité, favoris, scans, scheduled scans, health)
-    - [ ] `models/` (user, subscription, favorites, scans, scheduled_scans, alerts…)
-    - [ ] `services/`
-      - [ ] `user_repository.py`
-      - [ ] `subscription_repository.py`
-      - [ ] `favorite_repository.py`
-      - [ ] `scan_repository.py`
-      - [ ] `scan_alert_repository.py`
-      - [ ] `scheduled_scan_repository.py`
-      - [ ] `scheduled_scan_scheduler.py`
-      - [ ] `scheduled_scan_utils.py`
-      - [ ] `scan_alert_service.py`
-      - [ ] `user_service.py`
-      - [ ] `cognito_service.py`
-    - [ ] `schemas/`
-    - [ ] `utils/` (auth, URL utils)
-    - [ ] `db.py` / `config_loader.py`
-  - [ ] `config/settings.yml`
-  - [ ] `alembic/` + `alembic.ini`
-  - [ ] `scripts/` (cleanup, tâches ponctuelles)
-  - [ ] `tests/`
-  - [ ] `Dockerfile` / `requirements.txt`
+- [x] `backend/user-service/`
+  - [x] `app/`
+    - [x] `routers/` (profil, préférences, sécurité, favoris, scans, scheduled scans, health)
+    - [x] `models/` (user, subscription, favorites, scans, scheduled_scans, alerts…)
+    - [x] `services/`
+      - [x] `user_repository.py`
+      - [x] `subscription_repository.py`
+      - [x] `favorite_repository.py`
+      - [x] `scan_repository.py`
+      - [x] `scan_alert_repository.py`
+      - [x] `scheduled_scan_repository.py`
+      - [x] `scheduled_scan_scheduler.py`
+      - [x] `scheduled_scan_utils.py`
+      - [x] `scan_alert_service.py`
+      - [x] `user_service.py`
+      - [x] `cognito_service.py`
+    - [x] `schemas/`
+    - [x] `utils/` (auth, URL utils)
+    - [x] `db.py` / `config_loader.py`
+  - [x] `config/settings.yml`
+  - [x] `alembic/` + `alembic.ini`
+  - [x] `scripts/` (cleanup, tâches ponctuelles)
+  - [x] `tests/`
+  - [x] `Dockerfile` / `requirements.txt`
+  > **Fait :** Refactoring user-service finalisé avec corrections de sécurité, fiabilité et qualité. Sécurité : endpoints sensibles passés en JWT-only via `require_jwt_user` (security, privacy, profile, preferences, subscription, favorites), endpoint interne `/api/internal/keys/verify` en fail-closed (503 si clé interne absente). Fiabilité : bug scheduler corrigé (`scan_type` transmis à `create_scan`) et validation stricte des fuseaux horaires dans `scheduled_scan_utils` avec propagation explicite en `400` dans `scheduled_scan` pour fuseaux invalides. Auth : messages d’erreur JWT rendus génériques pour limiter l’exposition d’informations internes. Qualité : ajout de tests ciblés (`auth_jwt_only`, `internal_api_keys`, `scheduled_scan_scheduler`, `scheduled_scan_utils`) + smoke migrations, avec conformité `pytest-asyncio`. Côté build/deps : séparation runtime/dev (`requirements.txt` + `requirements-dev.txt`) et Dockerfile compatible `INSTALL_DEV_DEPS` en CI.
 
-- [ ] `backend/scan-service/`
-  - [ ] `app/`
-    - [ ] `routers/` (scan, health, export PDF via proxy vers pdf-service, endpoints internes)
-    - [ ] `services/`
-      - [ ] `tls/`
-      - [ ] `security_headers/`
-      - [ ] `cookies/`
-      - [ ] `exposed_files/`
-      - [ ] `directory_listing/`
-      - [ ] `robots_txt/`
-      - [ ] `sitemap/`
-      - [ ] `tech_fingerprinting/`
-      - [ ] `information_disclosure/`
-      - [ ] `cache/`
-      - [ ] `cors_cross_origin/`
-      - [ ] `integrity/`
-      - [ ] `subresources/`
-      - [ ] `normalization/`
-      - [ ] `scan_history_save/`
-      - [ ] `scan_runner.py`
-    - [ ] `catalogue/` (reco, matrices, catégories — hors PDF, voir pdf-service)
-    - [ ] `config/` (TLS, cache, CORS, scoring, SSRS, timeouts, URL validation…)
-    - [ ] `utils/` (url_validator, ssrf, url_helpers, headers, http_fetch, ssl_scan…)
-    - [ ] `models/`, `schemas/`, `errors/`, `static/`
-  - [ ] `tests/` (checks, scoring, router, SSRF, URL validator…)
-  - [ ] `Dockerfile`
-
-- [ ] `backend/` racine
-  - [ ] Fichiers de configuration Docker / compose backend
-  - [ ] Scripts divers (si présents)
+- [x] `backend/scan-service/`
+  - [x] `app/`
+    - [x] `routers/` (scan, health, export PDF via proxy vers pdf-service, endpoints internes)
+    - [x] `services/`
+      - [x] `tls/`
+      - [x] `security_headers/`
+      - [x] `cookies/`
+      - [x] `exposed_files/`
+      - [x] `directory_listing/`
+      - [x] `robots_txt/`
+      - [x] `sitemap/`
+      - [x] `tech_fingerprinting/`
+      - [x] `information_disclosure/`
+      - [x] `cache/`
+      - [x] `cors_cross_origin/`
+      - [x] `integrity/`
+      - [x] `subresources/`
+      - [x] `normalization/`
+      - [x] `scan_history_save.py`
+      - [x] `scan_runner.py`
+    - [x] `catalogue/` (reco, matrices, catégories — hors PDF, voir pdf-service)
+    - [x] `config/` (TLS, cache, CORS, scoring, SSRS, timeouts, URL validation…)
+    - [x] `utils/` (url_validator, ssrf, url_helpers, headers, http_fetch, ssl_scan…)
+    - [x] `models/`, `schemas/`, `errors/`, `static/`
+  - [x] `tests/` (checks, scoring, router, SSRF, URL validator…)
+  - [x] `Dockerfile`
+  > **Fait :** Refactoring scan-service finalisé avec amélioration de la maintenabilité, de la cohérence des payloads et du socle de configuration. **Noyau de scan mutualisé :** création de `app/services/_scan_core.py` (source de vérité unique pour `ScanContext`, `SCAN_STEPS` et construction du payload), suppression des duplications entre `scan_stream` et `scan_runner`. **Payload homogène :** alignement du format de sortie entre SSE et endpoint interne avec `status="success"` et `scan_type` dans les deux chemins. **Structure et séparation :** déplacement de `ScanForPdfSchema` vers `app/schemas/scan.py`, suppression des imports lazy dans les générateurs, déplacement de `subresources.py` vers `services/subresources/`. **Configuration :** ajout de `app/config/external_services.py`, branchement dans `config_loader`, centralisation des URLs/timeouts externes dans `settings.yml`, suppression de la section `database` résiduelle non utilisée. **Normalisation :** réduction du couplage aux messages texte dans `normalization/normalizers.py` (usage prioritaire des champs structurés des résultats de checks, fallback conservé pour compatibilité). **Catalogue :** labels de catégories surchargeables depuis `settings.yml` (`category_labels`) avec fallback JSON. **Qualité :** ajout de tests ciblés (`test_scan_runner.py`, `test_scan_stream.py`, `test_scan_history_save.py`) et adaptation des mocks existants ; suite non-intégration validée (`pytest -m "not integration"`).
 
 ---
 
@@ -232,6 +236,10 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
      > **Fait :** Gateway : route `/pdf/*` → pdf-service (port 8013) dans `config/settings.yml` ; si `PDF_SERVICE_INTERNAL_API_KEY` définie, header `X-Internal-Api-Key` ajouté au proxy. Scan-service : `GET /api/scan/export/pdf` appelle le pdf-service en POST avec le payload scan ; variables `PDF_SERVICE_URL` et `PDF_SERVICE_INTERNAL_API_KEY`. Pdf-service : vérification optionnelle du header `X-Internal-Api-Key` si clé définie.
    - [x] Mettre à jour le docker-compose et la doc (ARCHITECTURE.md, VARIABLES-ENVIRONNEMENT.md).
      > **Fait :** docker-compose (principal, CI, betatest) : service pdf-service, variables `PDF_SERVICE_URL` et `PDF_SERVICE_INTERNAL_API_KEY` pour gateway et scan-service. `launch_dev.sh` : vérification et démarrage du pdf-service. ARCHITECTURE.md : schéma, table des services, route `/pdf/*`, endpoints scan/pdf. VARIABLES-ENVIRONNEMENT.md et `.env.example` (racine, pdf-service, gateway) : documentation des variables PDF. DEPLOIEMENT.md et PDF-I18N.md adaptés.
+   - [x] Refactoring qualité du pdf-service (maintenabilité, rigueur, type-safety).
+     > **Fait :** Refactoring complet de la base de code du pdf-service pour améliorer la maintenabilité et la rigueur. **Schémas Pydantic :** création de `app/schemas/finding.py` (modèle `Finding` avec validation de la sévérité : normalisation en minuscules, fallback sur `info`, `extra="ignore"` pour absorber les champs futurs) et `app/schemas/report.py` (`ReportPdfBody` extrait du router) ; `ReportPdfBody.findings` est désormais `list[Finding]` — la validation entrante se fait à la frontière HTTP, les fonctions de rendu reçoivent des objets typés. **Constantes centralisées :** nouveau module `app/services/pdf_report/constants.py` (`SEVERITY_LIST`, `SEVERITY_ORDER`, `severity_index()`) partagé entre `findings.py` et `sommaire.py` — suppression des deux copies locales identiques. **Paramètres de rendu configurables :** nouveau bloc `pdf.render` dans `config/settings.yml` (`evidence_max_len: 800`, `recommendation_max_len: 800`, `score_good: 80`, `score_medium: 50`) et nouveau dataclass `PdfRenderSettings` dans `app/config/pdf.py` — les seuils de score et les limites de texte ne sont plus des magic numbers dans le code. **Troncature explicite :** remplacement du slicing silencieux `[:800]` par `_truncate()` qui ajoute `…` en fin de texte et émet un `logger.warning` avec le slug et la longueur — le PDF est honnête et les dépassements sont traçables. **Source de vérité unique pour les labels :** suppression des champs `label_fr` / `label_en` redondants des 12 entrées de `catalogue/category_summaries.json` (labels déjà définis dans `settings.yml`). **Suppression du code mort :** `build_category_summaries()`, `CategorySummaryEntry`, `_CATEGORY_ORDER` retirés de `catalogue/category_summaries.py` (fonction appartenant au scan-service, jamais appelée dans le pdf-service). **Tests :** suite étendue de 5 à 26 tests — ajout de tests unitaires ciblés par module (`Finding` validation, `severity_index`, troncature avec `…`, échappement HTML sur URL et titres, builders HTML `cover`/`sommaire`/`synthese`/`build_html`, endpoint avec sévérité en majuscules, champs inconnus ignorés). 0 régression, 0 erreur lint flake8.
+   - [x] Hardening final du socle de configuration et des constantes de rendu.
+     > **Fait :** Finalisation du hardening pour éliminer les derniers points de dette. **Configuration commune (`backend/common`) :** `create_simple_settings()` accepte désormais `require_database_url` (défaut `True`) pour supporter proprement les services sans base ; le `pdf-service` l’utilise avec `False` et le hack `DATABASE_URL` factice a été supprimé de `app/config_loader.py`. **Constantes cover externalisées :** ajout de `cover_url_max_len`, `cover_logo_primary_color`, `cover_logo_secondary_color` dans `pdf.render` et utilisation directe dans `cover.py` (URL tronquée configurable + SVG fallback paramétrable). **API simplifiée :** suppression du paramètre `lang` inutilisé dans `links.py`, signatures allégées et appels mis à jour dans `findings.py`. **Validation qualité :** exécution complète des tests et du lint sur `pdf-service` et `common` (`pytest` + `flake8`) sans régression.
 
 Les sections suivantes de la roadmap v0.3.0 (nouvelles fonctionnalités, tests actifs, analytics, etc.) seront ajoutées après ce refactoring de base.
 

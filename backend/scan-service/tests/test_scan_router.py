@@ -31,6 +31,8 @@ def test_post_scan_accepte_url_valide(client) -> None:
     assert 0 <= data["score"] <= 100
     assert "findings" in data
     assert isinstance(data["findings"], list)
+    assert data["status"] == "success"
+    assert data["scan_type"] == "frontend"
 
 
 def test_post_scan_refuse_url_avec_credentials(client) -> None:

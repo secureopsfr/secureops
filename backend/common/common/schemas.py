@@ -42,3 +42,25 @@ class PaginatedResponse(BaseModel):
     total: int = Field(description="Nombre total d'éléments")
     limit: int = Field(description="Taille de la page")
     offset: int = Field(description="Décalage courant")
+
+
+def make_pagination_meta(*, total: int, limit: int, offset: int) -> dict:
+    """Calcule les métadonnées de pagination à partir de limit/offset.
+
+    Args:
+        total: Nombre total d'éléments.
+        limit: Nombre d'éléments demandés (per_page).
+        offset: Décalage (0-indexé).
+
+    Returns:
+        dict avec total, page, per_page, total_pages.
+    """
+    per_page = max(limit, 1)
+    page = (offset // per_page) + 1
+    total_pages = max((total + per_page - 1) // per_page, 1) if total > 0 else 0
+    return {
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages,
+    }

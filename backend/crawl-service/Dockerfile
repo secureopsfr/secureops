@@ -1,5 +1,6 @@
 # Image pour crawl-service (port 8014). Contexte de build attendu : backend/
 FROM python:3.11-slim
+ARG INSTALL_DEV_DEPS=false
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -40,8 +41,11 @@ COPY common/ /tmp/common
 RUN pip install --upgrade pip setuptools wheel \
  && pip install /tmp/common
 
-COPY crawl-service/requirements.txt .
-RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
+COPY crawl-service/requirements.txt crawl-service/requirements-dev.txt ./
+RUN pip install --no-cache-dir --prefer-binary -r requirements.txt \
+ && if [ "$INSTALL_DEV_DEPS" = "true" ] && [ -f requirements-dev.txt ]; then \
+      pip install --no-cache-dir --prefer-binary -r requirements-dev.txt; \
+    fi
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/ms-playwright
 RUN playwright install chromium

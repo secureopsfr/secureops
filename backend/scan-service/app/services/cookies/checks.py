@@ -12,33 +12,8 @@ from email.utils import parsedate_to_datetime
 
 import httpx
 
+from app.config_loader import get_cookies_settings
 from app.constants import MSG_COOKIES_UNAVAILABLE
-
-# Noms de cookies suggérant une session ou authentification (heuristique).
-_SESSION_LIKE_NAMES = (
-    "session",
-    "sess",
-    "auth",
-    "token",
-    "csrf",
-    "_token",
-    "phpsessid",
-    "jsessionid",
-    "connect.sid",
-    "asp.net_sessionid",
-    "laravel_session",
-    "symfony",
-    "wordpress_logged_in",
-    "wp-settings",
-    "sid",
-    "jwt",
-    "access_token",
-    "refresh_token",
-)
-# Noms de cookies tiers/analytics (pour recommandation Partitioned).
-_THIRD_PARTY_LIKE_NAMES = ("_ga", "_gid", "_gat", "_fbp", "_gcl_au", "_gac_", "_dc")
-# Seuil : session avec Expires/Max-Age > 24h = persistante non recommandée.
-_SESSION_MAX_AGE_SECONDS = 86400  # 24 heures
 
 
 @dataclass
@@ -106,13 +81,13 @@ class CookieCheckResult:
 def _is_session_like(name: str) -> bool:
     """Indique si le nom du cookie suggère une session ou authentification."""
     name_lower = name.lower()
-    return any(pat in name_lower for pat in _SESSION_LIKE_NAMES)
+    return any(pat in name_lower for pat in get_cookies_settings().session_like_names)
 
 
 def _is_third_party_like(name: str) -> bool:
     """Indique si le nom du cookie suggère un cookie tiers (analytics, etc.)."""
     name_lower = name.lower()
-    return any(pat in name_lower for pat in _THIRD_PARTY_LIKE_NAMES)
+    return any(pat in name_lower for pat in get_cookies_settings().third_party_like_names)
 
 
 def _parse_samesite(part: str) -> str | None:
@@ -196,14 +171,15 @@ def _session_has_triple_protection(parsed: CookieInfo) -> bool:
 
 def _session_expires_too_long(parsed: CookieInfo) -> bool:
     """Indique si un cookie session a Expires/Max-Age > 24h."""
-    if parsed.max_age_seconds is not None and parsed.max_age_seconds > _SESSION_MAX_AGE_SECONDS:
+    max_age_limit = get_cookies_settings().session_max_age_seconds
+    if parsed.max_age_seconds is not None and parsed.max_age_seconds > max_age_limit:
         return True
     if parsed.expires_at is None:
         return False
     now = datetime.now(timezone.utc)
     if parsed.expires_at <= now:
         return False
-    return (parsed.expires_at - now).total_seconds() > _SESSION_MAX_AGE_SECONDS
+    return (parsed.expires_at - now).total_seconds() > max_age_limit
 
 
 def _findings_base_flags(parsed: CookieInfo, is_https: bool) -> list[str]:

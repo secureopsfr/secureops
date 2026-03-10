@@ -12,18 +12,12 @@ server:
 logging:
   level: "INFO"
 
-database:
-  pool_size: 20
-  max_overflow: 30
-  pool_timeout: 30
-  pool_recycle: 3600
-  pool_pre_ping: true
-  echo: false
-  connect_args:
-    server_settings:
-      application_name: "scan-service"
-  ssl_mode: "prefer"
-  pool_logging: false
+external_services:
+  gateway_url: "http://localhost:8000"
+  pdf_service_url: "http://localhost:8013"
+  fetch_scan_timeout: 10.0
+  pdf_request_timeout: 60.0
+  save_timeout: 15.0
 
 routers:
   health:
@@ -203,6 +197,41 @@ exposed_files:
 # message (fr) utilisé par les checks ; message_en pour cohérence i18n (catalogue override PDF).
 directory_listing:
   max_body_bytes: 8192
+  sensitive_403_paths:
+    - "/config/"
+    - "/backup/"
+    - "/logs/"
+    - "/tmp/"
+    - "/data/"
+  partial_listing_extensions:
+    - ".pdf"
+    - ".zip"
+    - ".csv"
+    - ".xlsx"
+    - ".xls"
+    - ".txt"
+    - ".log"
+    - ".sql"
+    - ".bak"
+    - ".env"
+    - ".json"
+    - ".xml"
+    - ".yaml"
+    - ".yml"
+    - ".conf"
+    - ".ini"
+    - ".config"
+    - ".tar"
+    - ".gz"
+    - ".doc"
+    - ".docx"
+    - ".ppt"
+    - ".pptx"
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".gif"
+  partial_listing_min_links: 3
   paths:
     - path: /uploads/
       severity: high
@@ -262,10 +291,48 @@ integrity:
     - "/auth"
     - "/api/"
 
+# Heuristiques cookies (session/tiers) : paramètres de détection.
+cookies_heuristics:
+  session_like_names:
+    - "session"
+    - "sess"
+    - "auth"
+    - "token"
+    - "csrf"
+    - "_token"
+    - "phpsessid"
+    - "jsessionid"
+    - "connect.sid"
+    - "asp.net_sessionid"
+    - "laravel_session"
+    - "symfony"
+    - "wordpress_logged_in"
+    - "wp-settings"
+    - "sid"
+    - "jwt"
+    - "access_token"
+    - "refresh_token"
+  third_party_like_names:
+    - "_ga"
+    - "_gid"
+    - "_gat"
+    - "_fbp"
+    - "_gcl_au"
+    - "_gac_"
+    - "_dc"
+  session_max_age_seconds: 86400
+
 # robots.txt (roadmap §3.6) : motifs de routes sensibles à signaler dans Disallow.
 # Par défaut : _DEFAULT_ROBOTS_TXT_PATTERNS dans config_loader. Surcharger ici si besoin.
 robots_txt:
   patterns: []  # Vide = utiliser les defaults du code
+
+# Sitemap : chemins fallback testés si robots.txt ne déclare pas de directive Sitemap:.
+sitemap:
+  fallback_paths:
+    - "/sitemap.xml"
+    - "/sitemap_index.xml"
+    - "/sitemap-index.xml"
 
 # Tech fingerprinting (roadmap §5.1.7) : versions minimales sûres par produit.
 # Si la version détectée est < min_safe_version, un finding est émis.
@@ -322,3 +389,18 @@ scoring:
     medium: 25
     low: 10
     info: 0
+
+# Labels catégories: source de vérité prioritaire pour category_summaries.
+category_labels:
+  tls: { fr: "TLS / HTTPS", en: "TLS / HTTPS" }
+  headers: { fr: "En-têtes de sécurité", en: "Security headers" }
+  cache: { fr: "Cache et performances", en: "Cache and performance" }
+  integrity: { fr: "Intégrité et sous-ressources", en: "Integrity and subresources" }
+  cookies: { fr: "Cookies", en: "Cookies" }
+  exposed_files: { fr: "Fichiers exposés", en: "Exposed files" }
+  directory_listing: { fr: "Directory listing", en: "Directory listing" }
+  robots_txt: { fr: "robots.txt", en: "robots.txt" }
+  sitemap: { fr: "Sitemap", en: "Sitemap" }
+  tech_fingerprinting: { fr: "Empreinte technologique", en: "Technology fingerprinting" }
+  information_disclosure: { fr: "Divulgation d'information", en: "Information disclosure" }
+  cors_cross_origin: { fr: "CORS / Cross-origin", en: "CORS / Cross-origin" }

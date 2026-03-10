@@ -37,6 +37,37 @@ _DEFAULT_DIRECTORY: tuple[tuple[str, str, str], ...] = (
     ("/data/", "high", "Directory listing activé sur /data/ : données exposées."),
 )
 _DEFAULT_UPGRADE: tuple[str, ...] = ("/.git/config", "/.env")
+_DEFAULT_DIRECTORY_SENSITIVE_403: tuple[str, ...] = ("/config/", "/backup/", "/logs/", "/tmp/", "/data/")
+_DEFAULT_DIRECTORY_PARTIAL_EXTENSIONS: tuple[str, ...] = (
+    ".pdf",
+    ".zip",
+    ".csv",
+    ".xlsx",
+    ".xls",
+    ".txt",
+    ".log",
+    ".sql",
+    ".bak",
+    ".env",
+    ".json",
+    ".xml",
+    ".yaml",
+    ".yml",
+    ".conf",
+    ".ini",
+    ".config",
+    ".tar",
+    ".gz",
+    ".doc",
+    ".docx",
+    ".ppt",
+    ".pptx",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".gif",
+)
+_DEFAULT_DIRECTORY_PARTIAL_MIN_LINKS = 3
 
 
 def _get_path_check_settings(section: str, defaults: tuple[tuple[str, str, str], ...]) -> tuple[PathCheckConfig, ...]:
@@ -94,3 +125,29 @@ def get_exposed_files_severity_upgrade() -> tuple[str, ...]:
     ef = data.get("exposed_files") or {}
     paths = ef.get("severity_upgrade") or list(_DEFAULT_UPGRADE)
     return tuple(str(p) for p in paths)
+
+
+@lru_cache(maxsize=1)
+def get_directory_listing_sensitive_403_paths() -> tuple[str, ...]:
+    """Charge les chemins directory_listing à signaler quand status=403."""
+    data = _load_settings_yml()
+    dl = data.get("directory_listing") or {}
+    paths = dl.get("sensitive_403_paths") or list(_DEFAULT_DIRECTORY_SENSITIVE_403)
+    return tuple(str(p) for p in paths)
+
+
+@lru_cache(maxsize=1)
+def get_directory_listing_partial_extensions() -> tuple[str, ...]:
+    """Charge les extensions pour détection de listing partiel."""
+    data = _load_settings_yml()
+    dl = data.get("directory_listing") or {}
+    exts = dl.get("partial_listing_extensions") or list(_DEFAULT_DIRECTORY_PARTIAL_EXTENSIONS)
+    return tuple(str(ext) for ext in exts)
+
+
+@lru_cache(maxsize=1)
+def get_directory_listing_partial_min_links() -> int:
+    """Charge le seuil minimum de liens pour listing partiel."""
+    data = _load_settings_yml()
+    dl = data.get("directory_listing") or {}
+    return int(dl.get("partial_listing_min_links", _DEFAULT_DIRECTORY_PARTIAL_MIN_LINKS))

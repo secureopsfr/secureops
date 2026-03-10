@@ -5,7 +5,6 @@ from html import escape
 
 def build_ref_links(
     references: list[str],
-    lang: str,
     max_count: int = 10,
 ) -> str:
     """Construit le HTML d'une liste de liens (ul/li) pour les références."""
@@ -18,7 +17,6 @@ def build_ref_links(
 
 def build_inline_ref_links(
     references: list[str],
-    lang: str,
     max_count: int = 3,
     prefix: str = "",
 ) -> str:

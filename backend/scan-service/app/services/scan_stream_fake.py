@@ -10,7 +10,8 @@ from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 
 from app.catalogue.category_summaries import build_category_summaries
-from app.errors.fetch_errors import build_validation_error_payload
+from app.errors.fetch_errors import build_unexpected_error_payload, build_validation_error_payload
+from app.services.scan_history_save import save_scan_to_history
 from app.utils.sse import sse_message
 from app.utils.url_validator import URLValidationError, validate_and_normalize_url
 
@@ -70,8 +71,6 @@ async def fake_scan_stream_generator(
         # Sauvegarde dans l'historique si auth présente (même logique que scan_stream)
         if authorization:
             try:
-                from app.services.scan_history_save import save_scan_to_history
-
                 scan_id = await save_scan_to_history(payload, authorization)
                 if scan_id:
                     yield sse_message("save_done", {"scan_id": scan_id})
@@ -84,6 +83,4 @@ async def fake_scan_stream_generator(
         yield sse_message("error", build_validation_error_payload(str(e)))
     except Exception as e:
         logger.exception("Scan fake : erreur inattendue: %s", e)
-        from app.errors.fetch_errors import build_unexpected_error_payload
-
         yield sse_message("error", build_unexpected_error_payload(str(e)))

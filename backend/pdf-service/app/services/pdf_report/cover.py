@@ -5,16 +5,21 @@ import os
 from html import escape
 from pathlib import Path
 
+from app.config.pdf import get_pdf_settings
 from app.services.pdf_report.pdf_i18n import t
 
 _DEFAULT_LOGO_PATH = Path(__file__).resolve().parents[2] / "static" / "logo.png"
-_LOGO_SVG_FALLBACK = (
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="64" height="64">'
-    '<path fill="#38bdf8" d="M24 4L6 10v10c0 11 8 20 18 24 10-4 18-13 18-24V10L24 4z"/>'
-    '<path fill="#0f172a" d="M24 8L10 12.5v7.5c0 8.5 6 15.5 14 18.5 8-3 14-10 14-18.5V12.5L24 8z"/>'
-    '<circle cx="24" cy="22" r="6" fill="#38bdf8"/>'
-    "</svg>"
-)
+
+
+def _build_logo_svg_fallback(primary_color: str, secondary_color: str) -> str:
+    """Construit le SVG fallback du logo avec couleurs configurables."""
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="64" height="64">'
+        f'<path fill="{escape(primary_color)}" d="M24 4L6 10v10c0 11 8 20 18 24 10-4 18-13 18-24V10L24 4z"/>'
+        f'<path fill="{escape(secondary_color)}" d="M24 8L10 12.5v7.5c0 8.5 6 15.5 14 18.5 8-3 14-10 14-18.5V12.5L24 8z"/>'
+        f'<circle cx="24" cy="22" r="6" fill="{escape(primary_color)}"/>'
+        "</svg>"
+    )
 
 
 def _get_logo_data_uri() -> str | None:
@@ -41,16 +46,19 @@ def build_cover_page(
     subtitle: str,
 ) -> str:
     """Construit le HTML de la page de garde."""
+    render = get_pdf_settings().render
     url_label = t("cover_url_label", lang)
     date_label = t("cover_date_label", lang)
-    display_url = url.replace("https://", "").replace("http://", "").rstrip("/")[:60]
-    if len(url) > 60:
+    max_len = render.cover_url_max_len
+    display_url = url.replace("https://", "").replace("http://", "").rstrip("/")[:max_len]
+    if len(url) > max_len:
         display_url += "…"
     logo_data = _get_logo_data_uri()
+    logo_svg_fallback = _build_logo_svg_fallback(render.cover_logo_primary_color, render.cover_logo_secondary_color)
     logo_html = (
         f'<img src="{logo_data}" alt="SecureOps" class="cover-logo-img" />'
         if logo_data
-        else f'<span class="cover-logo-svg">{_LOGO_SVG_FALLBACK}</span>'
+        else f'<span class="cover-logo-svg">{logo_svg_fallback}</span>'
     )
     return f"""
     <div class="cover-page" style="page-break-after:always">

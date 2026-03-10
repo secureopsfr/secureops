@@ -5,7 +5,7 @@ Enregistre les routes de proxy vers les services backend.
 
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 from ..config_loader import get_services_config
 from ..services.proxy.handlers import make_handler
@@ -39,8 +39,6 @@ def register_proxy_routes(app: FastAPI) -> None:
     # Route spécifique pour /api/contact qui route vers l'admin-service
     # Cette route permet d'exposer le formulaire de contact publiquement
     if ADMIN_SERVICE_URL:
-        from fastapi import Request
-
         # Créer le handler pour l'admin-service
         admin_handler = make_handler(ADMIN_SERVICE_URL, "admin", ADMIN_METRICS_URL, ADMIN_METRICS_API_KEY)
 

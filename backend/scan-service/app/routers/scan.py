@@ -9,7 +9,8 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.schemas.scan import ScanRequest
+from app.config_loader import get_external_services_settings
+from app.schemas.scan import ScanForPdfSchema, ScanRequest
 from app.services.scan_runner import ScanRunError, run_scan_to_result
 from app.services.scan_stream import scan_stream_generator
 from app.services.scan_stream_fake import fake_scan_stream_generator
@@ -38,16 +39,6 @@ async def _verify_internal_api_key(
 _VERIFY_INTERNAL_API_KEY = Depends(_verify_internal_api_key)
 
 
-class ScanForPdfSchema(BaseModel):
-    """Schéma attendu pour la génération PDF (réponse user-service)."""
-
-    url: str
-    score: int | None = None
-    timestamp: str = ""
-    duration: float = 0.0
-    findings: list[dict] = Field(default_factory=list)
-
-
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["scan"])
@@ -55,8 +46,11 @@ router = APIRouter(prefix="/api", tags=["scan"])
 GATEWAY_URL = os.getenv("GATEWAY_URL", "http://localhost:8000")
 PDF_SERVICE_URL = os.getenv("PDF_SERVICE_URL", "http://localhost:8013")
 PDF_SERVICE_INTERNAL_API_KEY = os.getenv("PDF_SERVICE_INTERNAL_API_KEY")
-FETCH_SCAN_TIMEOUT = 10.0
-PDF_REQUEST_TIMEOUT = 60.0
+_EXTERNAL = get_external_services_settings()
+GATEWAY_URL = os.getenv("GATEWAY_URL", _EXTERNAL.gateway_url)
+PDF_SERVICE_URL = os.getenv("PDF_SERVICE_URL", _EXTERNAL.pdf_service_url)
+FETCH_SCAN_TIMEOUT = _EXTERNAL.fetch_scan_timeout
+PDF_REQUEST_TIMEOUT = _EXTERNAL.pdf_request_timeout
 
 
 @router.get(

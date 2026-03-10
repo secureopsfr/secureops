@@ -3,9 +3,9 @@
 from datetime import datetime
 from html import escape
 from pathlib import Path
-from typing import Any
 
 from app.config.pdf import get_pdf_settings
+from app.schemas.finding import Finding
 from app.services.pdf_report.cover import build_cover_page
 from app.services.pdf_report.findings import _group_findings_by_category, build_category_sections, build_other_tests_section
 from app.services.pdf_report.pdf_i18n import t
@@ -29,14 +29,14 @@ def _normalize_lang(lang: str) -> str:
 
 
 def _build_references_section(
-    findings: list[dict[str, Any]],
+    findings: list[Finding],
     section_num: int,
     lang: str,
 ) -> str:
     """Construit la section Références (tous les liens du rapport).
 
     Args:
-        findings: Liste des findings (chacun peut avoir references).
+        findings: Liste des findings validés.
         section_num: Numéro de section.
         lang: Code langue (fr/en).
 
@@ -45,8 +45,7 @@ def _build_references_section(
     """
     all_refs: set[str] = set()
     for f in findings:
-        refs = f.get("references") or []
-        for ref in refs:
+        for ref in f.references:
             url = str(ref).strip()
             if url and url.startswith(("http://", "https://")):
                 all_refs.add(url)
@@ -80,7 +79,7 @@ def build_html(
     score: int | None,
     timestamp: str,
     duration: float,
-    findings: list[dict[str, Any]],
+    findings: list[Finding],
     include_matrices: bool = True,
     lang: str = "fr",
 ) -> str:
@@ -91,7 +90,7 @@ def build_html(
         score: Score /100.
         timestamp: Horodatage ISO.
         duration: Durée en secondes.
-        findings: Liste des findings (id, category, title, severity, evidence, recommendation, references).
+        findings: Liste des findings validés.
         include_matrices: Inclure les matrices par finding.
         lang: Code langue (fr/en).
 
@@ -113,7 +112,13 @@ def build_html(
         date_str = timestamp
 
     score_val = score or 0
-    score_color = "#10b981" if score_val >= 80 else "#f59e0b" if score_val >= 50 else "#ef4444"
+    render = pdf_settings.render
+    if score_val >= render.score_good:
+        score_color = render.score_color_good
+    elif score_val >= render.score_medium:
+        score_color = render.score_color_medium
+    else:
+        score_color = render.score_color_low
 
     by_category, ordered_cats = _group_findings_by_category(findings, lang)
     cover_page = build_cover_page(url, date_str, lang, report_title, subtitle)
@@ -145,7 +150,7 @@ def build_html(
         {references_html}
         <footer>
             <p>{disclaimer}</p>
-            <p>{pdf_settings.footer_url}</p>
+            <p>{escape(pdf_settings.footer_url)}</p>
         </footer>
     </div>
 </body>

@@ -68,7 +68,7 @@ async def test_check_ssrf_rejects_private_ip_resolved(monkeypatch: pytest.Monkey
     def fake_resolve(host: str, port: int | None) -> list[str]:
         return ["192.168.1.1"]
 
-    monkeypatch.setattr("app.utils.ssrf._resolve_host", fake_resolve)
+    monkeypatch.setattr("common.ssrf.resolve_host", fake_resolve)
     with pytest.raises(URLValidationError, match="privée|locale"):
         await check_ssrf("http://evil.internal/")
 
@@ -80,7 +80,7 @@ async def test_check_ssrf_accepts_public_ip_resolved(monkeypatch: pytest.MonkeyP
     def fake_resolve(host: str, port: int | None) -> list[str]:
         return ["8.8.8.8"]
 
-    monkeypatch.setattr("app.utils.ssrf._resolve_host", fake_resolve)
+    monkeypatch.setattr("common.ssrf.resolve_host", fake_resolve)
     await check_ssrf("http://example.com/")  # ne lève pas
 
 
