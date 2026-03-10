@@ -6,6 +6,7 @@ depuis le fichier config/settings.yml.
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List
@@ -58,12 +59,6 @@ class HeadersConf(BaseModel):
     hop_by_hop: List[str]
 
 
-class ContentTypesConf(BaseModel):
-    """Configuration des types de contenu."""
-
-    vector_tile: str
-
-
 class Settings(BaseModel):
     """Configuration complète du service."""
 
@@ -72,7 +67,6 @@ class Settings(BaseModel):
     services: ServicesConf
     timeouts: TimeoutsConf
     headers: HeadersConf
-    content_types: ContentTypesConf
 
 
 def _read_yaml() -> dict:
@@ -83,9 +77,7 @@ def _read_yaml() -> dict:
 
     config_data = yaml.safe_load(cfg_path.read_text())
 
-    # Mettre à jour is_docker depuis l'environnement
-    import os
-
+    # Mettre a jour is_docker depuis l'environnement
     is_docker = os.environ.get("IS_DOCKER", "false").lower() == "true"
     if config_data.get("general"):
         config_data["general"]["is_docker"] = is_docker
@@ -104,13 +96,13 @@ def load_config() -> Settings:
         Settings: Objet Settings construit à partir du YAML.
 
     Raises:
-        ValidationError: Si la configuration YAML ne correspond pas au schéma Settings.
+        ValueError: Si la configuration YAML ne correspond pas au schéma Settings.
     """
     try:
         config_data = _read_yaml()
         return Settings(**config_data)
     except ValidationError as e:
-        raise ValidationError(f"Configuration invalide: {e}")
+        raise ValueError(f"Configuration invalide: {e}") from e
 
 
 @lru_cache

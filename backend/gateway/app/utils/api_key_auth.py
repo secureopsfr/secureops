@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any, Optional
 
 import httpx
@@ -16,6 +17,16 @@ from ..config_loader import get_services_config
 logger = logging.getLogger(__name__)
 
 VERIFY_TIMEOUT = 5.0
+
+
+@lru_cache
+def _get_user_service_url() -> str | None:
+    """Retourne l'URL du user-service depuis la configuration du gateway."""
+    services = get_services_config()
+    user_svc = next((s for s in services if s["prefix"] == "user"), None)
+    if not user_svc:
+        return None
+    return str(user_svc["url"])
 
 
 def _is_likely_jwt(token: str) -> bool:
@@ -51,13 +62,12 @@ async def authenticate_via_api_key(
     Returns:
         dict avec sub, email, user_id, auth_type="api_key" si valide, None sinon.
     """
-    services = get_services_config()
-    user_svc = next((s for s in services if s["prefix"] == "user"), None)
-    if not user_svc:
+    user_service_url = _get_user_service_url()
+    if not user_service_url:
         logger.warning("User service non configuré, impossible de vérifier la clé API")
         return None
 
-    url = f"{user_svc['url'].rstrip('/')}/api/internal/keys/verify"
+    url = f"{user_service_url.rstrip('/')}/api/internal/keys/verify"
     internal_key = os.getenv("USER_SERVICE_INTERNAL_API_KEY", "")
     headers = {"Content-Type": "application/json"}
     if internal_key:

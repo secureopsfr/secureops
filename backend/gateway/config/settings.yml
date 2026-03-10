@@ -60,7 +60,7 @@ services:
 
 # Configuration des timeouts
 timeouts:
-  request_timeout: 20.0  # Timeout en secondes pour les requêtes HTTP (augmenté pour autocomplétion)
+  request_timeout: 20.0  # Timeout en secondes pour les requêtes HTTP
   crawl_timeout: 90.0    # Timeout pour POST /crawl/api/crawl (crawl SPA peut prendre 60s+)
 
 # Configuration des headers
@@ -75,7 +75,3 @@ headers:
     - "trailers"
     - "transfer-encoding"
     - "upgrade"
-
-# Configuration des types de contenu
-content_types:
-  vector_tile: "application/vnd.mapbox-vector-tile"

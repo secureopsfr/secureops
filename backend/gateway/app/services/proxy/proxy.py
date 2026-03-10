@@ -43,30 +43,16 @@ def _build_proxied_headers(request: Request, extra_headers: dict[str, str] | Non
     return headers
 
 
-def _get_timeout_buffer(service_url: str, path: str, request: Request) -> float | None:
-    """Retourne le timeout pour une requête buffer (None = désactivé)."""
-    if (
-        "analytics-ingestion" in service_url
-        or request.url.path.startswith("/analytics-ingestion")
-        or path.startswith("cadastre/refresh")
-        or "land-register" in service_url
-    ):
-        return None
+def _get_timeout_buffer(path: str) -> float:
+    """Retourne le timeout pour une requête buffer."""
     if path == "api/crawl" or path.startswith("api/crawl/"):
         logger.info("Crawl endpoint : timeout étendu à %.0fs", config.timeouts.crawl_timeout)
         return config.timeouts.crawl_timeout
     return config.timeouts.request_timeout
 
 
-def _get_timeout_stream(service_url: str, path: str, request: Request) -> float | None:
-    """Retourne le timeout pour une requête stream (None = désactivé)."""
-    if (
-        "land-register" in service_url
-        or "analytics-ingestion" in service_url
-        or request.url.path.startswith("/analytics-ingestion")
-        or path.startswith("cadastre/refresh")
-    ):
-        return None
+def _get_timeout_stream(path: str) -> float:
+    """Retourne le timeout pour une requête stream."""
     if path == "api/crawl/stream" or path.startswith("api/crawl/"):
         logger.info("Crawl stream : timeout étendu à %.0fs", config.timeouts.crawl_timeout)
         return config.timeouts.crawl_timeout
@@ -105,7 +91,7 @@ async def proxy_buffer_request(
     if body_content is None:
         body_content = await request.body()
 
-    timeout = _get_timeout_buffer(service_url, path, request)
+    timeout = _get_timeout_buffer(path)
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
             resp = await client.request(
@@ -158,7 +144,7 @@ async def proxy_stream_request(
     """
     _log_proxy_request(service_url, path, request, "stream")
     proxied_headers = _build_proxied_headers(request, extra_headers)
-    timeout = _get_timeout_stream(service_url, path, request)
+    timeout = _get_timeout_stream(path)
 
     # Créer le client avec timeout
     client = httpx.AsyncClient(timeout=timeout)
@@ -201,6 +187,4 @@ async def proxy_stream_request(
         media_type=resp.headers.get("Content-Type"),
         background=tasks,
     )
-    # CORS explicite pour Mapbox GL
-    streaming.headers["Access-Control-Allow-Origin"] = "*"
     return streaming
