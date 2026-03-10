@@ -31,6 +31,10 @@ jobs:
       # Build & démarrage de la stack
       - name: Start full stack
         shell: bash
+        env:
+          DOCKER_BUILDKIT: 1
+          COMPOSE_DOCKER_CLI_BUILD: 1
+          BUILDKIT_PROGRESS: plain
         run: |
           docker compose -f docker-compose.ci.yml up -d --build
           docker compose -f docker-compose.ci.yml ps
@@ -45,7 +49,7 @@ jobs:
             docker compose -f docker-compose.ci.yml logs --no-color --tail=300 user-service 2>/dev/null || true
             exit 1
           fi
-          docker compose -f docker-compose.ci.yml logs --no-color user-service 2>/dev/null || true
+          docker compose -f docker-compose.ci.yml logs --no-color --tail=300 user-service || true
           # Attente de la disponibilité de Postgres
           until docker compose -f docker-compose.ci.yml exec -T postgres pg_isready -U user -d template_db; do
             echo "Waiting for Postgres…"; sleep 2
