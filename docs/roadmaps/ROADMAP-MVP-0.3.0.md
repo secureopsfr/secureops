@@ -61,14 +61,15 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
   - [x] **Composants créés en plus** (centralisation des duplications)
     > **Fait :** `env_utils.py` (is_prod_env) ; `url_helpers.py` (extract_host_from_url, extract_port_from_url, build_url_with_path, build_https_url, build_http_url, get_host_from_url, get_https_port_from_url, get_scan_base_url, location_redirects_to_https) ; `url_validator.py` (validate_and_normalize_url avec validation des ports) ; `ssrf.py` (check_ssrf, is_hostname_blocked, is_ip_blocked, resolve_host) ; config_base : create_load_settings_yml, SsrfSettings, UrlValidationSettings, parse_ssrf_settings, parse_url_validation_settings ; schemas : make_pagination_meta. Fichiers config : .flake8, requirements-dev.txt, Makefile.
 
-- [ ] `backend/gateway/`
-  - [ ] `app/`
-    - [ ] `routers/` (proxy, health, routes publiques)
-    - [ ] `services/proxy/` (logique de proxy, métriques)
-    - [ ] `config_loader.py` / settings
-  - [ ] `config/` (YAML des services, CORS, timeouts)
-  - [ ] `tests/`
-  - [ ] `Dockerfile` / `requirements.txt`
+- [x] `backend/gateway/`
+  - [x] `app/`
+    - [x] `routers/` (proxy, health, routes publiques)
+    - [x] `services/proxy/` (logique de proxy, métriques)
+    - [x] `config_loader.py` / settings
+  - [x] `config/` (YAML des services, CORS, timeouts)
+  - [x] `tests/`
+  - [x] `Dockerfile` / `requirements.txt`
+  > **Fait :** Refactoring structurel du gateway avec nettoyage des artefacts legacy et consolidation des responsabilités dans `app/routers`, `app/services/proxy` et `config_loader`. Côté proxy : suppression des comportements hérités non utilisés (Mapbox/vector tiles, timeouts/services historiques), conservation du flux buffer/stream et normalisation des métriques (route extraction simplifiée). Côté config : simplification du schéma settings (`content_types` retiré), gestion d’erreur robuste (`ValueError` sur config invalide), et règles d’accès clarifiées dans le middleware (auth-only docs admin via constantes dédiées). Côté sécurité/maintenabilité : suppression du mock de package `app/__init__.py`, pseudonymisation IP IPv4/IPv6 fiabilisée via `ipaddress`, cache local de l’URL user-service pour l’auth API key. Côté qualité : ajout d’une vraie base de tests unitaires (`middleware`, `config_loader`, `metrics`, `api_key_auth`, `pseudonymizer`) en remplacement du placeholder seul. Côté build/deps : séparation runtime/dev (`requirements.txt` + `requirements-dev.txt`), Dockerfile gateway supportant l’installation optionnelle des dev deps via build arg, CI et `launch_dev.sh` adaptés pour installer les dépendances de dev uniquement dans les contextes lint/test.
 
 - [ ] `backend/admin-service/`
   - [ ] `app/`
