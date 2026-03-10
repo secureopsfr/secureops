@@ -36,8 +36,15 @@ jobs:
           COMPOSE_DOCKER_CLI_BUILD: 1
           BUILDKIT_PROGRESS: plain
         run: |
-          docker compose -f docker-compose.ci.yml up -d --build
-          docker compose -f docker-compose.ci.yml ps
+          set -e
+          docker compose -f docker-compose.ci.yml up -d --build || {
+            echo "Compose up failed. Dumping logs..."
+            docker compose -f docker-compose.ci.yml ps -a || true
+            docker compose -f docker-compose.ci.yml logs --no-color --tail=500 user-service || true
+            docker compose -f docker-compose.ci.yml logs --no-color --tail=200 gateway || true
+            exit 1
+          }
+          docker compose -f docker-compose.ci.yml ps -a
           # Si user-service a déjà crashé, afficher les logs et échouer immédiatement
           status_early=$(docker compose -f docker-compose.ci.yml ps -q user-service 2>/dev/null | xargs -r docker inspect -f '{{.State.Status}}' 2>/dev/null || echo "")
           if [ "$status_early" = "exited" ]; then
