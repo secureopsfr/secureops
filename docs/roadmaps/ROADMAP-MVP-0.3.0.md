@@ -137,10 +137,6 @@ Objectif : **nettoyer et stabiliser l’existant** avant les nouvelles fonctionn
   - [x] `Dockerfile`
   > **Fait :** Refactoring scan-service finalisé avec amélioration de la maintenabilité, de la cohérence des payloads et du socle de configuration. **Noyau de scan mutualisé :** création de `app/services/_scan_core.py` (source de vérité unique pour `ScanContext`, `SCAN_STEPS` et construction du payload), suppression des duplications entre `scan_stream` et `scan_runner`. **Payload homogène :** alignement du format de sortie entre SSE et endpoint interne avec `status="success"` et `scan_type` dans les deux chemins. **Structure et séparation :** déplacement de `ScanForPdfSchema` vers `app/schemas/scan.py`, suppression des imports lazy dans les générateurs, déplacement de `subresources.py` vers `services/subresources/`. **Configuration :** ajout de `app/config/external_services.py`, branchement dans `config_loader`, centralisation des URLs/timeouts externes dans `settings.yml`, suppression de la section `database` résiduelle non utilisée. **Normalisation :** réduction du couplage aux messages texte dans `normalization/normalizers.py` (usage prioritaire des champs structurés des résultats de checks, fallback conservé pour compatibilité). **Catalogue :** labels de catégories surchargeables depuis `settings.yml` (`category_labels`) avec fallback JSON. **Qualité :** ajout de tests ciblés (`test_scan_runner.py`, `test_scan_stream.py`, `test_scan_history_save.py`) et adaptation des mocks existants ; suite non-intégration validée (`pytest -m "not integration"`).
 
-- [ ] `backend/` racine
-  - [ ] Fichiers de configuration Docker / compose backend
-  - [ ] Scripts divers (si présents)
-
 ---
 
 ## 0.2 Frontend — Refactoring par dossier
