@@ -326,24 +326,27 @@ export default function CrawlersContent() {
 
   return (
     <div className="space-y-4 w-full">
+      <div className="page-header text-center mb-6">
+        <h1 className="page-title mb-2">{t("scanner.crawlers.title")}</h1>
+        <p className="page-subtitle mt-0">{t("scanner.crawlers.subtitle")}</p>
+        <Link
+          href={lp("/scanner/docs/crawler")}
+          className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
+        >
+          <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
+            <FileText className="w-4 h-4" />
+            {t("scanner.docsLink")}
+          </span>
+        </Link>
+      </div>
+
       {(state === "idle" || state === "error") && (
         <Card disableHover>
-          <div className="flex items-center justify-between gap-3 mb-4 -mt-2 flex-wrap">
-            <div className="flex items-center gap-3">
-              <Bot className="w-6 h-6 text-[rgb(var(--primary))]" />
-              <h2 className="section-title !text-left !mb-0">
-                {t("scanner.crawlers.formTitle")}
-              </h2>
-            </div>
-            <Link
-              href={lp("/scanner/docs/crawler")}
-              className="group inline-flex text-sm text-[rgb(var(--primary))] no-underline"
-            >
-              <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
-                <FileText className="w-4 h-4" />
-                {t("scanner.docsLink")}
-              </span>
-            </Link>
+          <div className="flex items-center gap-3 mb-4 -mt-2">
+            <Bot className="w-6 h-6 text-[rgb(var(--primary))]" />
+            <h2 className="section-title !text-left !mb-0">
+              {t("scanner.crawlers.formTitle")}
+            </h2>
           </div>
           <form
             onSubmit={handleSubmit}

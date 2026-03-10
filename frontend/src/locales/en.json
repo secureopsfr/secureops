@@ -283,7 +283,8 @@
     "crawlers": {
       "metaTitle": "Crawlers",
       "metaDesc": "Discovery crawler configuration.",
-      "title": "Crawlers",
+      "title": "Discovery crawler",
+      "subtitle": "Crawl a site to discover its pages. HTML, Playwright or both modes to prepare for a full scan.",
       "placeholder": "This page will be completed soon.",
       "formTitle": "Discover pages on a site",
       "launchCrawl": "Start crawl"

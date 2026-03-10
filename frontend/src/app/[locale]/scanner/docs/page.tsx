@@ -10,6 +10,7 @@ import { getDocsList } from "../../../../services/docsService";
 import type { DocPageRecord } from "../../../../services/docsService";
 import { localePath, type Locale } from "../../../../i18n/config";
 import { FileText } from "lucide-react";
+import LoadingScreen from "../../../../components/LoadingScreen";
 
 export default function ScannerDocsPage() {
   const params = useParams();
@@ -43,10 +44,11 @@ export default function ScannerDocsPage() {
           </div>
 
           {loading ? (
-            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
-              <p className="text-[var(--color-text-muted)]">
-                {t("scanner.docs.loading")}
-              </p>
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
+              <LoadingScreen
+                variant="section"
+                message={t("scanner.docs.loading")}
+              />
             </div>
           ) : error ? (
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">

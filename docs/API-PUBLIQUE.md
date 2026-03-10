@@ -368,3 +368,9 @@ Le frontend mappe ces situations aux clés i18n via `ApiKeyError` et ses codes.
 | Composant | `frontend/src/components/scan/ApiKeysContent.tsx` |
 | Page clés | `frontend/src/app/[locale]/scanner/cles-api/page.tsx` |
 | Doc API | `frontend/src/app/[locale]/scanner/docs/api/page.tsx` |
+
+---
+
+## Voir aussi
+
+- [Intégration CI/CD — GitHub Action SecureOps](./INTEGRATION-GITHUB-ACTION.md) : workflow GitHub Actions, action dédiée, exemples de pipelines
