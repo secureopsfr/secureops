@@ -77,6 +77,8 @@ services:
     build:
       context: ./backend
       dockerfile: admin-service/Dockerfile
+      args:
+        INSTALL_DEV_DEPS: "true"
     environment:
       - IS_DOCKER=true
       - ADMIN_METRICS_API_KEY=${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}
@@ -96,6 +98,8 @@ services:
     build:
       context: ./backend
       dockerfile: user-service/Dockerfile
+      args:
+        INSTALL_DEV_DEPS: "true"
     environment:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
@@ -120,6 +124,8 @@ services:
     build:
       context: ./backend
       dockerfile: scan-service/Dockerfile
+      args:
+        INSTALL_DEV_DEPS: "true"
     environment:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
@@ -141,6 +147,8 @@ services:
     build:
       context: ./backend
       dockerfile: crawl-service/Dockerfile
+      args:
+        INSTALL_DEV_DEPS: "true"
     environment:
       - IS_DOCKER=true
       - IS_PROD=false
@@ -156,6 +164,8 @@ services:
     build:
       context: ./backend
       dockerfile: pdf-service/Dockerfile
+      args:
+        INSTALL_DEV_DEPS: "true"
     environment:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
