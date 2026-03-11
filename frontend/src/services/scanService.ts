@@ -1,9 +1,9 @@
 /**
- * Service de scan de posture sécurité.
- * Appelle l'API SSE et parse les événements (step, result, error).
+ * Service de scan de posture sécurité (mode async + polling).
  */
 
 import { getApiBaseUrl } from "../utils/apiClient";
+import logger from "../utils/logger";
 
 export interface ScanStep {
   step: string;
@@ -73,22 +73,28 @@ export type ScanEventHandler =
   | { type: "save_failed"; data: string }
   | { type: "save_done"; data: { scan_id: string } };
 
-function parseSSEBlock(block: string): { event: string; data: unknown } | null {
-  let event = "message";
-  let data: unknown = null;
-  for (const line of block.split("\n")) {
-    if (line.startsWith("event: ")) {
-      event = line.slice(7).trim();
-    } else if (line.startsWith("data: ")) {
-      try {
-        data = JSON.parse(line.slice(6));
-      } catch {
-        data = line.slice(6);
-      }
-    }
-  }
-  if (data === null) return null;
-  return { event, data };
+type AsyncJobStatus = "pending" | "running" | "completed" | "failed";
+
+interface AsyncScanCreateResponse {
+  job_id: string;
+  status: AsyncJobStatus;
+  scan_type: "frontend" | "backend" | "custom";
+  job_token?: string | null;
+}
+
+interface AsyncScanStatusResponse {
+  job_id: string;
+  status: AsyncJobStatus;
+  progress_log?: Array<{ step: string; message: string; at: string }>;
+  error?: {
+    message?: string;
+    status_code?: number;
+    error_type?: string;
+  };
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -104,24 +110,26 @@ export async function runScan(
   onEvent: (ev: ScanEventHandler) => void,
   getToken?: () => Promise<string | null>,
 ): Promise<void> {
+  const logPrefix = "[scan-polling]";
   const baseUrl = getApiBaseUrl();
-  const endpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan`;
+  const endpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan/async`;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    Accept: "text/event-stream",
+    Accept: "application/json",
   };
   if (getToken) {
     const token = await getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  let response: Response;
+  let createResponse: Response;
   try {
-    response = await fetch(endpoint, {
+    logger.info(`${logPrefix} create job request`, { endpoint, url });
+    createResponse = await fetch(endpoint, {
       method: "POST",
       headers,
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, scan_type: "frontend", input: {} }),
     });
   } catch (err) {
     onEvent({
@@ -134,79 +142,144 @@ export async function runScan(
     return;
   }
 
-  if (!response.ok) {
+  if (!createResponse.ok) {
+    logger.error(`${logPrefix} create job failed`, {
+      status: createResponse.status,
+    });
     onEvent({
       type: "error",
       data: {
-        message: `Erreur HTTP ${response.status}`,
-        status_code: response.status,
+        message: `Erreur HTTP ${createResponse.status}`,
+        status_code: createResponse.status,
       },
     });
     return;
   }
-
-  const reader = response.body?.getReader();
-  if (!reader) {
+  let createData: AsyncScanCreateResponse;
+  try {
+    createData = (await createResponse.json()) as AsyncScanCreateResponse;
+    logger.info(`${logPrefix} create job success`, {
+      job_id: createData.job_id,
+      status: createData.status,
+      scan_type: createData.scan_type,
+      anonymous: Boolean(createData.job_token),
+    });
+  } catch {
     onEvent({
       type: "error",
       data: {
-        message: "Flux de réponse indisponible",
+        message: "Réponse de création invalide",
         status_code: 500,
       },
     });
     return;
   }
-
-  const decoder = new TextDecoder();
-  let buffer = "";
+  const jobId = createData.job_id;
+  const jobToken = createData.job_token ?? undefined;
+  const statusEndpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan/async/${jobId}`;
+  const resultEndpoint = `${statusEndpoint}/result`;
+  let seenProgress = 0;
+  let pollIntervalMs = 500;
 
   try {
     while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const blocks = buffer.split("\n\n");
-      buffer = blocks.pop() ?? "";
-      for (const block of blocks) {
-        if (!block.trim()) continue;
-        const parsed = parseSSEBlock(block);
-        if (!parsed) continue;
-        const { event, data } = parsed;
-        if (
-          event === "step" &&
-          data &&
-          typeof data === "object" &&
-          "step" in data
-        ) {
-          onEvent({ type: "step", data: data as ScanStep });
-        } else if (event === "result" && data && typeof data === "object") {
-          onEvent({ type: "result", data: data as ScanResult });
-          // Ne pas return : le flux peut encore émettre save_failed
-        } else if (event === "error" && data && typeof data === "object") {
-          onEvent({ type: "error", data: data as ScanError });
-          return;
-        } else if (
-          event === "save_failed" &&
-          data &&
-          typeof data === "object"
-        ) {
-          onEvent({
-            type: "save_failed",
-            data:
-              (data as { message?: string }).message ?? "Erreur de sauvegarde",
-          });
-        } else if (
-          event === "save_done" &&
-          data &&
-          typeof data === "object" &&
-          "scan_id" in data
-        ) {
-          onEvent({
-            type: "save_done",
-            data: { scan_id: (data as { scan_id: string }).scan_id },
-          });
-        }
+      const pollHeaders: Record<string, string> = {
+        Accept: "application/json",
+      };
+      if (headers.Authorization)
+        pollHeaders.Authorization = headers.Authorization;
+      if (jobToken) pollHeaders["X-Job-Token"] = jobToken;
+
+      const statusRes = await fetch(statusEndpoint, {
+        method: "GET",
+        headers: pollHeaders,
+      });
+      logger.debug(`${logPrefix} status poll`, {
+        job_id: jobId,
+        http_status: statusRes.status,
+        poll_interval_ms: pollIntervalMs,
+      });
+      if (!statusRes.ok) {
+        onEvent({
+          type: "error",
+          data: {
+            message: `Erreur statut HTTP ${statusRes.status}`,
+            status_code: statusRes.status,
+          },
+        });
+        return;
       }
+      const statusData = (await statusRes.json()) as AsyncScanStatusResponse;
+      logger.info(`${logPrefix} status update`, {
+        job_id: statusData.job_id,
+        status: statusData.status,
+        progress_count: statusData.progress_log?.length ?? 0,
+        last_step:
+          statusData.progress_log && statusData.progress_log.length > 0
+            ? statusData.progress_log[statusData.progress_log.length - 1].step
+            : undefined,
+      });
+      const progress = statusData.progress_log ?? [];
+      const hasNewProgress = progress.length > seenProgress;
+      for (let i = seenProgress; i < progress.length; i += 1) {
+        const entry = progress[i];
+        onEvent({
+          type: "step",
+          data: { step: entry.step, message: entry.message },
+        });
+      }
+      seenProgress = progress.length;
+      pollIntervalMs = hasNewProgress
+        ? 500
+        : Math.min(5000, pollIntervalMs + 250);
+
+      if (statusData.status === "failed") {
+        logger.error(`${logPrefix} job failed`, {
+          job_id: statusData.job_id,
+          error: statusData.error,
+        });
+        onEvent({
+          type: "error",
+          data: {
+            message: statusData.error?.message ?? "Erreur de scan",
+            status_code: statusData.error?.status_code ?? 500,
+            error_type: statusData.error?.error_type,
+          },
+        });
+        return;
+      }
+      if (statusData.status === "completed") {
+        logger.info(`${logPrefix} fetching result`, {
+          job_id: statusData.job_id,
+        });
+        const resultRes = await fetch(resultEndpoint, {
+          method: "GET",
+          headers: pollHeaders,
+        });
+        if (!resultRes.ok) {
+          logger.error(`${logPrefix} result fetch failed`, {
+            job_id: statusData.job_id,
+            status: resultRes.status,
+          });
+          onEvent({
+            type: "error",
+            data: {
+              message: `Erreur résultat HTTP ${resultRes.status}`,
+              status_code: resultRes.status,
+            },
+          });
+          return;
+        }
+        const resultData = (await resultRes.json()) as ScanResult;
+        logger.info(`${logPrefix} result received`, {
+          job_id: statusData.job_id,
+          findings_count: resultData.findings?.length ?? 0,
+          score: resultData.score,
+        });
+        onEvent({ type: "result", data: resultData });
+        return;
+      }
+      await delay(pollIntervalMs);
     }
   } catch (err) {
     onEvent({
@@ -219,7 +292,5 @@ export async function runScan(
         status_code: 500,
       },
     });
-  } finally {
-    reader.releaseLock();
   }
 }

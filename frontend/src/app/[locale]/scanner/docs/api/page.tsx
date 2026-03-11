@@ -64,10 +64,10 @@ export default function ScannerApiDocPage() {
               </p>
               <pre className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 overflow-x-auto text-sm font-mono">
                 <code>
-                  {`curl -X POST "${baseUrl}/scan/api/scan/fake" \\
+                  {`curl -X POST "${baseUrl}/scan/api/scan/async" \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{}'`}
+  -d '{"url":"https://example.com","scan_type":"backend","input":{}}'`}
                 </code>
               </pre>
               <p className="text-sm text-[var(--color-text-muted)] mt-2">
