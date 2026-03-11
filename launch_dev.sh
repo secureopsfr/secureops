@@ -148,6 +148,7 @@ export POSTGRES_DB="${POSTGRES_DB:-template_db}"
 export DATABASE_URL="${DATABASE_URL:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5433/${POSTGRES_DB}}"
 export ADMIN_DATABASE_URL="${ADMIN_DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5433/${POSTGRES_DB}}"
 export ADMIN_METRICS_API_KEY="${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}"
+export ASYNC_JOB_TOKEN_SECRET="${ASYNC_JOB_TOKEN_SECRET:-dev-async-job-secret}"
 # Variables d'environnement frontend
 export IS_BETA_TEST="${IS_BETA_TEST:-true}"
 export IS_PROD="${IS_PROD:-false}"
@@ -175,11 +176,19 @@ start_manual_services() {
     echo -e "   Ouvrez un nouveau terminal et exécutez:"
     echo -e "   cd $SCRIPT_DIR/backend/crawl-service && venv\\Scripts\\activate && python -m playwright install chromium && python -m uvicorn app.main:app --host 0.0.0.0 --port 8014 --reload"
 
-    echo -e "${GREEN}6. Démarrer le service pdf-service:${NC}"
+    echo -e "${GREEN}6. Démarrer le worker scan-service:${NC}"
+    echo -e "   Ouvrez un nouveau terminal et exécutez:"
+    echo -e "   cd $SCRIPT_DIR/backend/scan-service && venv\\Scripts\\activate && set DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5433/${POSTGRES_DB} && python -m app.workers.async_scan_worker"
+
+    echo -e "${GREEN}7. Démarrer le worker crawl-service:${NC}"
+    echo -e "   Ouvrez un nouveau terminal et exécutez:"
+    echo -e "   cd $SCRIPT_DIR/backend/crawl-service && venv\\Scripts\\activate && set DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5433/${POSTGRES_DB} && python -m app.workers.async_crawl_worker"
+
+    echo -e "${GREEN}8. Démarrer le service pdf-service:${NC}"
     echo -e "   Ouvrez un nouveau terminal et exécutez:"
     echo -e "   cd $SCRIPT_DIR/backend/pdf-service && venv\\Scripts\\activate && python -m uvicorn app.main:app --host 0.0.0.0 --port 8013 --reload"
 
-    echo -e "${GREEN}7. Démarrer le frontend (Next.js):${NC}"
+    echo -e "${GREEN}9. Démarrer le frontend (Next.js):${NC}"
     echo -e "   Ouvrez un nouveau terminal et exécutez:"
     echo -e "   cd $SCRIPT_DIR/frontend && npm run dev"
 
@@ -307,10 +316,16 @@ else
     launch_service "user-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" && uvicorn app.main:app --host 0.0.0.0 --port 8011 --reload" "$SCRIPT_DIR/backend/user-service"
 
     # Lancer le service scan-service (IS_PROD=false pour autoriser localhost/ports libres en dev)
-    launch_service "scan-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" IS_PROD=false PDF_SERVICE_URL=http://localhost:8013 && uvicorn app.main:app --host 0.0.0.0 --port 8012 --reload" "$SCRIPT_DIR/backend/scan-service"
+    launch_service "scan-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" IS_PROD=false PDF_SERVICE_URL=http://localhost:8013 ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && uvicorn app.main:app --host 0.0.0.0 --port 8012 --reload" "$SCRIPT_DIR/backend/scan-service"
+
+    # Lancer le worker scan-service
+    launch_service "scan-worker" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && python -m app.workers.async_scan_worker" "$SCRIPT_DIR/backend/scan-service"
 
     # Lancer le service crawl-service (IS_PROD=false pour autoriser localhost)
-    launch_service "crawl-service" ". venv/bin/activate && export IS_PROD=false && uvicorn app.main:app --host 0.0.0.0 --port 8014 --reload" "$SCRIPT_DIR/backend/crawl-service"
+    launch_service "crawl-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" IS_PROD=false ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && uvicorn app.main:app --host 0.0.0.0 --port 8014 --reload" "$SCRIPT_DIR/backend/crawl-service"
+
+    # Lancer le worker crawl-service
+    launch_service "crawl-worker" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && python -m app.workers.async_crawl_worker" "$SCRIPT_DIR/backend/crawl-service"
 
     # Lancer le service pdf-service
     launch_service "pdf-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" && uvicorn app.main:app --host 0.0.0.0 --port 8013 --reload" "$SCRIPT_DIR/backend/pdf-service"
