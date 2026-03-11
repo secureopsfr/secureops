@@ -33,6 +33,23 @@ from app.utils.url_validator import URLValidationError, validate_and_normalize_u
 logger = logging.getLogger(__name__)
 
 
+def _extract_anomaly_count(result: object) -> int:
+    """Retourne le nombre d'anomalies detectees pour un resultat d'etape."""
+    findings = result.get("findings") if isinstance(result, dict) else getattr(result, "findings", None)
+    if isinstance(findings, (list, tuple, set)):
+        return len(findings)
+    return 0
+
+
+def _format_done_message(msg_done: str, anomaly_count: int) -> str:
+    """Construit le message final de step_done avec singular/plural."""
+    if anomaly_count <= 0:
+        return msg_done
+    if anomaly_count == 1:
+        return f"{msg_done} 1 anomalie detectee."
+    return f"{msg_done} {anomaly_count} anomalies detectees."
+
+
 def _log_scan_complete(
     duration_seconds: float,
     nb_findings: int,
@@ -74,7 +91,17 @@ async def _emit_step_and_run(step_name: str, msg_check: str, msg_done: str, step
     result = step_fn(ctx)
     if asyncio.iscoroutine(result):
         result = await result
-    chunks.append(sse_message("step", {"step": f"{step_name}_done", "message": msg_done}))
+    anomaly_count = _extract_anomaly_count(result)
+    chunks.append(
+        sse_message(
+            "step",
+            {
+                "step": f"{step_name}_done",
+                "message": _format_done_message(msg_done, anomaly_count),
+                "anomaly_count": anomaly_count,
+            },
+        )
+    )
     return chunks, result
 
 

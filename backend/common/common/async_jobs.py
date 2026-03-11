@@ -51,11 +51,15 @@ def append_progress(
     step: str,
     message: str,
     at: datetime | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Ajoute une entrée de progression et retourne la liste complète."""
     entries = list(progress_log or [])
     ts = (at or utc_now()).isoformat()
-    entries.append({"step": step, "message": message, "at": ts})
+    payload: dict[str, Any] = {"step": step, "message": message, "at": ts}
+    if extra:
+        payload.update(extra)
+    entries.append(payload)
     return entries
 
 
@@ -158,17 +162,19 @@ async def append_async_job_progress_batch(
     session: AsyncSession,
     *,
     job: Any,
-    entries: list[dict[str, str]],
+    entries: list[dict[str, Any]],
 ) -> None:
     """Append multiple progress entries and commit once."""
     if not entries:
         return
     current = list(job.progress_log_json or [])
     for entry in entries:
+        extra = {k: v for k, v in entry.items() if k not in {"step", "message", "at"}}
         current = append_progress(
             current,
             step=str(entry.get("step", "step")),
             message=str(entry.get("message", "")),
+            extra=extra,
         )
     job.progress_log_json = current
     last = entries[-1]
@@ -230,7 +236,7 @@ class ProgressBatcher:
         self._session = session
         self._job = job
         self._batch_window_seconds = batch_window_seconds
-        self._buffer: list[dict[str, str]] = []
+        self._buffer: list[dict[str, Any]] = []
         self._last_flush_monotonic = time.monotonic()
 
     async def flush(self, *, force: bool = False) -> None:
@@ -245,7 +251,10 @@ class ProgressBatcher:
         await self._append_batch(self._session, self._job, entries)
         self._last_flush_monotonic = now
 
-    async def on_progress(self, step: str, message: str) -> None:
+    async def on_progress(self, step: str, message: str, **extra: Any) -> None:
         """Collect one progress entry and flush if needed."""
-        self._buffer.append({"step": step, "message": message})
+        entry: dict[str, Any] = {"step": step, "message": message}
+        if extra:
+            entry.update(extra)
+        self._buffer.append(entry)
         await self.flush(force=False)

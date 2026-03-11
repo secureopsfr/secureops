@@ -88,6 +88,7 @@ export default function ScanTypePageContent({
                   step: ev.data.step,
                   message: ev.data.message,
                   done: true,
+                  anomaly_count: ev.data.anomaly_count,
                 };
                 return updated;
               }

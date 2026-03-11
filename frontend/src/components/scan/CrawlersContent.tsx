@@ -109,6 +109,7 @@ export default function CrawlersContent() {
                   step: ev.data.step,
                   message: ev.data.message,
                   done: true,
+                  anomaly_count: ev.data.anomaly_count,
                 };
                 return updated;
               }
@@ -118,6 +119,7 @@ export default function CrawlersContent() {
                   step: ev.data.step,
                   message: ev.data.message,
                   done: false,
+                  anomaly_count: ev.data.anomaly_count,
                 },
               ];
             });

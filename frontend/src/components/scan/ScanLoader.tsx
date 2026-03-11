@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "../LanguageProvider";
 import { LoadingSpinner } from "../LoadingScreen";
-import { Check, Minus } from "lucide-react";
+import { AlertTriangle, Check, Minus } from "lucide-react";
 import type { ScanStepDisplay } from "../../services/scanService";
 
 interface ScanLoaderProps {
@@ -92,6 +92,7 @@ function circleTopY(row: number): number {
 interface ConnectorSegment {
   d: string;
   done: boolean;
+  anomalyCount?: number;
   key: string;
   /** Délai (ms) avant de démarrer l'animation, pour respecter l'ordre par colonne. */
   delayMs: number;
@@ -231,6 +232,7 @@ function computeConnectors(steps: ScanStepDisplay[]): {
       segments.push({
         d: `M ${COL_CENTER_X[1]} ${circleBottomY(i)} V ${circleTopY(i + 1)}`,
         done: steps[i].done ?? false,
+        anomalyCount: steps[i + 1]?.anomaly_count ?? 0,
         key: `seq-c-${i}`,
         delayMs: commonDelay,
       });
@@ -292,6 +294,7 @@ function computeConnectors(steps: ScanStepDisplay[]): {
           rSplit,
         ),
         done: steps[splitAfter].done ?? false,
+        anomalyCount: steps[htmlRows[0]]?.anomaly_count ?? 0,
         key: "split-html",
         delayMs: htmlDelay,
       });
@@ -311,6 +314,7 @@ function computeConnectors(steps: ScanStepDisplay[]): {
           rSplit,
         ),
         done: steps[splitAfter].done ?? false,
+        anomalyCount: steps[pwRows[0]]?.anomaly_count ?? 0,
         key: "split-pw",
         delayMs: pwDelay,
       });
@@ -326,6 +330,7 @@ function computeConnectors(steps: ScanStepDisplay[]): {
     segments.push({
       d: `M ${COL_CENTER_X[0]} ${circleBottomY(a)} V ${circleTopY(b)}`,
       done: steps[a].done ?? false,
+      anomalyCount: steps[b].anomaly_count ?? 0,
       key: `html-${j}`,
       delayMs: htmlDelay,
     });
@@ -338,6 +343,7 @@ function computeConnectors(steps: ScanStepDisplay[]): {
     segments.push({
       d: `M ${COL_CENTER_X[2]} ${circleBottomY(a)} V ${circleTopY(b)}`,
       done: steps[a].done ?? false,
+      anomalyCount: steps[b].anomaly_count ?? 0,
       key: `pw-${j}`,
       delayMs: pwDelay,
     });
@@ -393,6 +399,7 @@ function computeConnectors(steps: ScanStepDisplay[]): {
           rMerge,
         ),
         done: steps[lastHtml].done ?? false,
+        anomalyCount: steps[mergeInto]?.anomaly_count ?? 0,
         key: "merge-html",
         delayMs: mergeDelay,
         muted: mutedMergeHtml,
@@ -410,6 +417,7 @@ function computeConnectors(steps: ScanStepDisplay[]): {
           rMerge,
         ),
         done: steps[lastPw].done ?? false,
+        anomalyCount: steps[mergeInto]?.anomaly_count ?? 0,
         key: "merge-pw",
         delayMs: mergeDelay,
         muted: mutedMergePw,
@@ -435,6 +443,7 @@ function computeConnectors(steps: ScanStepDisplay[]): {
       segments.push({
         d: `M ${COL_CENTER_X[1]} ${circleBottomY(i)} V ${circleTopY(i + 1)}`,
         done: steps[i].done ?? false,
+        anomalyCount: steps[i + 1]?.anomaly_count ?? 0,
         key: `seq-c-after-${i}`,
         delayMs: afterMergeDelay,
       });
@@ -472,11 +481,13 @@ const PATH_DRAW_DURATION = 500;
 function AnimatedConnectorPath({
   d,
   done,
+  anomalyCount = 0,
   delayMs,
   muted = false,
 }: {
   d: string;
   done: boolean;
+  anomalyCount?: number;
   segKey: string;
   delayMs: number;
   muted?: boolean;
@@ -493,9 +504,11 @@ function AnimatedConnectorPath({
 
   const strokeColor = muted
     ? "rgba(255, 255, 255, 0.18)"
-    : done
-      ? "rgb(var(--success))"
-      : "rgba(var(--primary), 0.2)";
+    : done && anomalyCount > 0
+      ? "rgb(var(--warning))"
+      : done
+        ? "rgb(var(--success))"
+        : "rgba(var(--primary), 0.2)";
 
   if (length == null) {
     return (
@@ -536,18 +549,27 @@ interface StepRowProps {
   step: string;
   message: string;
   done: boolean;
+  anomalyCount: number;
   column: "html" | "common" | "playwright";
   index: number;
   pointDelay: number;
 }
 
-function StepRow({ step, message, done, column, pointDelay }: StepRowProps) {
+function StepRow({
+  step,
+  message,
+  done,
+  anomalyCount,
+  column,
+  pointDelay,
+}: StepRowProps) {
   const { t } = useLanguage();
   const msg = getDisplayMessage(step, message, done, t);
   const colIdx = COLUMN_INDEX[column];
   const isHtml = column === "html";
   const isRight = column === "common" || column === "playwright";
   const isStoppingOther = step === "crawl_stopping_other";
+  const isAnomalous = done && anomalyCount > 0 && !isStoppingOther;
 
   return (
     <li
@@ -561,9 +583,11 @@ function StepRow({ step, message, done, column, pointDelay }: StepRowProps) {
             className={`text-sm scan-animate-point ${
               isStoppingOther && done
                 ? "text-[rgba(255,255,255,0.3)]"
-                : done
-                  ? "text-muted-theme"
-                  : "font-medium text-[var(--text)]"
+                : isAnomalous
+                  ? "font-medium text-[rgb(var(--warning))]"
+                  : done
+                    ? "text-muted-theme"
+                    : "font-medium text-[var(--text)]"
             }`}
             style={{
               opacity: 0,
@@ -588,6 +612,7 @@ function StepRow({ step, message, done, column, pointDelay }: StepRowProps) {
               done={done}
               animateDelay={pointDelay}
               muted={isStoppingOther && done}
+              anomalous={isAnomalous}
             />
           )}
         </div>
@@ -601,6 +626,7 @@ function StepRow({ step, message, done, column, pointDelay }: StepRowProps) {
               done={done}
               animateDelay={pointDelay}
               muted={isStoppingOther && done}
+              anomalous={isAnomalous}
             />
           )}
         </div>
@@ -614,6 +640,7 @@ function StepRow({ step, message, done, column, pointDelay }: StepRowProps) {
               done={done}
               animateDelay={pointDelay}
               muted={isStoppingOther && done}
+              anomalous={isAnomalous}
             />
           )}
         </div>
@@ -625,9 +652,11 @@ function StepRow({ step, message, done, column, pointDelay }: StepRowProps) {
             className={`text-sm scan-animate-point ${
               isStoppingOther && done
                 ? "text-[rgba(255,255,255,0.3)]"
-                : done
-                  ? "text-muted-theme"
-                  : "font-medium text-[var(--text)]"
+                : isAnomalous
+                  ? "font-medium text-[rgb(var(--warning))]"
+                  : done
+                    ? "text-muted-theme"
+                    : "font-medium text-[var(--text)]"
             }`}
             style={{
               opacity: 0,
@@ -646,19 +675,31 @@ function StepCircle({
   done,
   animateDelay = 0,
   muted = false,
+  anomalous = false,
 }: {
   done: boolean;
   animateDelay?: number;
   muted?: boolean;
+  anomalous?: boolean;
 }) {
   const circleClass = muted
     ? "bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.14)]"
-    : "bg-[rgba(var(--success),0.2)] text-[rgb(var(--success))]";
+    : anomalous
+      ? "bg-[rgba(var(--warning),0.22)] text-[rgb(var(--warning))]"
+      : "bg-[rgba(var(--success),0.2)] text-[rgb(var(--success))]";
   return (
     <span
       className="flex h-6 w-6 shrink-0 items-center justify-center scan-animate-point"
       role="status"
-      aria-label={muted ? "Arrêté" : done ? "Terminé" : "En cours"}
+      aria-label={
+        muted
+          ? "Arrete"
+          : done
+            ? anomalous
+              ? "Anomalie detectee"
+              : "Termine"
+            : "En cours"
+      }
       style={{
         opacity: 0,
         animation: `scan-point-appear 0.25s ease-out ${animateDelay}ms forwards`,
@@ -673,6 +714,8 @@ function StepCircle({
               className="h-3 w-3 text-[rgba(255,255,255,0.35)]"
               strokeWidth={2.5}
             />
+          ) : anomalous ? (
+            <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.5} />
           ) : (
             <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
           )}
@@ -756,6 +799,7 @@ export default function ScanLoader({
                   key={seg.key}
                   d={seg.d}
                   done={seg.done}
+                  anomalyCount={seg.anomalyCount ?? 0}
                   segKey={seg.key}
                   delayMs={seg.delayMs}
                   muted={seg.muted}
@@ -769,6 +813,7 @@ export default function ScanLoader({
                   step={s.step}
                   message={s.message}
                   done={s.done ?? false}
+                  anomalyCount={s.anomaly_count ?? 0}
                   column={
                     hasParallelBranches
                       ? getStepColumn(s.step, steps, i)

@@ -60,7 +60,7 @@ async def append_job_progress(session: AsyncSession, job: ScanAsyncJob, *, step:
 async def append_job_progress_batch(
     session: AsyncSession,
     job: ScanAsyncJob,
-    entries: list[dict[str, str]],
+    entries: list[dict[str, Any]],
 ) -> None:
     """Ajoute plusieurs entrées de progression et commit une seule fois."""
     await append_async_job_progress_batch(session, job=job, entries=entries)
