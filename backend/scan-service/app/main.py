@@ -10,6 +10,7 @@ from fastapi import FastAPI
 
 from app import load_env  # noqa: F401
 from app.config_loader import settings
+from app.db import init_db
 from app.routers.health import router as health_router
 from app.routers.scan import router as scan_router
 
@@ -24,6 +25,14 @@ async def lifespan(app: FastAPI):
     """Gère le cycle de vie de l'application (startup/shutdown)."""
     # Startup
     logger.info("Démarrage du Scan Service")
+    try:
+        initialized = await init_db()
+        if initialized:
+            logger.info("Base de données scan-service initialisée")
+        else:
+            logger.warning("DATABASE_URL absente: endpoints async scan indisponibles")
+    except Exception as exc:
+        logger.warning("Init DB scan-service échouée: %s", exc)
     yield
     # Shutdown
     logger.info("Arrêt du Scan Service")

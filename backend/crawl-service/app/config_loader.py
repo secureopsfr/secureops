@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -15,10 +14,6 @@ from common.config_base import (
     parse_ssrf_settings,
     parse_url_validation_settings,
 )
-
-# Ce service n'utilise pas de BDD ; create_simple_settings exige DATABASE_URL → valeur factice si absente.
-if not os.environ.get("DATABASE_URL"):
-    os.environ["DATABASE_URL"] = "postgresql://localhost/crawl_service_dummy"
 
 _SERVICE_ROOT = Path(__file__).resolve().parents[1]
 _CFG_PATH = _SERVICE_ROOT / "config" / "settings.yml"
@@ -146,6 +141,16 @@ class CrawlerSettings:
     anti_bot_indicators: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class AsyncJobsSettings:
+    """Paramètres async jobs pour crawl-service."""
+
+    worker_poll_interval_seconds: float
+    job_timeout_seconds: int
+    max_attempts: int
+    progress_batch_window_seconds: float
+
+
 _DEFAULT_EXCLUDED = (
     ".jpg",
     ".jpeg",
@@ -223,6 +228,19 @@ def get_crawler_settings() -> CrawlerSettings:
     )
 
 
+@lru_cache(maxsize=1)
+def get_async_jobs_settings() -> AsyncJobsSettings:
+    """Charge la section async_jobs depuis config/settings.yml."""
+    data = _get_data()
+    cfg = data.get("async_jobs") or {}
+    return AsyncJobsSettings(
+        worker_poll_interval_seconds=float(cfg.get("worker_poll_interval_seconds", 2.0)),
+        job_timeout_seconds=int(cfg.get("job_timeout_seconds", 300)),
+        max_attempts=int(cfg.get("max_attempts", 3)),
+        progress_batch_window_seconds=float(cfg.get("progress_batch_window_seconds", 0.2)),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Settings (general, server, database, routers) via create_simple_settings
 # ---------------------------------------------------------------------------
@@ -230,9 +248,11 @@ def get_crawler_settings() -> CrawlerSettings:
 settings = create_simple_settings("crawl-service", default_port=8014, caller_file=__file__)
 
 __all__ = [
+    "AsyncJobsSettings",
     "CrawlerSettings",
     "SsrfSettings",
     "UrlValidationSettings",
+    "get_async_jobs_settings",
     "get_crawler_settings",
     "get_robots_txt_messages",
     "get_robots_txt_settings",

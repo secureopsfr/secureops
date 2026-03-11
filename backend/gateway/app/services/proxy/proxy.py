@@ -37,6 +37,11 @@ def _build_proxied_headers(request: Request, extra_headers: dict[str, str] | Non
         headers.update(extra_headers)
     if hasattr(request.state, "api_key_to_forward") and request.state.api_key_to_forward:
         headers["Authorization"] = f"Bearer {request.state.api_key_to_forward}"
+    if hasattr(request.state, "user") and request.state.user:
+        user = request.state.user
+        user_id = user.get("user_id") or user.get("sub")
+        if user_id:
+            headers["X-Authenticated-User-Id"] = str(user_id)
     cid = correlation_id_ctx.get()
     if cid:
         headers["X-Correlation-ID"] = cid

@@ -20,20 +20,19 @@ L’intégration CI/CD SecureOps permet de :
 
 | Endpoint | Auth | Usage |
 |----------|------|-------|
-| `POST /scan/api/scan` | Optionnel (clé API recommandée) | Scan réel — analyse posture sécurité |
-| `POST /scan/api/scan/fake` | Requise (JWT ou clé API) | Scan factice — score 100, 0 finding (tests) |
+| `POST /scan/api/scan/async` | Optionnel pour `scan_type=frontend` ; clé API recommandée en CI | Crée un job de scan asynchrone |
 
-Pour la CI/CD, utilisez **`POST /scan/api/scan`** avec une **clé API** pour :
+Pour la CI/CD, utilisez **`POST /scan/api/scan/async`** avec une **clé API** pour :
 - sauvegarder le scan dans l’historique
 - garantir la compatibilité avec les futurs quotas et rate limiting
 
-### Format de réponse (SSE)
+### Format de réponse (async + polling)
 
-L’API renvoie un **flux Server-Sent Events (SSE)**. Les événements pertinents sont :
+L’API renvoie un **job async** :
 
-- **`step`** : progression du scan (validation, TLS, headers, etc.)
-- **`result`** : résultat final avec score et findings
-- **`error`** : erreur (site inaccessible, timeout, etc.)
+- `POST /scan/api/scan/async` retourne `job_id`
+- `GET /scan/api/scan/async/{job_id}` retourne statut + `progress_log`
+- `GET /scan/api/scan/async/{job_id}/result` retourne le résultat final
 
 Structure de l’événement `result` :
 
@@ -155,7 +154,7 @@ async function main() {
   const failOnScoreBelow = parseInt(process.env.INPUT_FAIL_ON_SCORE_BELOW || '80', 10);
   const failOnCritical = process.env.INPUT_FAIL_ON_CRITICAL !== 'false';
 
-  const scanUrl = `${baseUrl}/scan/api/scan`;
+  const scanUrl = `${baseUrl}/scan/api/scan/async`;
   const body = JSON.stringify({ url });
 
   const parsed = new URL(scanUrl);
@@ -177,36 +176,33 @@ async function main() {
         return;
       }
 
-      let buffer = '';
-      res.on('data', (chunk) => {
-        buffer += chunk.toString();
-        const blocks = buffer.split('\n\n');
-        buffer = blocks.pop() || '';
+      let body = '';
+      res.on('data', (chunk) => { body += chunk.toString(); });
+      res.on('end', async () => {
+        try {
+          const created = JSON.parse(body);
+          const jobId = created.job_id;
+          if (!jobId) throw new Error('job_id manquant');
+          const statusUrl = `${baseUrl}/scan/api/scan/async/${jobId}`;
+          const resultUrl = `${statusUrl}/result`;
 
-        for (const block of blocks) {
-          if (!block.trim()) continue;
-          const eventMatch = block.match(/^event:\s*(.+)$/m);
-          const dataMatch = block.match(/^data:\s*(.+)$/m);
-          if (!eventMatch || !dataMatch) continue;
-
-          const event = eventMatch[1].trim();
-          const data = dataMatch[1];
-
-          if (event === 'error') {
-            try {
-              const err = JSON.parse(data);
-              reject(new Error(err.message || data));
-            } catch {
-              reject(new Error(data));
+          let done = false;
+          while (!done) {
+            await new Promise(r => setTimeout(r, 1000));
+            const statusRaw = await fetch(statusUrl, { headers: { 'X-API-Key': apiKey } });
+            if (!statusRaw.ok) throw new Error(`Status HTTP ${statusRaw.status}`);
+            const status = await statusRaw.json();
+            if (status.status === 'failed') {
+              throw new Error(status.error?.message || 'Scan failed');
             }
-          } else if (event === 'result') {
-            try {
-              const result = JSON.parse(data);
+            if (status.status === 'completed') {
+              const resultRaw = await fetch(resultUrl, { headers: { 'X-API-Key': apiKey } });
+              if (!resultRaw.ok) throw new Error(`Result HTTP ${resultRaw.status}`);
+              const result = await resultRaw.json();
               const score = result.score ?? 0;
               const findings = result.findings || [];
               const hasCritical = findings.some(f => (f.severity || '').toLowerCase() === 'critical');
 
-              // Outputs pour les steps suivants
               if (process.env.GITHUB_OUTPUT) {
                 const fs = require('fs');
                 fs.appendFileSync(process.env.GITHUB_OUTPUT, `score=${score}\n`);
@@ -215,31 +211,26 @@ async function main() {
 
               if (hasCritical && failOnCritical) {
                 const criticalList = findings.filter(f => (f.severity || '').toLowerCase() === 'critical');
-                reject(new Error(
+                throw new Error(
                   `Scan échoué : ${criticalList.length} finding(s) critical détecté(s). ` +
                   `Score : ${score}/100. ` +
                   `Findings: ${criticalList.map(f => f.title || f.evidence).join('; ')}`
-                ));
+                );
               }
               if (score < failOnScoreBelow) {
-                reject(new Error(
+                throw new Error(
                   `Scan échoué : score ${score}/100 < seuil ${failOnScoreBelow}. ` +
                   `Findings: ${findings.length}`
-                ));
+                );
               }
 
               console.log(`✅ SecureOps Scan : score ${score}/100 (${findings.length} finding(s))`);
+              done = true;
               resolve();
-            } catch (e) {
-              reject(new Error(`Parse result: ${e.message}`));
             }
           }
-        }
-      });
-
-      res.on('end', () => {
-        if (buffer && !buffer.includes('event:')) {
-          reject(new Error('Réponse incomplète — pas d\'événement result reçu'));
+        } catch (e) {
+          reject(e);
         }
       });
     });
@@ -333,7 +324,7 @@ jobs:
           const https = require('https');
           const body = JSON.stringify({ url: process.env.SCAN_URL });
           const req = https.request(
-            `${process.env.BASE_URL}/scan/api/scan`,
+            `${process.env.BASE_URL}/scan/api/scan/async`,
             {
               method: 'POST',
               headers: {
@@ -405,17 +396,27 @@ jobs:
         run: |
           set -e
           # --max-time 300 : scan long possible (30-90 s typiquement)
-          curl -sN --max-time 300 -X POST "${BASE_URL}/scan/api/scan" \
+          JOB=$(curl -s --max-time 60 -X POST "${BASE_URL}/scan/api/scan/async" \
             -H "Content-Type: application/json" \
             -H "X-API-Key: ${API_KEY}" \
-            -d "{\"url\": \"${SCAN_URL}\"}" | tee /tmp/sse.log > /dev/null
+            -d "{\"url\": \"${SCAN_URL}\", \"scan_type\": \"frontend\", \"input\": {}}")
+          JOB_ID=$(echo "$JOB" | jq -r '.job_id // empty')
+          [ -n "$JOB_ID" ] || { echo "Erreur: job_id manquant"; exit 1; }
 
-          # Extraire le dernier événement "result" du flux SSE
-          RESULT=$(grep -A1 '^event: result$' /tmp/sse.log | grep '^data:' | tail -1 | sed 's/^data: //')
-          if [ -z "$RESULT" ]; then
-            echo "Erreur : aucun résultat de scan reçu"
-            exit 1
-          fi
+          while true; do
+            STATUS_JSON=$(curl -s --max-time 30 -H "X-API-Key: ${API_KEY}" "${BASE_URL}/scan/api/scan/async/${JOB_ID}")
+            STATUS=$(echo "$STATUS_JSON" | jq -r '.status // empty')
+            if [ "$STATUS" = "failed" ]; then
+              echo "Erreur: scan échoué"
+              echo "$STATUS_JSON"
+              exit 1
+            fi
+            if [ "$STATUS" = "completed" ]; then
+              RESULT=$(curl -s --max-time 30 -H "X-API-Key: ${API_KEY}" "${BASE_URL}/scan/api/scan/async/${JOB_ID}/result")
+              break
+            fi
+            sleep 1
+          done
 
           SCORE=$(echo "$RESULT" | jq -r '.score // 0')
           CRITICAL=$(echo "$RESULT" | jq -r '[.findings[]? | select((.severity | ascii_downcase) == "critical")] | length')
@@ -507,20 +508,20 @@ jobs:
             });
 ```
 
-### 5.3 Scan factice (test de l’intégration)
+### 5.3 Scan async minimal (test de l’intégration)
 
-Pour tester que l’API et la clé fonctionnent sans lancer un vrai scan :
+Pour tester rapidement que l’API et la clé fonctionnent :
 
 ```yaml
-- name: Test SecureOps API (fake scan)
+- name: Test SecureOps API (async backend scan)
   run: |
-    curl -s -X POST "https://api.secureops.io/scan/api/scan/fake" \
+    curl -s -X POST "https://api.secureops.io/scan/api/scan/async" \
       -H "X-API-Key: ${{ secrets.SECUREOPS_API_KEY }}" \
       -H "Content-Type: application/json" \
-      -d '{"url":"https://example.com"}' | head -20
+      -d '{"url":"https://example.com","scan_type":"backend","input":{}}' | jq .
 ```
 
-Le flux SSE renvoyé doit contenir un événement `result` avec `score: 100` et `findings: []`.
+La réponse doit contenir un `job_id`, puis le statut/résultat doivent être lisibles via les endpoints async.
 
 ---
 
@@ -579,7 +580,7 @@ Ce projet est scanné par [SecureOps](https://secureops.io) à chaque push sur `
 | `HTTP 401` | Clé API invalide ou expirée | Vérifier le secret `SECUREOPS_API_KEY`, régénérer une clé |
 | `HTTP 404` | URL de l’API incorrecte | Vérifier `base_url` (ex. `https://api.secureops.io`) |
 | `Pas d'événement result` | Site cible inaccessible ou timeout | Vérifier que l’URL est joignable depuis GitHub (réseau public) |
-| `Parse result: ...` | Format SSE inattendu | Mettre à jour l’action ou le script vers la dernière version |
+| `Result HTTP ...` | Job non terminé ou erreur API | Poller le statut jusqu’à `completed`, puis appeler `/result` |
 
 ---
 
@@ -600,8 +601,8 @@ Roadmap détaillée pour développer, publier et maintenir l'action GitHub Secur
 |-------|-------|---------|
 | 1.1 | Choisir l'emplacement | **Option A** : repo dédié `secureops/secureops-scan` (recommandé pour action publique). **Option B** : monorepo `.github/actions/secureops-scan/` (action interne). |
 | 1.2 | Créer la structure | Créer les dossiers et fichiers : `action.yml`, `package.json`, `src/index.js` (voir sections 3.1–3.3). |
-| 1.3 | Écrire le script | Copier/adapter le script Node.js (§3.3) : appel POST, parsing SSE, outputs `score`/`passed`, exit 1 si échec. |
-| 1.4 | Tester en local | `npm install` puis `node src/index.js` avec variables `INPUT_URL`, `INPUT_API_KEY`, etc. Valider contre l'API réelle ou `/scan/api/scan/fake`. |
+| 1.3 | Écrire le script | Copier/adapter le script Node.js (§3.3) : create job async, polling status, fetch result, outputs `score`/`passed`, exit 1 si échec. |
+| 1.4 | Tester en local | `npm install` puis `node src/index.js` avec variables `INPUT_URL`, `INPUT_API_KEY`, etc. Valider contre l'API async réelle. |
 
 **Exemple structure initiale :**
 
@@ -669,9 +670,9 @@ jobs:
 
 | Étape | Tâche | Détails |
 |-------|-------|---------|
-| 4.1 | Test du script (fake) | Job dans la CI : appeler l'API `/scan/api/scan/fake` avec une clé de test (secret `SECUREOPS_API_KEY` dans le repo SecureOps). Vérifier exit 0 et sortie attendue. |
+| 4.1 | Test du script (async) | Job dans la CI : appeler l'API `/scan/api/scan/async` avec une clé de test (secret `SECUREOPS_API_KEY` dans le repo SecureOps). Vérifier create/poll/result et sortie attendue. |
 | 4.2 | Test d'intégration | Optionnel : workflow qui utilise `uses: ./.github/actions/secureops-scan` (action locale) sur une URL de staging connue. |
-| 4.3 | Tests unitaires | Optionnel : extraire la logique de parsing SSE dans un module testable ; ajouter Jest ou Node native test. |
+| 4.3 | Tests unitaires | Optionnel : extraire la logique de polling async dans un module testable ; ajouter Jest ou Node native test. |
 
 ---
 
@@ -700,7 +701,7 @@ Si l'action reste dans le monorepo SecureOps plutôt que dans un repo dédié :
 
 ### Phase 7 : Checklist finale avant publication
 
-- [ ] Action testée contre `POST /scan/api/scan` et `POST /scan/api/scan/fake`
+- [ ] Action testée contre `POST /scan/api/scan/async` + polling status/result
 - [ ] Secret `SECUREOPS_API_KEY` configuré dans le repo (pour les tests CI)
 - [ ] Tag `v1` créé et poussé
 - [ ] README à jour avec exemples
@@ -716,7 +717,7 @@ Si l'action reste dans le monorepo SecureOps plutôt que dans un repo dédié :
 |---------|------|
 | `action.yml` | Métadonnées, inputs, outputs, `runs` |
 | `package.json` | Dépendances (minimales), script build |
-| `src/index.js` | Script principal (appel API, parsing SSE) |
+| `src/index.js` | Script principal (create job async, polling, fetch result) |
 | `dist/index.js` | Build (ou généré en CI) |
 | `README.md` | Usage, exemples, liens |
 | `.gitignore` | node_modules, .env, etc. |

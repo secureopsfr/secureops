@@ -25,10 +25,7 @@ import {
   type ScanError,
   type ScanStepDisplay,
 } from "../../services/scanService";
-import {
-  runCrawlStream,
-  type CrawlUrlEntry,
-} from "../../services/crawlService";
+import { runCrawl, type CrawlUrlEntry } from "../../services/crawlService";
 import {
   createScheduledScan,
   getUserTimezone,
@@ -168,6 +165,11 @@ export default function ScannerContent() {
           } else if (ev.type === "result") {
             if (isAuthenticated) {
               setResult(ev.data);
+              saveScan(ev.data)
+                .then((id) => {
+                  if (id) setScanId(id);
+                })
+                .catch(() => showErrorToast(t("scanner.saveFailed")));
               // Rester en loading : ScanLoader appelle onAnimationComplete à la fin
             } else {
               savePendingScanResult(ev.data);
@@ -214,7 +216,7 @@ export default function ScannerContent() {
 
       setState("crawling");
       setCrawlSteps([]);
-      runCrawlStream(
+      runCrawl(
         urlToScan,
         (ev) => {
           if (ev.type === "step") {
@@ -692,8 +694,6 @@ export default function ScannerContent() {
                 result={result}
                 scanId={scanId}
                 onNewScan={handleNewScan}
-                onSelectScan={handleSelectScan}
-                filterScanType="frontend"
               />
             ) : (
               <>

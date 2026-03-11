@@ -170,7 +170,7 @@ function pathWithRoundedCorners(
 /** Délai avant apparition du point (ms) pour qu'il apparaisse à la fin de la ligne. */
 const POINT_APPEAR_DELAY = 380;
 /** Durée d'un "pas" : trait + apparition du point (ms). */
-const STEP_DURATION = 630;
+const STEP_DURATION = 830;
 
 /**
  * Calcule les paths SVG et les délais d'animation par colonne.
@@ -443,6 +443,16 @@ function computeConnectors(steps: ScanStepDisplay[]): {
     }
   }
 
+  // Ordonnancement strict : trait -> point -> trait -> point.
+  // On garde la géométrie des segments, mais on séquence leur timing globalement.
+  segments.forEach((seg, index) => {
+    seg.delayMs = index * STEP_DURATION;
+  });
+  pointDelays[0] = 0;
+  for (let i = 1; i < pointDelays.length; i += 1) {
+    pointDelays[i] = (i - 1) * STEP_DURATION + PATH_DRAW_DURATION;
+  }
+
   const maxConnectorEnd =
     segments.length > 0
       ? Math.max(...segments.map((s) => s.delayMs + PATH_DRAW_DURATION))
@@ -674,45 +684,6 @@ function StepCircle({
   );
 }
 
-interface TimelineStepProps {
-  step: string;
-  message: string;
-  done: boolean;
-  isLast: boolean;
-}
-
-function TimelineStep({ step, message, done, isLast }: TimelineStepProps) {
-  const { t } = useLanguage();
-  const msg = STEP_I18N_KEYS[step] ? t(STEP_I18N_KEYS[step]) : message;
-
-  return (
-    <li className="relative flex gap-4 pb-5 last:pb-0">
-      {!isLast && (
-        <span
-          className="absolute left-[11px] top-7 w-0.5 z-0"
-          aria-hidden="true"
-          style={{
-            height: "calc(100% - 1.75rem)",
-            background: done
-              ? "rgb(var(--success))"
-              : "rgba(var(--primary), 0.2)",
-          }}
-        />
-      )}
-      <span className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center">
-        {done ? (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[rgba(var(--success),0.2)] text-[rgb(var(--success))]">
-            <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
-          </span>
-        ) : (
-          <LoadingSpinner size="sm" />
-        )}
-      </span>
-      <span className="min-w-0 flex-1 pt-0.5 text-base">{msg}</span>
-    </li>
-  );
-}
-
 const CIRCLE_AREA_WIDTH = COL_WIDTH * 3 + COL_GAP * 2;
 
 /** Points de suspension animés (opacité en cascade). */
@@ -733,15 +704,12 @@ export default function ScanLoader({
   onAnimationComplete,
 }: ScanLoaderProps) {
   const { t } = useLanguage();
-  const useBoth =
+  const hasParallelBranches =
     crawlMode === "both" &&
     (steps.some((s) => s.step.startsWith("html_")) ||
       steps.some((s) => s.step.startsWith("playwright_")));
 
-  const connectors = useMemo(
-    () => (useBoth ? computeConnectors(steps) : null),
-    [useBoth, steps],
-  );
+  const connectors = useMemo(() => computeConnectors(steps), [steps]);
 
   useEffect(() => {
     if (!onAnimationComplete) return;
@@ -769,62 +737,50 @@ export default function ScanLoader({
             <AnimatedEllipsis />
           </span>
         </div>
-      ) : useBoth ? (
+      ) : (
         <div className="mt-8 mx-auto flex w-full max-w-2xl flex-col items-center">
           <div
             className="relative w-full"
             style={{ minHeight: steps.length * ROW_STRIDE }}
           >
-            {connectors && (
-              <>
-                <svg
-                  className="absolute left-1/2 top-0 z-0 -translate-x-1/2"
-                  width={CIRCLE_AREA_WIDTH}
-                  height={steps.length * ROW_STRIDE}
-                  viewBox={`0 0 ${CIRCLE_AREA_WIDTH} ${steps.length * ROW_STRIDE}`}
-                  preserveAspectRatio="xMinYMin meet"
-                  aria-hidden="true"
-                >
-                  {connectors.segments.map((seg) => (
-                    <AnimatedConnectorPath
-                      key={seg.key}
-                      d={seg.d}
-                      done={seg.done}
-                      segKey={seg.key}
-                      delayMs={seg.delayMs}
-                      muted={seg.muted}
-                    />
-                  ))}
-                </svg>
-                <ul className="relative flex flex-col" style={{ gap: ROW_GAP }}>
-                  {steps.map((s, i) => (
-                    <StepRow
-                      key={`${s.step}-${i}`}
-                      step={s.step}
-                      message={s.message}
-                      done={s.done ?? false}
-                      column={getStepColumn(s.step, steps, i)}
-                      index={i}
-                      pointDelay={connectors.pointDelays[i] ?? 0}
-                    />
-                  ))}
-                </ul>
-              </>
-            )}
+            <svg
+              className="absolute left-1/2 top-0 z-0 -translate-x-1/2"
+              width={CIRCLE_AREA_WIDTH}
+              height={steps.length * ROW_STRIDE}
+              viewBox={`0 0 ${CIRCLE_AREA_WIDTH} ${steps.length * ROW_STRIDE}`}
+              preserveAspectRatio="xMinYMin meet"
+              aria-hidden="true"
+            >
+              {connectors.segments.map((seg) => (
+                <AnimatedConnectorPath
+                  key={seg.key}
+                  d={seg.d}
+                  done={seg.done}
+                  segKey={seg.key}
+                  delayMs={seg.delayMs}
+                  muted={seg.muted}
+                />
+              ))}
+            </svg>
+            <ul className="relative flex flex-col" style={{ gap: ROW_GAP }}>
+              {steps.map((s, i) => (
+                <StepRow
+                  key={`${s.step}-${i}`}
+                  step={s.step}
+                  message={s.message}
+                  done={s.done ?? false}
+                  column={
+                    hasParallelBranches
+                      ? getStepColumn(s.step, steps, i)
+                      : "common"
+                  }
+                  index={i}
+                  pointDelay={connectors.pointDelays[i] ?? 0}
+                />
+              ))}
+            </ul>
           </div>
         </div>
-      ) : (
-        <ul className="mt-8 mx-auto flex w-full max-w-md flex-col items-stretch">
-          {steps.map((s, i) => (
-            <TimelineStep
-              key={`${s.step}-${i}`}
-              step={s.step}
-              message={s.message}
-              done={s.done ?? false}
-              isLast={i === steps.length - 1}
-            />
-          ))}
-        </ul>
       )}
     </div>
   );

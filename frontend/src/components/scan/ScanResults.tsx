@@ -31,7 +31,6 @@ import { exportScanResult, type ExportFormat } from "../../utils/exportScan";
 import { formatUrlDisplay } from "../../utils/urlFormat";
 import { downloadScanPdf } from "../../services/scanHistoryService";
 import { showErrorToast } from "../../utils/toastNotifications";
-import ScannerHistoryAlertsSection from "./ScannerHistoryAlertsSection";
 import { renderWithBold } from "../../utils/renderWithBold";
 import { LoadingSpinner } from "../LoadingScreen";
 
@@ -39,10 +38,6 @@ interface ScanResultsProps {
   result: ScanResult;
   scanId: string | null;
   onNewScan: () => void;
-  /** Callback quand l'utilisateur sélectionne un autre scan dans l'historique (optionnel). */
-  onSelectScan?: (result: ScanResult, scanId?: string) => void;
-  /** Type de scan (masque le badge dans l'historique quand on est sur une page dédiée). */
-  filterScanType?: "frontend" | "backend" | "custom";
 }
 
 const EXPORT_FORMATS: {
@@ -117,8 +112,6 @@ export default function ScanResults({
   result,
   scanId,
   onNewScan,
-  onSelectScan,
-  filterScanType,
 }: ScanResultsProps) {
   const { t, language } = useLanguage();
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -596,17 +589,6 @@ export default function ScanResults({
             </ul>
           )}
         </Card>
-      </AnimateInView>
-
-      <AnimateInView
-        className="landing-section landing-reveal-scanner"
-        as="section"
-      >
-        <ScannerHistoryAlertsSection
-          filterUrl={result.url}
-          filterScanType={filterScanType}
-          onSelectScan={onSelectScan ?? (() => {})}
-        />
       </AnimateInView>
 
       {typeof document !== "undefined" &&

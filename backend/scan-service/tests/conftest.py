@@ -90,9 +90,9 @@ def patch_scan_checks(**overrides):
         details=None,
     )
     with (
-        patch("app.services.scan_stream.check_ssrf", new_callable=AsyncMock),
-        patch("app.services.scan_stream.scan_client", _fake_scan_client),
-        patch("app.services.scan_stream.get_with_client_or_error", new_callable=AsyncMock, return_value=fetch_result_ok),
+        patch("app.services.scan_runner.check_ssrf", new_callable=AsyncMock),
+        patch("app.services.scan_runner.scan_client", _fake_scan_client),
+        patch("app.services.scan_runner.get_with_client_or_error", new_callable=AsyncMock, return_value=fetch_result_ok),
         patch("app.services._scan_core.run_tls_checks", new_callable=AsyncMock, return_value=tls_result),
         patch("app.services._scan_core.run_exposed_files_checks", new_callable=AsyncMock, return_value=exposed_result),
         patch(

@@ -194,14 +194,6 @@ export default function ScannerGestion() {
         result={selectedResult}
         scanId={selectedScanId}
         onNewScan={handleNewScan}
-        onSelectScan={handleSelectScan}
-        filterScanType={
-          filterScanType === "frontend" ||
-          filterScanType === "backend" ||
-          filterScanType === "custom"
-            ? filterScanType
-            : undefined
-        }
       />
     );
   }

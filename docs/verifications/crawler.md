@@ -92,7 +92,7 @@ Utilisateur saisit URL
                         │              │
                         └──────┬───────┘
                                ▼
-              POST /api/crawl/stream → Liste d'URLs → Frontend
+              POST /api/crawl/async → Liste d'URLs → Frontend (via polling)
                                │
                                ▼
                     Étape validation : affichage du nombre,
@@ -259,18 +259,14 @@ La directive **Crawl-delay** (non standard) n'est pas implémentée pour l'insta
 - Réutilisation du client HTTP, de la config SSRF, de la validation d'URL, de la logique robots.txt (module commun).
 - Config centralisée dans `backend/crawl-service/config/settings.yml`.
 
-### 3.4 Streaming SSE
+### 3.4 Async queue + polling
 
-Le crawl peut être lancé en streaming via `POST /api/crawl/stream`. Le client envoie `Accept: text/event-stream`. Les étapes émises sont :
+Le crawl est lancé via `POST /api/crawl/async` et traité par un worker asynchrone.
+La progression est persistée en base (`progress_log`) et le client la récupère par polling :
 
-1. `validation_url_check` / `validation_url_done` : validation de l'URL.
-2. `ssrf_check` / `ssrf_done` : vérification SSRF (résolution DNS, blocage localhost).
-3. `robots_check` / `robots_done` : lecture de robots.txt (si activé, mode HTML et SPA).
-4. `sitemap_check` / `sitemap_done` : récupération du sitemap (modes HTML et SPA).
-5. `crawl_progress` : progression (ex. « Exploration des pages (10 URLs) »).
-6. `result` : liste finale d'URLs avec `timeout_reached`, `anti_bot_suspected`, `requests_blocked`.
-
-Le gateway applique un timeout de 90 s pour le crawl stream (vs 20 s pour les requêtes standard).
+1. `POST /api/crawl/async` : création du job (`job_id`, `job_token` éventuel).
+2. `GET /api/crawl/async/{job_id}` : statut (`pending`, `running`, `completed`, `failed`) + `progress_log`.
+3. `GET /api/crawl/async/{job_id}/result` : résultat final quand le statut est `completed`.
 
 ### 3.5 SSRF et URL de départ
 
@@ -309,9 +305,11 @@ Le package `app/services/crawler` est organisé en modules métier :
 
 | Endpoint | Description |
 |----------|-------------|
-| `POST /api/crawl/stream` | Crawl en streaming SSE : émet des étapes (validation, SSRF, robots, sitemap, crawl) puis `result` ou `error`. |
+| `POST /api/crawl/async` | Crée un job crawl asynchrone (retourne `job_id`). |
+| `GET /api/crawl/async/{job_id}` | Retourne statut + `progress_log` + erreurs éventuelles. |
+| `GET /api/crawl/async/{job_id}/result` | Retourne le résultat final si le job est `completed`. |
 
-Exposé via le gateway : `POST /crawl/api/crawl/stream` (route publique, pas d'authentification requise pour le MVP). Timeout étendu (90 s) côté gateway pour les crawls longs.
+Exposé via le gateway : `/crawl/api/crawl/async*`.
 
 ### 4.2 Requête
 
@@ -327,7 +325,7 @@ Exposé via le gateway : `POST /crawl/api/crawl/stream` (route publique, pas d'a
 - **max_urls** (int, optionnel) : Nombre max d'URLs à découvrir. Valeur entre 5 et 200, défaut 50. L'utilisateur peut le définir dans l'interface.
 - **mode** (string, optionnel) : `"html"` (défaut), `"playwright"` ou `"both"`. `"playwright"` utilise Chromium pour les SPA ; `"both"` exécute les deux en parallèle et fusionne les résultats.
 
-### 4.3 Réponse succès (200)
+### 4.3 Résultats
 
 ```json
 {
@@ -356,7 +354,7 @@ Exposé via le gateway : `POST /crawl/api/crawl/stream` (route publique, pas d'a
 | 400 | URL invalide (validation, schéma, format, credentials, etc.) ou refusée par SSRF (localhost, IP privée). |
 | 500 | Erreur interne (timeout, exception, etc.). |
 | 503 | Mode playwright ou both demandé mais Playwright non installé ou indisponible. |
-| 504 | Timeout du stream SSE dépassé. |
+| 409 | Résultat demandé alors que le job n'est pas `completed`. |
 
 Le corps d'erreur suit le format FastAPI : `{ "detail": "message" }`. En SSE, l'événement `error` contient `message` et `status_code`.
 

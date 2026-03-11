@@ -1,38 +1,137 @@
-"""Route de crawl HTTP (roadmap §7).
+"""Routes crawl async (DB queue + polling)."""
 
-Endpoint streaming POST /api/crawl/stream : crawl SSE avec étapes (validation, SSRF, robots, crawl).
-"""
+import os
+import uuid
 
-from fastapi import APIRouter
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from common.async_jobs import generate_job_token, hash_job_token
+from fastapi import APIRouter, Header, HTTPException
 
-from app.services.crawler.crawl_stream import crawl_stream_generator
-from app.services.crawler.types import CrawlMode
+from app.config_loader import get_async_jobs_settings
+from app.db import get_async_session
+from app.schemas.async_job import CrawlAsyncCreateRequest, CrawlAsyncCreateResponse, CrawlAsyncStatusResponse
+from app.services.async_job_repository import create_job, get_job_by_id
+from app.use_cases.async_job_access import (
+    JobAccessDeniedError,
+    JobNotFoundError,
+    JobResultNotReadyError,
+    NonFrontendAuthRequiredError,
+    require_completed_job,
+    require_existing_job,
+    require_job_access,
+    require_user_for_non_frontend,
+)
 
 router = APIRouter(prefix="/api", tags=["crawl"])
+_X_AUTHENTICATED_USER_ID = Header(default=None, alias="X-Authenticated-User-Id")
+_X_JOB_TOKEN = Header(default=None, alias="X-Job-Token")
+ASYNC_JOB_TOKEN_SECRET = os.getenv("ASYNC_JOB_TOKEN_SECRET", "dev-async-job-secret")
+ASYNC_MAX_ATTEMPTS = get_async_jobs_settings().max_attempts
 
 
-class CrawlRequest(BaseModel):
-    """Requête de crawl."""
-
-    url: str = Field(..., description="URL de départ")
-    max_urls: int = Field(default=50, ge=5, le=200, description="Limite d'URLs (5–200)")
-    mode: CrawlMode = Field(
-        default="html",
-        description="Mode de crawl : html (HTTP), playwright (SPA), both (fusion des deux)",
+@router.post("/crawl/async", response_model=CrawlAsyncCreateResponse, status_code=202)
+async def create_crawl_async_job(
+    body: CrawlAsyncCreateRequest,
+    authenticated_user_id: str | None = _X_AUTHENTICATED_USER_ID,
+) -> CrawlAsyncCreateResponse:
+    """Crée un job async crawl."""
+    try:
+        require_user_for_non_frontend(body.scan_type, authenticated_user_id)
+    except NonFrontendAuthRequiredError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    raw_job_token: str | None = None
+    token_hash: str | None = None
+    if not authenticated_user_id:
+        raw_job_token = generate_job_token()
+        token_hash = hash_job_token(raw_job_token, ASYNC_JOB_TOKEN_SECRET)
+    try:
+        async with get_async_session() as session:
+            job = await create_job(
+                session,
+                url=body.url,
+                scan_type=body.scan_type,
+                input_json=body.input,
+                user_id=authenticated_user_id,
+                job_token_hash=token_hash,
+                max_attempts=ASYNC_MAX_ATTEMPTS,
+            )
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="Base de données indisponible")
+    return CrawlAsyncCreateResponse(
+        job_id=str(job.id),
+        status="pending",
+        scan_type=body.scan_type,
+        job_token=raw_job_token,
     )
 
 
-@router.post(
-    "/crawl/stream",
-    summary="Lancer un crawl (streaming)",
-    description="Crawl en streaming SSE : étapes (validation, SSRF, robots, crawl) puis result ou error.",
-)
-async def post_crawl_stream(body: CrawlRequest) -> StreamingResponse:
-    """Crawl en streaming : émet des événements step à chaque étape, puis result ou error."""
-    return StreamingResponse(
-        crawl_stream_generator(body.url, max_urls=body.max_urls, mode=body.mode),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
+@router.get("/crawl/async/{job_id}", response_model=CrawlAsyncStatusResponse)
+async def get_crawl_async_job_status(
+    job_id: str,
+    authenticated_user_id: str | None = _X_AUTHENTICATED_USER_ID,
+    job_token: str | None = _X_JOB_TOKEN,
+) -> CrawlAsyncStatusResponse:
+    """Retourne le statut d'un job async crawl."""
+    try:
+        job_uuid = uuid.UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="job_id invalide")
+    try:
+        async with get_async_session() as session:
+            job = require_existing_job(await get_job_by_id(session, job_uuid))
+            require_job_access(
+                job,
+                authenticated_user_id=authenticated_user_id,
+                job_token=job_token,
+                token_secret=ASYNC_JOB_TOKEN_SECRET,
+            )
+            return CrawlAsyncStatusResponse(
+                job_id=str(job.id),
+                scan_type=job.scan_type,  # type: ignore[arg-type]
+                status=job.status,  # type: ignore[arg-type]
+                attempt_count=int(job.attempt_count or 0),
+                created_at=job.created_at,
+                started_at=job.started_at,
+                completed_at=job.completed_at,
+                last_step=job.last_step,
+                last_message=job.last_message,
+                progress_log=list(job.progress_log_json or []),
+                error=job.error_json,
+            )
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except JobAccessDeniedError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="Base de données indisponible")
+
+
+@router.get("/crawl/async/{job_id}/result")
+async def get_crawl_async_job_result(
+    job_id: str,
+    authenticated_user_id: str | None = _X_AUTHENTICATED_USER_ID,
+    job_token: str | None = _X_JOB_TOKEN,
+) -> dict:
+    """Retourne le résultat d'un job async crawl."""
+    try:
+        job_uuid = uuid.UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="job_id invalide")
+    try:
+        async with get_async_session() as session:
+            job = require_existing_job(await get_job_by_id(session, job_uuid))
+            require_job_access(
+                job,
+                authenticated_user_id=authenticated_user_id,
+                job_token=job_token,
+                token_secret=ASYNC_JOB_TOKEN_SECRET,
+            )
+            require_completed_job(job)
+            return dict(job.result_json or {})
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except JobAccessDeniedError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    except JobResultNotReadyError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="Base de données indisponible")

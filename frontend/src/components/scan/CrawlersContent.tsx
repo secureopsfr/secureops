@@ -21,10 +21,7 @@ import {
   type ScanError,
   type ScanStepDisplay,
 } from "../../services/scanService";
-import {
-  runCrawlStream,
-  type CrawlUrlEntry,
-} from "../../services/crawlService";
+import { runCrawl, type CrawlUrlEntry } from "../../services/crawlService";
 import { normalizeScanUrl } from "../../utils/scanUrl";
 import {
   savePendingScanResult,
@@ -126,6 +123,11 @@ export default function CrawlersContent() {
           } else if (ev.type === "result") {
             if (isAuthenticated) {
               setResult(ev.data);
+              saveScan(ev.data)
+                .then((id) => {
+                  if (id) setScanId(id);
+                })
+                .catch(() => showErrorToast(t("scanner.saveFailed")));
             } else {
               savePendingScanResult(ev.data);
               setResult(ev.data);
@@ -166,7 +168,7 @@ export default function CrawlersContent() {
 
       setState("crawling");
       setCrawlSteps([]);
-      runCrawlStream(
+      runCrawl(
         urlToCrawl,
         (ev) => {
           if (ev.type === "step") {
@@ -485,7 +487,6 @@ export default function CrawlersContent() {
             result={result}
             scanId={scanId}
             onNewScan={handleNewScan}
-            filterScanType="frontend"
           />
         ) : (
           <>
