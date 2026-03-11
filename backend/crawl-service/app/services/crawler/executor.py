@@ -20,6 +20,11 @@ def _make_progress_callback(prefix: str, on_progress: Callable[[str, str], None]
     return lambda step, msg: on_progress(f"{prefix}_{step}", msg)
 
 
+def _reached_url_limit(entries: list[crawl_core.CrawlUrlEntry], max_urls: int) -> bool:
+    """Indique si un crawler a atteint la limite d'URLs demandée."""
+    return len(entries) >= max_urls
+
+
 async def _run_html_from_prepared(
     prepared,
     *,
@@ -184,14 +189,20 @@ async def run_mode_both(
         first_label = "html"
         entries_html, to_html, _, req_html, disallow_html = task_html.result()
         entries_pw, to_pw, anti_pw, req_pw, disallow_pw = _empty_crawl_result()
+        first_entries = entries_html
     else:
         first_label = "playwright"
         entries_pw, to_pw, anti_pw, req_pw, disallow_pw = task_playwright.result()
         entries_html, to_html, _, req_html, disallow_html = _empty_crawl_result()
+        first_entries = entries_pw
 
-    on_progress(f"crawl_{first_label}_done", f"Crawl {first_label} terminé. Arrêt de l'autre…")
-    stop_ev.set()
-    on_progress("crawl_stopping_other", "Arrêt du crawler restant…")
+    stop_other = _reached_url_limit(first_entries, max_urls)
+    if stop_other:
+        on_progress(f"crawl_{first_label}_done", f"Crawl {first_label} terminé (limite atteinte). Arrêt de l'autre…")
+        stop_ev.set()
+        on_progress("crawl_stopping_other", "Arrêt du crawler restant…")
+    else:
+        on_progress(f"crawl_{first_label}_done", f"Crawl {first_label} terminé. L'autre continue…")
     await asyncio.gather(*pending)
 
     for pending_task in pending:
