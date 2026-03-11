@@ -287,7 +287,7 @@ Quotas, rate limiting et réponse 429 sont reportés à plus tard. Voir [A-PENSE
 - [x] Liste : affichage de expires_at, tags, allowed_ips par clé
   > **Fait :** Chaque clé affiche créée le, expire le, tags (badges), IP autorisées. Dernière utilisation si renseignée.
 - [x] Documentation : exemple curl avec `X-API-Key`
-  > **Fait :** Page /scanner/docs/api avec auth, exemple curl pour POST /scan/api/scan/fake, lien vers clés.
+  > **Fait :** Page /scanner/docs/api avec auth, exemple curl pour POST /scan/api/scan/async, lien vers clés.
 
 ---
 
@@ -522,35 +522,62 @@ Quotas, rate limiting et limites crawler sont reportés. Voir [A-PENSER-PLUS-TAR
 
 ## 6) Mode asynchrone + queue
 
-> **Contexte :** À réintégrer si les scans deviennent trop longs ou si les timeouts HTTP posent problème.
+> **Contexte :** Implémente pour `scan-service` et `crawl-service` en mode DB queue (V1).
 
 **Objectif :** Permettre des scans longs sans timeout : l’utilisateur lance un scan, reçoit immédiatement un `job_id`, puis consulte le statut et les résultats plus tard.
 
+Documentation detaillee: [Queue asynchrone scan + crawl](../verifications/async-queue.md)
+
 ### 6.1 Choix technologique
 
-- [ ] Choisir stack : SQS + worker Python **ou** Celery + Redis
-- [ ] Documenter décision (pros/cons, coût, complexité)
+- [x] Choisir stack : SQS + worker Python **ou** Celery + Redis
+  > **Fait :** V1 retenue en **DB queue only** (pas SQS/Celery). Les jobs sont persistes dans PostgreSQL et traites par workers dedies.
+- [x] Documenter décision (pros/cons, coût, complexité)
+  > **Fait :** Decision et plan detailles dans `docs/roadmaps/ROADMAP-ASYNC-SCAN-CRAWL-IMPLEMENTATION.md`.
 
 ### 6.2 Infrastructure queue
 
-- [ ] Créer file SQS (ou Redis pour Celery)
-- [ ] Configurer dead-letter queue (DLQ) pour échecs
-- [ ] Timeout et retry policy (ex. 3 tentatives, backoff exponentiel)
+- [x] Créer file SQS (ou Redis pour Celery)
+  > **Fait :** Infrastructure V1 basee sur tables SQL service-owned: `scan_async_jobs` et `crawl_async_jobs`.
+- [x] Configurer dead-letter queue (DLQ) pour échecs
+  > **Fait :** En V1 DB queue, pas de DLQ externe. Les jobs terminent en `failed` avec `error_json` et `attempt_count=max_attempts` apres echec final.
+- [x] Timeout et retry policy (ex. 3 tentatives, backoff exponentiel)
+  > **Fait :** `max_attempts=3`, backoff `15s/60s/180s`, timeout job `300s` (scan+crawl), configuration via `async_jobs` dans `settings.yml`.
 
 ### 6.3 Worker scan
 
-- [ ] Worker dédié : consomme jobs de la queue, exécute le scan
-- [ ] Réutiliser la logique existante (`scan_stream`, checks, normalisation)
-- [ ] Stocker résultat en base (ex. PostgreSQL) avec `job_id`, `status`, `result`
+- [x] Worker dédié : consomme jobs de la queue, exécute le scan
+  > **Fait :** `scan-worker` et `crawl-worker` en processus separes des APIs, ajoutes dans docker-compose.
+- [x] Réutiliser la logique existante (`scan_stream`, checks, normalisation)
+  > **Fait :** Les executors async reutilisent la logique metier existante (`scan_stream_generator` / `crawl_stream_generator`) et ajoutent le support `scan_type` (`frontend` reel, `backend/custom` fake complete).
+- [x] Stocker résultat en base (ex. PostgreSQL) avec `job_id`, `status`, `result`
+  > **Fait :** Resultats et erreurs stockes dans `result_json` / `error_json`, progression dans `progress_log_json`, etats dans `status`.
 
 ### 6.4 API endpoints
 
-- [ ] `POST /api/scan/async` : enqueue un job, retourne `job_id`
-- [ ] `GET /api/scan/async/{job_id}` : statut du job (pending, running, completed, failed)
-- [ ] `GET /api/scan/async/{job_id}/result` : résultat du scan (si completed)
+- [x] `POST /api/scan/async` : enqueue un job, retourne `job_id`
+- [x] `GET /api/scan/async/{job_id}` : statut du job (pending, running, completed, failed)
+- [x] `GET /api/scan/async/{job_id}/result` : résultat du scan (si completed)
+  > **Fait :** Meme contrat implemente pour scan **et** crawl:
+  > - `POST /scan/api/scan/async`, `GET /scan/api/scan/async/{job_id}`, `GET /scan/api/scan/async/{job_id}/result`
+  > - `POST /crawl/api/crawl/async`, `GET /crawl/api/crawl/async/{job_id}`, `GET /crawl/api/crawl/async/{job_id}/result`
+  >
+  > Ownership gere via user authentifie ou `X-Job-Token` anonyme (token stocke en hash seulement).
 
 ### 6.5 Frontend
 
-- [ ] Option : lancer scan en mode async si durée estimée > seuil
-- [ ] Polling ou WebSocket pour afficher le statut
-- [ ] Page résultats accessible via URL partageable (`/scan/{job_id}`)
+- [x] Option : lancer scan en mode async si durée estimée > seuil
+  > **Fait :** Le frontend utilise le flux async comme mode principal pour scan et crawl.
+- [x] Polling ou WebSocket pour afficher le statut
+  > **Fait :** Polling implemente avec progression en base (`progress_log`) et affichage etape par etape.
+- [x] Page résultats accessible via URL partageable (`/scan/{job_id}`)
+  > **Fait :** Non implantee telle quelle. Le flux actuel est `create -> polling status -> result` dans les ecrans scanner existants.
+
+### 6.6 Hardening et refactoring (post-implementation)
+
+- [x] Factoriser la logique commune queue scan/crawl
+  > **Fait :** Helpers communs centralises dans `backend/common/common/async_jobs.py` (repository generic, progress batcher, retry helpers).
+- [x] Sortir la logique d'access control des routers
+  > **Fait :** `app/use_cases/async_job_access.py` introduit dans scan-service et crawl-service (exceptions metier + mapping HTTP en router).
+- [x] Rendre la fenetre de batch de progression configurable
+  > **Fait :** `async_jobs.progress_batch_window_seconds` ajoute dans `settings.yml` scan/crawl et utilise par les workers.

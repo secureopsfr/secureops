@@ -222,46 +222,42 @@ Les clés ne sont jamais retournées en clair ; seul le `prefix` est affiché.
 
 ## 5. Endpoints protégés par clé API
 
-### 5.1 Scan factice (test API)
+### 5.1 Scan asynchrone (queue)
 
-Endpoint de test pour valider l'intégration sans lancer un scan réel.
+Endpoint recommandé pour les intégrations API (CI/CD, scripts).
 
 | Méthode | Chemin | Auth |
 |---------|--------|------|
-| POST | `/scan/api/scan/fake` | JWT ou clé API |
+| POST | `/scan/api/scan/async` | Optionnel pour `scan_type=frontend` ; requis sinon |
 
 **Body :**
 ```json
 {
-  "url": "https://example.com"
+  "url": "https://example.com",
+  "scan_type": "backend",
+  "input": {}
 }
 ```
 
-**Réponse :** flux SSE avec score 100, aucun finding. Si `Authorization` est fournie (JWT ou clé API), le résultat peut être sauvegardé dans l'historique.
+**Réponse :** `202` avec `job_id` (et `job_token` pour anonyme). Le client doit ensuite poller :
+- `GET /scan/api/scan/async/{job_id}`
+- `GET /scan/api/scan/async/{job_id}/result`
 
 **Exemple curl :**
 ```bash
-curl -X POST "https://api.secureops.io/scan/api/scan/fake" \
+curl -X POST "https://api.secureops.io/scan/api/scan/async" \
   -H "X-API-Key: sk_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"url":"https://example.com"}'
-```
-
-Ou avec Bearer :
-```bash
-curl -X POST "https://api.secureops.io/scan/api/scan/fake" \
-  -H "Authorization: Bearer sk_YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url":"https://example.com"}'
+  -d '{"url":"https://example.com","scan_type":"backend","input":{}}'
 ```
 
 ### 5.2 Routes publiques (sans auth)
 
-Les routes suivantes sont publiques et n'acceptent pas les clés API pour l'authentification (mais le scan public `/scan/api/scan` ne nécessite aucune auth) :
-- `POST /scan/api/scan` — scan posture sécurité (public, disclaimer côté front)
-- `POST /crawl/api/crawl/stream` — crawler (public dans la config actuelle)
+Les routes asynchrones suivantes sont publiques pour `scan_type=frontend` :
+- `POST /scan/api/scan/async`
+- `POST /crawl/api/crawl/async`
 
-`POST /scan/api/scan/fake` **requiert** une authentification (JWT ou clé API) pour tester l'API publique.
+Les routes de statut/résultat nécessitent ownership (JWT propriétaire ou `X-Job-Token` anonyme).
 
 ---
 
@@ -361,7 +357,7 @@ Le frontend mappe ces situations aux clés i18n via `ApiKeyError` et ses codes.
 | Auth gateway | `backend/gateway/app/utils/api_key_auth.py` |
 | Middleware gateway | `backend/gateway/app/middleware.py` |
 | Proxy (forward clé) | `backend/gateway/app/services/proxy/proxy.py` |
-| Scan fake | `backend/scan-service/app/services/scan_stream_fake.py` |
+| Scan async | `backend/scan-service/app/routers/scan.py` |
 | Migration | `backend/user-service/alembic/versions/0011_add_api_keys_table.py` |
 | Config | `backend/user-service/config/settings.yml` |
 | Service frontend | `frontend/src/services/apiKeysService.ts` |
