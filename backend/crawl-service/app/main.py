@@ -9,21 +9,18 @@ from common.version import get_app_version
 from fastapi import FastAPI
 
 from app.load_env import ensure_env_loaded
-from app.config_loader import settings
-from app.db import init_db
-from app.routers.crawl import router as crawl_router
-from app.routers.health import router as health_router
 
 ensure_env_loaded()
-setup_logging(service_name="crawl-service")
 
-config = settings()
+setup_logging(service_name="crawl-service")
 logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Gère le cycle de vie de l'application (startup/shutdown)."""
+    from app.db import init_db
+
     logger.info("Démarrage du Crawl Service")
     try:
         initialized = await init_db()
@@ -43,6 +40,11 @@ def create_app() -> FastAPI:
     Returns:
         FastAPI: application configurée.
     """
+    from app.config_loader import settings
+    from app.routers.crawl import router as crawl_router
+    from app.routers.health import router as health_router
+
+    config = settings()
     app = FastAPI(title=config.general.service_name, version=get_app_version(), lifespan=lifespan)
 
     app.add_middleware(CorrelationIdMiddleware)
