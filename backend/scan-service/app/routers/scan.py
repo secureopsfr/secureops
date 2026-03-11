@@ -14,7 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.config_loader import get_async_jobs_settings, get_external_services_settings
 from app.db import get_async_session
-from app.schemas.async_job import ScanAsyncCreateRequest, ScanAsyncCreateResponse, ScanAsyncStatusResponse
+from app.schemas.async_job import ScanAsyncCreateRequest, ScanAsyncCreateResponse, ScanAsyncMultiCreateRequest, ScanAsyncStatusResponse
 from app.schemas.scan import ScanForPdfSchema
 from app.services.async_job_repository import create_job, get_job_by_id
 from app.services.scan_runner import ScanRunError, run_scan_to_result
@@ -203,6 +203,45 @@ async def create_scan_async_job(
     )
 
 
+@router.post("/scan/multi-async", response_model=ScanAsyncCreateResponse, status_code=202)
+async def create_multi_scan_async_job(
+    body: ScanAsyncMultiCreateRequest,
+    authenticated_user_id: str | None = _X_AUTHENTICATED_USER_ID,
+) -> ScanAsyncCreateResponse:
+    """Crée un job de scan multi-URL (même domaine) et retourne immédiatement un job_id.
+
+    Nécessite une authentification. Les URLs doivent appartenir au même domaine.
+    Le résultat (résultat_mode: "multi") est récupérable via GET /scan/async/{job_id}/result.
+    """
+    if not authenticated_user_id:
+        raise HTTPException(status_code=401, detail="Authentification requise pour le scan multi-URL")
+
+    try:
+        async with get_async_session() as session:
+            job = await create_job(
+                session,
+                url=body.urls[0],
+                scan_type=body.scan_type,
+                input_json={"urls": body.urls, **body.input},
+                user_id=authenticated_user_id,
+                job_token_hash=None,
+                max_attempts=ASYNC_MAX_ATTEMPTS,
+                result_mode="multi",
+            )
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="Base de données indisponible")
+    except SQLAlchemyError as exc:
+        logger.exception("Erreur création job async multi-scan: %s", exc)
+        raise HTTPException(status_code=500, detail="Impossible de créer le job")
+
+    return ScanAsyncCreateResponse(
+        job_id=str(job.id),
+        status="pending",
+        scan_type=body.scan_type,
+        job_token=None,
+    )
+
+
 @router.get("/scan/async/{job_id}", response_model=ScanAsyncStatusResponse)
 async def get_scan_async_job_status(
     job_id: str,
@@ -227,6 +266,7 @@ async def get_scan_async_job_status(
                 job_id=str(job.id),
                 scan_type=job.scan_type,  # type: ignore[arg-type]
                 status=job.status,  # type: ignore[arg-type]
+                result_mode=getattr(job, "result_mode", "single") or "single",
                 attempt_count=int(job.attempt_count or 0),
                 created_at=job.created_at,
                 started_at=job.started_at,

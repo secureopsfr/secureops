@@ -24,7 +24,13 @@ from app.errors.fetch_errors import (
 )
 from app.services._scan_core import SCAN_STEPS, ScanContext, build_result_payload
 from app.services.scan_history_save import save_scan_to_history
-from app.utils.http_fetch import get_with_client_or_error, scan_client
+from app.utils.http_fetch import (
+    get_scan_http_request_count,
+    get_scan_http_requests_by_category,
+    get_with_client_or_error,
+    http_request_category,
+    scan_client,
+)
 from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
 from app.utils.url_helpers import get_scan_base_url
@@ -197,51 +203,61 @@ async def _run_checks_with_client(
 ) -> AsyncGenerator[str, None]:
     """Exécute les étapes de vérification avec le client partagé."""
     https_url = get_scan_base_url(normalized_url)
-    fetch_result = await get_with_client_or_error(client, https_url, follow_redirects=True)
+    try:
+        with http_request_category("initial_fetch"):
+            fetch_result = await get_with_client_or_error(client, https_url, follow_redirects=True)
 
-    # Détection précoce : site inaccessible, timeout ou erreur TLS → événement error
-    if not fetch_result.success:
-        duration = time.monotonic() - start_time
-        _log_scan_complete(duration, 0, f"error_{fetch_result.status_code}")
-        yield sse_message("error", build_sse_error_payload(fetch_result))
-        return
-
-    yield sse_message("step", {"step": "fetch_https_done", "message": "Page HTTPS récupérée."})
-
-    https_response = fetch_result.response
-    ctx = ScanContext(
-        normalized_url=normalized_url,
-        https_url=https_url,
-        client=client,
-        https_response=https_response,
-    )
-
-    for step_name, msg_check, msg_done, step_fn in _SCAN_SSE_STEPS:
-        chunks, result = await _emit_step_and_run(step_name, msg_check, msg_done, step_fn, ctx)
-        ctx.results[step_name] = result
-        for c in chunks:
-            yield c
-        if over_global():
+        # Détection précoce : site inaccessible, timeout ou erreur TLS → événement error
+        if not fetch_result.success:
             duration = time.monotonic() - start_time
-            _log_scan_complete(duration, 0, "error_408")
-            yield _timeout_error_message()
+            _log_scan_complete(duration, 0, f"error_{fetch_result.status_code}")
+            yield sse_message("error", build_sse_error_payload(fetch_result))
             return
 
-    payload = build_result_payload(normalized_url, ctx.results, start_time)
-    nb_findings = len(payload["findings"])
-    duration = payload["duration"]
-    _log_scan_complete(duration, nb_findings, "success")
-    yield sse_message("result", payload)
+        yield sse_message("step", {"step": "fetch_https_done", "message": "Page HTTPS récupérée."})
 
-    # Sauvegarde dans l'historique si utilisateur connecté (roadmap 0.2.0 §2)
-    if authorization:
-        try:
-            scan_id = await save_scan_to_history(payload, authorization)
-            if scan_id:
-                yield sse_message("save_done", {"scan_id": scan_id})
-        except Exception as e:
-            logger.warning("Sauvegarde historique échouée: %s", e)
-            yield sse_message("save_failed", {"message": str(e)})
+        https_response = fetch_result.response
+        ctx = ScanContext(
+            normalized_url=normalized_url,
+            https_url=https_url,
+            client=client,
+            https_response=https_response,
+        )
+
+        for step_name, msg_check, msg_done, step_fn in _SCAN_SSE_STEPS:
+            with http_request_category(step_name):
+                chunks, result = await _emit_step_and_run(step_name, msg_check, msg_done, step_fn, ctx)
+            ctx.results[step_name] = result
+            for c in chunks:
+                yield c
+            if over_global():
+                duration = time.monotonic() - start_time
+                _log_scan_complete(duration, 0, "error_408")
+                yield _timeout_error_message()
+                return
+
+        payload = build_result_payload(normalized_url, ctx.results, start_time)
+        nb_findings = len(payload["findings"])
+        duration = payload["duration"]
+        _log_scan_complete(duration, nb_findings, "success")
+        yield sse_message("result", payload)
+
+        # Sauvegarde dans l'historique si utilisateur connecté (roadmap 0.2.0 §2)
+        if authorization:
+            try:
+                scan_id = await save_scan_to_history(payload, authorization)
+                if scan_id:
+                    yield sse_message("save_done", {"scan_id": scan_id})
+            except Exception as e:
+                logger.warning("Sauvegarde historique échouée: %s", e)
+                yield sse_message("save_failed", {"message": str(e)})
+    finally:
+        logger.info(
+            "scan-stream: http_requests_count=%s http_requests_by_category=%s url=%s",
+            get_scan_http_request_count(client),
+            get_scan_http_requests_by_category(client),
+            https_url,
+        )
 
 
 async def _run_pipeline_steps(url: str, authorization: str | None = None) -> AsyncGenerator[str, None]:

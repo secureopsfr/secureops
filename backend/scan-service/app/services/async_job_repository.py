@@ -28,9 +28,10 @@ async def create_job(
     user_id: str | None,
     job_token_hash: str | None,
     max_attempts: int = 3,
+    result_mode: str = "single",
 ) -> ScanAsyncJob:
     """Create and persist a new asynchronous scan job."""
-    return await create_async_job(
+    job: ScanAsyncJob = await create_async_job(
         session,
         model=ScanAsyncJob,
         url=url,
@@ -40,6 +41,10 @@ async def create_job(
         job_token_hash=job_token_hash,
         max_attempts=max_attempts,
     )
+    if result_mode != "single":
+        job.result_mode = result_mode
+        await session.commit()
+    return job
 
 
 async def get_job_by_id(session: AsyncSession, job_id: uuid.UUID) -> ScanAsyncJob | None:

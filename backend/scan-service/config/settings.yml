@@ -368,6 +368,12 @@ cors_cross_origin:
   max_sub_resources: 50   # Limite pour détection mixed content (réutilise même logique que cache)
   subresource_timeout: 3.0
 
+# Scan multi-URL : paramètres de performance et limites.
+multi_scan:
+  max_urls: 200              # Nombre maximum d'URLs par scan multi (valide pour tous les plans)
+  concurrent_pages: 5        # Pages analysées en parallèle (semaphore)
+  page_timeout: 15.0         # Timeout GET par page en secondes
+
 # Timeouts scan (roadmap §2.3) : connexion, lecture, durée max du scan.
 timeouts:
   connection: 3    # secondes pour établir la connexion

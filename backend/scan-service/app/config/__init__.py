@@ -11,6 +11,7 @@ from app.config.cors_cross_origin import CorsCrossOriginSettings, get_cors_cross
 from app.config.external_services import ExternalServicesSettings, get_external_services_settings
 from app.config.information_disclosure import InformationDisclosureSettings, get_information_disclosure_max_body, get_information_disclosure_settings
 from app.config.integrity import IntegritySettings, get_integrity_settings
+from app.config.multi_scan import MultiScanSettings, get_multi_scan_settings
 from app.config.path_checks import (
     DirectoryListingConfig,
     ExposedFileConfig,
@@ -36,6 +37,7 @@ from app.config.url_validation import UrlValidationSettings, get_url_validation_
 __all__ = [
     "CacheSettings",
     "AsyncJobsSettings",
+    "MultiScanSettings",
     "CorsCrossOriginSettings",
     "CookiesSettings",
     "DirectoryListingConfig",
@@ -51,6 +53,7 @@ __all__ = [
     "UrlValidationSettings",
     "get_cache_settings",
     "get_async_jobs_settings",
+    "get_multi_scan_settings",
     "get_cors_cross_origin_settings",
     "get_directory_listing_max_body",
     "get_directory_listing_partial_extensions",

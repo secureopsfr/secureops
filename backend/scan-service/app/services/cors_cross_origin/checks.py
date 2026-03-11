@@ -235,6 +235,75 @@ async def _check_mixed_content(
             )
 
 
+async def run_cors_domain_checks(
+    base_url: str,
+    client: httpx.AsyncClient,
+) -> CorsCrossOriginCheckResult:
+    """Vérifications CORS au niveau du domaine (chemins sensibles configurés).
+
+    Exécutée une seule fois en mode multi-URL. Sonde tous les chemins sensibles
+    (ex. /api/, /admin/, /auth/) indépendamment de la page scannée.
+
+    Args:
+        base_url: URL HTTPS de base du domaine (ex. https://example.com/).
+        client: Client HTTPX partagé.
+
+    Returns:
+        CorsCrossOriginCheckResult: Findings issus des chemins sensibles uniquement.
+    """
+    findings: list[str] = []
+    settings = get_cors_cross_origin_settings()
+    base_for_paths = base_url.rstrip("/")
+
+    for path in settings.sensitive_paths:
+        if not path.strip():
+            continue
+        derived = build_url_with_path(base_for_paths, path)
+        await _check_cors_for_url(client, derived, is_sensitive=True, settings=settings, findings=findings)
+
+    return CorsCrossOriginCheckResult(findings=tuple(findings), fetch_ok=True)
+
+
+async def run_cors_page_checks(
+    response: httpx.Response | None,
+    page_url: str,
+    client: httpx.AsyncClient,
+    domain_result: CorsCrossOriginCheckResult | None = None,
+) -> CorsCrossOriginCheckResult:
+    """Vérifications CORS spécifiques à une page (utilisé en mode multi-URL).
+
+    Vérifie uniquement la page fournie (GET+OPTIONS avec Origin, CORP, mixed content).
+    Les findings du domaine (chemins sensibles) sont injectés depuis domain_result.
+
+    Args:
+        response: Réponse HTTP de la page à analyser.
+        page_url: URL de la page.
+        client: Client HTTPX partagé.
+        domain_result: Résultat des checks domaine à fusionner (optionnel).
+
+    Returns:
+        CorsCrossOriginCheckResult: Findings page + domaine fusionnés.
+    """
+    findings: list[str] = list(domain_result.findings if domain_result else [])
+    settings = get_cors_cross_origin_settings()
+
+    if response is None:
+        findings.append("CORS et cross-origin inaccessibles : réponse HTTPS indisponible.")
+        return CorsCrossOriginCheckResult(findings=tuple(findings), fetch_ok=False)
+
+    is_sensitive = _is_sensitive_url(page_url, settings.sensitive_paths)
+    await _check_cors_for_url(client, page_url, is_sensitive=is_sensitive, settings=settings, findings=findings)
+
+    if not is_sensitive:
+        corp = get_header_insensitive(response, "Cross-Origin-Resource-Policy")
+        if not corp:
+            findings.append("Cross-Origin-Resource-Policy manquant sur la page principale.")
+
+    await _check_mixed_content(response, page_url, settings.max_sub_resources, findings)
+
+    return CorsCrossOriginCheckResult(findings=tuple(findings), fetch_ok=True)
+
+
 async def run_cors_cross_origin_checks(
     response: httpx.Response | None,
     https_url: str,
