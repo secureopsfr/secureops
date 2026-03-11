@@ -54,7 +54,6 @@ export default function CrawlersContent() {
   const [crawlMode, setCrawlMode] = useState<"html" | "playwright" | "both">(
     "html",
   );
-  const [crawlMaxUrls, setCrawlMaxUrls] = useState(50);
   const [crawlMaxUrlsInput, setCrawlMaxUrlsInput] = useState("50");
   const [crawledUrls, setCrawledUrls] = useState<CrawlUrlEntry[]>([]);
   const [crawlTimeoutReached, setCrawlTimeoutReached] = useState(false);
@@ -170,7 +169,6 @@ export default function CrawlersContent() {
       const effectiveMaxUrls = Number.isNaN(parsedMaxUrls)
         ? 5
         : Math.min(200, Math.max(5, parsedMaxUrls));
-      setCrawlMaxUrls(effectiveMaxUrls);
       setCrawlMaxUrlsInput(String(effectiveMaxUrls));
       const urlToCrawl = normalizeScanUrl(trimmed);
       setError(null);
@@ -443,14 +441,12 @@ export default function CrawlersContent() {
                       if (next.trim() === "") return;
                       const v = parseInt(next, 10);
                       if (Number.isNaN(v)) return;
-                      setCrawlMaxUrls(Math.min(200, Math.max(5, v)));
                     }}
                     onBlur={() => {
                       const v = parseInt(crawlMaxUrlsInput, 10);
                       const normalized = Number.isNaN(v)
                         ? 5
                         : Math.min(200, Math.max(5, v));
-                      setCrawlMaxUrls(normalized);
                       setCrawlMaxUrlsInput(String(normalized));
                     }}
                     className="auth-input w-24"
