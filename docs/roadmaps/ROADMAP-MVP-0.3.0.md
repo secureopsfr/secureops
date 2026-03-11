@@ -2,7 +2,7 @@
 
 ## Sommaire
 
-**Ordre recommandé pour la lecture et l’implémentation :** 0 (refactoring) → 1 (API) → 2 (tests) → 3 (GitHub Action) → 4–5 (placeholders) → 7 (crawler) → 8 (UX) → 6 (async, si besoin).
+**Ordre recommandé pour la lecture et l’implémentation :** 0 (refactoring) → 1 (API) → 2 (tests) → 3 (GitHub Action) → 5 (reporté) → 7 (crawler) → 8 (UX) → 6 (async).
 
 - [0) Refactoring de la base de code](#0-refactoring-de-la-base-de-code)
   - [0.1 Backend — Refactoring par dossier](#01-backend--refactoring-par-dossier)
@@ -22,7 +22,6 @@
   - [3.1 Action GitHub](#31-action-github)
   - [3.2 Comportement](#32-comportement)
   - [3.3 Documentation](#33-documentation)
-- [4) Mode scan — synchrone uniquement (placeholder)](#4-mode-scan--synchrone-uniquement-placeholder)
 - [5) Limites (reporté)](#5-limites-reporté)
 - [7) Crawler HTTP — agent indépendant](#7-crawler-http--agent-indépendant)
   - [7.1 Noyau du crawler](#71-noyau-du-crawler)
@@ -349,15 +348,6 @@ Objectif : proposer aux utilisateurs une **GitHub Action** officielle pour inté
 
 - [ ] Rédiger un README avec un exemple d’utilisation dans un workflow GitHub Actions.
 - [ ] (Optionnel) Fournir un badge « Scan SecureOps » pour le README des projets utilisateurs.
-
----
-
-## 4) Mode scan — synchrone uniquement (placeholder)
-
-> **Note :** Ce n’est pas définitif ; cette section sert de **placeholder** pour formaliser le choix actuel et les évolutions possibles.
-
-- [ ] Documenter explicitement que le scan reste **synchrone** en v0.3.0 (mode async reporté à la [section 6](#6-mode-asynchrone--queue)).
-- [ ] Préciser dans la doc / release notes les limites (timeout, durée max) et le fait qu’un mode asynchrone pourra être envisagé en cas de scans longs.
 
 ---
 

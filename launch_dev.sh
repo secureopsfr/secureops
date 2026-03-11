@@ -149,6 +149,9 @@ export DATABASE_URL="${DATABASE_URL:-postgresql://${POSTGRES_USER}:${POSTGRES_PA
 export ADMIN_DATABASE_URL="${ADMIN_DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5433/${POSTGRES_DB}}"
 export ADMIN_METRICS_API_KEY="${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}"
 export ASYNC_JOB_TOKEN_SECRET="${ASYNC_JOB_TOKEN_SECRET:-dev-async-job-secret}"
+# Auth gateway doit rester active pour propager X-Authenticated-User-Id
+# (sinon scan_type backend/custom est refusé en 401 côté scan-service).
+export DISABLE_AUTH_MIDDLEWARE=false
 # Variables d'environnement frontend
 export IS_BETA_TEST="${IS_BETA_TEST:-true}"
 export IS_PROD="${IS_PROD:-false}"

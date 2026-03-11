@@ -74,6 +74,7 @@ export type ScanEventHandler =
   | { type: "save_done"; data: { scan_id: string } };
 
 type AsyncJobStatus = "pending" | "running" | "completed" | "failed";
+export type AsyncScanType = "frontend" | "backend" | "custom";
 
 interface AsyncScanCreateResponse {
   job_id: string;
@@ -110,7 +111,29 @@ export async function runScan(
   onEvent: (ev: ScanEventHandler) => void,
   getToken?: () => Promise<string | null>,
 ): Promise<void> {
-  const logPrefix = "[scan-polling]";
+  return runAsyncScan(
+    url,
+    onEvent,
+    {
+      scanType: "frontend",
+      input: {},
+      logPrefix: "[scan-polling]",
+    },
+    getToken,
+  );
+}
+
+export async function runAsyncScan(
+  url: string,
+  onEvent: (ev: ScanEventHandler) => void,
+  options: {
+    scanType: AsyncScanType;
+    input?: Record<string, unknown>;
+    logPrefix?: string;
+  },
+  getToken?: () => Promise<string | null>,
+): Promise<void> {
+  const logPrefix = options.logPrefix ?? "[scan-polling]";
   const baseUrl = getApiBaseUrl();
   const endpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan/async`;
 
@@ -129,7 +152,11 @@ export async function runScan(
     createResponse = await fetch(endpoint, {
       method: "POST",
       headers,
-      body: JSON.stringify({ url, scan_type: "frontend", input: {} }),
+      body: JSON.stringify({
+        url,
+        scan_type: options.scanType,
+        input: options.input ?? {},
+      }),
     });
   } catch (err) {
     onEvent({
