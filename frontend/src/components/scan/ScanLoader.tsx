@@ -69,11 +69,11 @@ const COL_CENTER_X: [number, number, number] = [
   COL_WIDTH * 2 + COL_GAP * 2 + COL_WIDTH / 2,
 ];
 const ROW_CONTENT = 56;
-const ROW_GAP = 12;
+const ROW_GAP = 22;
 /** Espace vertical supplémentaire après la séparation et avant la fusion. */
 const SPLIT_MERGE_PADDING = 20;
 const ROW_STRIDE = ROW_CONTENT + ROW_GAP;
-const CIRCLE_SIZE = 24;
+const CIRCLE_SIZE = 28;
 const CIRCLE_RADIUS = CIRCLE_SIZE / 2;
 
 /** Y du centre du cercle pour la ligne i. */
@@ -517,7 +517,7 @@ function AnimatedConnectorPath({
         d={d}
         fill="none"
         stroke={strokeColor}
-        strokeWidth="2"
+        strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeDasharray="9999"
@@ -532,7 +532,7 @@ function AnimatedConnectorPath({
       d={d}
       fill="none"
       stroke={strokeColor}
-      strokeWidth="2"
+      strokeWidth="3"
       strokeLinecap="round"
       strokeLinejoin="round"
       className="scan-animate-path"
@@ -707,17 +707,17 @@ function StepCircle({
     >
       {done ? (
         <span
-          className={`flex h-6 w-6 items-center justify-center rounded-full ${circleClass}`}
+          className={`flex h-7 w-7 items-center justify-center rounded-full ${circleClass}`}
         >
           {muted ? (
             <Minus
-              className="h-3 w-3 text-[rgba(255,255,255,0.35)]"
+              className="h-3.5 w-3.5 text-[rgba(255,255,255,0.35)]"
               strokeWidth={2.5}
             />
           ) : anomalous ? (
-            <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.5} />
+            <AlertTriangle className="h-4 w-4" strokeWidth={2.5} />
           ) : (
-            <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+            <Check className="h-4 w-4" strokeWidth={2.5} />
           )}
         </span>
       ) : (
