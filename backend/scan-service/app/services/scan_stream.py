@@ -25,10 +25,9 @@ from app.errors.fetch_errors import (
 from app.services._scan_core import SCAN_STEPS, ScanContext, build_result_payload
 from app.services.scan_history_save import save_scan_to_history
 from app.utils.http_fetch import (
-    get_scan_http_request_count,
-    get_scan_http_requests_by_category,
     get_with_client_or_error,
     http_request_category,
+    log_http_metrics,
     scan_client,
 )
 from app.utils.sse import sse_message
@@ -252,12 +251,7 @@ async def _run_checks_with_client(
                 logger.warning("Sauvegarde historique échouée: %s", e)
                 yield sse_message("save_failed", {"message": str(e)})
     finally:
-        logger.info(
-            "scan-stream: http_requests_count=%s http_requests_by_category=%s url=%s",
-            get_scan_http_request_count(client),
-            get_scan_http_requests_by_category(client),
-            https_url,
-        )
+        log_http_metrics(client, "scan-stream", url=https_url)
 
 
 async def _run_pipeline_steps(url: str, authorization: str | None = None) -> AsyncGenerator[str, None]:

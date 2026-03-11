@@ -8,10 +8,9 @@ from app.config_loader import get_scan_timeouts, get_ssrf_settings
 from app.errors.fetch_errors import build_sse_error_payload
 from app.services._scan_core import SCAN_STEPS, ScanContext, build_result_payload
 from app.utils.http_fetch import (
-    get_scan_http_request_count,
-    get_scan_http_requests_by_category,
     get_with_client_or_error,
     http_request_category,
+    log_http_metrics,
     scan_client,
 )
 from app.utils.ssrf import check_ssrf
@@ -98,11 +97,6 @@ async def run_scan_to_result(url: str) -> dict:
                         result = await result
                 ctx.results[step_name] = result
         finally:
-            logger.info(
-                "scan-runner: http_requests_count=%s http_requests_by_category=%s url=%s",
-                get_scan_http_request_count(client),
-                get_scan_http_requests_by_category(client),
-                https_url,
-            )
+            log_http_metrics(client, "scan-runner", url=https_url)
 
     return build_result_payload(normalized_url, ctx.results, start)

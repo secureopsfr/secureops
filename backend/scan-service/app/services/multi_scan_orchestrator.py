@@ -21,29 +21,20 @@ from typing import Any
 
 import httpx
 
-from app.catalogue.category_summaries import build_category_summaries
 from app.config_loader import get_multi_scan_settings, get_ssrf_settings
 from app.models.multi_scan import MultiScanResult, PageScanResult
-from app.services.cache import checks as cache_checks
-from app.services.cookies import check_cookies_from_response
-from app.services.cors_cross_origin.checks import run_cors_domain_checks, run_cors_page_checks
+from app.services._page_checks_runner import run_page_checks
+from app.services._scan_core import FindingsBundle, build_findings_bundle
+from app.services.cors_cross_origin.checks import run_cors_domain_checks
 from app.services.directory_listing import run_directory_listing_checks
 from app.services.exposed_files import run_exposed_files_checks
-from app.services.information_disclosure import check_information_disclosure_from_response
-from app.services.integrity import check_integrity_from_response
-from app.services.normalization import normalize_results
 from app.services.robots_txt import run_robots_txt_checks
-from app.services.scoring import compute_score
-from app.services.security_headers import check_security_headers_from_response
 from app.services.sitemap import run_sitemap_checks
-from app.services.tech_fingerprinting import check_tech_fingerprinting_from_response
 from app.services.tls import run_tls_checks
-from app.services.tls.posture import compute_tls_posture
 from app.utils.http_fetch import (
-    get_scan_http_request_count,
-    get_scan_http_requests_by_category,
     get_with_client_or_error,
     http_request_category,
+    log_http_metrics,
     scan_client,
 )
 from app.utils.ssrf import check_ssrf
@@ -113,13 +104,7 @@ async def run_multi_scan(
             raw_results = await asyncio.gather(*page_tasks)
             page_results = list(raw_results)
         finally:
-            logger.info(
-                "multi-scan: http_requests_count=%s http_requests_by_category=%s base_url=%s urls=%s",
-                get_scan_http_request_count(client),
-                get_scan_http_requests_by_category(client),
-                base_url,
-                len(urls),
-            )
+            log_http_metrics(client, "multi-scan", base_url=base_url, urls=len(urls))
 
     # ── Phase 3 : merge & score global ───────────────────────────────────────
     duration = time.monotonic() - start
@@ -323,48 +308,33 @@ async def _run_page(
             await on_progress("page_scan_error", f"Page inaccessible : {url}")
         return _build_error_page_result(url, str(exc), domain_results)
 
-    page_results: dict[str, Any] = {}
     tls_result = domain_results.get("tls")
     is_https = getattr(tls_result, "https_enabled", True)
 
-    # Checks page (tous passifs sauf cache qui fait des HEAD/GET sur assets).
-    page_results["headers"] = check_security_headers_from_response(response)
-    page_results["cookies"] = check_cookies_from_response(response, is_https=is_https)
-    page_results["tech_fingerprinting"] = check_tech_fingerprinting_from_response(response)
-    page_results["information_disclosure"] = check_information_disclosure_from_response(response)
-    page_results["integrity"] = check_integrity_from_response(response, url)
-    with http_request_category("cache"):
-        page_results["cache"] = await cache_checks.check_cache_from_response(response, url, client, assets_cache=assets_cache)
-    with http_request_category("cors_cross_origin"):
-        page_results["cors_cross_origin"] = await run_cors_page_checks(
-            response,
-            url,
-            client,
-            domain_result=domain_results.get("cors_domain"),
-        )
+    page_check_results = await run_page_checks(
+        response,
+        url,
+        client,
+        assets_cache=assets_cache,
+        is_https=is_https,
+        domain_cors_result=domain_results.get("cors_domain"),
+    )
 
     # Résultats finaux = domaine + page (sans cors_domain déjà fusionné dans cors_cross_origin).
     merged: dict[str, Any] = {k: v for k, v in domain_results.items() if k != "cors_domain"}
-    merged.update(page_results)
+    merged.update(page_check_results)
 
-    findings = normalize_results(merged)
-    findings_tuple = tuple(findings)
-    score = compute_score(findings_tuple)
-
-    tls_posture = compute_tls_posture(tls_result) if tls_result else None
-    tls_version = getattr(tls_result, "tls_version", None)
-    category_summaries = build_category_summaries(findings_tuple, tls_posture=tls_posture, tls_version=tls_version)
-    total_tests_count = sum(s.get("checks_count", 0) for s in category_summaries)
+    bundle: FindingsBundle = build_findings_bundle(merged)
 
     if on_progress:
         await on_progress("page_scan_done", f"Page analysée : {url}")
 
     return PageScanResult(
         url=url,
-        score=score,
-        findings=[f.to_dict() for f in findings_tuple],
-        category_summaries=category_summaries,
-        total_tests_count=total_tests_count,
+        score=bundle.score,
+        findings=[f.to_dict() for f in bundle.findings],
+        category_summaries=bundle.category_summaries,
+        total_tests_count=bundle.total_tests_count,
     )
 
 
@@ -379,20 +349,12 @@ def _build_error_page_result(
     s'appliquent à toutes les pages du domaine même si cette page est down.
     """
     domain_only: dict[str, Any] = {k: v for k, v in domain_results.items() if k != "cors_domain"}
-    findings = normalize_results(domain_only)
-    findings_tuple = tuple(findings)
-    score = compute_score(findings_tuple)
-
-    tls_result = domain_results.get("tls")
-    tls_posture = compute_tls_posture(tls_result) if tls_result else None
-    tls_version = getattr(tls_result, "tls_version", None)
-    category_summaries = build_category_summaries(findings_tuple, tls_posture=tls_posture, tls_version=tls_version)
-
+    bundle: FindingsBundle = build_findings_bundle(domain_only)
     return PageScanResult(
         url=url,
-        score=score,
-        findings=[f.to_dict() for f in findings_tuple],
-        category_summaries=category_summaries,
+        score=bundle.score,
+        findings=[f.to_dict() for f in bundle.findings],
+        category_summaries=bundle.category_summaries,
         error=error_message,
     )
 

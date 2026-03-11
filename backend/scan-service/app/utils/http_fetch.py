@@ -60,6 +60,31 @@ def get_scan_http_requests_by_category(client: httpx.AsyncClient) -> dict[str, i
     return dict(_SCAN_HTTP_REQUESTS_BY_CATEGORY.get(client, {}))
 
 
+def log_http_metrics(
+    client: httpx.AsyncClient,
+    prefix: str,
+    **context: object,
+) -> None:
+    """Log le nombre et la répartition des requêtes HTTP du client de scan.
+
+    Source unique pour le format du log HTTP de fin de scan (scan-stream,
+    scan-runner, multi-scan). Tout changement de format se fait ici.
+
+    Args:
+        client: Client httpx dont les métriques sont lues.
+        prefix: Préfixe du message (ex. "scan-stream", "scan-runner", "multi-scan").
+        **context: Clés/valeurs contextuelles ajoutées au message (ex. url=...).
+    """
+    context_str = " ".join(f"{k}={v}" for k, v in context.items())
+    logger.info(
+        "%s: http_requests_count=%s http_requests_by_category=%s%s",
+        prefix,
+        get_scan_http_request_count(client),
+        get_scan_http_requests_by_category(client),
+        f" {context_str}" if context_str else "",
+    )
+
+
 @contextmanager
 def http_request_category(category: str) -> Iterator[None]:
     """Tague les requêtes HTTP du contexte courant avec une catégorie donnée."""
