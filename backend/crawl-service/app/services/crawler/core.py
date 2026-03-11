@@ -57,6 +57,16 @@ class CrawlContext:
     settings: "CrawlerSettings"
 
 
+@dataclass
+class PreparedCrawlInputs:
+    """Données préparées une seule fois avant exécution d'un ou plusieurs crawlers."""
+
+    context: CrawlContext
+    disallow_paths: list[str]
+    allow_paths: list[str]
+    sitemap_page_urls: list[str]
+
+
 def _rewrite_url_to_base_host(url: str, base_origin: str) -> str:
     """Réécrit l'URL pour utiliser le même host que l'URL de départ (www ou apex)."""
     parsed = urlparse(url)
@@ -616,23 +626,50 @@ async def run_crawl(
     Raises:
         URLValidationError: Si l'URL est invalide.
     """
-    ctx = await prepare_crawl_context(start_url, max_urls, on_progress)
-    progress = on_progress or noop_progress
+    prepared = await prepare_crawl_inputs(start_url, max_urls=max_urls, on_progress=on_progress)
+    return await run_crawl_from_prepared(prepared, on_progress=on_progress, stop_event=stop_event)
 
+
+async def prepare_crawl_inputs(
+    start_url: str,
+    *,
+    max_urls: int | None = None,
+    on_progress: Callable[[str, str], None] | None = None,
+) -> PreparedCrawlInputs:
+    """Prépare le contexte, robots.txt et sitemap pour un ou plusieurs crawlers."""
+    progress = on_progress or noop_progress
+    ctx = await prepare_crawl_context(start_url, max_urls, on_progress)
     async with scan_client() as client:
         disallow_paths, allow_paths, sitemap_page_urls = await fetch_robots_and_sitemap(
             ctx.base_origin, ctx.base_host, ctx.settings, progress, client, ctx.start_time, ctx.crawl_timeout
         )
+    return PreparedCrawlInputs(
+        context=ctx,
+        disallow_paths=disallow_paths,
+        allow_paths=allow_paths,
+        sitemap_page_urls=sitemap_page_urls,
+    )
+
+
+async def run_crawl_from_prepared(
+    prepared: PreparedCrawlInputs,
+    *,
+    on_progress: Callable[[str, str], None] | None = None,
+    stop_event: asyncio.Event | None = None,
+) -> tuple[list[CrawlUrlEntry], bool, bool, list[str]]:
+    """Exécute le crawl HTML depuis un contexte déjà préparé."""
+    progress = on_progress or noop_progress
+    ctx = prepared.context
+    async with scan_client() as client:
         headers = {"User-Agent": ctx.settings.user_agent}
         fetch_page_html = _make_fetch_page_html(client, headers)
-
         result_entries, timeout_reached, requests_blocked = await run_bfs(
             ctx.validated,
             ctx.base_origin,
             ctx.base_host,
-            disallow_paths,
-            allow_paths,
-            sitemap_page_urls,
+            prepared.disallow_paths,
+            prepared.allow_paths,
+            prepared.sitemap_page_urls,
             ctx.settings,
             ctx.max_urls_limit,
             ctx.crawl_timeout,
@@ -642,5 +679,4 @@ async def run_crawl(
             extract_links=_extract_links_html,
             stop_event=stop_event,
         )
-
-    return result_entries, timeout_reached, requests_blocked, disallow_paths
+    return result_entries, timeout_reached, requests_blocked, prepared.disallow_paths

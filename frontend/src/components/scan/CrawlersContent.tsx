@@ -54,6 +54,7 @@ export default function CrawlersContent() {
     "html",
   );
   const [crawlMaxUrls, setCrawlMaxUrls] = useState(50);
+  const [crawlMaxUrlsInput, setCrawlMaxUrlsInput] = useState("50");
   const [crawledUrls, setCrawledUrls] = useState<CrawlUrlEntry[]>([]);
   const [crawlTimeoutReached, setCrawlTimeoutReached] = useState(false);
   const [crawlAntiBotSuspected, setCrawlAntiBotSuspected] = useState(false);
@@ -162,6 +163,12 @@ export default function CrawlersContent() {
       e.preventDefault();
       const trimmed = url.trim();
       if (!trimmed) return;
+      const parsedMaxUrls = parseInt(crawlMaxUrlsInput, 10);
+      const effectiveMaxUrls = Number.isNaN(parsedMaxUrls)
+        ? 5
+        : Math.min(200, Math.max(5, parsedMaxUrls));
+      setCrawlMaxUrls(effectiveMaxUrls);
+      setCrawlMaxUrlsInput(String(effectiveMaxUrls));
       const urlToCrawl = normalizeScanUrl(trimmed);
       setError(null);
       setErrorModalOpen(false);
@@ -285,7 +292,7 @@ export default function CrawlersContent() {
             setErrorModalOpen(true);
           }
         },
-        crawlMaxUrls,
+        effectiveMaxUrls,
         crawlMode,
       ).catch((err) => {
         setError({
@@ -296,7 +303,7 @@ export default function CrawlersContent() {
         setErrorModalOpen(true);
       });
     },
-    [url, crawlMaxUrls, crawlMode, t],
+    [url, crawlMaxUrlsInput, crawlMode, t],
   );
 
   const handleLaunchScanFromValidation = useCallback(() => {
@@ -403,12 +410,22 @@ export default function CrawlersContent() {
                 type="number"
                 min={5}
                 max={200}
-                value={crawlMaxUrls}
+                value={crawlMaxUrlsInput}
                 onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  setCrawlMaxUrls(
-                    Number.isNaN(v) ? 50 : Math.min(200, Math.max(5, v)),
-                  );
+                  const next = e.target.value;
+                  setCrawlMaxUrlsInput(next);
+                  if (next.trim() === "") return;
+                  const v = parseInt(next, 10);
+                  if (Number.isNaN(v)) return;
+                  setCrawlMaxUrls(Math.min(200, Math.max(5, v)));
+                }}
+                onBlur={() => {
+                  const v = parseInt(crawlMaxUrlsInput, 10);
+                  const normalized = Number.isNaN(v)
+                    ? 5
+                    : Math.min(200, Math.max(5, v));
+                  setCrawlMaxUrls(normalized);
+                  setCrawlMaxUrlsInput(String(normalized));
                 }}
                 className="auth-input w-24"
                 aria-describedby="crawl-max-urls-desc"
