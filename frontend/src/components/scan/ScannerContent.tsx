@@ -90,7 +90,7 @@ export default function ScannerContent() {
   const [formScanAlertsEnabled, setFormScanAlertsEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
-  const [scanOnlyThisPage, setScanOnlyThisPage] = useState(false);
+  const [scanOnlyThisPage, setScanOnlyThisPage] = useState(true);
   const [crawlMode, setCrawlMode] = useState<"html" | "playwright" | "both">(
     "html",
   );
