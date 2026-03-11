@@ -14,6 +14,7 @@ import Modal from "../ui/Modal";
 import CrawlValidationStep from "./CrawlValidationStep";
 import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
+import MultiScanResults from "./MultiScanResults";
 import ScanResultsGate from "./ScanResultsGate";
 import ScannerHistoryAlertsSection from "./ScannerHistoryAlertsSection";
 import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
@@ -21,7 +22,9 @@ import { RecurrenceScheduleFields } from "../schedule";
 import { Checkbox } from "../inputs";
 import {
   runScan,
+  runMultiScan,
   type ScanResult,
+  type MultiScanResult,
   type ScanError,
   type ScanStepDisplay,
 } from "../../services/scanService";
@@ -80,6 +83,7 @@ export default function ScannerContent() {
   const [state, setState] = useState<ScanState>("idle");
   const [steps, setSteps] = useState<ScanStepDisplay[]>([]);
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [multiResult, setMultiResult] = useState<MultiScanResult | null>(null);
   const [scanId, setScanId] = useState<string | null>(null);
   const [error, setError] = useState<ScanError | null>(null);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
@@ -350,9 +354,76 @@ export default function ScannerContent() {
     [url, scanOnlyThisPage, crawlMaxUrls, crawlMode, runScanOnUrl, t],
   );
 
+  const runMultiScanOnUrls = useCallback(
+    (urlsToScan: string[]) => {
+      setState("loading");
+      setSteps([]);
+      setResult(null);
+      setMultiResult(null);
+      setScanId(null);
+      setError(null);
+      setErrorModalOpen(false);
+
+      const getToken = async () => {
+        try {
+          const session = await fetchAuthSession();
+          return session.tokens?.accessToken?.toString() ?? null;
+        } catch {
+          return null;
+        }
+      };
+
+      runMultiScan(
+        urlsToScan,
+        (ev) => {
+          if (ev.type === "step") {
+            const done = ev.data.step.endsWith("_done");
+            setSteps((prev) => {
+              if (done && prev.length > 0) {
+                const updated = [...prev];
+                updated[updated.length - 1] = {
+                  step: ev.data.step,
+                  message: ev.data.message,
+                  done: true,
+                };
+                return updated;
+              }
+              return [
+                ...prev,
+                { step: ev.data.step, message: ev.data.message, done: false },
+              ];
+            });
+          } else if (ev.type === "result") {
+            setMultiResult(ev.data);
+            setState("success");
+          } else if (ev.type === "error") {
+            setError(ev.data);
+            setState("error");
+            setErrorModalOpen(true);
+          }
+        },
+        getToken,
+      ).catch((err) => {
+        setError({
+          message:
+            err instanceof Error ? err.message : t("scanner.errorGeneric"),
+          status_code: 500,
+        });
+        setState("error");
+        setErrorModalOpen(true);
+      });
+    },
+    [t],
+  );
+
   const handleLaunchScanFromValidation = useCallback(() => {
-    runScanOnUrl(normalizeScanUrl(url.trim()));
-  }, [url, runScanOnUrl]);
+    const urlStrings = crawledUrls.map((u) => u.url).filter(Boolean);
+    if (urlStrings.length > 1) {
+      runMultiScanOnUrls(urlStrings);
+    } else {
+      runScanOnUrl(normalizeScanUrl(url.trim()));
+    }
+  }, [url, crawledUrls, runScanOnUrl, runMultiScanOnUrls]);
 
   const handleBackFromValidation = useCallback(() => {
     setState("idle");
@@ -374,6 +445,7 @@ export default function ScannerContent() {
     setState("idle");
     setSteps([]);
     setResult(null);
+    setMultiResult(null);
     setScanId(null);
     setError(null);
     setCrawledUrls([]);
@@ -689,7 +761,18 @@ export default function ScannerContent() {
             )}
 
           {state === "success" &&
+            multiResult &&
+            isAuthenticated &&
+            !authLoading && (
+              <MultiScanResults
+                result={multiResult}
+                onNewScan={handleNewScan}
+              />
+            )}
+
+          {state === "success" &&
             result &&
+            !multiResult &&
             !authLoading &&
             (isAuthenticated ? (
               <ScanResults
