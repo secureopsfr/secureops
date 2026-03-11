@@ -46,19 +46,21 @@ export default async function ScannerClesApiPage({
         className="min-h-screen py-6 w-full flex justify-center scanner-page"
       >
         <div className="w-full max-w-[1335px] px-8">
-          <div className="text-center max-w-2xl mx-auto mb-8">
+          <div className="page-header text-center mb-6 pt-6">
             <h1 className="page-title mb-2">
               {getTranslation(locale as Locale)("scanner.apiPublique.title")}
             </h1>
-            <p className="text-[var(--color-text-muted)] mb-3">
+            <p className="page-subtitle mt-0 max-w-2xl mx-auto">
               {getTranslation(locale as Locale)("scanner.apiPublique.intro")}
             </p>
             <Link
               href={localePath(locale as Locale, "/scanner/docs/api")}
-              className="inline-flex items-center gap-2 text-sm text-[rgb(var(--primary))] border-b border-transparent hover:border-[rgb(var(--primary))] transition-colors pb-0.5"
+              className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
             >
-              <FileText className="w-4 h-4 shrink-0" />
-              {getTranslation(locale as Locale)("scanner.docsLink")}
+              <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
+                <FileText className="w-4 h-4 shrink-0" />
+                {getTranslation(locale as Locale)("scanner.docsLink")}
+              </span>
             </Link>
           </div>
           <ApiKeysContent />

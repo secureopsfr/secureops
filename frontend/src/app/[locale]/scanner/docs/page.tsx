@@ -37,9 +37,9 @@ export default function ScannerDocsPage() {
       >
         <div className="w-full max-w-[1340px] px-8">
           <div className="scanner-content">
-            <div className="text-center max-w-2xl mx-auto mb-8">
+            <div className="page-header text-center mb-6 pt-6">
               <h1 className="page-title mb-2">{t("scanner.docs.title")}</h1>
-              <p className="text-[var(--color-text-muted)]">
+              <p className="page-subtitle mt-0 max-w-2xl mx-auto">
                 {t("scanner.docs.intro")}
               </p>
             </div>
