@@ -7,6 +7,7 @@ import { fetchAuthSession } from "aws-amplify/auth";
 import { AlertTriangle, Bot, FileText } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
+import AnimateInView from "../AnimateInView";
 import { DropdownSelector, GenericButton } from "../buttons";
 import Card from "../ui/cards/Card";
 import Modal from "../ui/Modal";
@@ -53,7 +54,6 @@ export default function CrawlersContent() {
   const [crawlMode, setCrawlMode] = useState<"html" | "playwright" | "both">(
     "html",
   );
-  const [crawlMaxUrls, setCrawlMaxUrls] = useState(50);
   const [crawlMaxUrlsInput, setCrawlMaxUrlsInput] = useState("50");
   const [crawledUrls, setCrawledUrls] = useState<CrawlUrlEntry[]>([]);
   const [crawlTimeoutReached, setCrawlTimeoutReached] = useState(false);
@@ -109,6 +109,7 @@ export default function CrawlersContent() {
                   step: ev.data.step,
                   message: ev.data.message,
                   done: true,
+                  anomaly_count: ev.data.anomaly_count,
                 };
                 return updated;
               }
@@ -118,6 +119,7 @@ export default function CrawlersContent() {
                   step: ev.data.step,
                   message: ev.data.message,
                   done: false,
+                  anomaly_count: ev.data.anomaly_count,
                 },
               ];
             });
@@ -167,7 +169,6 @@ export default function CrawlersContent() {
       const effectiveMaxUrls = Number.isNaN(parsedMaxUrls)
         ? 5
         : Math.min(200, Math.max(5, parsedMaxUrls));
-      setCrawlMaxUrls(effectiveMaxUrls);
       setCrawlMaxUrlsInput(String(effectiveMaxUrls));
       const urlToCrawl = normalizeScanUrl(trimmed);
       setError(null);
@@ -333,217 +334,240 @@ export default function CrawlersContent() {
     setCrawlDisallowPaths([]);
   }, []);
 
+  const showHeader =
+    state === "idle" || state === "error" || state === "validation";
+
   return (
     <div className="space-y-4 w-full">
-      <div className="page-header text-center mb-6">
-        <h1 className="page-title mb-2">{t("scanner.crawlers.title")}</h1>
-        <p className="page-subtitle mt-0">{t("scanner.crawlers.subtitle")}</p>
-        <Link
-          href={lp("/scanner/docs/crawler")}
-          className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
+      {showHeader && (
+        <AnimateInView
+          initialOnly
+          delay={80}
+          className="page-section landing-reveal-page"
+          as="section"
+          aria-label={t("scanner.ariaHeader")}
         >
-          <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
-            <FileText className="w-4 h-4" />
-            {t("scanner.docsLink")}
-          </span>
-        </Link>
-      </div>
-
-      {(state === "idle" || state === "error") && (
-        <Card disableHover>
-          <div className="flex items-center gap-3 mb-4 -mt-2">
-            <Bot className="w-6 h-6 text-[rgb(var(--primary))]" />
-            <h2 className="section-title !text-left !mb-0">
-              {t("scanner.crawlers.formTitle")}
-            </h2>
+          <div className="page-container">
+            <div className="page-header text-center mb-4">
+              <h1 className="page-title mb-2">{t("scanner.crawlers.title")}</h1>
+              <p className="page-subtitle mt-0">
+                {t("scanner.crawlers.subtitle")}
+              </p>
+              <Link
+                href={lp("/scanner/docs/crawler")}
+                className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
+              >
+                <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
+                  <FileText className="w-4 h-4" />
+                  {t("scanner.docsLink")}
+                </span>
+              </Link>
+            </div>
           </div>
-          <form
-            onSubmit={handleSubmit}
-            aria-label={t("scanner.ariaForm")}
-            className="space-y-4"
-          >
-            <label
-              htmlFor="crawl-url"
-              className="block text-sm font-medium text-[var(--text)]"
-            >
-              {t("scheduledScans.urlLabel")}
-            </label>
-            <input
-              id="crawl-url"
-              type="text"
-              inputMode="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder={t("scheduledScans.urlPlaceholder")}
-              required
-              className="auth-input w-full"
-            />
-            <div>
-              <label className="block text-sm font-medium text-[var(--text)] mb-2">
-                {t("scanner.crawlModeLabel")}
-              </label>
-              <DropdownSelector
-                selectedValue={crawlMode}
-                onChange={(v) =>
-                  setCrawlMode(v as "html" | "playwright" | "both")
-                }
-                options={[
-                  { value: "html", label: t("scanner.crawlModeHtml") },
-                  {
-                    value: "playwright",
-                    label: t("scanner.crawlModePlaywright"),
-                  },
-                  { value: "both", label: t("scanner.crawlModeBoth") },
-                ]}
-                width="100%"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="crawl-max-urls"
-                className="block text-sm font-medium text-[var(--text)] mb-1"
-              >
-                {t("scanner.crawlMaxUrlsLabel")}
-              </label>
-              <input
-                id="crawl-max-urls"
-                type="number"
-                min={5}
-                max={200}
-                value={crawlMaxUrlsInput}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setCrawlMaxUrlsInput(next);
-                  if (next.trim() === "") return;
-                  const v = parseInt(next, 10);
-                  if (Number.isNaN(v)) return;
-                  setCrawlMaxUrls(Math.min(200, Math.max(5, v)));
-                }}
-                onBlur={() => {
-                  const v = parseInt(crawlMaxUrlsInput, 10);
-                  const normalized = Number.isNaN(v)
-                    ? 5
-                    : Math.min(200, Math.max(5, v));
-                  setCrawlMaxUrls(normalized);
-                  setCrawlMaxUrlsInput(String(normalized));
-                }}
-                className="auth-input w-24"
-                aria-describedby="crawl-max-urls-desc"
-              />
-              <span
-                id="crawl-max-urls-desc"
-                className="ml-2 text-sm text-[var(--muted)]"
-              >
-                {t("scanner.crawlMaxUrlsDesc")}
-              </span>
-            </div>
-            <GenericButton
-              type="submit"
-              label={t("scanner.crawlers.launchCrawl")}
-              variant="primary"
-              disabled={!url.trim()}
-            />
-          </form>
-        </Card>
+        </AnimateInView>
       )}
 
-      {state === "crawling" &&
-        (typeof document !== "undefined"
-          ? createPortal(
-              <div className="scan-loading-overlay fixed inset-0 z-[60]">
-                <ScanLoader
-                  steps={crawlSteps}
-                  titleKey="scanner.crawlLoading"
-                  crawlMode={crawlMode}
-                  onAnimationComplete={
-                    crawledUrls.length > 0
-                      ? () => setState("validation")
-                      : undefined
-                  }
+      <AnimateInView
+        className="landing-section landing-reveal-scanner"
+        as="section"
+        aria-label="Scanner content"
+      >
+        <div className="scanner-content">
+          {(state === "idle" || state === "error") && (
+            <Card disableHover>
+              <div className="flex items-center gap-3 mb-4 -mt-2">
+                <Bot className="w-6 h-6 text-[rgb(var(--primary))]" />
+                <h2 className="section-title !text-left !mb-0">
+                  {t("scanner.crawlers.formTitle")}
+                </h2>
+              </div>
+              <form
+                onSubmit={handleSubmit}
+                aria-label={t("scanner.ariaForm")}
+                className="space-y-4"
+              >
+                <label
+                  htmlFor="crawl-url"
+                  className="block text-sm font-medium text-[var(--text)]"
+                >
+                  {t("scheduledScans.urlLabel")}
+                </label>
+                <input
+                  id="crawl-url"
+                  type="text"
+                  inputMode="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder={t("scheduledScans.urlPlaceholder")}
+                  required
+                  className="auth-input w-full"
                 />
-              </div>,
-              document.body,
-            )
-          : null)}
-
-      {state === "validation" && (
-        <CrawlValidationStep
-          urls={crawledUrls}
-          startUrl={url.trim()}
-          timeoutReached={crawlTimeoutReached}
-          antiBotSuspected={crawlAntiBotSuspected}
-          requestsBlocked={crawlRequestsBlocked}
-          disallowPaths={crawlDisallowPaths}
-          onUrlsChange={setCrawledUrls}
-          onLaunchScan={handleLaunchScanFromValidation}
-          onBack={handleBackFromValidation}
-        />
-      )}
-
-      {state === "loading" &&
-        (typeof document !== "undefined"
-          ? createPortal(
-              <div className="scan-loading-overlay fixed inset-0 z-[60]">
-                <ScanLoader
-                  steps={steps}
-                  crawlMode={crawlMode}
-                  onAnimationComplete={
-                    result ? () => setState("success") : undefined
-                  }
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text)] mb-2">
+                    {t("scanner.crawlModeLabel")}
+                  </label>
+                  <DropdownSelector
+                    selectedValue={crawlMode}
+                    onChange={(v) =>
+                      setCrawlMode(v as "html" | "playwright" | "both")
+                    }
+                    options={[
+                      { value: "html", label: t("scanner.crawlModeHtml") },
+                      {
+                        value: "playwright",
+                        label: t("scanner.crawlModePlaywright"),
+                      },
+                      { value: "both", label: t("scanner.crawlModeBoth") },
+                    ]}
+                    width="100%"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="crawl-max-urls"
+                    className="block text-sm font-medium text-[var(--text)] mb-1"
+                  >
+                    {t("scanner.crawlMaxUrlsLabel")}
+                  </label>
+                  <input
+                    id="crawl-max-urls"
+                    type="number"
+                    min={5}
+                    max={200}
+                    value={crawlMaxUrlsInput}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setCrawlMaxUrlsInput(next);
+                      if (next.trim() === "") return;
+                      const v = parseInt(next, 10);
+                      if (Number.isNaN(v)) return;
+                    }}
+                    onBlur={() => {
+                      const v = parseInt(crawlMaxUrlsInput, 10);
+                      const normalized = Number.isNaN(v)
+                        ? 5
+                        : Math.min(200, Math.max(5, v));
+                      setCrawlMaxUrlsInput(String(normalized));
+                    }}
+                    className="auth-input w-24"
+                    aria-describedby="crawl-max-urls-desc"
+                  />
+                  <span
+                    id="crawl-max-urls-desc"
+                    className="ml-2 text-sm text-[var(--muted)]"
+                  >
+                    {t("scanner.crawlMaxUrlsDesc")}
+                  </span>
+                </div>
+                <GenericButton
+                  type="submit"
+                  label={t("scanner.crawlers.launchCrawl")}
+                  variant="primary"
+                  disabled={!url.trim()}
                 />
-              </div>,
-              document.body,
-            )
-          : null)}
+              </form>
+            </Card>
+          )}
 
-      {state === "success" &&
-        result &&
-        !authLoading &&
-        (isAuthenticated ? (
-          <ScanResults
-            result={result}
-            scanId={scanId}
-            onNewScan={handleNewScan}
-          />
-        ) : (
-          <>
-            <FakeScanResultsBlurred />
+          {state === "crawling" &&
+            (typeof document !== "undefined"
+              ? createPortal(
+                  <div className="scan-loading-overlay fixed inset-0 z-[60]">
+                    <ScanLoader
+                      steps={crawlSteps}
+                      titleKey="scanner.crawlLoading"
+                      crawlMode={crawlMode}
+                      onAnimationComplete={
+                        crawledUrls.length > 0
+                          ? () => setState("validation")
+                          : undefined
+                      }
+                    />
+                  </div>,
+                  document.body,
+                )
+              : null)}
+
+          {state === "validation" && (
+            <CrawlValidationStep
+              urls={crawledUrls}
+              startUrl={url.trim()}
+              timeoutReached={crawlTimeoutReached}
+              antiBotSuspected={crawlAntiBotSuspected}
+              requestsBlocked={crawlRequestsBlocked}
+              disallowPaths={crawlDisallowPaths}
+              onUrlsChange={setCrawledUrls}
+              onLaunchScan={handleLaunchScanFromValidation}
+              onBack={handleBackFromValidation}
+            />
+          )}
+
+          {state === "loading" &&
+            (typeof document !== "undefined"
+              ? createPortal(
+                  <div className="scan-loading-overlay fixed inset-0 z-[60]">
+                    <ScanLoader
+                      steps={steps}
+                      crawlMode={crawlMode}
+                      onAnimationComplete={
+                        result ? () => setState("success") : undefined
+                      }
+                    />
+                  </div>,
+                  document.body,
+                )
+              : null)}
+
+          {state === "success" &&
+            result &&
+            !authLoading &&
+            (isAuthenticated ? (
+              <ScanResults
+                result={result}
+                scanId={scanId}
+                onNewScan={handleNewScan}
+              />
+            ) : (
+              <>
+                <FakeScanResultsBlurred />
+                <Modal
+                  isOpen
+                  onClose={() => {}}
+                  title={t("scanner.gateTitle")}
+                  maxWidth="420px"
+                  showCloseButton={false}
+                  closeOnBackdropClick={false}
+                >
+                  <ScanResultsGate
+                    signInHref={`${lp("/connexion")}?returnTo=${encodeURIComponent(lp("/scanner/crawlers"))}`}
+                  />
+                </Modal>
+              </>
+            ))}
+
+          {state === "error" && error && (
             <Modal
-              isOpen
-              onClose={() => {}}
-              title={t("scanner.gateTitle")}
-              maxWidth="420px"
-              showCloseButton={false}
-              closeOnBackdropClick={false}
+              isOpen={errorModalOpen}
+              onClose={() => setErrorModalOpen(false)}
+              onExited={() => {
+                setState("idle");
+                setError(null);
+              }}
+              title={
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-6 h-6 text-[rgb(var(--danger))]" />
+                  <span>{t("scanner.errorTitle")}</span>
+                </div>
+              }
+              maxWidth="500px"
             >
-              <ScanResultsGate
-                signInHref={`${lp("/connexion")}?returnTo=${encodeURIComponent(lp("/scanner/crawlers"))}`}
-              />
+              <p className="text-[var(--text)] leading-relaxed">
+                {error.i18nKey ? t(error.i18nKey) : error.message}
+              </p>
             </Modal>
-          </>
-        ))}
-
-      {state === "error" && error && (
-        <Modal
-          isOpen={errorModalOpen}
-          onClose={() => setErrorModalOpen(false)}
-          onExited={() => {
-            setState("idle");
-            setError(null);
-          }}
-          title={
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-6 h-6 text-[rgb(var(--danger))]" />
-              <span>{t("scanner.errorTitle")}</span>
-            </div>
-          }
-          maxWidth="500px"
-        >
-          <p className="text-[var(--text)] leading-relaxed">
-            {error.i18nKey ? t(error.i18nKey) : error.message}
-          </p>
-        </Modal>
-      )}
+          )}
+        </div>
+      </AnimateInView>
     </div>
   );
 }

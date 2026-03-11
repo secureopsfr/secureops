@@ -90,7 +90,7 @@ export default function ScannerContent() {
   const [formScanAlertsEnabled, setFormScanAlertsEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
-  const [scanOnlyThisPage, setScanOnlyThisPage] = useState(false);
+  const [scanOnlyThisPage, setScanOnlyThisPage] = useState(true);
   const [crawlMode, setCrawlMode] = useState<"html" | "playwright" | "both">(
     "html",
   );
@@ -150,6 +150,7 @@ export default function ScannerContent() {
                   step: ev.data.step,
                   message: ev.data.message,
                   done: true,
+                  anomaly_count: ev.data.anomaly_count,
                 };
                 return updated;
               }
@@ -159,6 +160,7 @@ export default function ScannerContent() {
                   step: ev.data.step,
                   message: ev.data.message,
                   done: false,
+                  anomaly_count: ev.data.anomaly_count,
                 },
               ];
             });

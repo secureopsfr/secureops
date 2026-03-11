@@ -15,7 +15,7 @@ async def execute_scan_job(
     url: str,
     scan_type: str,
     input_json: dict[str, Any] | None = None,
-    on_progress: Callable[[str, str], Awaitable[None]] | None = None,
+    on_progress: Callable[..., Awaitable[None]] | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Exécute un job de scan et retourne (result, error)."""
     if scan_type in {"backend", "custom"}:
@@ -43,8 +43,13 @@ async def execute_scan_job(
         if event == "step" and isinstance(data, dict):
             step = str(data.get("step", "step"))
             message = str(data.get("message", ""))
+            anomaly_count_raw = data.get("anomaly_count")
+            anomaly_count = int(anomaly_count_raw) if isinstance(anomaly_count_raw, int) else None
             if on_progress:
-                await on_progress(step, message)
+                if anomaly_count is None:
+                    await on_progress(step, message)
+                else:
+                    await on_progress(step, message, anomaly_count=anomaly_count)
         elif event == "result" and isinstance(data, dict):
             result_payload = data
         elif event == "error" and isinstance(data, dict):

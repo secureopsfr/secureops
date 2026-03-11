@@ -11,6 +11,7 @@ import {
   Construction,
 } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
+import AnimateInView from "../AnimateInView";
 import Card from "../ui/cards/Card";
 
 export default function ScannerHub() {
@@ -98,12 +99,22 @@ export default function ScannerHub() {
 
   return (
     <div className="space-y-6 w-full">
-      <div className="text-center mb-6 pt-6">
-        <h1 className="page-title mb-2">{t("scanner.hub.title")}</h1>
-        <p className="page-subtitle mt-0 max-w-2xl mx-auto">
-          {t("scanner.hub.subtitle")}
-        </p>
-      </div>
+      <AnimateInView
+        initialOnly
+        delay={80}
+        className="page-section landing-reveal-page"
+        as="section"
+        aria-label={t("scanner.ariaHeader")}
+      >
+        <div className="page-container">
+          <div className="page-header text-center mb-4">
+            <h1 className="page-title mb-2">{t("scanner.hub.title")}</h1>
+            <p className="page-subtitle mt-0 max-w-2xl mx-auto">
+              {t("scanner.hub.subtitle")}
+            </p>
+          </div>
+        </div>
+      </AnimateInView>
 
       <section className="space-y-4">
         <h2 className="text-xl sm:text-2xl font-semibold text-[var(--text)] pb-3 border-b border-[var(--color-border)]/60">

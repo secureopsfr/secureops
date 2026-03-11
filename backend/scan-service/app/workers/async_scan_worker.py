@@ -22,7 +22,7 @@ JOB_TIMEOUT_SECONDS = _ASYNC.job_timeout_seconds
 PROGRESS_BATCH_WINDOW_SECONDS = _ASYNC.progress_batch_window_seconds
 
 
-async def _append_batch(session: Any, job: Any, entries: list[dict[str, str]]) -> None:
+async def _append_batch(session: Any, job: Any, entries: list[dict[str, Any]]) -> None:
     await append_job_progress_batch(session, job, entries=entries)
 
 

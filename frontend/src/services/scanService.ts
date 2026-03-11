@@ -8,6 +8,7 @@ import logger from "../utils/logger";
 export interface ScanStep {
   step: string;
   message: string;
+  anomaly_count?: number;
 }
 
 /** Étape affichée dans le loader (done dérivé de step.endsWith("_done")). */
@@ -86,7 +87,12 @@ interface AsyncScanCreateResponse {
 interface AsyncScanStatusResponse {
   job_id: string;
   status: AsyncJobStatus;
-  progress_log?: Array<{ step: string; message: string; at: string }>;
+  progress_log?: Array<{
+    step: string;
+    message: string;
+    at: string;
+    anomaly_count?: number;
+  }>;
   error?: {
     message?: string;
     status_code?: number;
@@ -252,7 +258,14 @@ export async function runAsyncScan(
         const entry = progress[i];
         onEvent({
           type: "step",
-          data: { step: entry.step, message: entry.message },
+          data: {
+            step: entry.step,
+            message: entry.message,
+            anomaly_count:
+              typeof entry.anomaly_count === "number"
+                ? entry.anomaly_count
+                : undefined,
+          },
         });
       }
       seenProgress = progress.length;
