@@ -42,7 +42,9 @@ services:
       - admin-service
       - user-service
       - scan-service
+      - scan-worker
       - crawl-service
+      - crawl-worker
       - postgres
     networks: [app-network]
 
@@ -132,6 +134,7 @@ services:
       - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
       - PDF_SERVICE_URL=http://pdf-service:8013
       - PDF_SERVICE_INTERNAL_API_KEY=${PDF_SERVICE_INTERNAL_API_KEY:-}
+      - ASYNC_JOB_TOKEN_SECRET=${ASYNC_JOB_TOKEN_SECRET:-dev-async-job-secret}
     networks: [app-network]
     depends_on:
       postgres:
@@ -143,6 +146,24 @@ services:
       retries: 12
       start_period: 30s
 
+  scan-worker:
+    build:
+      context: ./backend
+      dockerfile: scan-service/Dockerfile
+      args:
+        INSTALL_DEV_DEPS: "true"
+    command: ["python", "-m", "app.workers.async_scan_worker"]
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - ASYNC_JOB_TOKEN_SECRET=${ASYNC_JOB_TOKEN_SECRET:-dev-async-job-secret}
+    networks: [app-network]
+    depends_on:
+      scan-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
   crawl-service:
     build:
       context: ./backend
@@ -152,6 +173,8 @@ services:
     environment:
       - IS_DOCKER=true
       - IS_PROD=false
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - ASYNC_JOB_TOKEN_SECRET=${ASYNC_JOB_TOKEN_SECRET:-dev-async-job-secret}
     networks: [app-network]
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8014/api/health')\""]
@@ -159,6 +182,27 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  crawl-worker:
+    build:
+      context: ./backend
+      dockerfile: crawl-service/Dockerfile
+      args:
+        INSTALL_DEV_DEPS: "true"
+    command: ["python", "-m", "app.workers.async_crawl_worker"]
+    environment:
+      - IS_DOCKER=true
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - ASYNC_JOB_TOKEN_SECRET=${ASYNC_JOB_TOKEN_SECRET:-dev-async-job-secret}
+    networks: [app-network]
+    depends_on:
+      crawl-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
   pdf-service:
     build:
