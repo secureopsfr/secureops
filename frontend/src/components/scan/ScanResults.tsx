@@ -31,7 +31,6 @@ import { exportScanResult, type ExportFormat } from "../../utils/exportScan";
 import { formatUrlDisplay } from "../../utils/urlFormat";
 import { downloadScanPdf } from "../../services/scanHistoryService";
 import { showErrorToast } from "../../utils/toastNotifications";
-import ScannerHistoryAlertsSection from "./ScannerHistoryAlertsSection";
 import { renderWithBold } from "../../utils/renderWithBold";
 import { LoadingSpinner } from "../LoadingScreen";
 
@@ -596,17 +595,6 @@ export default function ScanResults({
             </ul>
           )}
         </Card>
-      </AnimateInView>
-
-      <AnimateInView
-        className="landing-section landing-reveal-scanner"
-        as="section"
-      >
-        <ScannerHistoryAlertsSection
-          filterUrl={result.url}
-          filterScanType={filterScanType}
-          onSelectScan={onSelectScan ?? (() => {})}
-        />
       </AnimateInView>
 
       {typeof document !== "undefined" &&
