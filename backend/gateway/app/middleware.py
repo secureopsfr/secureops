@@ -15,13 +15,15 @@ logger = logging.getLogger(__name__)
 
 # ── Routes publiques (aucune authentification) ──────────────────────
 PUBLIC_EXACT: set[str] = {"/health"}
-PUBLIC_PREFIX: tuple[str, ...] = ("/images/", "/admin/images/")
+PUBLIC_PREFIX: tuple[str, ...] = (
+    "/images/",
+    "/admin/images/",
+    "/scan/api/scan/async",
+    "/crawl/api/crawl/async",
+)
 PUBLIC_METHOD_PATHS: set[tuple[str, str]] = {
     ("POST", "/api/contact"),  # Protégé par captcha Turnstile
     ("POST", "/admin/api/analytics/ingest"),  # Protégé par validation + rate limiting
-    ("POST", "/scan/api/scan"),  # MVP : scan posture sécurité public (disclaimer côté front)
-    # POST /scan/api/scan/fake : requiert auth (JWT ou clé API) pour tester l'API publique
-    ("POST", "/crawl/api/crawl/stream"),  # Crawler HTTP en streaming SSE (roadmap §7)
 }
 
 # ── Routes authentifiées sans vérification de groupe ────────────────
@@ -30,6 +32,25 @@ AUTH_ONLY_METHOD_PATHS: set[tuple[str, str]] = {
 }
 AUTH_ONLY_PREFIX: tuple[str, ...] = ("/admin/api/docs/",)
 AUTH_ONLY_EXACT: set[str] = {"/admin/api/docs"}
+OPTIONAL_AUTH_PUBLIC_PREFIX: tuple[str, ...] = (
+    "/scan/api/scan/async",
+    "/crawl/api/crawl/async",
+)
+
+
+def _is_public_route(path: str, method: str) -> bool:
+    """Retourne True si la route est publique (sans auth)."""
+    return path in PUBLIC_EXACT or path.startswith(PUBLIC_PREFIX) or (method, path) in PUBLIC_METHOD_PATHS
+
+
+def _requires_optional_public_auth(path: str) -> bool:
+    """Retourne True si la route publique accepte une auth facultative."""
+    return path.startswith(OPTIONAL_AUTH_PUBLIC_PREFIX)
+
+
+def _has_auth_hint(request: Request) -> bool:
+    """Retourne True si des headers d'auth sont présents."""
+    return bool(request.headers.get("Authorization") or request.headers.get("X-API-Key"))
 
 
 async def _authenticate(request: Request, *, require_admin: bool = False) -> Tuple[Optional[dict], Optional[JSONResponse]]:
@@ -123,16 +144,14 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if method == "OPTIONS":
             return await call_next(request)
 
-        # Routes publiques — exact match
-        if path in PUBLIC_EXACT:
-            return await call_next(request)
-
-        # Routes publiques — prefix match
-        if path.startswith(PUBLIC_PREFIX):
-            return await call_next(request)
-
-        # Routes publiques — (method, path) match
-        if (method, path) in PUBLIC_METHOD_PATHS:
+        # Routes publiques (exact/prefix/method-path)
+        if _is_public_route(path, method):
+            # Pour les endpoints async publics, authentifier facultativement
+            # afin de propager l'identité quand Authorization/X-API-Key est présent.
+            if _requires_optional_public_auth(path) and _has_auth_hint(request):
+                _, error_response = await _authenticate(request, require_admin=False)
+                if error_response:
+                    return error_response
             return await call_next(request)
 
         # Routes auth-only (pas de vérification de groupe)

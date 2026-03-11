@@ -6,3 +6,7 @@ pydantic-settings==2.1.0
 PyYAML==6.0.1
 python-dotenv==1.2.1
 playwright==1.49.0
+SQLAlchemy==2.0.30
+asyncpg==0.29.0
+alembic==1.13.1
+psycopg2-binary==2.9.9

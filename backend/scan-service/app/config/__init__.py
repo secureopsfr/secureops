@@ -4,6 +4,7 @@ Réexporte toutes les fonctions get_* pour compatibilité avec config_loader.
 settings reste dans config_loader (caller_file pour create_simple_settings).
 """
 
+from app.config.async_jobs import AsyncJobsSettings, get_async_jobs_settings
 from app.config.cache import CacheSettings, get_cache_settings
 from app.config.cookies import CookiesSettings, get_cookies_settings
 from app.config.cors_cross_origin import CorsCrossOriginSettings, get_cors_cross_origin_settings
@@ -34,6 +35,7 @@ from app.config.url_validation import UrlValidationSettings, get_url_validation_
 
 __all__ = [
     "CacheSettings",
+    "AsyncJobsSettings",
     "CorsCrossOriginSettings",
     "CookiesSettings",
     "DirectoryListingConfig",
@@ -48,6 +50,7 @@ __all__ = [
     "SsrfSettings",
     "UrlValidationSettings",
     "get_cache_settings",
+    "get_async_jobs_settings",
     "get_cors_cross_origin_settings",
     "get_directory_listing_max_body",
     "get_directory_listing_partial_extensions",

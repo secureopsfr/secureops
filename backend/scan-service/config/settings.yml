@@ -12,6 +12,12 @@ server:
 logging:
   level: "INFO"
 
+async_jobs:
+  worker_poll_interval_seconds: 2
+  job_timeout_seconds: 300
+  max_attempts: 3
+  progress_batch_window_seconds: 0.2
+
 external_services:
   gateway_url: "http://localhost:8000"
   pdf_service_url: "http://localhost:8013"
