@@ -128,8 +128,6 @@ export default function ScanTypePageContent({
         result={selectedResult}
         scanId={selectedScanId}
         onNewScan={handleNewScan}
-        onSelectScan={handleSelectScan}
-        filterScanType={filterScanType}
       />
     );
   }

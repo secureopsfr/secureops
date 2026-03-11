@@ -694,8 +694,6 @@ export default function ScannerContent() {
                 result={result}
                 scanId={scanId}
                 onNewScan={handleNewScan}
-                onSelectScan={handleSelectScan}
-                filterScanType="frontend"
               />
             ) : (
               <>

@@ -487,7 +487,6 @@ export default function CrawlersContent() {
             result={result}
             scanId={scanId}
             onNewScan={handleNewScan}
-            filterScanType="frontend"
           />
         ) : (
           <>
