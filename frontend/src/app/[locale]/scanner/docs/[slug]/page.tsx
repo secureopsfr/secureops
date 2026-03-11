@@ -42,7 +42,7 @@ export default function ScannerDocDetailPage() {
         id="main"
         className="min-h-screen py-6 w-full flex justify-center scanner-page"
       >
-        <div className="w-full max-w-[900px] px-8">
+        <div className="w-full max-w-[1400px] px-8">
           {loading ? (
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
               <LoadingScreen
