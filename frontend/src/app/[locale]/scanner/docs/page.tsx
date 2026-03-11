@@ -11,6 +11,7 @@ import type { DocPageRecord } from "../../../../services/docsService";
 import { localePath, type Locale } from "../../../../i18n/config";
 import { FileText } from "lucide-react";
 import LoadingScreen from "../../../../components/LoadingScreen";
+import AnimateInView from "../../../../components/AnimateInView";
 
 export default function ScannerDocsPage() {
   const params = useParams();
@@ -37,12 +38,22 @@ export default function ScannerDocsPage() {
       >
         <div className="w-full max-w-[1340px] px-8">
           <div className="scanner-content">
-            <div className="page-header text-center mb-6 pt-6">
-              <h1 className="page-title mb-2">{t("scanner.docs.title")}</h1>
-              <p className="page-subtitle mt-0 max-w-2xl mx-auto">
-                {t("scanner.docs.intro")}
-              </p>
-            </div>
+            <AnimateInView
+              initialOnly
+              delay={80}
+              className="page-section landing-reveal-page"
+              as="section"
+              aria-label={t("scanner.ariaHeader")}
+            >
+              <div className="page-container">
+                <div className="page-header text-center mb-4">
+                  <h1 className="page-title mb-2">{t("scanner.docs.title")}</h1>
+                  <p className="page-subtitle mt-0 max-w-2xl mx-auto">
+                    {t("scanner.docs.intro")}
+                  </p>
+                </div>
+              </div>
+            </AnimateInView>
 
             {loading ? (
               <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">

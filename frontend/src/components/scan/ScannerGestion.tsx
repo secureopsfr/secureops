@@ -26,6 +26,7 @@ import { getDateRangeFromDays } from "../../utils/apiQueryParams";
 import { useScanOverview } from "../../hooks/swr/useScanOverview";
 import { getTimeAgo } from "../../utils/dateFormat";
 import type { ScanOverviewResponse } from "../../services/scanHistoryService";
+import AnimateInView from "../AnimateInView";
 
 function buildKpiItems(
   t: (key: string, params?: Record<string, string | number>) => string,
@@ -202,21 +203,33 @@ export default function ScannerGestion() {
 
   return (
     <>
-      <div className="text-center mb-6">
-        <h1 className="page-title mb-2">{t("scanner.gestion.pageTitle")}</h1>
-        <p className="page-subtitle mt-0 max-w-2xl mx-auto">
-          {t("scanner.gestion.pageSubtitle")}
-        </p>
-        <div className="flex justify-center mt-3">
-          <GenericButton
-            variant="outline"
-            label={t("scanner.gestion.filterButton")}
-            icon={<Filter className="w-4 h-4" />}
-            iconPosition="left"
-            onClick={() => setFilterDrawerOpen(true)}
-          />
+      <AnimateInView
+        initialOnly
+        delay={80}
+        className="page-section landing-reveal-page"
+        as="section"
+        aria-label={t("scanner.ariaHeader")}
+      >
+        <div className="page-container">
+          <div className="page-header text-center mb-4">
+            <h1 className="page-title mb-2">
+              {t("scanner.gestion.pageTitle")}
+            </h1>
+            <p className="page-subtitle mt-0 max-w-2xl mx-auto">
+              {t("scanner.gestion.pageSubtitle")}
+            </p>
+            <div className="flex justify-center mt-3">
+              <GenericButton
+                variant="outline"
+                label={t("scanner.gestion.filterButton")}
+                icon={<Filter className="w-4 h-4" />}
+                iconPosition="left"
+                onClick={() => setFilterDrawerOpen(true)}
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      </AnimateInView>
 
       <Drawer
         isOpen={filterDrawerOpen}

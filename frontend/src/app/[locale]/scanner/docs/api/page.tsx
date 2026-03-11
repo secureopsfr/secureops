@@ -8,6 +8,7 @@ import { FileText } from "lucide-react";
 import Link from "next/link";
 import { localePath, type Locale } from "../../../../../i18n/config";
 import { getApiBaseUrl } from "../../../../../utils/apiClient";
+import AnimateInView from "../../../../../components/AnimateInView";
 
 export default function ScannerApiDocPage() {
   const params = useParams();
@@ -27,12 +28,24 @@ export default function ScannerApiDocPage() {
         className="min-h-screen py-6 w-full flex justify-center scanner-page"
       >
         <div className="w-full max-w-[1400px] px-8">
-          <div className="page-header text-center mb-6 pt-6">
-            <h1 className="page-title mb-2">{t("scanner.docsApi.title")}</h1>
-            <p className="page-subtitle mt-0 max-w-2xl mx-auto">
-              {t("scanner.docsApi.intro")}
-            </p>
-          </div>
+          <AnimateInView
+            initialOnly
+            delay={80}
+            className="page-section landing-reveal-page"
+            as="section"
+            aria-label={t("scanner.ariaHeader")}
+          >
+            <div className="page-container">
+              <div className="page-header text-center mb-4">
+                <h1 className="page-title mb-2">
+                  {t("scanner.docsApi.title")}
+                </h1>
+                <p className="page-subtitle mt-0 max-w-2xl mx-auto">
+                  {t("scanner.docsApi.intro")}
+                </p>
+              </div>
+            </div>
+          </AnimateInView>
           <div className="scanner-doc-content space-y-8">
             <section>
               <h2 className="text-xl font-semibold text-[var(--text)] mb-4">
