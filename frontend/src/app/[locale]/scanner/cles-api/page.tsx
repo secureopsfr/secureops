@@ -45,7 +45,7 @@ export default async function ScannerClesApiPage({
         id="main"
         className="min-h-screen py-6 w-full flex justify-center scanner-page"
       >
-        <div className="w-full max-w-[1400px] px-8">
+        <div className="w-full max-w-[1335px] px-8">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <h1 className="page-title mb-2">
               {getTranslation(locale as Locale)("scanner.apiPublique.title")}
