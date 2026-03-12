@@ -204,6 +204,7 @@ export default function ScannerGestion() {
     return (
       <MultiScanResults
         result={selectedMultiResult}
+        scanId={selectedScanId}
         onNewScan={handleNewScan}
       />
     );

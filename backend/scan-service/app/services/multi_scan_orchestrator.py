@@ -31,12 +31,7 @@ from app.services.exposed_files import run_exposed_files_checks
 from app.services.robots_txt import run_robots_txt_checks
 from app.services.sitemap import run_sitemap_checks
 from app.services.tls import run_tls_checks
-from app.utils.http_fetch import (
-    get_with_client_or_error,
-    http_request_category,
-    log_http_metrics,
-    scan_client,
-)
+from app.utils.http_fetch import get_with_client_or_error, http_request_category, log_http_metrics, scan_client
 from app.utils.ssrf import check_ssrf
 from app.utils.url_helpers import get_scan_base_url, registered_domain
 from app.utils.url_validator import validate_and_normalize_url

@@ -974,6 +974,7 @@ export default function ScannerContent() {
             !authLoading && (
               <MultiScanResults
                 result={multiResult}
+                scanId={scanId}
                 onNewScan={handleNewScan}
               />
             )}

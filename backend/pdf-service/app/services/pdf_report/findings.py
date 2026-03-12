@@ -94,9 +94,14 @@ def build_finding_block(
 
     severity_display = _severity_label(f.severity, lang)
 
-    raw_evidence = get_evidence(f.id, lang) if f.id else ""
-    evidence_text = _truncate(raw_evidence or f.evidence, render.evidence_max_len, "evidence", f.id)
-    evidence = escape(evidence_text)
+    catalog_evidence = get_evidence(f.id, lang) if f.id else ""
+    provided_evidence = (f.evidence or "").strip()
+    if catalog_evidence and provided_evidence and provided_evidence != catalog_evidence:
+        raw_evidence = f"{provided_evidence}\n{catalog_evidence}"
+    else:
+        raw_evidence = provided_evidence or catalog_evidence
+    evidence_text = _truncate(raw_evidence, render.evidence_max_len, "evidence", f.id)
+    evidence = escape(evidence_text).replace("\n", "<br/>")
 
     raw_rec = get_recommendation(f.id, lang) if f.id else f.recommendation
     rec_text = _truncate(raw_rec, render.recommendation_max_len, "recommendation", f.id)
@@ -315,14 +320,12 @@ def build_other_tests_section(
         ok_tests_label=ok_tests_label,
     )
     subsections_html: list[str] = []
-    subsections_html.append(
-        f"""
+    subsections_html.append(f"""
     <div class="category-intro" id="sect-other-tests-intro">
         <h3 class="category-intro-title">{section_num}.1 {escape(summary_label)}</h3>
         <p class="category-intro-summary">{summary_text}</p>
     </div>
-    """
-    )
+    """)
     for sub_num, cat in enumerate(ok_cats, start=2):
         cat_label = category_labels.get(cat, cat)
         subsections_html.append(_build_ok_category_subsection(section_num, sub_num, cat, cat_label, lang))

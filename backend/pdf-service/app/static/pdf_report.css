@@ -15,6 +15,15 @@
         content: none;
     }
 }
+@page landscape {
+    size: A4 landscape;
+    margin: 12mm;
+    @bottom-right {
+        content: counter(page) " / " counter(pages);
+        font-size: 9px;
+        color: #94a3b8;
+    }
+}
 
 body {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -268,6 +277,79 @@ footer {
     background: #f8fafc;
     font-weight: 600;
     color: #475569;
+}
+.comparison-note {
+    font-size: 10px;
+    color: #64748b;
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+}
+.data-table-compact th,
+.data-table-compact td {
+    font-size: 10px;
+    padding: 6px 8px;
+    vertical-align: top;
+}
+.multi-compare-table th,
+.multi-compare-table td {
+    word-break: break-word;
+    text-align: center;
+    vertical-align: middle;
+}
+.multi-compare-table th {
+    text-align: center;
+}
+.multi-compare-table th:first-child,
+.multi-compare-table td:first-child {
+    text-align: left;
+}
+.multi-compare-landscape {
+    page: landscape;
+    break-before: page;
+    break-inside: auto;
+}
+.multi-compare-landscape table {
+    page-break-inside: auto;
+}
+.multi-compare-landscape thead {
+    display: table-header-group;
+}
+.multi-compare-landscape tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+.score-chip {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+.score-chip-good {
+    background: rgba(16, 185, 129, 0.16);
+    color: #047857;
+}
+.score-chip-medium {
+    background: rgba(245, 158, 11, 0.18);
+    color: #b45309;
+}
+.score-chip-low {
+    background: rgba(239, 68, 68, 0.16);
+    color: #b91c1c;
+}
+.anomaly-chip {
+    display: inline-block;
+    min-width: 18px;
+    padding: 2px 6px;
+    border-radius: 9999px;
+    background: rgba(245, 158, 11, 0.18);
+    color: #b45309;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.1;
 }
 .tbl-num {
     text-align: right;

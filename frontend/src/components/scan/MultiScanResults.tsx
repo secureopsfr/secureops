@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Download,
@@ -25,10 +25,14 @@ import type {
   PageScanResult,
 } from "../../services/scanService";
 import { formatUrlDisplay } from "../../utils/urlFormat";
-import { showSuccessToast } from "../../utils/toastNotifications";
+import { exportMultiScanResult } from "../../utils/exportMultiScan";
+import { downloadScanPdf } from "../../services/scanHistoryService";
+import { showErrorToast } from "../../utils/toastNotifications";
+import { LoadingSpinner } from "../LoadingScreen";
 
 interface MultiScanResultsProps {
   result: MultiScanResult;
+  scanId?: string | null;
   onNewScan: () => void;
 }
 
@@ -216,14 +220,16 @@ const EXPORT_FORMATS: {
 
 export default function MultiScanResults({
   result,
+  scanId = null,
   onNewScan,
 }: MultiScanResultsProps) {
-  const { t, locale } = useLanguage();
-  const lang = (locale === "fr" ? "fr" : "en") as "fr" | "en";
+  const { t, language } = useLanguage();
+  const lang = (language === "fr" ? "fr" : "en") as "fr" | "en";
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [overviewSortMode, setOverviewSortMode] =
     useState<OverviewSortMode>("default");
   const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const { ringColor: globalRingColor } = getScoreBadge(result.score_global);
   const errorCount = result.page_results.filter((p) => p.error).length;
@@ -242,10 +248,43 @@ export default function MultiScanResults({
     return [...result.page_results].sort((a, b) => a.score - b.score);
   }, [overviewSortMode, result.page_results]);
 
-  const handleFakeExport = (labelKey: string) => {
-    showSuccessToast(t("scanner.exportFakeNotice", { format: t(labelKey) }));
-    setExportModalOpen(false);
-  };
+  const exportDataIncomplete =
+    !Array.isArray(result.urls) ||
+    result.urls.length === 0 ||
+    !Array.isArray(result.page_results) ||
+    result.page_results.length === 0;
+
+  const handleExport = useCallback(
+    async (format: "csv" | "json" | "xlsx" | "pdf") => {
+      if (exportDataIncomplete) {
+        showErrorToast(t("scanner.multiExportDataMissing"));
+        return;
+      }
+
+      if (format === "pdf") {
+        if (!scanId) {
+          showErrorToast(t("scanner.exportPdfUnavailable"));
+          return;
+        }
+        setPdfLoading(true);
+        try {
+          await downloadScanPdf(scanId, language as "fr" | "en");
+          setExportModalOpen(false);
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : t("scanner.exportPdfDownload");
+          showErrorToast(message);
+        } finally {
+          setPdfLoading(false);
+        }
+        return;
+      }
+
+      exportMultiScanResult(result, format);
+      setExportModalOpen(false);
+    },
+    [exportDataIncomplete, language, result, scanId, t],
+  );
 
   return (
     <AnimateInView className="space-y-4 w-full" initialOnly>
@@ -472,17 +511,41 @@ export default function MultiScanResults({
           {t("scanner.exportDesc")}
         </p>
         <div className="flex flex-col gap-2">
-          {EXPORT_FORMATS.map(({ value, labelKey, icon }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => handleFakeExport(labelKey)}
-              className="flex items-center gap-3 w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[var(--color-surface-hover)] transition-colors text-left"
-            >
-              {icon}
-              <span className="font-medium">{t(labelKey)}</span>
-            </button>
-          ))}
+          {EXPORT_FORMATS.map(({ value, labelKey, icon }) => {
+            const isPdf = value === "pdf";
+            const disabled =
+              exportDataIncomplete || (isPdf && (!scanId || pdfLoading));
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => !disabled && handleExport(value)}
+                disabled={disabled}
+                title={
+                  disabled
+                    ? exportDataIncomplete
+                      ? t("scanner.multiExportDataMissing")
+                      : t("scanner.exportPdfUnavailable")
+                    : undefined
+                }
+                className="flex items-center gap-3 w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[var(--color-surface-hover)] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--color-surface-input)]"
+              >
+                {isPdf && pdfLoading ? <LoadingSpinner size="sm" /> : icon}
+                <span className="font-medium">
+                  {isPdf && pdfLoading
+                    ? t("scanner.exportPdfGenerating")
+                    : t(labelKey)}
+                </span>
+                {disabled && !pdfLoading && (
+                  <span className="text-xs text-muted-theme ml-auto">
+                    {exportDataIncomplete
+                      ? t("scanner.multiExportDataMissingShort")
+                      : t("scanner.exportPdfUnavailable")}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </Modal>
     </AnimateInView>

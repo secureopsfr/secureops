@@ -80,6 +80,8 @@ def build_html(
     timestamp: str,
     duration: float,
     findings: list[Finding],
+    result_mode: str | None = None,
+    page_results: list[dict] | None = None,
     include_matrices: bool = True,
     lang: str = "fr",
 ) -> str:
@@ -91,6 +93,8 @@ def build_html(
         timestamp: Horodatage ISO.
         duration: Durée en secondes.
         findings: Liste des findings validés.
+        result_mode: Mode de résultat (single/multi), optionnel.
+        page_results: Résultats par page pour un scan multi, optionnel.
         include_matrices: Inclure les matrices par finding.
         lang: Code langue (fr/en).
 
@@ -123,7 +127,17 @@ def build_html(
     by_category, ordered_cats = _group_findings_by_category(findings, lang)
     cover_page = build_cover_page(url, date_str, lang, report_title, subtitle)
     sommaire_html = build_sommaire(by_category, ordered_cats, lang)
-    synthese_html = build_synthese(by_category, ordered_cats, findings, score_val, score_color, lang)
+    synthese_html = build_synthese(
+        by_category,
+        ordered_cats,
+        findings,
+        score_val,
+        score_color,
+        lang,
+        base_url=url,
+        result_mode=result_mode,
+        page_results=page_results,
+    )
     sections_html, next_section_num = build_category_sections(by_category, ordered_cats, include_matrices, lang)
     other_tests_html, next_section_num = build_other_tests_section(by_category, next_section_num, lang)
 

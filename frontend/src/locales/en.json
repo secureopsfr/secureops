@@ -475,6 +475,8 @@
     "exportPdf": "PDF",
     "exportPdfGenerating": "Generating PDF…",
     "exportPdfUnavailable": "PDF available after saving the scan.",
+    "multiExportDataMissing": "Export unavailable: this historical multi-page scan is incomplete. Run a new scan to export.",
+    "multiExportDataMissingShort": "Incomplete data",
     "exportFakeNotice": "Simulated {{format}} export (coming soon).",
     "exportPdfIncludeMatrices": "Include severity/likelihood matrices",
     "exportPdfLang": "Language",

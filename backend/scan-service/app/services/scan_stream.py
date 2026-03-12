@@ -24,12 +24,7 @@ from app.errors.fetch_errors import (
 )
 from app.services._scan_core import SCAN_STEPS, ScanContext, build_result_payload
 from app.services.scan_history_save import save_scan_to_history
-from app.utils.http_fetch import (
-    get_with_client_or_error,
-    http_request_category,
-    log_http_metrics,
-    scan_client,
-)
+from app.utils.http_fetch import get_with_client_or_error, http_request_category, log_http_metrics, scan_client
 from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
 from app.utils.url_helpers import get_scan_base_url

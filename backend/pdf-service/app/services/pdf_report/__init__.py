@@ -17,6 +17,8 @@ def generate_pdf(
     timestamp: str,
     duration: float,
     findings: list[Finding],
+    result_mode: str | None = None,
+    page_results: list[dict] | None = None,
     include_matrices: bool = True,
     lang: str = "fr",
 ) -> bytes:
@@ -28,6 +30,8 @@ def generate_pdf(
         timestamp: Horodatage ISO.
         duration: Durée en secondes.
         findings: Liste des findings validés.
+        result_mode: Mode de résultat (single/multi), optionnel.
+        page_results: Résultats par page en mode multi, optionnel.
         include_matrices: Inclure les matrices gravité/vraisemblance par finding.
         lang: Code langue (fr/en).
 
@@ -40,6 +44,8 @@ def generate_pdf(
         timestamp=timestamp,
         duration=duration,
         findings=findings,
+        result_mode=result_mode,
+        page_results=page_results,
         include_matrices=include_matrices,
         lang=lang,
     )

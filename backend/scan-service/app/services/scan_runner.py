@@ -7,12 +7,7 @@ import time
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
 from app.errors.fetch_errors import build_sse_error_payload
 from app.services._scan_core import SCAN_STEPS, ScanContext, build_result_payload
-from app.utils.http_fetch import (
-    get_with_client_or_error,
-    http_request_category,
-    log_http_metrics,
-    scan_client,
-)
+from app.utils.http_fetch import get_with_client_or_error, http_request_category, log_http_metrics, scan_client
 from app.utils.ssrf import check_ssrf
 from app.utils.url_helpers import get_scan_base_url
 from app.utils.url_validator import validate_and_normalize_url

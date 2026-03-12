@@ -19,10 +19,7 @@ import {
 import { getScoreBadge } from "./scanConstants";
 import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
 import { useConfirmDelete } from "../../hooks/useConfirmDelete";
-import {
-  showErrorToast,
-  showSuccessToast,
-} from "../../utils/toastNotifications";
+import { showErrorToast } from "../../utils/toastNotifications";
 import { formatDate } from "../../utils/dateFormat";
 import { formatUrlDisplay } from "../../utils/urlFormat";
 
@@ -111,17 +108,15 @@ export default function ScanHistoryBlock({
   const handlePdfClick = useCallback(
     async (e: React.MouseEvent, item: ScanHistoryItem) => {
       e.stopPropagation();
-      if (item.result_mode === "multi") {
-        showSuccessToast(
-          t("scanner.exportFakeNotice", { format: t("scanner.exportPdf") }),
-        );
-        return;
-      }
       setPdfLoadingId(item.id);
       try {
         await downloadScanPdf(item.id, language as "fr" | "en");
-      } catch {
-        showErrorToast(t("scanner.exportPdfDownload") + " — erreur");
+      } catch (err) {
+        showErrorToast(
+          err instanceof Error
+            ? err.message
+            : t("scanner.exportPdfDownload") + " — erreur",
+        );
       } finally {
         setPdfLoadingId(null);
       }
@@ -226,24 +221,22 @@ export default function ScanHistoryBlock({
 function buildSelectionFromDetail(
   detail: ScanHistoryDetail,
 ): ScanHistorySelection {
-  if (
-    detail.result_mode === "multi" &&
-    Array.isArray(detail.page_results) &&
-    Array.isArray(detail.urls)
-  ) {
+  if (detail.result_mode === "multi") {
     return {
       result_mode: "multi",
       scan_id: detail.id,
       result: {
         result_mode: "multi",
         base_url: detail.url,
-        urls: detail.urls,
+        urls: Array.isArray(detail.urls) ? detail.urls : [],
         score_global: detail.score ?? 0,
-        page_results: detail.page_results,
+        page_results: Array.isArray(detail.page_results)
+          ? detail.page_results
+          : [],
         timestamp: detail.timestamp,
         duration: detail.duration,
-        scan_type: detail.scan_type,
-        status: detail.status,
+        scan_type: detail.scan_type ?? "frontend",
+        status: detail.status ?? "success",
       },
     };
   }

@@ -475,6 +475,8 @@
     "exportPdf": "PDF",
     "exportPdfGenerating": "Génération du PDF…",
     "exportPdfUnavailable": "PDF disponible après sauvegarde du scan.",
+    "multiExportDataMissing": "Export indisponible : ce scan multi-pages historique est incomplet. Relancez un scan pour exporter.",
+    "multiExportDataMissingShort": "Données incomplètes",
     "exportFakeNotice": "Export {{format}} simulé (bientôt disponible).",
     "exportPdfIncludeMatrices": "Inclure les matrices gravité/vraisemblance",
     "exportPdfLang": "Langue",
