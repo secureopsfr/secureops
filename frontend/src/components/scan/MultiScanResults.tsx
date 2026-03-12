@@ -296,7 +296,7 @@ export default function MultiScanResults({
       </Card>
 
       {/* Navigation tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-1">
+      <div className="flex gap-1 overflow-x-auto pb-2 mb-2">
         <button
           type="button"
           onClick={() => setActiveTab("overview")}
