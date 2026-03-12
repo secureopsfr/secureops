@@ -20,6 +20,7 @@ _PDF_STRINGS: dict[str, dict[str, str]] = {
     "references_section": {"fr": "Références", "en": "References"},
     "references_empty": {"fr": "Aucun lien référencé dans ce rapport.", "en": "No links referenced in this report."},
     "score": {"fr": "Score", "en": "Score"},
+    "average_score": {"fr": "Score moyen", "en": "Average score"},
     "tests_performed": {"fr": "Tests effectués", "en": "Tests performed"},
     "test": {"fr": "Test", "en": "Test"},
     "status": {"fr": "Statut", "en": "Status"},
@@ -55,6 +56,15 @@ _PDF_STRINGS: dict[str, dict[str, str]] = {
         "en": "**{nb} tests** were performed in this category.",
     },
     "repartition": {"fr": "Répartition des tests effectués par catégorie", "en": "Breakdown of tests performed by category"},
+    "comparison_table": {"fr": "Tableau de comparaison des pages", "en": "Pages comparison table"},
+    "comparison_note_base_paths": {
+        "fr": "Affichage des URLs : pour le domaine de base, seules les routes (paths) sont affichées.",
+        "en": "URL display: for the base domain, only routes (paths) are shown.",
+    },
+    "comparison_note_external_hosts": {
+        "fr": "Sous-domaines / domaines distincts affichés en complet : {hosts}.",
+        "en": "Subdomains / distinct domains shown in full: {hosts}.",
+    },
     "category": {"fr": "Catégorie", "en": "Category"},
     "count": {"fr": "Nb", "en": "Count"},
     "nb_tests": {"fr": "Nombre de tests", "en": "Tests count"},

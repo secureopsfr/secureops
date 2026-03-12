@@ -79,6 +79,8 @@ export default function ScannerDocsPage() {
                   <Link
                     key={doc.slug}
                     href={lp(`/scanner/docs/${doc.slug}`)}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center gap-4 p-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[rgb(var(--primary))] hover:bg-[rgba(var(--primary),0.05)] transition-colors no-underline h-full min-h-[120px]"
                   >
                     <div className="w-10 h-10 rounded-lg bg-[rgba(var(--primary),0.1)] flex items-center justify-center flex-shrink-0">

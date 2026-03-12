@@ -36,7 +36,22 @@ def handle_queue_item(item: tuple, sse_message_fn: Callable) -> tuple[list[str],
     """Traite un item de la queue. Retourne (messages_sse, is_terminal).
 
     Args:
-        item: Tuple (tag, ...) ou (tag, payload, timeout, anti_bot, blocked, disallow).
+        item: Tuple (tag, ...) ou
+            (
+                tag,
+                payload,
+                timeout,
+                anti_bot,
+                anti_bot_signature_detected,
+                anti_bot_low_url_suspected,
+                timeout_html,
+                timeout_playwright,
+                blocked,
+                requests_blocked_html,
+                requests_blocked_playwright,
+                max_consecutive_403,
+                disallow,
+            ).
         sse_message_fn: Fonction pour formater un message SSE.
 
     Returns:
@@ -44,18 +59,38 @@ def handle_queue_item(item: tuple, sse_message_fn: Callable) -> tuple[list[str],
     """
     tag = item[0]
     if tag == "result":
-        _, payload, timeout_reached, anti_bot_suspected, requests_blocked, disallow_paths = item
+        (
+            _,
+            payload,
+            timeout_reached,
+            anti_bot_suspected,
+            anti_bot_signature_detected,
+            anti_bot_low_url_suspected,
+            timeout_html,
+            timeout_playwright,
+            requests_blocked,
+            requests_blocked_html,
+            requests_blocked_playwright,
+            max_consecutive_403,
+            disallow_paths,
+        ) = item
         nb = len(payload)
-        urls_label = "1 URL" if nb == 1 else f"{nb} URLs"
         messages = [
-            sse_message_fn("step", {"step": "crawl_done", "message": f"Exploration terminée ({urls_label})."}),
+            sse_message_fn("step", {"step": "crawl_done", "message": "", "url_count": nb}),
             sse_message_fn(
                 "result",
                 {
                     "urls": payload,
                     "timeout_reached": timeout_reached,
                     "anti_bot_suspected": anti_bot_suspected,
+                    "anti_bot_signature_detected": anti_bot_signature_detected,
+                    "anti_bot_low_url_suspected": anti_bot_low_url_suspected,
+                    "timeout_html": timeout_html,
+                    "timeout_playwright": timeout_playwright,
                     "requests_blocked": requests_blocked,
+                    "requests_blocked_html": requests_blocked_html,
+                    "requests_blocked_playwright": requests_blocked_playwright,
+                    "max_consecutive_403": max_consecutive_403,
                     "disallow_paths": disallow_paths,
                 },
             ),
@@ -67,7 +102,10 @@ def handle_queue_item(item: tuple, sse_message_fn: Callable) -> tuple[list[str],
         return [sse_message_fn("error", {"message": item[1], "status_code": 503})], True
     if tag == "error_500":
         return [sse_message_fn("error", {"message": item[1], "status_code": 500})], True
-    return [sse_message_fn("step", {"step": item[0], "message": item[1]})], False
+    step_data: dict = {"step": item[0], "message": item[1] if len(item) > 1 else ""}
+    if len(item) > 2 and isinstance(item[2], dict):
+        step_data.update(item[2])
+    return [sse_message_fn("step", step_data)], False
 
 
 def put_error_from_exception(exc: BaseException, url: str, queue: asyncio.Queue) -> tuple[str, int]:

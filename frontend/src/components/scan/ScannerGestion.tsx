@@ -12,14 +12,16 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import ScannerHistoryAlertsSection from "./ScannerHistoryAlertsSection";
+import MultiScanResults from "./MultiScanResults";
 import ScanResults from "./ScanResults";
 import ScannerEvolutionChart from "./ScannerEvolutionChart";
 import KpiGrid from "../admin/KpiGrid";
 import type { KpiItem } from "../admin/KpiGrid";
-import type { ScanResult } from "../../services/scanService";
+import type { MultiScanResult, ScanResult } from "../../services/scanService";
 import Drawer from "../ui/Drawer";
 import { GenericButton } from "../buttons";
 import { getScanHistory } from "../../services/scanHistoryService";
+import type { ScanHistorySelection } from "../../services/scanHistoryService";
 import userService from "../../services/userService";
 import { formatUrlDisplay } from "../../utils/urlFormat";
 import { getDateRangeFromDays } from "../../utils/apiQueryParams";
@@ -93,6 +95,8 @@ export default function ScannerGestion() {
   const { t, lp } = useLanguage();
   const router = useRouter();
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
+  const [selectedMultiResult, setSelectedMultiResult] =
+    useState<MultiScanResult | null>(null);
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   const [scheduleRefreshTrigger] = useState(0);
   const [filterUrl, setFilterUrl] = useState<string | null>(null);
@@ -178,16 +182,33 @@ export default function ScannerGestion() {
     setFilterDrawerOpen(false);
   }, []);
 
-  const handleSelectScan = (result: ScanResult, id?: string) => {
-    setSelectedResult(result);
-    setSelectedScanId(id ?? null);
+  const handleSelectScan = (selection: ScanHistorySelection) => {
+    setSelectedScanId(selection.scan_id ?? null);
+    if (selection.result_mode === "multi") {
+      setSelectedMultiResult(selection.result);
+      setSelectedResult(null);
+      return;
+    }
+    setSelectedResult(selection.result);
+    setSelectedMultiResult(null);
   };
 
   const handleNewScan = () => {
     setSelectedResult(null);
+    setSelectedMultiResult(null);
     setSelectedScanId(null);
     router.push(lp("/scanner/analyses"));
   };
+
+  if (selectedMultiResult) {
+    return (
+      <MultiScanResults
+        result={selectedMultiResult}
+        scanId={selectedScanId}
+        onNewScan={handleNewScan}
+      />
+    );
+  }
 
   if (selectedResult) {
     return (

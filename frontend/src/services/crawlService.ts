@@ -4,11 +4,11 @@
 
 import { getApiBaseUrl } from "../utils/apiClient";
 import logger from "../utils/logger";
+import type { ScanStep } from "./scanService";
 
 export interface CrawlUrlEntry {
   url: string;
-  type: string;
-  depth: number;
+  depth?: number;
 }
 
 export interface CrawlResponse {
@@ -17,8 +17,22 @@ export interface CrawlResponse {
   timeout_reached?: boolean;
   /** True si une protection anti-bot a été détectée (mode Playwright). */
   anti_bot_suspected?: boolean;
+  /** True si une signature anti-bot a été détectée dans le HTML. */
+  anti_bot_signature_detected?: boolean;
+  /** True si très peu d'URLs ont été trouvées en mode avancé (suspicion anti-bot). */
+  anti_bot_low_url_suspected?: boolean;
+  /** True si timeout sur le crawler HTML. */
+  timeout_html?: boolean;
+  /** True si timeout sur le crawler avancé. */
+  timeout_playwright?: boolean;
   /** True si trop de requêtes 403 (protection anti-bot, WAF) ; crawl arrêté, résultats partiels. */
   requests_blocked?: boolean;
+  /** True si le crawler HTML a été bloqué par 403 consécutifs. */
+  requests_blocked_html?: boolean;
+  /** True si le crawler avancé a été bloqué par 403 consécutifs. */
+  requests_blocked_playwright?: boolean;
+  /** Maximum de réponses 403 consécutives observées pendant le crawl. */
+  max_consecutive_403?: number;
   /** Chemins Disallow extraits de robots.txt (non crawlés). */
   disallow_paths?: string[];
 }
@@ -26,7 +40,7 @@ export interface CrawlResponse {
 export type CrawlEventType = "step" | "result" | "error";
 
 export type CrawlEventHandler =
-  | { type: "step"; data: { step: string; message: string } }
+  | { type: "step"; data: ScanStep }
   | { type: "result"; data: CrawlResponse }
   | {
       type: "error";
@@ -45,7 +59,7 @@ interface AsyncCrawlCreateResponse {
 interface AsyncCrawlStatusResponse {
   job_id: string;
   status: AsyncJobStatus;
-  progress_log?: Array<{ step: string; message: string; at: string }>;
+  progress_log?: Array<ScanStep & { at: string }>;
   error?: {
     message?: string;
     status_code?: number;
@@ -182,11 +196,9 @@ export async function runCrawl(
       const progress = statusData.progress_log ?? [];
       const hasNewProgress = progress.length > seenProgress;
       for (let i = seenProgress; i < progress.length; i += 1) {
-        const entry = progress[i];
-        onEvent({
-          type: "step",
-          data: { step: entry.step, message: entry.message },
-        });
+        const { at, ...stepData } = progress[i];
+        void at;
+        onEvent({ type: "step", data: stepData });
       }
       seenProgress = progress.length;
       pollIntervalMs = hasNewProgress

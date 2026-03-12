@@ -9,11 +9,14 @@ import type { PaginatedListResponse } from "../types/api";
 export type Frequency = "daily" | "weekly" | "monthly";
 
 export type ScanType = "frontend" | "backend" | "custom";
+export type ResultMode = "single" | "multi";
 
 export interface ScheduledScan {
   id: string;
   url: string;
   scan_type: ScanType;
+  result_mode?: ResultMode;
+  urls?: string[] | null;
   frequency: string;
   schedule_hour: number;
   schedule_minute: number;
@@ -37,6 +40,8 @@ export interface ScanAlertEvent {
 export interface CreateScheduledScanInput {
   url: string;
   scan_type: ScanType;
+  result_mode?: ResultMode;
+  urls?: string[];
   frequency: Frequency;
   schedule_hour?: number;
   schedule_minute?: number;
@@ -77,6 +82,8 @@ export async function createScheduledScan(
       body: JSON.stringify({
         url: input.url,
         scan_type: input.scan_type,
+        result_mode: input.result_mode ?? "single",
+        urls: input.urls ?? null,
         frequency: input.frequency,
         schedule_hour: input.schedule_hour ?? 2,
         schedule_minute: input.schedule_minute ?? 0,

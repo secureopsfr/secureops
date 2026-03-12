@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useStepQueue } from "../../hooks/useStepQueue";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { fetchAuthSession } from "aws-amplify/auth";
 import { AlertTriangle, FileText, Globe } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
@@ -14,6 +14,7 @@ import Modal from "../ui/Modal";
 import CrawlValidationStep from "./CrawlValidationStep";
 import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
+import MultiScanResults from "./MultiScanResults";
 import ScanResultsGate from "./ScanResultsGate";
 import ScannerHistoryAlertsSection from "./ScannerHistoryAlertsSection";
 import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
@@ -21,11 +22,14 @@ import { RecurrenceScheduleFields } from "../schedule";
 import { Checkbox } from "../inputs";
 import {
   runScan,
+  runMultiScan,
   type ScanResult,
+  type MultiScanResult,
   type ScanError,
-  type ScanStepDisplay,
 } from "../../services/scanService";
-import { runCrawl, type CrawlUrlEntry } from "../../services/crawlService";
+import { runCrawl } from "../../services/crawlService";
+import { useCrawlState } from "../../hooks/useCrawlState";
+import { useAuthToken } from "../../hooks/useAuthToken";
 import {
   createScheduledScan,
   getUserTimezone,
@@ -36,7 +40,11 @@ import {
   savePendingScanResult,
   consumePendingScanResult,
 } from "../../utils/scanStorage";
-import { saveScan } from "../../services/scanHistoryService";
+import {
+  saveMultiScan,
+  saveScan,
+  type ScanHistorySelection,
+} from "../../services/scanHistoryService";
 import {
   showErrorToast,
   showSuccessToast,
@@ -76,10 +84,17 @@ export default function ScannerContent() {
   const { isAuthenticated, isLoading: authLoading } = useAuthUser({
     listenToAuthEvents: true,
   });
+  const getToken = useAuthToken(isAuthenticated);
   const [url, setUrl] = useState("");
   const [state, setState] = useState<ScanState>("idle");
-  const [steps, setSteps] = useState<ScanStepDisplay[]>([]);
+  const { steps, enqueueStep, resetSteps } = useStepQueue();
+  const {
+    steps: crawlSteps,
+    enqueueStep: enqueueCrawlStep,
+    resetSteps: resetCrawlSteps,
+  } = useStepQueue();
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [multiResult, setMultiResult] = useState<MultiScanResult | null>(null);
   const [scanId, setScanId] = useState<string | null>(null);
   const [error, setError] = useState<ScanError | null>(null);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
@@ -91,16 +106,14 @@ export default function ScannerContent() {
   const [saving, setSaving] = useState(false);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scanOnlyThisPage, setScanOnlyThisPage] = useState(true);
-  const [crawlMode, setCrawlMode] = useState<"html" | "playwright" | "both">(
-    "html",
-  );
-  const [crawlMaxUrls, setCrawlMaxUrls] = useState(50);
-  const [crawledUrls, setCrawledUrls] = useState<CrawlUrlEntry[]>([]);
-  const [crawlTimeoutReached, setCrawlTimeoutReached] = useState(false);
-  const [crawlAntiBotSuspected, setCrawlAntiBotSuspected] = useState(false);
-  const [crawlRequestsBlocked, setCrawlRequestsBlocked] = useState(false);
-  const [crawlDisallowPaths, setCrawlDisallowPaths] = useState<string[]>([]);
-  const [crawlSteps, setCrawlSteps] = useState<ScanStepDisplay[]>([]);
+  const {
+    crawl,
+    setCrawlMode,
+    setCrawlMaxUrls,
+    setCrawlUrls,
+    setCrawlResult,
+    resetCrawlState,
+  } = useCrawlState();
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -121,49 +134,17 @@ export default function ScannerContent() {
   const runScanOnUrl = useCallback(
     (urlToScan: string) => {
       setState("loading");
-      setSteps([]);
+      resetSteps();
       setResult(null);
       setScanId(null);
       setError(null);
       setErrorModalOpen(false);
 
-      const getToken = isAuthenticated
-        ? async () => {
-            try {
-              const session = await fetchAuthSession();
-              return session.tokens?.accessToken?.toString() ?? null;
-            } catch {
-              return null;
-            }
-          }
-        : undefined;
-
       runScan(
         urlToScan,
         (ev) => {
           if (ev.type === "step") {
-            const done = ev.data.step.endsWith("_done");
-            setSteps((prev) => {
-              if (done && prev.length > 0) {
-                const updated = [...prev];
-                updated[updated.length - 1] = {
-                  step: ev.data.step,
-                  message: ev.data.message,
-                  done: true,
-                  anomaly_count: ev.data.anomaly_count,
-                };
-                return updated;
-              }
-              return [
-                ...prev,
-                {
-                  step: ev.data.step,
-                  message: ev.data.message,
-                  done: false,
-                  anomaly_count: ev.data.anomaly_count,
-                },
-              ];
-            });
+            enqueueStep(ev.data);
           } else if (ev.type === "result") {
             if (isAuthenticated) {
               setResult(ev.data);
@@ -199,7 +180,7 @@ export default function ScannerContent() {
         setErrorModalOpen(true);
       });
     },
-    [t, isAuthenticated],
+    [t, isAuthenticated, getToken, resetSteps, enqueueStep],
   );
 
   const handleSubmit = useCallback(
@@ -217,114 +198,18 @@ export default function ScannerContent() {
       }
 
       setState("crawling");
-      setCrawlSteps([]);
+      resetCrawlSteps();
       runCrawl(
         urlToScan,
         (ev) => {
           if (ev.type === "step") {
-            const step = ev.data.step;
-            const done = step.endsWith("_done");
-            const isCrawlMerging = step === "crawl_merging";
-            const isCrawlStoppingOther = step === "crawl_stopping_other";
-            const isCrawlProgress =
-              step === "crawl_progress" ||
-              step === "html_crawl_progress" ||
-              step === "playwright_crawl_progress";
-            setCrawlSteps((prev) => {
-              if (isCrawlStoppingOther && prev.length > 0) {
-                const lastDone = prev.findLastIndex((s) =>
-                  ["crawl_html_done", "crawl_playwright_done"].includes(s.step),
-                );
-                const branchToReplace =
-                  lastDone >= 0 && prev[lastDone]?.step === "crawl_html_done"
-                    ? "playwright"
-                    : "html";
-                const targetStep =
-                  branchToReplace === "playwright"
-                    ? "playwright_crawl_progress"
-                    : "html_crawl_progress";
-                const idx = prev.findLastIndex((s) => s.step === targetStep);
-                if (idx >= 0) {
-                  const updated = [...prev];
-                  updated[idx] = {
-                    step: "crawl_stopping_other",
-                    message: ev.data.message,
-                    done: false,
-                  };
-                  return updated;
-                }
-              }
-              if (isCrawlMerging && prev.length > 0) {
-                const updated = [...prev];
-                const stopIdx = updated.findLastIndex(
-                  (s) => s.step === "crawl_stopping_other",
-                );
-                if (stopIdx >= 0) {
-                  updated[stopIdx] = {
-                    step: updated[stopIdx].step,
-                    message: updated[stopIdx].message,
-                    done: true,
-                  };
-                }
-                return [
-                  ...updated,
-                  {
-                    step: ev.data.step,
-                    message: ev.data.message,
-                    done: false,
-                  },
-                ];
-              }
-              if (done && prev.length > 0) {
-                const updated = [...prev];
-                const checkStep = step.replace("_done", "_check");
-                const idx = updated.findLastIndex((s) => s.step === checkStep);
-                if (idx >= 0) {
-                  updated[idx] = {
-                    step: updated[idx].step,
-                    message: ev.data.message,
-                    done: true,
-                  };
-                } else {
-                  updated[updated.length - 1] = {
-                    step: prev[prev.length - 1].step,
-                    message: ev.data.message,
-                    done: true,
-                  };
-                }
-                return updated;
-              }
-              if (isCrawlProgress && prev.length > 0) {
-                const lastIdx = prev.findLastIndex((s) => s.step === step);
-                if (lastIdx >= 0) {
-                  const updated = [...prev];
-                  updated[lastIdx] = {
-                    step: ev.data.step,
-                    message: ev.data.message,
-                    done: false,
-                  };
-                  return updated;
-                }
-              }
-              return [
-                ...prev,
-                {
-                  step: ev.data.step,
-                  message: ev.data.message,
-                  done: false,
-                },
-              ];
-            });
+            enqueueCrawlStep(ev.data);
           } else if (ev.type === "result") {
             const urls =
               ev.data.urls.length > 0
                 ? ev.data.urls
-                : [{ url: urlToScan, type: "page", depth: 0 }];
-            setCrawledUrls(urls);
-            setCrawlTimeoutReached(ev.data.timeout_reached ?? false);
-            setCrawlAntiBotSuspected(ev.data.anti_bot_suspected ?? false);
-            setCrawlRequestsBlocked(ev.data.requests_blocked ?? false);
-            setCrawlDisallowPaths(ev.data.disallow_paths ?? []);
+                : [{ url: urlToScan, depth: 0 }];
+            setCrawlResult({ ...ev.data, urls }, crawl.mode);
             // Rester en crawling : ScanLoader appelle onAnimationComplete à la fin
           } else if (ev.type === "error") {
             setError({
@@ -336,8 +221,8 @@ export default function ScannerContent() {
             setErrorModalOpen(true);
           }
         },
-        crawlMaxUrls,
-        crawlMode,
+        crawl.maxUrls,
+        crawl.mode,
       ).catch((err) => {
         setError({
           message: err instanceof Error ? err.message : t("scanner.crawlError"),
@@ -347,41 +232,150 @@ export default function ScannerContent() {
         setErrorModalOpen(true);
       });
     },
-    [url, scanOnlyThisPage, crawlMaxUrls, crawlMode, runScanOnUrl, t],
+    [
+      url,
+      scanOnlyThisPage,
+      runScanOnUrl,
+      t,
+      enqueueCrawlStep,
+      resetCrawlSteps,
+      setCrawlResult,
+      crawl,
+    ],
+  );
+
+  const runMultiScanOnUrls = useCallback(
+    (urlsToScan: string[]) => {
+      setState("loading");
+      resetSteps();
+      setResult(null);
+      setMultiResult(null);
+      setScanId(null);
+      setError(null);
+      setErrorModalOpen(false);
+
+      runMultiScan(
+        urlsToScan,
+        (ev) => {
+          if (ev.type === "step") {
+            enqueueStep(ev.data);
+          } else if (ev.type === "result") {
+            setMultiResult(ev.data);
+            if (isAuthenticated) {
+              saveMultiScan(ev.data)
+                .then((id) => {
+                  if (id) setScanId(id);
+                })
+                .catch(() => showErrorToast(t("scanner.saveFailed")));
+            }
+            setState("success");
+          } else if (ev.type === "error") {
+            setError(ev.data);
+            setState("error");
+            setErrorModalOpen(true);
+          }
+        },
+        getToken ?? (async () => null),
+      ).catch((err) => {
+        setError({
+          message:
+            err instanceof Error ? err.message : t("scanner.errorGeneric"),
+          status_code: 500,
+        });
+        setState("error");
+        setErrorModalOpen(true);
+      });
+    },
+    [isAuthenticated, t, getToken, resetSteps, enqueueStep],
   );
 
   const handleLaunchScanFromValidation = useCallback(() => {
-    runScanOnUrl(normalizeScanUrl(url.trim()));
-  }, [url, runScanOnUrl]);
+    const urlStrings = crawl.urls.map((u) => u.url).filter(Boolean);
+    if (urlStrings.length > 1) {
+      runMultiScanOnUrls(urlStrings);
+    } else {
+      runScanOnUrl(normalizeScanUrl(url.trim()));
+    }
+  }, [url, crawl.urls, runScanOnUrl, runMultiScanOnUrls]);
+
+  const handleScheduleFromValidation = useCallback(async () => {
+    if (!isAuthenticated || authLoading) return;
+    const urlStrings = crawl.urls.map((u) => u.url).filter(Boolean);
+    if (urlStrings.length === 0) {
+      showErrorToast(t("scheduledScans.urlRequired"));
+      return;
+    }
+
+    const { hour, minute } = parseTimeToHourMinute(formTime);
+    setSaving(true);
+    try {
+      const normalizedBaseUrl = normalizeScanUrl(url.trim() || urlStrings[0]);
+      await createScheduledScan({
+        url: normalizedBaseUrl,
+        scan_type: "frontend",
+        result_mode: urlStrings.length > 1 ? "multi" : "single",
+        urls: urlStrings.length > 1 ? urlStrings : undefined,
+        frequency: formFrequency,
+        schedule_hour: hour,
+        schedule_minute: minute,
+        schedule_day_of_week:
+          formFrequency === "weekly" ? formDayOfWeek : undefined,
+        schedule_day_of_month:
+          formFrequency === "monthly" ? formDayOfMonth : undefined,
+        timezone: getUserTimezone(),
+        scan_alerts_enabled: formScanAlertsEnabled,
+      });
+      showSuccessToast(t("scheduledScans.createSuccess"));
+      setState("idle");
+      resetCrawlState();
+    } catch (err) {
+      showErrorToast(
+        err instanceof Error ? err.message : t("scheduledScans.createError"),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    authLoading,
+    crawl.urls,
+    formDayOfMonth,
+    formDayOfWeek,
+    formFrequency,
+    formScanAlertsEnabled,
+    formTime,
+    isAuthenticated,
+    resetCrawlState,
+    t,
+    url,
+  ]);
 
   const handleBackFromValidation = useCallback(() => {
     setState("idle");
-    setCrawledUrls([]);
-    setCrawlTimeoutReached(false);
-    setCrawlAntiBotSuspected(false);
-    setCrawlRequestsBlocked(false);
-    setCrawlDisallowPaths([]);
-    setCrawlSteps([]);
-  }, []);
+    resetCrawlState();
+  }, [resetCrawlState]);
 
-  const handleSelectScan = useCallback((r: ScanResult, id?: string) => {
-    setResult(r);
-    setScanId(id ?? null);
+  const handleSelectScan = useCallback((selection: ScanHistorySelection) => {
+    setScanId(selection.scan_id ?? null);
+    if (selection.result_mode === "multi") {
+      setMultiResult(selection.result);
+      setResult(null);
+    } else {
+      setResult(selection.result);
+      setMultiResult(null);
+    }
     setState("success");
   }, []);
 
   const handleNewScan = useCallback(() => {
     setState("idle");
-    setSteps([]);
+    resetSteps();
+    resetCrawlSteps();
     setResult(null);
+    setMultiResult(null);
     setScanId(null);
     setError(null);
-    setCrawledUrls([]);
-    setCrawlTimeoutReached(false);
-    setCrawlAntiBotSuspected(false);
-    setCrawlRequestsBlocked(false);
-    setCrawlDisallowPaths([]);
-  }, []);
+    resetCrawlState();
+  }, [resetCrawlState, resetSteps, resetCrawlSteps]);
 
   const handleAddScheduledScan = useCallback(async () => {
     if (!url.trim()) {
@@ -423,12 +417,14 @@ export default function ScannerContent() {
     t,
   ]);
 
-  const showHeader =
-    state === "idle" || state === "error" || state === "validation";
+  const showHeader = state === "idle" || state === "error";
+  const showScheduleValidationPopup = state === "validation" && scheduleEnabled;
+  const showScannerForm =
+    state === "idle" || state === "error" || showScheduleValidationPopup;
 
   return (
     <div className="space-y-4 w-full">
-      {showHeader && (
+      {(showHeader || showScheduleValidationPopup) && (
         <AnimateInView
           initialOnly
           delay={80}
@@ -442,6 +438,8 @@ export default function ScannerContent() {
               <p className="page-subtitle mt-0">{t("scanner.subtitle")}</p>
               <Link
                 href={lp("/scanner/docs/scan-frontend")}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
               >
                 <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
@@ -460,7 +458,7 @@ export default function ScannerContent() {
         aria-label="Scanner content"
       >
         <div className="scanner-content">
-          {(state === "idle" || state === "error") && (
+          {showScannerForm && (
             <>
               <div className="w-full">
                 <Card disableHover>
@@ -503,7 +501,7 @@ export default function ScannerContent() {
                             {t("scanner.crawlModeLabel")}
                           </label>
                           <DropdownSelector
-                            selectedValue={crawlMode}
+                            selectedValue={crawl.mode}
                             onChange={(v) =>
                               setCrawlMode(v as "html" | "playwright" | "both")
                             }
@@ -538,7 +536,7 @@ export default function ScannerContent() {
                             type="number"
                             min={5}
                             max={200}
-                            value={crawlMaxUrls}
+                            value={crawl.maxUrls}
                             onChange={(e) => {
                               const v = parseInt(e.target.value, 10);
                               setCrawlMaxUrls(
@@ -604,13 +602,26 @@ export default function ScannerContent() {
                         </>
                       )}
                       <div className="flex gap-2 flex-wrap">
-                        {scheduleEnabled && isAuthenticated && !authLoading ? (
+                        {scheduleEnabled &&
+                        isAuthenticated &&
+                        !authLoading &&
+                        scanOnlyThisPage ? (
                           <GenericButton
                             type="button"
                             label={t("scheduledScans.scheduleBtn")}
                             variant="primary"
                             onClick={handleAddScheduledScan}
                             loading={saving}
+                            disabled={!url.trim()}
+                          />
+                        ) : scheduleEnabled &&
+                          isAuthenticated &&
+                          !authLoading &&
+                          !scanOnlyThisPage ? (
+                          <GenericButton
+                            type="submit"
+                            label={t("scanner.cta")}
+                            variant="primary"
                             disabled={!url.trim()}
                           />
                         ) : (
@@ -636,9 +647,9 @@ export default function ScannerContent() {
                     <ScanLoader
                       steps={crawlSteps}
                       titleKey="scanner.crawlLoading"
-                      crawlMode={crawlMode}
+                      crawlMode={crawl.mode}
                       onAnimationComplete={
-                        crawledUrls.length > 0
+                        crawl.urls.length > 0
                           ? () => setState("validation")
                           : undefined
                       }
@@ -648,19 +659,72 @@ export default function ScannerContent() {
                 )
               : null)}
 
-          {state === "validation" && (
-            <CrawlValidationStep
-              urls={crawledUrls}
-              startUrl={url.trim()}
-              timeoutReached={crawlTimeoutReached}
-              antiBotSuspected={crawlAntiBotSuspected}
-              requestsBlocked={crawlRequestsBlocked}
-              disallowPaths={crawlDisallowPaths}
-              onUrlsChange={setCrawledUrls}
-              onLaunchScan={handleLaunchScanFromValidation}
-              onBack={handleBackFromValidation}
-            />
-          )}
+          {(state === "validation" || showScheduleValidationPopup) &&
+            (() => {
+              const validationProps = {
+                urls: crawl.urls,
+                identifiedCount: crawl.identifiedCount,
+                startUrl: url.trim(),
+                timeoutReached: crawl.timeoutReached,
+                timeoutHtml: crawl.timeoutHtml,
+                timeoutPlaywright: crawl.timeoutPlaywright,
+                antiBotSignatureDetected: crawl.antiBotSignatureDetected,
+                antiBotLowUrlSuspected: crawl.antiBotLowUrlSuspected,
+                requestsBlocked: crawl.requestsBlocked,
+                requestsBlockedHtml: crawl.requestsBlockedHtml,
+                requestsBlockedPlaywright: crawl.requestsBlockedPlaywright,
+                maxConsecutive403: crawl.maxConsecutive403,
+                disallowPaths: crawl.disallowPaths,
+                onUrlsChange: setCrawlUrls,
+                onBack: handleBackFromValidation,
+              };
+
+              const inner =
+                state === "validation" && !scheduleEnabled ? (
+                  <CrawlValidationStep
+                    {...validationProps}
+                    onLaunchScan={handleLaunchScanFromValidation}
+                    launchButtonLabelKey="scanner.launchScanFromList"
+                    showFloatingBackAction={false}
+                  />
+                ) : showScheduleValidationPopup ? (
+                  <CrawlValidationStep
+                    {...validationProps}
+                    onLaunchScan={handleScheduleFromValidation}
+                    launchButtonLabelKey="scheduledScans.scheduleBtn"
+                    showFloatingBackAction={false}
+                    compact
+                  />
+                ) : null;
+
+              if (!inner) return null;
+
+              if (
+                showScheduleValidationPopup &&
+                typeof document !== "undefined"
+              ) {
+                return createPortal(
+                  <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                    style={{
+                      backgroundColor: "var(--color-overlay)",
+                      backdropFilter: "blur(4px)",
+                      WebkitBackdropFilter: "blur(4px)",
+                    }}
+                    onClick={handleBackFromValidation}
+                  >
+                    <div
+                      className="w-full max-w-4xl"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {inner}
+                    </div>
+                  </div>,
+                  document.body,
+                );
+              }
+              return inner;
+            })()}
 
           {state === "loading" &&
             (typeof document !== "undefined"
@@ -668,7 +732,7 @@ export default function ScannerContent() {
                   <div className="scan-loading-overlay fixed inset-0 z-[60]">
                     <ScanLoader
                       steps={steps}
-                      crawlMode={scanOnlyThisPage ? undefined : crawlMode}
+                      crawlMode={scanOnlyThisPage ? undefined : crawl.mode}
                       onAnimationComplete={
                         result ? () => setState("success") : undefined
                       }
@@ -689,7 +753,19 @@ export default function ScannerContent() {
             )}
 
           {state === "success" &&
+            multiResult &&
+            isAuthenticated &&
+            !authLoading && (
+              <MultiScanResults
+                result={multiResult}
+                scanId={scanId}
+                onNewScan={handleNewScan}
+              />
+            )}
+
+          {state === "success" &&
             result &&
+            !multiResult &&
             !authLoading &&
             (isAuthenticated ? (
               <ScanResults

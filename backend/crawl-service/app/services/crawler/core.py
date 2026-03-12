@@ -21,6 +21,7 @@ from html.parser import HTMLParser
 from urllib.parse import urlparse, urlunparse
 
 from app.config_loader import get_crawler_settings, get_ssrf_settings
+from app.services.crawler.anti_bot import detect_anti_bot
 from app.services.crawler.url_utils import is_same_domain, normalize_base_domain, normalize_url
 from app.services.robots_txt.checks import run_robots_txt_checks
 from app.utils.http_fetch import scan_client
@@ -36,12 +37,11 @@ class CrawlUrlEntry:
     """Entrée URL découverte par le crawler."""
 
     url: str
-    type: str
     depth: int
 
     def to_dict(self) -> dict:
-        """Convertit l'entrée en dict pour la réponse SSE (url, type, depth)."""
-        return {"url": self.url, "type": self.type, "depth": self.depth}
+        """Convertit l'entrée en dict pour la réponse SSE (url, depth)."""
+        return {"url": self.url, "depth": self.depth}
 
 
 @dataclass
@@ -101,20 +101,6 @@ def _has_excluded_path_prefix(url: str, prefixes: tuple[str, ...]) -> bool:
     return any(path.startswith(p.lower()) for p in prefixes)
 
 
-def _is_api_endpoint(url: str, api_patterns: tuple[str, ...]) -> bool:
-    """Détecte si l'URL ressemble à un endpoint API."""
-    parsed = urlparse(url)
-    path = (parsed.path or "").lower()
-    return any(p in path for p in api_patterns)
-
-
-def _classify_url_type(url: str, source_tag: str, api_patterns: tuple[str, ...]) -> str:
-    """Classifie le type de l'URL selon la balise source."""
-    if _is_api_endpoint(url, api_patterns):
-        return "api_endpoint"
-    return source_tag
-
-
 class _CrawlerHTMLParser(HTMLParser):
     """Parser HTML pour extraire les liens crawlables (a, form, script, link, iframe)."""
 
@@ -122,10 +108,10 @@ class _CrawlerHTMLParser(HTMLParser):
         super().__init__()
         self._base_url = base_url
         self._base_host = base_host
-        self._links: list[tuple[str, str]] = []
+        self._links: list[str] = []
 
     @property
-    def links(self) -> list[tuple[str, str]]:
+    def links(self) -> list[str]:
         return self._links
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:  # noqa: C901
@@ -135,37 +121,37 @@ class _CrawlerHTMLParser(HTMLParser):
         if tag_lower == "a":
             href = attr_map.get("href", "")
             if href:
-                self._add_link(href, "page")
+                self._add_link(href)
         elif tag_lower == "form":
             action = attr_map.get("action", "")
             if action:
-                self._add_link(action, "form")
+                self._add_link(action)
             else:
-                self._add_link(self._base_url, "form")
+                self._add_link(self._base_url)
         elif tag_lower == "script":
             src = attr_map.get("src", "")
             if src:
-                self._add_link(src, "script")
+                self._add_link(src)
         elif tag_lower == "link":
             rel = attr_map.get("rel", "").lower()
             href = attr_map.get("href", "")
             if "stylesheet" in rel and href:
-                self._add_link(href, "stylesheet")
+                self._add_link(href)
         elif tag_lower == "iframe":
             src = attr_map.get("src", "")
             if src:
-                self._add_link(src, "page")
+                self._add_link(src)
 
-    def _add_link(self, href: str, default_type: str) -> None:
+    def _add_link(self, href: str) -> None:
         normalized = normalize_url(href, self._base_url)
         if not normalized:
             return
         if not is_same_domain(normalized, self._base_host):
             return
-        self._links.append((normalized, default_type))
+        self._links.append(normalized)
 
 
-def _extract_links_from_html(html: str, page_url: str) -> list[tuple[str, str]]:
+def _extract_links_from_html(html: str, page_url: str) -> list[str]:
     """Extrait les liens crawlables du HTML."""
     parsed = urlparse(page_url)
     base_host = parsed.netloc.lower()
@@ -173,18 +159,17 @@ def _extract_links_from_html(html: str, page_url: str) -> list[tuple[str, str]]:
     with contextlib.suppress(Exception):
         parser.feed(html)
     seen: set[str] = set()
-    result: list[tuple[str, str]] = []
-    for url, typ in parser.links:
+    result: list[str] = []
+    for url in parser.links:
         if url not in seen:
             seen.add(url)
-            result.append((url, typ))
+            result.append(url)
     return result
 
 
 def _extract_links_html(html: str, page_url: str) -> list[str]:
     """Extrait les URLs des liens du HTML (pour le mode HTTP)."""
-    links = _extract_links_from_html(html, page_url)
-    return [u for u, _ in links]
+    return _extract_links_from_html(html, page_url)
 
 
 def _is_path_disallowed(path: str, disallow_paths: list[str], allow_paths: list[str]) -> bool:
@@ -240,10 +225,10 @@ async def fetch_robots_and_sitemap(
     allow_paths: list[str] = []
     sitemap_urls_from_robots: list[str] = []
     if settings.respect_robots_txt:
-        progress("robots_check", "Lecture de robots.txt…")
+        progress("robots_check", "")
         disallow_paths, allow_paths, sitemap_urls_from_robots = await fetch_robots_disallow(base_origin.rstrip("/") + "/", client)
-        progress("robots_done", "robots.txt analysé.")
-    progress("sitemap_check", "Récupération du sitemap…")
+        progress("robots_done", "")
+    progress("sitemap_check", "")
     sitemap_page_urls = await fetch_all_sitemap_page_urls(
         base_origin,
         base_host,
@@ -255,7 +240,7 @@ async def fetch_robots_and_sitemap(
         start_time,
         crawl_timeout,
     )
-    progress("sitemap_done", "Sitemap récupéré.")
+    progress("sitemap_done", "")
     return disallow_paths, allow_paths, sitemap_page_urls
 
 
@@ -389,9 +374,8 @@ def _make_fetch_page_html(client, headers: dict):
     return lambda url: _fetch_page_html_impl(url, client, headers)
 
 
-def noop_progress(step: str, message: str) -> None:
+def noop_progress(step: str, message: str = "", **extra) -> None:
     """Callback vide par défaut pour on_progress."""
-    pass
 
 
 async def prepare_crawl_context(
@@ -469,8 +453,7 @@ def _enrich_from_queue_on_403(
         if _is_url_skipped(url_q, depth_q, disallow_paths, allow_paths, settings, settings.respect_robots_txt):
             continue
         seen_urls.add(url_disp)
-        url_typ = "sitemap" if url_disp in sitemap_urls_set else _classify_url_type(url_disp, "page", settings.api_patterns)
-        result_entries.append(CrawlUrlEntry(url=url_disp, type=url_typ, depth=depth_q))
+        result_entries.append(CrawlUrlEntry(url=url_disp, depth=depth_q))
 
 
 async def run_bfs(  # noqa: C901
@@ -489,7 +472,7 @@ async def run_bfs(  # noqa: C901
     extract_links: Callable[[str, str], list[str]],
     log_prefix: str = "",
     stop_event: asyncio.Event | None = None,
-) -> tuple[list[CrawlUrlEntry], bool, bool]:
+) -> tuple[list[CrawlUrlEntry], bool, bool, int, bool]:
     """BFS partagé : parcourt les URLs, fetch + extraction délégués au mode (HTML ou Playwright).
 
     Args:
@@ -509,7 +492,7 @@ async def run_bfs(  # noqa: C901
         log_prefix: Préfixe pour les logs (ex. "Playwright").
 
     Returns:
-        (result_entries, timeout_reached, requests_blocked).
+        (result_entries, timeout_reached, requests_blocked, max_consecutive_403, anti_bot_signature_detected).
     """
     seen_urls: set[str] = set()
     result_entries: list[CrawlUrlEntry] = []
@@ -523,6 +506,8 @@ async def run_bfs(  # noqa: C901
     timeout_reached = False
     requests_blocked = False
     consecutive_403 = 0
+    max_consecutive_403 = 0
+    anti_bot_signature_detected = False
 
     while queue and len(seen_urls) < max_urls_limit:
         if stop_event and stop_event.is_set():
@@ -542,13 +527,11 @@ async def run_bfs(  # noqa: C901
         if _is_url_skipped(url, depth, disallow_paths, allow_paths, settings, settings.respect_robots_txt):
             continue
 
-        url_type = _classify_url_type(url_display, "sitemap" if url_display in sitemap_urls_set else "page", settings.api_patterns)
-        result_entries.append(CrawlUrlEntry(url=url_display, type=url_type, depth=depth))
+        result_entries.append(CrawlUrlEntry(url=url_display, depth=depth))
 
         nb = len(result_entries)
         if nb % 10 == 0 or nb <= 3:
-            urls_label = "1 URL" if nb == 1 else f"{nb} URLs"
-            progress("crawl_progress", f"Exploration des pages ({urls_label})")
+            progress("crawl_progress", "", url_count=nb)
 
         if depth >= settings.max_depth:
             continue
@@ -565,6 +548,7 @@ async def run_bfs(  # noqa: C901
 
         if status_code == 403:
             consecutive_403 += 1
+            max_consecutive_403 = max(max_consecutive_403, consecutive_403)
             if consecutive_403 >= settings.consecutive_403_threshold:
                 logger.info(
                     "Crawl %sarrêté : %d requêtes 403 consécutives (protection anti-bot/WAF)",
@@ -595,6 +579,11 @@ async def run_bfs(  # noqa: C901
         else:
             max_html = 1024 * 1024
             html_to_parse = (html or "")[:max_html] if html else ""
+            if html_to_parse and detect_anti_bot(
+                html_to_parse,
+                settings.anti_bot_indicators,
+            ):
+                anti_bot_signature_detected = True
             link_urls = extract_links(html_to_parse, url_display)
         if not link_urls and not html:
             continue
@@ -609,7 +598,13 @@ async def run_bfs(  # noqa: C901
             queue.append((link_url, depth + 1))
 
     result_entries.sort(key=lambda e: (e.depth, e.url))
-    return result_entries, timeout_reached, requests_blocked
+    return (
+        result_entries,
+        timeout_reached,
+        requests_blocked,
+        max_consecutive_403,
+        anti_bot_signature_detected,
+    )
 
 
 async def run_crawl(
@@ -617,11 +612,18 @@ async def run_crawl(
     max_urls: int | None = None,
     on_progress: Callable[[str, str], None] | None = None,
     stop_event: asyncio.Event | None = None,
-) -> tuple[list[CrawlUrlEntry], bool, bool, list[str]]:
+) -> tuple[list[CrawlUrlEntry], bool, bool, int, bool, list[str]]:
     """Exécute un crawl synchrone depuis l'URL de départ.
 
     Returns:
-        Tuple (liste CrawlUrlEntry, timeout_reached, requests_blocked, disallow_paths).
+        Tuple (
+            liste CrawlUrlEntry,
+            timeout_reached,
+            requests_blocked,
+            max_consecutive_403,
+            anti_bot_signature_detected,
+            disallow_paths,
+        ).
 
     Raises:
         URLValidationError: Si l'URL est invalide.
@@ -656,14 +658,20 @@ async def run_crawl_from_prepared(
     *,
     on_progress: Callable[[str, str], None] | None = None,
     stop_event: asyncio.Event | None = None,
-) -> tuple[list[CrawlUrlEntry], bool, bool, list[str]]:
+) -> tuple[list[CrawlUrlEntry], bool, bool, int, bool, list[str]]:
     """Exécute le crawl HTML depuis un contexte déjà préparé."""
     progress = on_progress or noop_progress
     ctx = prepared.context
     async with scan_client() as client:
         headers = {"User-Agent": ctx.settings.user_agent}
         fetch_page_html = _make_fetch_page_html(client, headers)
-        result_entries, timeout_reached, requests_blocked = await run_bfs(
+        (
+            result_entries,
+            timeout_reached,
+            requests_blocked,
+            max_consecutive_403,
+            anti_bot_signature_detected,
+        ) = await run_bfs(
             ctx.validated,
             ctx.base_origin,
             ctx.base_host,
@@ -679,4 +687,11 @@ async def run_crawl_from_prepared(
             extract_links=_extract_links_html,
             stop_event=stop_event,
         )
-    return result_entries, timeout_reached, requests_blocked, prepared.disallow_paths
+    return (
+        result_entries,
+        timeout_reached,
+        requests_blocked,
+        max_consecutive_403,
+        anti_bot_signature_detected,
+        prepared.disallow_paths,
+    )

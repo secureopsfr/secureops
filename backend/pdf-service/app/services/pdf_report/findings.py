@@ -94,9 +94,14 @@ def build_finding_block(
 
     severity_display = _severity_label(f.severity, lang)
 
-    raw_evidence = get_evidence(f.id, lang) if f.id else ""
-    evidence_text = _truncate(raw_evidence or f.evidence, render.evidence_max_len, "evidence", f.id)
-    evidence = escape(evidence_text)
+    catalog_evidence = get_evidence(f.id, lang) if f.id else ""
+    provided_evidence = (f.evidence or "").strip()
+    if catalog_evidence and provided_evidence and provided_evidence != catalog_evidence:
+        raw_evidence = f"{provided_evidence}\n{catalog_evidence}"
+    else:
+        raw_evidence = provided_evidence or catalog_evidence
+    evidence_text = _truncate(raw_evidence, render.evidence_max_len, "evidence", f.id)
+    evidence = escape(evidence_text).replace("\n", "<br/>")
 
     raw_rec = get_recommendation(f.id, lang) if f.id else f.recommendation
     rec_text = _truncate(raw_rec, render.recommendation_max_len, "recommendation", f.id)

@@ -12,9 +12,10 @@ import {
   getScanDetail,
   deleteScan,
   downloadScanPdf,
+  type ScanHistoryDetail,
   type ScanHistoryItem,
+  type ScanHistorySelection,
 } from "../../services/scanHistoryService";
-import type { ScanResult } from "../../services/scanService";
 import { getScoreBadge } from "./scanConstants";
 import { usePaginatedFetch } from "../../hooks/usePaginatedFetch";
 import { useConfirmDelete } from "../../hooks/useConfirmDelete";
@@ -23,7 +24,7 @@ import { formatDate } from "../../utils/dateFormat";
 import { formatUrlDisplay } from "../../utils/urlFormat";
 
 interface ScanHistoryBlockProps {
-  onSelectScan: (result: ScanResult, scanId?: string) => void;
+  onSelectScan: (selection: ScanHistorySelection) => void;
   /** Filtre optionnel par URL (historique limité à cette URL). */
   filterUrl?: string | null;
   /** Filtre optionnel par type de scan (frontend, backend, custom). */
@@ -93,14 +94,8 @@ export default function ScanHistoryBlock({
       setLoadingDetailId(item.id);
       try {
         const detail = await getScanDetail(item.id);
-        const result: ScanResult = {
-          url: detail.url,
-          timestamp: detail.timestamp,
-          duration: detail.duration,
-          score: detail.score ?? 0,
-          findings: detail.findings,
-        };
-        onSelectScan(result, detail.id);
+        const selection = buildSelectionFromDetail(detail);
+        onSelectScan(selection);
       } catch {
         showErrorToast(t("scanner.historyLoadError"));
       } finally {
@@ -116,8 +111,12 @@ export default function ScanHistoryBlock({
       setPdfLoadingId(item.id);
       try {
         await downloadScanPdf(item.id, language as "fr" | "en");
-      } catch {
-        showErrorToast(t("scanner.exportPdfDownload") + " — erreur");
+      } catch (err) {
+        showErrorToast(
+          err instanceof Error
+            ? err.message
+            : t("scanner.exportPdfDownload") + " — erreur",
+        );
       } finally {
         setPdfLoadingId(null);
       }
@@ -149,6 +148,14 @@ export default function ScanHistoryBlock({
                         : "scanner.scanTypeFrontend";
                   const isLoading = loadingDetailId === item.id;
                   const isPdfLoading = pdfLoadingId === item.id;
+                  const modeKey =
+                    item.result_mode === "multi"
+                      ? "scanner.scanResultModeMulti"
+                      : "scanner.scanResultModeSingle";
+                  const modeBadgeClass =
+                    item.result_mode === "multi"
+                      ? "bg-[rgba(14,165,233,0.22)] text-white/70 border border-[rgba(14,165,233,0.40)]"
+                      : "bg-[rgba(168,85,247,0.22)] text-white/70 border border-[rgba(168,85,247,0.40)]";
                   return (
                     <li
                       key={item.id}
@@ -164,6 +171,11 @@ export default function ScanHistoryBlock({
                           {formatUrlDisplay(item.url)}
                         </span>
                         <span className="text-xs text-[var(--muted)]">
+                          <span
+                            className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium mr-1 ${modeBadgeClass}`}
+                          >
+                            {t(modeKey)}
+                          </span>
                           {!filterScanType && (
                             <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
                               {t(scanTypeKey)}
@@ -204,4 +216,42 @@ export default function ScanHistoryBlock({
       {ConfirmDeleteModal}
     </>
   );
+}
+
+function buildSelectionFromDetail(
+  detail: ScanHistoryDetail,
+): ScanHistorySelection {
+  if (detail.result_mode === "multi") {
+    return {
+      result_mode: "multi",
+      scan_id: detail.id,
+      result: {
+        result_mode: "multi",
+        base_url: detail.url,
+        urls: Array.isArray(detail.urls) ? detail.urls : [],
+        score_global: detail.score ?? 0,
+        page_results: Array.isArray(detail.page_results)
+          ? detail.page_results
+          : [],
+        timestamp: detail.timestamp,
+        duration: detail.duration,
+        scan_type: detail.scan_type ?? "frontend",
+        status: detail.status ?? "success",
+      },
+    };
+  }
+
+  return {
+    result_mode: "single",
+    scan_id: detail.id,
+    result: {
+      url: detail.url,
+      timestamp: detail.timestamp,
+      duration: detail.duration,
+      score: detail.score ?? 0,
+      findings: detail.findings,
+      category_summaries: detail.category_summaries,
+      total_tests_count: detail.total_tests_count,
+    },
+  };
 }

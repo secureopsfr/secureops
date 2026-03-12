@@ -13,3 +13,8 @@ class ReportPdfBody(BaseModel):
     timestamp: str = Field("", description="Horodatage ISO du scan")
     duration: float = Field(0.0, description="Durée du scan en secondes")
     findings: list[Finding] = Field(default_factory=list, description="Liste des findings")
+    result_mode: str | None = Field(None, description="Mode de résultat: single ou multi")
+    page_results: list[dict] | None = Field(
+        default=None,
+        description="Résultats par page (scan multi) pour afficher le tableau de comparaison",
+    )

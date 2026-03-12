@@ -19,6 +19,58 @@ GATEWAY_URL = os.getenv("GATEWAY_URL", _EXTERNAL.gateway_url)
 SAVE_TIMEOUT = _EXTERNAL.save_timeout
 
 
+async def save_multi_scan_to_history(
+    payload: dict[str, Any],
+    authorization: str,
+) -> str | None:
+    """Enregistre le résultat d'un scan multi-URL dans l'historique.
+
+    Le payload est sauvegardé sous forme d'une seule entrée avec
+    result_mode="multi". Les champs principaux (url=base_url, score=score_global)
+    sont alignés sur le format attendu par user-service pour la liste d'historique.
+
+    Args:
+        payload: Résultat MultiScanResult.to_dict() (result_mode, base_url, page_results…).
+        authorization: Header Authorization (Bearer <token>).
+
+    Returns:
+        str | None: ID du scan créé, ou None si la réponse n'en contient pas.
+
+    Raises:
+        Exception: Si la sauvegarde échoue.
+    """
+    url = f"{GATEWAY_URL.rstrip('/')}/user/api/scans/history"
+    body = {
+        "url": payload.get("base_url", ""),
+        "scan_type": payload.get("scan_type", "frontend"),
+        "status": "success",
+        "score": payload.get("score_global", 0),
+        "findings": [],
+        "timestamp": payload.get("timestamp", ""),
+        "duration": payload.get("duration", 0.0),
+        "result_mode": "multi",
+        "page_results": payload.get("page_results", []),
+        "urls": payload.get("urls", []),
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": authorization,
+    }
+    async with httpx.AsyncClient(timeout=SAVE_TIMEOUT) as client:
+        resp = await client.post(url, json=body, headers=headers)
+        if resp.status_code >= 400:
+            msg = resp.text or f"HTTP {resp.status_code}"
+            logger.warning("Sauvegarde multi-scan échouée: %s", msg)
+            raise RuntimeError(msg)
+        logger.info(
+            "Multi-scan sauvegardé dans l'historique: base_url=%s pages=%d",
+            payload.get("base_url", "")[:50],
+            len(payload.get("page_results", [])),
+        )
+        data = resp.json()
+        return data.get("id") if isinstance(data, dict) else None
+
+
 async def save_scan_to_history(
     payload: dict[str, Any],
     authorization: str,

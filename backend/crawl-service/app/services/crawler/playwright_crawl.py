@@ -23,11 +23,20 @@ async def run_crawl_playwright(
     max_urls: int | None = None,
     on_progress: Callable[[str, str], None] | None = None,
     stop_event: asyncio.Event | None = None,
-) -> tuple[list["CrawlUrlEntry"], bool, bool, bool, list[str]]:
+) -> tuple[list["CrawlUrlEntry"], bool, bool, bool, bool, bool, int, list[str]]:
     """Crawl SPA via Playwright : exécute le JavaScript pour découvrir les liens.
 
     Returns:
-        Tuple (liste CrawlUrlEntry, timeout_reached, anti_bot_suspected, requests_blocked, disallow_paths).
+        Tuple (
+            liste CrawlUrlEntry,
+            timeout_reached,
+            anti_bot_suspected,
+            anti_bot_signature_detected,
+            anti_bot_low_url_suspected,
+            requests_blocked,
+            max_consecutive_403,
+            disallow_paths,
+        ).
 
     Raises:
         URLValidationError: Si l'URL est invalide.
@@ -52,7 +61,13 @@ async def run_crawl_playwright(
             ctx.base_origin, ctx.base_host, ctx.settings, progress, client, ctx.start_time, ctx.crawl_timeout
         )
     anti_bot_flag = AntiBotFlag()
-    result_entries, timeout_reached, requests_blocked = await run_playwright_browser_bfs(
+    (
+        result_entries,
+        timeout_reached,
+        requests_blocked,
+        max_consecutive_403,
+        anti_bot_signature_detected_bfs,
+    ) = await run_playwright_browser_bfs(
         ctx,
         disallow_paths,
         allow_paths,
@@ -63,10 +78,13 @@ async def run_crawl_playwright(
         ctx.settings.playwright_page_timeout_ms,
         ctx.settings.playwright_network_idle_timeout_ms,
     )
-    anti_bot_suspected = anti_bot_flag.detected
+    anti_bot_signature_detected = anti_bot_flag.detected or anti_bot_signature_detected_bfs
+    anti_bot_suspected = anti_bot_signature_detected
+    anti_bot_low_url_suspected = False
     elapsed = time.monotonic() - ctx.start_time
     if len(result_entries) <= 3 and not anti_bot_suspected:
         anti_bot_suspected = True
+        anti_bot_low_url_suspected = True
         logger.info("Crawl Playwright : peu d'URLs (%d), anti-bot suspecté", len(result_entries))
     logger.info(
         "Crawl Playwright terminé : %d URLs en %.1fs timeout=%s anti_bot=%s requests_blocked=%s",
@@ -76,7 +94,16 @@ async def run_crawl_playwright(
         anti_bot_suspected,
         requests_blocked,
     )
-    return result_entries, timeout_reached, anti_bot_suspected, requests_blocked, disallow_paths
+    return (
+        result_entries,
+        timeout_reached,
+        anti_bot_suspected,
+        anti_bot_signature_detected,
+        anti_bot_low_url_suspected,
+        requests_blocked,
+        max_consecutive_403,
+        disallow_paths,
+    )
 
 
 async def run_crawl_playwright_from_prepared(
@@ -84,7 +111,7 @@ async def run_crawl_playwright_from_prepared(
     *,
     on_progress: Callable[[str, str], None] | None = None,
     stop_event: asyncio.Event | None = None,
-) -> tuple[list["CrawlUrlEntry"], bool, bool, bool, list[str]]:
+) -> tuple[list["CrawlUrlEntry"], bool, bool, bool, bool, bool, int, list[str]]:
     """Exécute le crawl Playwright depuis un contexte déjà préparé."""
     progress = on_progress or crawl_core.noop_progress
     try:
@@ -102,7 +129,13 @@ async def run_crawl_playwright_from_prepared(
         int(ctx.crawl_timeout),
     )
     anti_bot_flag = AntiBotFlag()
-    result_entries, timeout_reached, requests_blocked = await run_playwright_browser_bfs(
+    (
+        result_entries,
+        timeout_reached,
+        requests_blocked,
+        max_consecutive_403,
+        anti_bot_signature_detected_bfs,
+    ) = await run_playwright_browser_bfs(
         ctx,
         prepared.disallow_paths,
         prepared.allow_paths,
@@ -113,10 +146,13 @@ async def run_crawl_playwright_from_prepared(
         ctx.settings.playwright_page_timeout_ms,
         ctx.settings.playwright_network_idle_timeout_ms,
     )
-    anti_bot_suspected = anti_bot_flag.detected
+    anti_bot_signature_detected = anti_bot_flag.detected or anti_bot_signature_detected_bfs
+    anti_bot_suspected = anti_bot_signature_detected
+    anti_bot_low_url_suspected = False
     elapsed = time.monotonic() - ctx.start_time
     if len(result_entries) <= 3 and not anti_bot_suspected:
         anti_bot_suspected = True
+        anti_bot_low_url_suspected = True
         logger.info("Crawl Playwright : peu d'URLs (%d), anti-bot suspecté", len(result_entries))
     logger.info(
         "Crawl Playwright terminé : %d URLs en %.1fs timeout=%s anti_bot=%s requests_blocked=%s",
@@ -126,4 +162,13 @@ async def run_crawl_playwright_from_prepared(
         anti_bot_suspected,
         requests_blocked,
     )
-    return result_entries, timeout_reached, anti_bot_suspected, requests_blocked, prepared.disallow_paths
+    return (
+        result_entries,
+        timeout_reached,
+        anti_bot_suspected,
+        anti_bot_signature_detected,
+        anti_bot_low_url_suspected,
+        requests_blocked,
+        max_consecutive_403,
+        prepared.disallow_paths,
+    )

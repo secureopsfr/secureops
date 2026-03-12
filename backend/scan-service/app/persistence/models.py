@@ -41,3 +41,4 @@ class ScanAsyncJob(Base):
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    result_mode = Column(String(20), nullable=False, default="single", server_default="single")

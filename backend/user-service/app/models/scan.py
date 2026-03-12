@@ -45,6 +45,12 @@ class Scan(Base):
         default="frontend",
         comment="Type de scan : frontend, backend, custom",
     )
+    result_mode = Column(
+        String(10),
+        nullable=False,
+        default="single",
+        comment="Mode du résultat : single ou multi",
+    )
 
     status = Column(String(50), nullable=False, default="success", comment="Statut du scan (success, error)")
 
@@ -56,6 +62,16 @@ class Scan(Base):
         JSONB,
         nullable=True,
         comment="Résumés par catégorie (checks_count, label, etc.)",
+    )
+    page_results_json = Column(
+        JSONB,
+        nullable=True,
+        comment="Résultats par page pour un scan multi-URL",
+    )
+    urls_json = Column(
+        JSONB,
+        nullable=True,
+        comment="Liste des URLs scannées pour un scan multi-URL",
     )
 
     timestamp = Column(DateTime(timezone=True), nullable=False, comment="Horodatage ISO du scan")

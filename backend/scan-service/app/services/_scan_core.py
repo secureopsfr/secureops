@@ -24,6 +24,57 @@ from app.services.tls import run_tls_checks
 from app.services.tls.posture import compute_tls_posture
 
 
+@dataclass(frozen=True)
+class FindingsBundle:
+    """Résultat intermédiaire consolidé d'un scan ou d'une page.
+
+    Partagé entre le scan single-URL (build_result_payload) et le scan
+    multi-URL (_run_page, _build_error_page_result dans multi_scan_orchestrator).
+    Évite de dupliquer le bloc normalize → score → summaries → count.
+
+    Attributes:
+        findings: Tuple de findings normalisés.
+        score: Score de sécurité (0-100).
+        category_summaries: Résumés par catégorie avec checks_count.
+        total_tests_count: Nombre total de tests effectués.
+    """
+
+    findings: tuple
+    score: int
+    category_summaries: list
+    total_tests_count: int
+
+
+def build_findings_bundle(results: dict[str, object]) -> FindingsBundle:
+    """Calcule findings, score et résumés depuis un dict de résultats de checks.
+
+    Source unique pour la logique normalize → score → tls_posture →
+    build_category_summaries → total_tests_count. Tout changement de scoring
+    ou de catégorisation n'est à faire qu'ici.
+
+    Args:
+        results: Dict {step_name: check_result} issu d'un scan (ex. "tls",
+            "headers", "cache"…). Peut contenir un sous-ensemble de steps.
+
+    Returns:
+        FindingsBundle prêt à être converti en payload ou PageScanResult.
+    """
+    findings = normalize_results(results)
+    findings_tuple = tuple(findings)
+    score = compute_score(findings_tuple)
+    tls_result = results.get("tls")
+    tls_posture = compute_tls_posture(tls_result) if tls_result else None
+    tls_version = getattr(tls_result, "tls_version", None)
+    category_summaries = build_category_summaries(findings_tuple, tls_posture=tls_posture, tls_version=tls_version)
+    total_tests_count = sum(s.get("checks_count", 0) for s in category_summaries)
+    return FindingsBundle(
+        findings=findings_tuple,
+        score=score,
+        category_summaries=category_summaries,
+        total_tests_count=total_tests_count,
+    )
+
+
 @dataclass
 class ScanContext:
     """Contexte partagé entre les étapes de scan."""
@@ -87,26 +138,20 @@ def build_result_payload(
     *,
     scan_type: str = "frontend",
 ) -> dict:
-    """Construit le payload normalisé final du scan."""
-    findings = normalize_results(results)
-    findings_tuple = tuple(findings)
-    score = compute_score(findings_tuple)
+    """Construit le payload normalisé final du scan single-URL."""
+    bundle = build_findings_bundle(results)
     duration = (time.monotonic() - start_time) if start_time is not None else 0.0
     timestamp = datetime.now(timezone.utc).isoformat()
     scan_result = ScanResult(
         url=url,
         timestamp=timestamp,
         duration=duration,
-        score=score,
-        findings=findings_tuple,
+        score=bundle.score,
+        findings=bundle.findings,
     )
     payload = scan_result.to_dict()
-    tls_result = results["tls"]
-    tls_posture = compute_tls_posture(tls_result)
-    tls_version = getattr(tls_result, "tls_version", None)
-    category_summaries = build_category_summaries(findings_tuple, tls_posture=tls_posture, tls_version=tls_version)
-    payload["category_summaries"] = category_summaries
-    payload["total_tests_count"] = sum(s.get("checks_count", 0) for s in category_summaries)
+    payload["category_summaries"] = bundle.category_summaries
+    payload["total_tests_count"] = bundle.total_tests_count
     payload["scan_type"] = scan_type
     payload["status"] = "success"
     return payload

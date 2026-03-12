@@ -12,7 +12,7 @@ from common.async_jobs import ProgressBatcher, utc_now
 from app.config_loader import get_async_jobs_settings
 from app.db import get_async_session, init_db
 from app.services.async_job_repository import append_job_progress_batch, claim_next_job, mark_completed, mark_failed, mark_failed_timeout
-from app.services.async_scan_executor import execute_scan_job
+from app.services.async_scan_executor import execute_multi_scan_job, execute_scan_job
 
 logger = logging.getLogger(__name__)
 
@@ -88,12 +88,23 @@ async def _execute_claimed_job(session: Any, job: Any) -> None:
         batch_window_seconds=PROGRESS_BATCH_WINDOW_SECONDS,
     )
     try:
-        result, error = await execute_scan_job(
-            url=job.url,
-            scan_type=job.scan_type,
-            input_json=job.input_json or {},
-            on_progress=progress.on_progress,
-        )
+        result_mode = getattr(job, "result_mode", "single") or "single"
+        if result_mode == "multi":
+            input_data = job.input_json or {}
+            urls = input_data.get("urls") or [job.url]
+            result, error = await execute_multi_scan_job(
+                urls=urls,
+                scan_type=job.scan_type,
+                on_progress=progress.on_progress,
+            )
+        else:
+            result, error = await execute_scan_job(
+                url=job.url,
+                scan_type=job.scan_type,
+                input_json=job.input_json or {},
+                on_progress=progress.on_progress,
+                flush_fn=lambda: progress.flush(force=True),
+            )
         await progress.flush(force=True)
         await _finalize_job(
             session,

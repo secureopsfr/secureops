@@ -7,8 +7,17 @@ import logger from "../utils/logger";
 
 export interface ScanStep {
   step: string;
+  /** Vide depuis le backend ; conservé pour compatibilité et fallback. */
   message: string;
   anomaly_count?: number;
+  /** Données structurées pour les steps multi-scan (page_scan_*). */
+  url?: string;
+  page_index?: number;
+  total_pages?: number;
+  /** Score global pour multi_scan_done. */
+  score?: number;
+  /** Nombre d'URLs explorées pour crawl_progress / crawl_done. */
+  url_count?: number;
 }
 
 /** Étape affichée dans le loader (done dérivé de step.endsWith("_done")). */
@@ -52,6 +61,37 @@ export interface ScanResult {
   total_tests_count?: number;
 }
 
+/** Résultat du scan pour une page individuelle (mode multi-URL). */
+export interface PageScanResult {
+  url: string;
+  score: number;
+  findings: ScanFinding[];
+  category_summaries?: CategorySummary[];
+  total_tests_count?: number;
+  /** Message d'erreur si la page était inaccessible. */
+  error?: string;
+}
+
+/** Résultat agrégé d'un scan multi-URL sur un même domaine. */
+export interface MultiScanResult {
+  result_mode: "multi";
+  base_url: string;
+  urls: string[];
+  score_global: number;
+  page_results: PageScanResult[];
+  timestamp: string;
+  duration: number;
+  scan_type: string;
+  status: string;
+}
+
+export type MultiScanEventHandler =
+  | { type: "step"; data: ScanStep }
+  | { type: "result"; data: MultiScanResult }
+  | { type: "error"; data: ScanError }
+  | { type: "save_done"; data: { scan_id: string } }
+  | { type: "save_failed"; data: string };
+
 export interface ScanError {
   message: string;
   status_code: number;
@@ -87,12 +127,7 @@ interface AsyncScanCreateResponse {
 interface AsyncScanStatusResponse {
   job_id: string;
   status: AsyncJobStatus;
-  progress_log?: Array<{
-    step: string;
-    message: string;
-    at: string;
-    anomaly_count?: number;
-  }>;
+  progress_log?: Array<ScanStep & { at: string }>;
   error?: {
     message?: string;
     status_code?: number;
@@ -255,18 +290,9 @@ export async function runAsyncScan(
       const progress = statusData.progress_log ?? [];
       const hasNewProgress = progress.length > seenProgress;
       for (let i = seenProgress; i < progress.length; i += 1) {
-        const entry = progress[i];
-        onEvent({
-          type: "step",
-          data: {
-            step: entry.step,
-            message: entry.message,
-            anomaly_count:
-              typeof entry.anomaly_count === "number"
-                ? entry.anomaly_count
-                : undefined,
-          },
-        });
+        const { at, ...stepData } = progress[i];
+        void at;
+        onEvent({ type: "step", data: stepData });
       }
       seenProgress = progress.length;
       pollIntervalMs = hasNewProgress
@@ -329,6 +355,195 @@ export async function runAsyncScan(
           err instanceof Error
             ? err.message
             : "Erreur lors de la lecture du flux",
+        status_code: 500,
+      },
+    });
+  }
+}
+
+/**
+ * Lance un scan multi-URL (même domaine, utilisateur connecté requis).
+ * Crée un job via POST /scan/api/scan/multi-async puis poll le résultat.
+ *
+ * @param urls       - Liste d'URLs à scanner (même domaine)
+ * @param onEvent    - Callback pour chaque événement (step, result, error)
+ * @param getToken   - Retourne le token d'authentification (requis)
+ */
+export async function runMultiScan(
+  urls: string[],
+  onEvent: (ev: MultiScanEventHandler) => void,
+  getToken: () => Promise<string | null>,
+): Promise<void> {
+  const logPrefix = "[multi-scan-polling]";
+  const baseUrl = getApiBaseUrl();
+  const endpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan/multi-async`;
+
+  const token = await getToken();
+  if (!token) {
+    onEvent({
+      type: "error",
+      data: {
+        message: "Authentification requise pour le scan multi-URL",
+        status_code: 401,
+      },
+    });
+    return;
+  }
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+
+  let createResponse: Response;
+  try {
+    logger.info(`${logPrefix} create job request`, {
+      endpoint,
+      urlsCount: urls.length,
+    });
+    createResponse = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ urls, scan_type: "frontend" }),
+    });
+  } catch (err) {
+    onEvent({
+      type: "error",
+      data: {
+        message: err instanceof Error ? err.message : "Erreur réseau",
+        status_code: 0,
+      },
+    });
+    return;
+  }
+
+  if (!createResponse.ok) {
+    let errorMsg = `Erreur HTTP ${createResponse.status}`;
+    try {
+      const body = await createResponse.json();
+      if (body?.detail) errorMsg = body.detail;
+    } catch {}
+    onEvent({
+      type: "error",
+      data: { message: errorMsg, status_code: createResponse.status },
+    });
+    return;
+  }
+
+  interface MultiCreateResponse {
+    job_id: string;
+    status: string;
+    scan_type: string;
+  }
+
+  let createData: MultiCreateResponse;
+  try {
+    createData = (await createResponse.json()) as MultiCreateResponse;
+    logger.info(`${logPrefix} create job success`, {
+      job_id: createData.job_id,
+    });
+  } catch {
+    onEvent({
+      type: "error",
+      data: { message: "Réponse de création invalide", status_code: 500 },
+    });
+    return;
+  }
+
+  const jobId = createData.job_id;
+  const statusEndpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan/async/${jobId}`;
+  const resultEndpoint = `${statusEndpoint}/result`;
+  let seenProgress = 0;
+  let pollIntervalMs = 500;
+
+  try {
+    while (true) {
+      const pollHeaders: Record<string, string> = {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+
+      const statusRes = await fetch(statusEndpoint, {
+        method: "GET",
+        headers: pollHeaders,
+      });
+      if (!statusRes.ok) {
+        onEvent({
+          type: "error",
+          data: {
+            message: `Erreur statut HTTP ${statusRes.status}`,
+            status_code: statusRes.status,
+          },
+        });
+        return;
+      }
+
+      interface StatusResponse {
+        job_id: string;
+        status: string;
+        result_mode?: string;
+        progress_log?: Array<ScanStep & { at: string }>;
+        error?: { message?: string; status_code?: number; error_type?: string };
+      }
+
+      const statusData = (await statusRes.json()) as StatusResponse;
+      const progress = statusData.progress_log ?? [];
+      const hasNewProgress = progress.length > seenProgress;
+      for (let i = seenProgress; i < progress.length; i++) {
+        const { at, ...stepData } = progress[i];
+        void at;
+        onEvent({ type: "step", data: stepData });
+      }
+      seenProgress = progress.length;
+      pollIntervalMs = hasNewProgress
+        ? 500
+        : Math.min(8000, pollIntervalMs + 500);
+
+      if (statusData.status === "failed") {
+        onEvent({
+          type: "error",
+          data: {
+            message: statusData.error?.message ?? "Erreur de scan multi-URL",
+            status_code: statusData.error?.status_code ?? 500,
+            error_type: statusData.error?.error_type,
+          },
+        });
+        return;
+      }
+
+      if (statusData.status === "completed") {
+        const resultRes = await fetch(resultEndpoint, {
+          method: "GET",
+          headers: pollHeaders,
+        });
+        if (!resultRes.ok) {
+          onEvent({
+            type: "error",
+            data: {
+              message: `Erreur résultat HTTP ${resultRes.status}`,
+              status_code: resultRes.status,
+            },
+          });
+          return;
+        }
+        const resultData = (await resultRes.json()) as MultiScanResult;
+        logger.info(`${logPrefix} result received`, {
+          job_id: jobId,
+          pages: resultData.page_results?.length ?? 0,
+          score_global: resultData.score_global,
+        });
+        onEvent({ type: "result", data: resultData });
+        return;
+      }
+
+      await delay(pollIntervalMs);
+    }
+  } catch (err) {
+    onEvent({
+      type: "error",
+      data: {
+        message: err instanceof Error ? err.message : "Erreur lors du polling",
         status_code: 500,
       },
     });

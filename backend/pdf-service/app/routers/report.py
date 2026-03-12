@@ -55,6 +55,8 @@ def report_pdf(
         timestamp=body.timestamp,
         duration=body.duration,
         findings=body.findings,
+        result_mode=body.result_mode,
+        page_results=body.page_results,
         include_matrices=include_matrices,
         lang=lang,
     )

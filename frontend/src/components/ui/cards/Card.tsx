@@ -2,13 +2,10 @@
 
 import React from "react";
 
-interface CardProps {
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  className?: string;
   variant?: "default" | "testimonial";
-  onClick?: () => void;
   disableHover?: boolean;
-  style?: React.CSSProperties;
 }
 
 /**
@@ -23,6 +20,7 @@ const Card: React.FC<CardProps> = React.memo(
     onClick,
     disableHover = false,
     style,
+    ...rest
   }) => {
     const baseClasses = "card";
     const variantClasses = variant === "testimonial" ? "testimonial" : "";
@@ -33,6 +31,7 @@ const Card: React.FC<CardProps> = React.memo(
         className={`${baseClasses} ${variantClasses} ${hoverClasses} ${className}`.trim()}
         onClick={onClick}
         style={{ ...(onClick ? { cursor: "pointer" } : {}), ...style }}
+        {...rest}
       >
         {children}
       </div>

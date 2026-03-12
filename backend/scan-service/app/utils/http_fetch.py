@@ -7,7 +7,12 @@ les connexions TCP (keep-alive) sur toute la durée du scan.
 
 import contextlib
 import logging
+from collections import defaultdict
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import AsyncIterator
+from weakref import WeakKeyDictionary
 
 import httpx
 
@@ -24,6 +29,70 @@ _NETWORK_EXCEPTIONS = (
     httpx.ReadTimeout,
     httpx.WriteTimeout,
 )
+
+# Compteur de requêtes HTTP par client de scan (single ou multi).
+_SCAN_HTTP_REQUEST_COUNTS: WeakKeyDictionary[httpx.AsyncClient, int] = WeakKeyDictionary()
+_SCAN_HTTP_REQUESTS_BY_CATEGORY: WeakKeyDictionary[httpx.AsyncClient, dict[str, int]] = WeakKeyDictionary()
+_HTTP_REQUEST_CATEGORY: ContextVar[str] = ContextVar("scan_http_request_category", default="unattributed")
+
+
+def _attach_request_counter(client: httpx.AsyncClient) -> None:
+    """Attache un hook request pour compter chaque requête HTTP sortante."""
+    _SCAN_HTTP_REQUEST_COUNTS[client] = 0
+    _SCAN_HTTP_REQUESTS_BY_CATEGORY[client] = defaultdict(int)
+
+    async def _on_request(_request: httpx.Request) -> None:
+        _SCAN_HTTP_REQUEST_COUNTS[client] = _SCAN_HTTP_REQUEST_COUNTS.get(client, 0) + 1
+        category = _HTTP_REQUEST_CATEGORY.get()
+        category_counts = _SCAN_HTTP_REQUESTS_BY_CATEGORY.setdefault(client, defaultdict(int))
+        category_counts[category] = int(category_counts.get(category, 0)) + 1
+
+    client.event_hooks.setdefault("request", []).append(_on_request)
+
+
+def get_scan_http_request_count(client: httpx.AsyncClient) -> int:
+    """Retourne le nombre de requêtes HTTP émises par ce client de scan."""
+    return int(_SCAN_HTTP_REQUEST_COUNTS.get(client, 0))
+
+
+def get_scan_http_requests_by_category(client: httpx.AsyncClient) -> dict[str, int]:
+    """Retourne le détail des requêtes HTTP par catégorie pour ce client."""
+    return dict(_SCAN_HTTP_REQUESTS_BY_CATEGORY.get(client, {}))
+
+
+def log_http_metrics(
+    client: httpx.AsyncClient,
+    prefix: str,
+    **context: object,
+) -> None:
+    """Log le nombre et la répartition des requêtes HTTP du client de scan.
+
+    Source unique pour le format du log HTTP de fin de scan (scan-stream,
+    scan-runner, multi-scan). Tout changement de format se fait ici.
+
+    Args:
+        client: Client httpx dont les métriques sont lues.
+        prefix: Préfixe du message (ex. "scan-stream", "scan-runner", "multi-scan").
+        **context: Clés/valeurs contextuelles ajoutées au message (ex. url=...).
+    """
+    context_str = " ".join(f"{k}={v}" for k, v in context.items())
+    logger.info(
+        "%s: http_requests_count=%s http_requests_by_category=%s%s",
+        prefix,
+        get_scan_http_request_count(client),
+        get_scan_http_requests_by_category(client),
+        f" {context_str}" if context_str else "",
+    )
+
+
+@contextmanager
+def http_request_category(category: str) -> Iterator[None]:
+    """Tague les requêtes HTTP du contexte courant avec une catégorie donnée."""
+    token = _HTTP_REQUEST_CATEGORY.set(category)
+    try:
+        yield
+    finally:
+        _HTTP_REQUEST_CATEGORY.reset(token)
 
 
 def _create_scan_client(*, follow_redirects: bool = True) -> httpx.AsyncClient:
@@ -54,6 +123,7 @@ async def scan_client() -> AsyncIterator[httpx.AsyncClient]:
         httpx.AsyncClient: Client configuré (SSL permissif, timeouts).
     """
     client = _create_scan_client(follow_redirects=True)
+    _attach_request_counter(client)
     async with client:
         yield client
 

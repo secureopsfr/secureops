@@ -103,11 +103,54 @@ def _parse_max_age(cache_control: str) -> int | None:
     return None
 
 
+async def _get_subresource_cache_control(
+    *,
+    url: str,
+    client: httpx.AsyncClient,
+    timeout: float,
+    assets_cache: dict[str, str | None] | None,
+) -> str | None:
+    """Récupère Cache-Control d'une sous-ressource (cache partagé + HEAD/GET)."""
+    if assets_cache is not None and url in assets_cache:
+        return assets_cache[url]
+
+    try:
+        head_resp = await client.head(url, timeout=timeout)
+        resp = await client.get(url, timeout=timeout) if head_resp.status_code in (405, 501) else head_resp
+        cache_control = get_header_insensitive(resp, "Cache-Control")
+    except Exception:
+        # On ignore silencieusement les erreurs sur les sous-ressources.
+        if assets_cache is not None:
+            assets_cache[url] = None
+        return None
+
+    if assets_cache is not None:
+        assets_cache[url] = cache_control
+    return cache_control
+
+
+def _is_bad_immutable_cache(
+    *,
+    url: str,
+    cache_control: str,
+    immutable_pattern: str,
+    immutable_max_age: int,
+) -> bool:
+    """Retourne True si un asset immuable n'a pas un cache long correct."""
+    if not immutable_pattern or not re.search(immutable_pattern, url):
+        return False
+    cc_lower = cache_control.lower()
+    has_immutable = "immutable" in cc_lower
+    max_age = _parse_max_age(cc_lower)
+    return (not has_immutable) or max_age is None or max_age < immutable_max_age
+
+
 async def _analyze_subresources(
     response: httpx.Response,
     client: httpx.AsyncClient,
     cache_settings: CacheSettings,
     findings: list[str],
+    assets_cache: dict[str, str | None] | None = None,
 ) -> tuple[int, int]:
     """Analyse les sous-ressources de la page (scripts, CSS, images).
 
@@ -136,31 +179,26 @@ async def _analyze_subresources(
 
     for url in urls:
         checked += 1
-        try:
-            head_resp = await client.head(url, timeout=sub_timeout)
-            # Certains serveurs ne supportent pas HEAD correctement.
-            if head_resp.status_code in (405, 501):
-                resp = await client.get(url, timeout=sub_timeout)
-            else:
-                resp = head_resp
-        except Exception:
-            # On ignore silencieusement les erreurs sur les sous-ressources.
-            continue
+        cache_control = await _get_subresource_cache_control(
+            url=url,
+            client=client,
+            timeout=sub_timeout,
+            assets_cache=assets_cache,
+        )
 
-        cache_control = get_header_insensitive(resp, "Cache-Control")
         if not cache_control:
             continue
 
-        # Asset immuable : URL contenant un hash (pattern configurable).
-        if immutable_pattern and re.search(immutable_pattern, url):
-            cc_lower = cache_control.lower()
-            has_immutable = "immutable" in cc_lower
-            max_age = _parse_max_age(cc_lower)
-            if not has_immutable or max_age is None or max_age < immutable_max_age:
-                issues += 1
-                findings.append(
-                    f"Asset immuable sans cache long détecté : {url} (Cache-Control='{cache_control}').",
-                )
+        if _is_bad_immutable_cache(
+            url=url,
+            cache_control=cache_control,
+            immutable_pattern=immutable_pattern,
+            immutable_max_age=immutable_max_age,
+        ):
+            issues += 1
+            findings.append(
+                f"Asset immuable sans cache long détecté : {url} (Cache-Control='{cache_control}').",
+            )
 
     return checked, issues
 
@@ -169,6 +207,7 @@ async def check_cache_from_response(
     response: httpx.Response | None,
     https_url: str,
     client: httpx.AsyncClient,
+    assets_cache: dict[str, str | None] | None = None,
 ) -> CacheCheckResult:
     """Vérifie la configuration de cache de la page principale et des sous-ressources.
 
@@ -181,6 +220,9 @@ async def check_cache_from_response(
         https_url: URL HTTPS normalisée utilisée pour le scan.
         client: Client HTTPX partagé pour exécuter les requêtes HEAD/GET sur les
             sous-ressources.
+        assets_cache: Cache partagé entre pages (mode multi-URL). Clé = URL asset,
+            valeur = header Cache-Control (None si absent ou erreur). Évite de
+            sonder plusieurs fois le même asset JS/CSS partagé entre pages.
 
     Returns:
         CacheCheckResult: Résultat agrégé des vérifications cache.
@@ -226,6 +268,7 @@ async def check_cache_from_response(
             client=client,
             cache_settings=cache_settings,
             findings=findings,
+            assets_cache=assets_cache,
         )
 
     return CacheCheckResult(

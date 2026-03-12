@@ -42,12 +42,15 @@ async def create_scan_entry(
                     id="",
                     url=body.url,
                     scan_type=body.scan_type,
+                    result_mode=body.result_mode,
                     status=body.status,
                     score=body.score,
                     findings=body.findings,
                     timestamp=body.timestamp,
                     duration=body.duration,
                     created_at=None,
+                    page_results=body.page_results,
+                    urls=body.urls,
                 )
             scan = await create_scan(
                 session=session,
@@ -59,7 +62,10 @@ async def create_scan_entry(
                 findings=body.findings,
                 timestamp=body.timestamp,
                 duration=body.duration,
+                result_mode=body.result_mode,
                 category_summaries=body.category_summaries,
+                page_results=body.page_results,
+                urls=body.urls,
             )
             summaries = scan.category_summaries_json or []
             total_tests = sum(s.get("checks_count", 0) for s in summaries) if summaries else None
@@ -67,6 +73,7 @@ async def create_scan_entry(
                 id=str(scan.id),
                 url=scan.url,
                 scan_type=getattr(scan, "scan_type", "frontend"),
+                result_mode=getattr(scan, "result_mode", "single") or "single",
                 status=scan.status,
                 score=scan.score,
                 findings=scan.findings_json,
@@ -74,6 +81,8 @@ async def create_scan_entry(
                 duration=scan.duration,
                 created_at=scan.created_at,
                 category_summaries=summaries or None,
+                page_results=scan.page_results_json or None,
+                urls=scan.urls_json or None,
                 total_tests_count=total_tests,
             )
     except HTTPException:
@@ -142,6 +151,7 @@ async def list_scans(
                         id=str(s.id),
                         url=s.url,
                         scan_type=getattr(s, "scan_type", "frontend"),
+                        result_mode=getattr(s, "result_mode", "single") or "single",
                         status=s.status,
                         score=s.score,
                         timestamp=s.timestamp,
@@ -225,6 +235,7 @@ async def get_scan_detail(
                 id=str(scan.id),
                 url=scan.url,
                 scan_type=getattr(scan, "scan_type", "frontend"),
+                result_mode=getattr(scan, "result_mode", "single") or "single",
                 status=scan.status,
                 score=scan.score,
                 findings=scan.findings_json,
@@ -232,6 +243,8 @@ async def get_scan_detail(
                 duration=scan.duration,
                 created_at=scan.created_at,
                 category_summaries=summaries or None,
+                page_results=scan.page_results_json or None,
+                urls=scan.urls_json or None,
                 total_tests_count=total_tests,
             )
     except HTTPException:

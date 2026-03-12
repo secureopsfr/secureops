@@ -1,13 +1,13 @@
 "use client";
 
-import type { ScanResult } from "../../services/scanService";
+import type { ScanHistorySelection } from "../../services/scanHistoryService";
 import ScanHistoryBlock from "./ScanHistoryBlock";
 import AlertHistoryBlock from "./AlertHistoryBlock";
 import ScheduledScansBlock from "./ScheduledScansBlock";
 
 interface ScannerHistoryAlertsSectionProps {
   /** Callback quand l'utilisateur sélectionne un scan dans l'historique. */
-  onSelectScan: (result: ScanResult, scanId?: string) => void;
+  onSelectScan: (selection: ScanHistorySelection) => void;
   /** Filtre optionnel par URL (historique/alertes/suivis limités à cette URL). */
   filterUrl?: string | null;
   /** Filtre optionnel par type de scan (frontend, backend, custom). */

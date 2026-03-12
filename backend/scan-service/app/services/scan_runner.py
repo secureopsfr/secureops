@@ -1,15 +1,18 @@
 """Exécution du scan et retour du résultat en JSON (pour appels internes, ex. scheduler)."""
 
 import asyncio
+import logging
 import time
 
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
 from app.errors.fetch_errors import build_sse_error_payload
 from app.services._scan_core import SCAN_STEPS, ScanContext, build_result_payload
-from app.utils.http_fetch import get_with_client_or_error, scan_client
+from app.utils.http_fetch import get_with_client_or_error, http_request_category, log_http_metrics, scan_client
 from app.utils.ssrf import check_ssrf
 from app.utils.url_helpers import get_scan_base_url
 from app.utils.url_validator import validate_and_normalize_url
+
+logger = logging.getLogger(__name__)
 
 
 class ScanRunError(Exception):
@@ -61,29 +64,34 @@ async def run_scan_to_result(url: str) -> dict:
     https_url = get_scan_base_url(normalized_url)
 
     async with scan_client() as client:
-        fetch_result = await get_with_client_or_error(client, https_url, follow_redirects=True)
+        try:
+            with http_request_category("initial_fetch"):
+                fetch_result = await get_with_client_or_error(client, https_url, follow_redirects=True)
 
-        if not fetch_result.success:
-            payload = build_sse_error_payload(fetch_result)
-            raise ScanRunError(
-                payload.get("message", "Site inaccessible"),
-                status_code=payload.get("status_code", 503),
+            if not fetch_result.success:
+                payload = build_sse_error_payload(fetch_result)
+                raise ScanRunError(
+                    payload.get("message", "Site inaccessible"),
+                    status_code=payload.get("status_code", 503),
+                )
+
+            https_response = fetch_result.response
+            ctx = ScanContext(
+                normalized_url=normalized_url,
+                https_url=https_url,
+                client=client,
+                https_response=https_response,
             )
 
-        https_response = fetch_result.response
-        ctx = ScanContext(
-            normalized_url=normalized_url,
-            https_url=https_url,
-            client=client,
-            https_response=https_response,
-        )
-
-        for step_name, step_fn in SCAN_STEPS:
-            if _over_global():
-                raise ScanRunError("Timeout global dépassé", status_code=408)
-            result = step_fn(ctx)
-            if asyncio.iscoroutine(result):
-                result = await result
-            ctx.results[step_name] = result
+            for step_name, step_fn in SCAN_STEPS:
+                if _over_global():
+                    raise ScanRunError("Timeout global dépassé", status_code=408)
+                with http_request_category(step_name):
+                    result = step_fn(ctx)
+                    if asyncio.iscoroutine(result):
+                        result = await result
+                ctx.results[step_name] = result
+        finally:
+            log_http_metrics(client, "scan-runner", url=https_url)
 
     return build_result_payload(normalized_url, ctx.results, start)

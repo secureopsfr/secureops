@@ -20,6 +20,8 @@ async def create_scheduled_scan(
     url: str,
     scan_type: str,
     frequency: str,
+    result_mode: str = "single",
+    urls: Optional[List[str]] = None,
     schedule_hour: int = 2,
     schedule_minute: int = 0,
     schedule_day_of_week: Optional[int] = None,
@@ -33,6 +35,8 @@ async def create_scheduled_scan(
         session: Session de base de données.
         user_id: UUID de l'utilisateur.
         url: URL à scanner.
+        result_mode: Mode de résultat (single ou multi).
+        urls: Liste d'URLs pour un scan multi-pages.
         frequency: daily, weekly ou monthly.
         schedule_hour: Heure d'exécution (dans le fuseau utilisateur).
         schedule_minute: Minute d'exécution.
@@ -57,6 +61,8 @@ async def create_scheduled_scan(
         user_id=user_id,
         url=url,
         scan_type=scan_type,
+        result_mode=result_mode,
+        urls_json=urls,
         frequency=frequency,
         schedule_hour=schedule_hour,
         schedule_minute=schedule_minute,

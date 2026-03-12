@@ -133,7 +133,7 @@ async def run_playwright_browser_bfs(
     anti_bot_flag: AntiBotFlag,
     page_timeout_ms: int,
     network_idle_ms: int,
-) -> tuple[list[CrawlUrlEntry], bool, bool]:
+) -> tuple[list[CrawlUrlEntry], bool, bool, int, bool]:
     """Lance Playwright, exécute le BFS et retourne (entries, timeout, blocked).
 
     Args:
@@ -148,7 +148,13 @@ async def run_playwright_browser_bfs(
         network_idle_ms: Timeout networkidle (ms).
 
     Returns:
-        (entries, timeout_reached, requests_blocked).
+        (
+            entries,
+            timeout_reached,
+            requests_blocked,
+            max_consecutive_403,
+            anti_bot_signature_detected,
+        ).
     """
     from playwright.async_api import async_playwright
 

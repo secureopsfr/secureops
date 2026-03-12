@@ -17,10 +17,43 @@ def test_execute_crawl_by_mode_both_prepares_once_and_shares_context() -> None:
     """Mode both mutualise la préparation robots/sitemap et partage le contexte."""
     prepared = _FakePrepared()
     mock_prepare = AsyncMock(return_value=prepared)
-    mock_html = AsyncMock(return_value=([], False, False, ["disallow-html"]))
-    mock_playwright = AsyncMock(return_value=([], False, True, False, ["disallow-playwright"]))
+    mock_html = AsyncMock(
+        return_value=(
+            [],
+            False,
+            False,
+            0,
+            False,
+            ["disallow-html"],
+        )
+    )
+    mock_playwright = AsyncMock(
+        return_value=(
+            [],
+            False,
+            True,
+            True,
+            False,
+            False,
+            0,
+            ["disallow-playwright"],
+        )
+    )
 
-    async def _run() -> tuple[list[dict], bool, bool, bool, list[str]]:
+    async def _run() -> tuple[
+        list[dict],
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
+        bool,
+        int,
+        list[str],
+    ]:
         return await execute_crawl_by_mode(
             mode="both",
             url="https://example.com",
@@ -35,7 +68,20 @@ def test_execute_crawl_by_mode_both_prepares_once_and_shares_context() -> None:
         patch("app.services.crawler.executor.crawl_core.run_crawl_from_prepared", mock_html),
         patch("app.services.crawler.executor.run_crawl_playwright_from_prepared", mock_playwright),
     ):
-        payload, timeout_reached, anti_bot_suspected, requests_blocked, disallow_paths = asyncio.run(_run())
+        (
+            payload,
+            timeout_reached,
+            anti_bot_suspected,
+            _anti_bot_signature_detected,
+            _anti_bot_low_url_suspected,
+            _timeout_html,
+            _timeout_playwright,
+            requests_blocked,
+            _requests_blocked_html,
+            _requests_blocked_playwright,
+            _max_consecutive_403,
+            disallow_paths,
+        ) = asyncio.run(_run())
 
     assert payload == []
     assert timeout_reached is False
@@ -58,14 +104,32 @@ def test_both_stops_other_only_when_first_reaches_url_limit() -> None:
     prepared = _FakePrepared()
     mock_prepare = AsyncMock(return_value=prepared)
     html_entries = [
-        CrawlUrlEntry(url="https://example.com/a", type="page", depth=0),
-        CrawlUrlEntry(url="https://example.com/b", type="page", depth=0),
+        CrawlUrlEntry(url="https://example.com/a", depth=0),
+        CrawlUrlEntry(url="https://example.com/b", depth=0),
     ]
-    mock_html = AsyncMock(return_value=(html_entries, False, False, ["disallow-html"]))
+    mock_html = AsyncMock(
+        return_value=(
+            html_entries,
+            False,
+            False,
+            0,
+            False,
+            ["disallow-html"],
+        )
+    )
 
     async def _slow_playwright(_prepared, *, on_progress, stop_event):  # noqa: ARG001
         await asyncio.sleep(0.01)
-        return ([], False, False, False, [])
+        return (
+            [],
+            False,
+            False,
+            False,
+            False,
+            False,
+            0,
+            [],
+        )
 
     mock_playwright = AsyncMock(side_effect=_slow_playwright)
 
