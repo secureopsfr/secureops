@@ -7,6 +7,45 @@ et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [0.3.0] - 2026-03-12
+
+### Ajouté
+
+#### Refactoring backend et socle commun
+
+- **Package partagé `backend/common`** consolidé (config, JWT, middleware, health, validation URL, SSRF, helpers URL, utilitaires schemas/datetime) avec tests et pipeline de lint dédiés
+- **Refactoring structurel** des services `gateway`, `admin-service`, `user-service` et `scan-service` (séparation runtime/dev deps, Dockerfiles harmonisés, durcissements auth et robustesse async/sync)
+
+#### PDF service dédié
+
+- **Nouveau `pdf-service`** (endpoint `POST /api/report/pdf`) pour isoler la génération de rapports PDF (WeasyPrint, templates, i18n, assets)
+- **Intégration gateway + scan-service** vers le service PDF via route `/pdf/*` et clés internes optionnelles
+- **Qualité PDF** : schémas typés, constantes centralisées, options de rendu configurables, troncature explicite, nettoyage du code mort, couverture de tests renforcée
+
+#### Scanner et plateforme
+
+- **Crawler HTTP indépendant** (découverte d’URLs, limites, respect robots.txt, validation frontend avant scan)
+- **Mode asynchrone scan + crawl** basé DB queue (`/scan/api/scan/async` et `/crawl/api/crawl/async`) avec workers dédiés, retries/backoff, contrôle d’accès job
+- **API publique clés API** : création/liste/révocation, TTL, tags, restrictions IP, vérification interne via gateway/user-service
+
+#### Frontend / UX scanner
+
+- **Refonte landing + hub scanner** : parcours scan basique, espace connecté `/scanner`, pages dédiées analyses/suivi/docs/clé API
+- **Historique, tendances et KPIs** alimentés par des endpoints dédiés
+- **I18n et accessibilité** renforcées (FR/EN, labels, composants partagés, hooks SWR admin)
+
+### Modifié
+
+- **Architecture documentaire** et roadmaps : backlog non terminé de la v0.3.0 explicitement reporté dans la roadmap v0.4.0
+- **Pipeline scan-service** : unification du noyau d’exécution et homogénéisation des payloads (SSE + endpoint interne)
+
+### Limites connues (MVP 0.3.0)
+
+- Backlog d’intégration (tests E2E/CI), GitHub Action SecureOps, compléments docs/UX et gouvernance crawler reportés en v0.4.0
+- Alertes configurées, exports avancés et finalisation complète du rendu “anomalie détectée” restent à terminer
+
+---
+
 ## [0.2.0] - 2025-03-05
 
 ### Ajouté
@@ -131,5 +170,6 @@ et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+[0.3.0]: https://github.com/pierreglerant/secureops/releases/tag/v0.3.0
 [0.2.0]: https://github.com/pierreglerant/secureops/releases/tag/v0.2.0
 [0.1.0]: https://github.com/pierreglerant/secureops/releases/tag/v0.1.0
