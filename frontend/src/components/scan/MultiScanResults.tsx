@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   Download,
@@ -12,6 +12,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
+import { DropdownSelector } from "../buttons";
 import AnimateInView from "../AnimateInView";
 import Card from "../ui/cards/Card";
 import FloatingActionDock from "./FloatingActionDock";
@@ -185,6 +186,7 @@ function CompareTable({
 }
 
 type TabId = "overview" | "compare" | number;
+type OverviewSortMode = "default" | "alpha" | "score_desc" | "score_asc";
 const EXPORT_FORMATS: {
   value: "csv" | "json" | "xlsx" | "pdf";
   labelKey: string;
@@ -219,10 +221,26 @@ export default function MultiScanResults({
   const { t, locale } = useLanguage();
   const lang = (locale === "fr" ? "fr" : "en") as "fr" | "en";
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [overviewSortMode, setOverviewSortMode] =
+    useState<OverviewSortMode>("default");
   const [exportModalOpen, setExportModalOpen] = useState(false);
 
   const { ringColor: globalRingColor } = getScoreBadge(result.score_global);
   const errorCount = result.page_results.filter((p) => p.error).length;
+  const sortedOverviewPages = useMemo(() => {
+    if (overviewSortMode === "default") {
+      return result.page_results;
+    }
+    if (overviewSortMode === "alpha") {
+      return [...result.page_results].sort((a, b) =>
+        a.url.localeCompare(b.url),
+      );
+    }
+    if (overviewSortMode === "score_desc") {
+      return [...result.page_results].sort((a, b) => b.score - a.score);
+    }
+    return [...result.page_results].sort((a, b) => a.score - b.score);
+  }, [overviewSortMode, result.page_results]);
 
   const handleFakeExport = (labelKey: string) => {
     showSuccessToast(t("scanner.exportFakeNotice", { format: t(labelKey) }));
@@ -336,11 +354,40 @@ export default function MultiScanResults({
       {/* Contenu de l'onglet actif */}
       {activeTab === "overview" && (
         <Card disableHover>
-          <h3 className="section-title !text-left mb-4">
-            {t("scanner.multiPagesBrowseTitle")}
-          </h3>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="section-title !text-left !mb-0">
+              {t("scanner.multiPagesBrowseTitle")}
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[var(--muted)]">
+                {t("scanner.multiPagesSortLabel")}
+              </span>
+              <DropdownSelector
+                selectedValue={overviewSortMode}
+                onChange={(value) =>
+                  setOverviewSortMode(value as OverviewSortMode)
+                }
+                options={[
+                  {
+                    value: "default",
+                    label: t("scanner.multiPagesSortDefault"),
+                  },
+                  { value: "alpha", label: t("scanner.multiPagesSortAlpha") },
+                  {
+                    value: "score_desc",
+                    label: t("scanner.multiPagesSortScoreDesc"),
+                  },
+                  {
+                    value: "score_asc",
+                    label: t("scanner.multiPagesSortScoreAsc"),
+                  },
+                ]}
+                width="13rem"
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {result.page_results.map((page) => (
+            {sortedOverviewPages.map((page) => (
               <button
                 key={page.url}
                 type="button"
