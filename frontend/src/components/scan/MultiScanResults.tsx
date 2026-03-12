@@ -16,9 +16,9 @@ import { DropdownSelector } from "../buttons";
 import AnimateInView from "../AnimateInView";
 import Card from "../ui/cards/Card";
 import FloatingActionDock from "./FloatingActionDock";
-import Modal from "../ui/Modal";
-import ScanResultHeroCard from "./ScanResultHeroCard";
-import ScanSummarySection from "./ScanSummarySection";
+import ExportModal from "./ExportModal";
+import ScoreChip from "./ScoreChip";
+import PageDetail from "./PageDetail";
 import { getScoreBadge, CHECKED_CATEGORIES_ORDER } from "./scanConstants";
 import type {
   MultiScanResult,
@@ -28,61 +28,11 @@ import { formatUrlDisplay } from "../../utils/urlFormat";
 import { exportMultiScanResult } from "../../utils/exportMultiScan";
 import { downloadScanPdf } from "../../services/scanHistoryService";
 import { showErrorToast } from "../../utils/toastNotifications";
-import { LoadingSpinner } from "../LoadingScreen";
 
 interface MultiScanResultsProps {
   result: MultiScanResult;
   scanId?: string | null;
   onNewScan: () => void;
-}
-
-/** Score badge couleur compact pour les onglets et l'overview. */
-function ScoreChip({ score }: { score: number }) {
-  const { ringColor, labelKey } = getScoreBadge(score);
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-white"
-      style={{ background: ringColor }}
-      title={labelKey}
-    >
-      {score}/100
-    </span>
-  );
-}
-
-/** Vue détaillée d'une page : table des tests, résumés et findings complets. */
-function PageDetail({ page }: { page: PageScanResult }) {
-  const { t } = useLanguage();
-
-  if (page.error) {
-    return (
-      <Card disableHover>
-        <div className="flex items-center gap-2 rounded-lg border border-[rgb(var(--danger))]/30 bg-[rgb(var(--danger))]/5 px-4 py-3 text-sm text-[rgb(var(--danger))]">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          <span>
-            {t("scanner.multiPageError")} : {page.error}
-          </span>
-        </div>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <ScanResultHeroCard
-        url={page.url}
-        score={page.score}
-        findings={page.findings ?? []}
-      />
-      <ScanSummarySection
-        findings={page.findings ?? []}
-        category_summaries={page.category_summaries}
-        total_tests_count={page.total_tests_count}
-        anchorPrefix={`page-${encodeURIComponent(page.url)}-`}
-        animate={false}
-      />
-    </div>
-  );
 }
 
 /** Tableau comparatif : catégories × pages (heatmap rapide). */
@@ -191,32 +141,6 @@ function CompareTable({
 
 type TabId = "overview" | "compare" | number;
 type OverviewSortMode = "default" | "alpha" | "score_desc" | "score_asc";
-const EXPORT_FORMATS: {
-  value: "csv" | "json" | "xlsx" | "pdf";
-  labelKey: string;
-  icon: React.ReactNode;
-}[] = [
-  {
-    value: "csv",
-    labelKey: "scanner.exportCsv",
-    icon: <FileText className="w-5 h-5" />,
-  },
-  {
-    value: "json",
-    labelKey: "scanner.exportJson",
-    icon: <FileJson className="w-5 h-5" />,
-  },
-  {
-    value: "xlsx",
-    labelKey: "scanner.exportXlsx",
-    icon: <FileSpreadsheet className="w-5 h-5" />,
-  },
-  {
-    value: "pdf",
-    labelKey: "scanner.exportPdf",
-    icon: <FileOutput className="w-5 h-5" />,
-  },
-];
 
 export default function MultiScanResults({
   result,
@@ -230,9 +154,53 @@ export default function MultiScanResults({
     useState<OverviewSortMode>("default");
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const exportDataIncomplete =
+    !Array.isArray(result.urls) ||
+    result.urls.length === 0 ||
+    !Array.isArray(result.page_results) ||
+    result.page_results.length === 0;
 
   const { ringColor: globalRingColor } = getScoreBadge(result.score_global);
   const errorCount = result.page_results.filter((p) => p.error).length;
+
+  const exportFormats = useMemo(
+    () => [
+      {
+        value: "csv",
+        labelKey: "scanner.exportCsv",
+        icon: <FileText className="w-5 h-5" />,
+        disabled: exportDataIncomplete,
+        disabledHintKey: "scanner.multiExportDataMissingShort" as const,
+      },
+      {
+        value: "json",
+        labelKey: "scanner.exportJson",
+        icon: <FileJson className="w-5 h-5" />,
+        disabled: exportDataIncomplete,
+        disabledHintKey: "scanner.multiExportDataMissingShort" as const,
+      },
+      {
+        value: "xlsx",
+        labelKey: "scanner.exportXlsx",
+        icon: <FileSpreadsheet className="w-5 h-5" />,
+        disabled: exportDataIncomplete,
+        disabledHintKey: "scanner.multiExportDataMissingShort" as const,
+      },
+      {
+        value: "pdf",
+        labelKey: "scanner.exportPdf",
+        icon: <FileOutput className="w-5 h-5" />,
+        disabled: exportDataIncomplete || !scanId || pdfLoading,
+        disabledHintKey: exportDataIncomplete
+          ? ("scanner.multiExportDataMissingShort" as const)
+          : ("scanner.exportPdfUnavailable" as const),
+        isLoading: pdfLoading,
+        loadingLabelKey: "scanner.exportPdfGenerating" as const,
+      },
+    ],
+    [exportDataIncomplete, scanId, pdfLoading],
+  );
+
   const sortedOverviewPages = useMemo(() => {
     if (overviewSortMode === "default") {
       return result.page_results;
@@ -248,24 +216,10 @@ export default function MultiScanResults({
     return [...result.page_results].sort((a, b) => a.score - b.score);
   }, [overviewSortMode, result.page_results]);
 
-  const exportDataIncomplete =
-    !Array.isArray(result.urls) ||
-    result.urls.length === 0 ||
-    !Array.isArray(result.page_results) ||
-    result.page_results.length === 0;
-
   const handleExport = useCallback(
-    async (format: "csv" | "json" | "xlsx" | "pdf") => {
-      if (exportDataIncomplete) {
-        showErrorToast(t("scanner.multiExportDataMissing"));
-        return;
-      }
-
+    async (format: string) => {
       if (format === "pdf") {
-        if (!scanId) {
-          showErrorToast(t("scanner.exportPdfUnavailable"));
-          return;
-        }
+        if (!scanId) return;
         setPdfLoading(true);
         try {
           await downloadScanPdf(scanId, language as "fr" | "en");
@@ -280,10 +234,10 @@ export default function MultiScanResults({
         return;
       }
 
-      exportMultiScanResult(result, format);
+      exportMultiScanResult(result, format as "csv" | "json" | "xlsx");
       setExportModalOpen(false);
     },
-    [exportDataIncomplete, language, result, scanId, t],
+    [language, result, scanId, t],
   );
 
   return (
@@ -501,53 +455,13 @@ export default function MultiScanResults({
         ]}
       />
 
-      <Modal
+      <ExportModal
         isOpen={exportModalOpen}
         onClose={() => setExportModalOpen(false)}
-        title={t("scanner.export")}
-        maxWidth="420px"
-      >
-        <p className="text-sm text-muted-theme mb-4">
-          {t("scanner.exportDesc")}
-        </p>
-        <div className="flex flex-col gap-2">
-          {EXPORT_FORMATS.map(({ value, labelKey, icon }) => {
-            const isPdf = value === "pdf";
-            const disabled =
-              exportDataIncomplete || (isPdf && (!scanId || pdfLoading));
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => !disabled && handleExport(value)}
-                disabled={disabled}
-                title={
-                  disabled
-                    ? exportDataIncomplete
-                      ? t("scanner.multiExportDataMissing")
-                      : t("scanner.exportPdfUnavailable")
-                    : undefined
-                }
-                className="flex items-center gap-3 w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[var(--color-surface-hover)] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--color-surface-input)]"
-              >
-                {isPdf && pdfLoading ? <LoadingSpinner size="sm" /> : icon}
-                <span className="font-medium">
-                  {isPdf && pdfLoading
-                    ? t("scanner.exportPdfGenerating")
-                    : t(labelKey)}
-                </span>
-                {disabled && !pdfLoading && (
-                  <span className="text-xs text-muted-theme ml-auto">
-                    {exportDataIncomplete
-                      ? t("scanner.multiExportDataMissingShort")
-                      : t("scanner.exportPdfUnavailable")}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </Modal>
+        formats={exportFormats}
+        onExport={handleExport}
+        t={t}
+      />
     </AnimateInView>
   );
 }

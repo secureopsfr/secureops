@@ -3,10 +3,12 @@
 import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { fetchAuthSession } from "aws-amplify/auth";
 import { AlertTriangle, Bot, FileText } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
+import { useCrawlState } from "../../hooks/useCrawlState";
+import { useStepQueue } from "../../hooks/useStepQueue";
+import { useAuthToken } from "../../hooks/useAuthToken";
 import AnimateInView from "../AnimateInView";
 import { DropdownSelector, GenericButton } from "../buttons";
 import Card from "../ui/cards/Card";
@@ -20,9 +22,8 @@ import {
   runScan,
   type ScanResult,
   type ScanError,
-  type ScanStepDisplay,
 } from "../../services/scanService";
-import { runCrawl, type CrawlUrlEntry } from "../../services/crawlService";
+import { runCrawl } from "../../services/crawlService";
 import { normalizeScanUrl } from "../../utils/scanUrl";
 import {
   savePendingScanResult,
@@ -44,34 +45,29 @@ export default function CrawlersContent() {
   const { isAuthenticated, isLoading: authLoading } = useAuthUser({
     listenToAuthEvents: true,
   });
+  const getToken = useAuthToken(isAuthenticated);
+  const {
+    crawl,
+    setCrawlMode,
+    setCrawlMaxUrls,
+    setCrawlUrls,
+    setCrawlResult,
+    resetCrawlState,
+  } = useCrawlState();
+  const { steps, enqueueStep, resetSteps } = useStepQueue();
+  const {
+    steps: crawlSteps,
+    enqueueStep: enqueueCrawlStep,
+    resetSteps: resetCrawlSteps,
+  } = useStepQueue();
+
   const [url, setUrl] = useState("");
+  const [maxUrlsInput, setMaxUrlsInput] = useState("50");
   const [state, setState] = useState<CrawlersState>("idle");
-  const [steps, setSteps] = useState<ScanStepDisplay[]>([]);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [scanId, setScanId] = useState<string | null>(null);
   const [error, setError] = useState<ScanError | null>(null);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
-  const [crawlMode, setCrawlMode] = useState<"html" | "playwright" | "both">(
-    "html",
-  );
-  const [crawlMaxUrlsInput, setCrawlMaxUrlsInput] = useState("50");
-  const [crawledUrls, setCrawledUrls] = useState<CrawlUrlEntry[]>([]);
-  const [crawlIdentifiedCount, setCrawlIdentifiedCount] = useState(0);
-  const [crawlTimeoutReached, setCrawlTimeoutReached] = useState(false);
-  const [crawlTimeoutHtml, setCrawlTimeoutHtml] = useState(false);
-  const [crawlTimeoutPlaywright, setCrawlTimeoutPlaywright] = useState(false);
-  const [crawlAntiBotSignatureDetected, setCrawlAntiBotSignatureDetected] =
-    useState(false);
-  const [crawlAntiBotLowUrlSuspected, setCrawlAntiBotLowUrlSuspected] =
-    useState(false);
-  const [crawlRequestsBlocked, setCrawlRequestsBlocked] = useState(false);
-  const [crawlRequestsBlockedHtml, setCrawlRequestsBlockedHtml] =
-    useState(false);
-  const [crawlRequestsBlockedPlaywright, setCrawlRequestsBlockedPlaywright] =
-    useState(false);
-  const [crawlMaxConsecutive403, setCrawlMaxConsecutive403] = useState(0);
-  const [crawlDisallowPaths, setCrawlDisallowPaths] = useState<string[]>([]);
-  const [crawlSteps, setCrawlSteps] = useState<ScanStepDisplay[]>([]);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -91,49 +87,17 @@ export default function CrawlersContent() {
   const runScanOnUrl = useCallback(
     (urlToScan: string) => {
       setState("loading");
-      setSteps([]);
+      resetSteps();
       setResult(null);
       setScanId(null);
       setError(null);
       setErrorModalOpen(false);
 
-      const getToken = isAuthenticated
-        ? async () => {
-            try {
-              const session = await fetchAuthSession();
-              return session.tokens?.accessToken?.toString() ?? null;
-            } catch {
-              return null;
-            }
-          }
-        : undefined;
-
       runScan(
         urlToScan,
         (ev) => {
           if (ev.type === "step") {
-            const done = ev.data.step.endsWith("_done");
-            setSteps((prev) => {
-              if (done && prev.length > 0) {
-                const updated = [...prev];
-                updated[updated.length - 1] = {
-                  step: ev.data.step,
-                  message: ev.data.message,
-                  done: true,
-                  anomaly_count: ev.data.anomaly_count,
-                };
-                return updated;
-              }
-              return [
-                ...prev,
-                {
-                  step: ev.data.step,
-                  message: ev.data.message,
-                  done: false,
-                  anomaly_count: ev.data.anomaly_count,
-                },
-              ];
-            });
+            enqueueStep(ev.data);
           } else if (ev.type === "result") {
             if (isAuthenticated) {
               setResult(ev.data);
@@ -168,7 +132,7 @@ export default function CrawlersContent() {
         setErrorModalOpen(true);
       });
     },
-    [t, isAuthenticated],
+    [t, isAuthenticated, getToken, resetSteps, enqueueStep],
   );
 
   const handleSubmit = useCallback(
@@ -176,150 +140,31 @@ export default function CrawlersContent() {
       e.preventDefault();
       const trimmed = url.trim();
       if (!trimmed) return;
-      const parsedMaxUrls = parseInt(crawlMaxUrlsInput, 10);
+
+      const parsedMaxUrls = parseInt(maxUrlsInput, 10);
       const effectiveMaxUrls = Number.isNaN(parsedMaxUrls)
         ? 5
         : Math.min(200, Math.max(5, parsedMaxUrls));
-      setCrawlMaxUrlsInput(String(effectiveMaxUrls));
+      setMaxUrlsInput(String(effectiveMaxUrls));
+      setCrawlMaxUrls(effectiveMaxUrls);
+
       const urlToCrawl = normalizeScanUrl(trimmed);
       setError(null);
       setErrorModalOpen(false);
-
       setState("crawling");
-      setCrawlSteps([]);
+      resetCrawlSteps();
+
       runCrawl(
         urlToCrawl,
         (ev) => {
           if (ev.type === "step") {
-            const step = ev.data.step;
-            const done = step.endsWith("_done");
-            const isCrawlMerging = step === "crawl_merging";
-            const isCrawlStoppingOther = step === "crawl_stopping_other";
-            const isCrawlProgress =
-              step === "crawl_progress" ||
-              step === "html_crawl_progress" ||
-              step === "playwright_crawl_progress";
-            setCrawlSteps((prev) => {
-              if (isCrawlStoppingOther && prev.length > 0) {
-                const lastDone = prev.findLastIndex((s) =>
-                  ["crawl_html_done", "crawl_playwright_done"].includes(s.step),
-                );
-                const branchToReplace =
-                  lastDone >= 0 && prev[lastDone]?.step === "crawl_html_done"
-                    ? "playwright"
-                    : "html";
-                const targetStep =
-                  branchToReplace === "playwright"
-                    ? "playwright_crawl_progress"
-                    : "html_crawl_progress";
-                const idx = prev.findLastIndex((s) => s.step === targetStep);
-                if (idx >= 0) {
-                  const updated = [...prev];
-                  updated[idx] = {
-                    step: "crawl_stopping_other",
-                    message: ev.data.message,
-                    done: false,
-                  };
-                  return updated;
-                }
-              }
-              if (isCrawlMerging && prev.length > 0) {
-                const updated = [...prev];
-                const stopIdx = updated.findLastIndex(
-                  (s) => s.step === "crawl_stopping_other",
-                );
-                if (stopIdx >= 0) {
-                  updated[stopIdx] = {
-                    step: updated[stopIdx].step,
-                    message: updated[stopIdx].message,
-                    done: true,
-                  };
-                }
-                return [
-                  ...updated,
-                  {
-                    step: ev.data.step,
-                    message: ev.data.message,
-                    done: false,
-                  },
-                ];
-              }
-              if (done && prev.length > 0) {
-                const updated = [...prev];
-                const checkStep = step.replace("_done", "_check");
-                const idx = updated.findLastIndex((s) => s.step === checkStep);
-                if (idx >= 0) {
-                  updated[idx] = {
-                    step: updated[idx].step,
-                    message: ev.data.message,
-                    done: true,
-                  };
-                } else {
-                  updated[updated.length - 1] = {
-                    step: prev[prev.length - 1].step,
-                    message: ev.data.message,
-                    done: true,
-                  };
-                }
-                return updated;
-              }
-              if (isCrawlProgress && prev.length > 0) {
-                const lastIdx = prev.findLastIndex((s) => s.step === step);
-                if (lastIdx >= 0) {
-                  const updated = [...prev];
-                  updated[lastIdx] = {
-                    step: ev.data.step,
-                    message: ev.data.message,
-                    done: false,
-                  };
-                  return updated;
-                }
-              }
-              return [
-                ...prev,
-                {
-                  step: ev.data.step,
-                  message: ev.data.message,
-                  done: false,
-                },
-              ];
-            });
+            enqueueCrawlStep(ev.data);
           } else if (ev.type === "result") {
             const urls =
               ev.data.urls.length > 0
                 ? ev.data.urls
                 : [{ url: urlToCrawl, depth: 0 }];
-            setCrawledUrls(urls);
-            setCrawlIdentifiedCount(urls.length);
-            setCrawlTimeoutReached(ev.data.timeout_reached ?? false);
-            setCrawlTimeoutHtml(
-              ev.data.timeout_html ??
-                ((ev.data.timeout_reached ?? false) && crawlMode === "html"),
-            );
-            setCrawlTimeoutPlaywright(
-              ev.data.timeout_playwright ??
-                ((ev.data.timeout_reached ?? false) &&
-                  crawlMode === "playwright"),
-            );
-            const signatureDetected =
-              ev.data.anti_bot_signature_detected ?? false;
-            const lowUrlSuspected =
-              ev.data.anti_bot_low_url_suspected ??
-              ((ev.data.anti_bot_suspected ?? false) && !signatureDetected);
-            setCrawlAntiBotSignatureDetected(signatureDetected);
-            setCrawlAntiBotLowUrlSuspected(lowUrlSuspected);
-            setCrawlRequestsBlocked(ev.data.requests_blocked ?? false);
-            setCrawlRequestsBlockedHtml(
-              ev.data.requests_blocked_html ??
-                ((ev.data.requests_blocked ?? false) && crawlMode === "html"),
-            );
-            setCrawlRequestsBlockedPlaywright(
-              ev.data.requests_blocked_playwright ??
-                ((ev.data.requests_blocked ?? false) &&
-                  crawlMode === "playwright"),
-            );
-            setCrawlMaxConsecutive403(ev.data.max_consecutive_403 ?? 0);
-            setCrawlDisallowPaths(ev.data.disallow_paths ?? []);
+            setCrawlResult({ ...ev.data, urls }, crawl.mode);
           } else if (ev.type === "error") {
             setError({
               message: ev.data.message,
@@ -331,7 +176,7 @@ export default function CrawlersContent() {
           }
         },
         effectiveMaxUrls,
-        crawlMode,
+        crawl.mode,
       ).catch((err) => {
         setError({
           message: err instanceof Error ? err.message : t("scanner.crawlError"),
@@ -341,49 +186,31 @@ export default function CrawlersContent() {
         setErrorModalOpen(true);
       });
     },
-    [url, crawlMaxUrlsInput, crawlMode, t],
+    [
+      url,
+      maxUrlsInput,
+      crawl.mode,
+      t,
+      enqueueCrawlStep,
+      resetCrawlSteps,
+      setCrawlMaxUrls,
+      setCrawlResult,
+    ],
   );
 
   const handleLaunchScanFromValidation = useCallback(() => {
     runScanOnUrl(normalizeScanUrl(url.trim()));
   }, [url, runScanOnUrl]);
 
-  const handleBackFromValidation = useCallback(() => {
+  const handleReset = useCallback(() => {
     setState("idle");
-    setCrawledUrls([]);
-    setCrawlIdentifiedCount(0);
-    setCrawlTimeoutReached(false);
-    setCrawlTimeoutHtml(false);
-    setCrawlTimeoutPlaywright(false);
-    setCrawlAntiBotSignatureDetected(false);
-    setCrawlAntiBotLowUrlSuspected(false);
-    setCrawlRequestsBlocked(false);
-    setCrawlRequestsBlockedHtml(false);
-    setCrawlRequestsBlockedPlaywright(false);
-    setCrawlMaxConsecutive403(0);
-    setCrawlDisallowPaths([]);
-    setCrawlSteps([]);
-  }, []);
-
-  const handleNewScan = useCallback(() => {
-    setState("idle");
-    setSteps([]);
+    resetSteps();
+    resetCrawlSteps();
     setResult(null);
     setScanId(null);
     setError(null);
-    setCrawledUrls([]);
-    setCrawlIdentifiedCount(0);
-    setCrawlTimeoutReached(false);
-    setCrawlTimeoutHtml(false);
-    setCrawlTimeoutPlaywright(false);
-    setCrawlAntiBotSignatureDetected(false);
-    setCrawlAntiBotLowUrlSuspected(false);
-    setCrawlRequestsBlocked(false);
-    setCrawlRequestsBlockedHtml(false);
-    setCrawlRequestsBlockedPlaywright(false);
-    setCrawlMaxConsecutive403(0);
-    setCrawlDisallowPaths([]);
-  }, []);
+    resetCrawlState();
+  }, [resetCrawlState, resetSteps, resetCrawlSteps]);
 
   const showHeader = state === "idle" || state === "error";
 
@@ -459,7 +286,7 @@ export default function CrawlersContent() {
                     {t("scanner.crawlModeLabel")}
                   </label>
                   <DropdownSelector
-                    selectedValue={crawlMode}
+                    selectedValue={crawl.mode}
                     onChange={(v) =>
                       setCrawlMode(v as "html" | "playwright" | "both")
                     }
@@ -486,20 +313,22 @@ export default function CrawlersContent() {
                     type="number"
                     min={5}
                     max={200}
-                    value={crawlMaxUrlsInput}
+                    value={maxUrlsInput}
                     onChange={(e) => {
                       const next = e.target.value;
-                      setCrawlMaxUrlsInput(next);
+                      setMaxUrlsInput(next);
                       if (next.trim() === "") return;
                       const v = parseInt(next, 10);
                       if (Number.isNaN(v)) return;
+                      setCrawlMaxUrls(Math.min(200, Math.max(5, v)));
                     }}
                     onBlur={() => {
-                      const v = parseInt(crawlMaxUrlsInput, 10);
+                      const v = parseInt(maxUrlsInput, 10);
                       const normalized = Number.isNaN(v)
                         ? 5
                         : Math.min(200, Math.max(5, v));
-                      setCrawlMaxUrlsInput(String(normalized));
+                      setMaxUrlsInput(String(normalized));
+                      setCrawlMaxUrls(normalized);
                     }}
                     className="auth-input w-24"
                     aria-describedby="crawl-max-urls-desc"
@@ -528,9 +357,9 @@ export default function CrawlersContent() {
                     <ScanLoader
                       steps={crawlSteps}
                       titleKey="scanner.crawlLoading"
-                      crawlMode={crawlMode}
+                      crawlMode={crawl.mode}
                       onAnimationComplete={
-                        crawledUrls.length > 0
+                        crawl.urls.length > 0
                           ? () => setState("validation")
                           : undefined
                       }
@@ -542,25 +371,25 @@ export default function CrawlersContent() {
 
           {state === "validation" && (
             <CrawlValidationStep
-              urls={crawledUrls}
-              identifiedCount={crawlIdentifiedCount}
+              urls={crawl.urls}
+              identifiedCount={crawl.identifiedCount}
               startUrl={url.trim()}
-              timeoutReached={crawlTimeoutReached}
-              timeoutHtml={crawlTimeoutHtml}
-              timeoutPlaywright={crawlTimeoutPlaywright}
-              antiBotSignatureDetected={crawlAntiBotSignatureDetected}
-              antiBotLowUrlSuspected={crawlAntiBotLowUrlSuspected}
-              requestsBlocked={crawlRequestsBlocked}
-              requestsBlockedHtml={crawlRequestsBlockedHtml}
-              requestsBlockedPlaywright={crawlRequestsBlockedPlaywright}
-              maxConsecutive403={crawlMaxConsecutive403}
-              disallowPaths={crawlDisallowPaths}
+              timeoutReached={crawl.timeoutReached}
+              timeoutHtml={crawl.timeoutHtml}
+              timeoutPlaywright={crawl.timeoutPlaywright}
+              antiBotSignatureDetected={crawl.antiBotSignatureDetected}
+              antiBotLowUrlSuspected={crawl.antiBotLowUrlSuspected}
+              requestsBlocked={crawl.requestsBlocked}
+              requestsBlockedHtml={crawl.requestsBlockedHtml}
+              requestsBlockedPlaywright={crawl.requestsBlockedPlaywright}
+              maxConsecutive403={crawl.maxConsecutive403}
+              disallowPaths={crawl.disallowPaths}
               allowManualAdd={false}
               allowLaunchScan={false}
               allowUrlRemoval={false}
-              onUrlsChange={setCrawledUrls}
+              onUrlsChange={setCrawlUrls}
               onLaunchScan={handleLaunchScanFromValidation}
-              onBack={handleBackFromValidation}
+              onBack={handleReset}
             />
           )}
 
@@ -570,7 +399,7 @@ export default function CrawlersContent() {
                   <div className="scan-loading-overlay fixed inset-0 z-[60]">
                     <ScanLoader
                       steps={steps}
-                      crawlMode={crawlMode}
+                      crawlMode={crawl.mode}
                       onAnimationComplete={
                         result ? () => setState("success") : undefined
                       }
@@ -587,7 +416,7 @@ export default function CrawlersContent() {
               <ScanResults
                 result={result}
                 scanId={scanId}
-                onNewScan={handleNewScan}
+                onNewScan={handleReset}
               />
             ) : (
               <>

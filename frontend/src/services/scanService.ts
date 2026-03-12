@@ -3,6 +3,7 @@
  */
 
 import { getApiBaseUrl } from "../utils/apiClient";
+import { pollAsyncJob } from "../utils/pollAsyncJob";
 import logger from "../utils/logger";
 
 export interface ScanStep {
@@ -114,29 +115,13 @@ export type ScanEventHandler =
   | { type: "save_failed"; data: string }
   | { type: "save_done"; data: { scan_id: string } };
 
-type AsyncJobStatus = "pending" | "running" | "completed" | "failed";
 export type AsyncScanType = "frontend" | "backend" | "custom";
 
 interface AsyncScanCreateResponse {
   job_id: string;
-  status: AsyncJobStatus;
-  scan_type: "frontend" | "backend" | "custom";
+  status: string;
+  scan_type: string;
   job_token?: string | null;
-}
-
-interface AsyncScanStatusResponse {
-  job_id: string;
-  status: AsyncJobStatus;
-  progress_log?: Array<ScanStep & { at: string }>;
-  error?: {
-    message?: string;
-    status_code?: number;
-    error_type?: string;
-  };
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -175,190 +160,78 @@ export async function runAsyncScan(
   getToken?: () => Promise<string | null>,
 ): Promise<void> {
   const logPrefix = options.logPrefix ?? "[scan-polling]";
-  const baseUrl = getApiBaseUrl();
-  const endpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan/async`;
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  const createEndpoint = `${base}/scan/api/scan/async`;
 
-  const headers: Record<string, string> = {
+  const authHeaders: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
   };
   if (getToken) {
     const token = await getToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
+    if (token) authHeaders.Authorization = `Bearer ${token}`;
   }
 
-  let createResponse: Response;
-  try {
-    logger.info(`${logPrefix} create job request`, { endpoint, url });
-    createResponse = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
+  let createData: AsyncScanCreateResponse | null = null;
+
+  await pollAsyncJob<ScanResult>({
+    logPrefix,
+    createJob: async () => {
+      logger.info(`${logPrefix} create job request`, {
+        endpoint: createEndpoint,
         url,
-        scan_type: options.scanType,
-        input: options.input ?? {},
-      }),
-    });
-  } catch (err) {
-    onEvent({
-      type: "error",
-      data: {
-        message: err instanceof Error ? err.message : "Erreur réseau",
-        status_code: 0,
-      },
-    });
-    return;
-  }
-
-  if (!createResponse.ok) {
-    logger.error(`${logPrefix} create job failed`, {
-      status: createResponse.status,
-    });
-    onEvent({
-      type: "error",
-      data: {
-        message: `Erreur HTTP ${createResponse.status}`,
-        status_code: createResponse.status,
-      },
-    });
-    return;
-  }
-  let createData: AsyncScanCreateResponse;
-  try {
-    createData = (await createResponse.json()) as AsyncScanCreateResponse;
-    logger.info(`${logPrefix} create job success`, {
-      job_id: createData.job_id,
-      status: createData.status,
-      scan_type: createData.scan_type,
-      anonymous: Boolean(createData.job_token),
-    });
-  } catch {
-    onEvent({
-      type: "error",
-      data: {
-        message: "Réponse de création invalide",
-        status_code: 500,
-      },
-    });
-    return;
-  }
-  const jobId = createData.job_id;
-  const jobToken = createData.job_token ?? undefined;
-  const statusEndpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan/async/${jobId}`;
-  const resultEndpoint = `${statusEndpoint}/result`;
-  let seenProgress = 0;
-  let pollIntervalMs = 500;
-
-  try {
-    while (true) {
-      const pollHeaders: Record<string, string> = {
-        Accept: "application/json",
-      };
-      if (headers.Authorization)
-        pollHeaders.Authorization = headers.Authorization;
-      if (jobToken) pollHeaders["X-Job-Token"] = jobToken;
-
-      const statusRes = await fetch(statusEndpoint, {
-        method: "GET",
-        headers: pollHeaders,
       });
-      logger.debug(`${logPrefix} status poll`, {
-        job_id: jobId,
-        http_status: statusRes.status,
-        poll_interval_ms: pollIntervalMs,
+      const res = await fetch(createEndpoint, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          url,
+          scan_type: options.scanType,
+          input: options.input ?? {},
+        }),
       });
-      if (!statusRes.ok) {
+      if (!res.ok) {
+        logger.error(`${logPrefix} create job failed`, { status: res.status });
         onEvent({
           type: "error",
           data: {
-            message: `Erreur statut HTTP ${statusRes.status}`,
-            status_code: statusRes.status,
+            message: `Erreur HTTP ${res.status}`,
+            status_code: res.status,
           },
         });
-        return;
+        throw new Error(`create job failed: ${res.status}`);
       }
-      const statusData = (await statusRes.json()) as AsyncScanStatusResponse;
-      logger.info(`${logPrefix} status update`, {
-        job_id: statusData.job_id,
-        status: statusData.status,
-        progress_count: statusData.progress_log?.length ?? 0,
-        last_step:
-          statusData.progress_log && statusData.progress_log.length > 0
-            ? statusData.progress_log[statusData.progress_log.length - 1].step
-            : undefined,
+      const data = (await res.json()) as AsyncScanCreateResponse;
+      createData = data;
+      logger.info(`${logPrefix} create job success`, {
+        job_id: data.job_id,
+        scan_type: data.scan_type,
+        anonymous: Boolean(data.job_token),
       });
-      const progress = statusData.progress_log ?? [];
-      const hasNewProgress = progress.length > seenProgress;
-      for (let i = seenProgress; i < progress.length; i += 1) {
-        const { at, ...stepData } = progress[i];
-        void at;
-        onEvent({ type: "step", data: stepData });
+      return { job_id: data.job_id, job_token: data.job_token };
+    },
+    pollUrl: (jobId) => `${base}/scan/api/scan/async/${jobId}`,
+    resultUrl: (jobId) => `${base}/scan/api/scan/async/${jobId}/result`,
+    buildPollHeaders: (jobToken) => {
+      const h: Record<string, string> = { Accept: "application/json" };
+      if (authHeaders.Authorization)
+        h.Authorization = authHeaders.Authorization;
+      if (jobToken) h["X-Job-Token"] = jobToken;
+      return h;
+    },
+    onEvent: (ev) => {
+      if (ev.type === "step") {
+        onEvent({ type: "step", data: ev.data });
+      } else if (ev.type === "result") {
+        onEvent({ type: "result", data: ev.data });
+      } else if (ev.type === "error") {
+        onEvent({ type: "error", data: ev.data });
       }
-      seenProgress = progress.length;
-      pollIntervalMs = hasNewProgress
-        ? 500
-        : Math.min(5000, pollIntervalMs + 250);
+    },
+    backoff: { initialMs: 500, maxMs: 5000, stepMs: 250 },
+  });
 
-      if (statusData.status === "failed") {
-        logger.error(`${logPrefix} job failed`, {
-          job_id: statusData.job_id,
-          error: statusData.error,
-        });
-        onEvent({
-          type: "error",
-          data: {
-            message: statusData.error?.message ?? "Erreur de scan",
-            status_code: statusData.error?.status_code ?? 500,
-            error_type: statusData.error?.error_type,
-          },
-        });
-        return;
-      }
-      if (statusData.status === "completed") {
-        logger.info(`${logPrefix} fetching result`, {
-          job_id: statusData.job_id,
-        });
-        const resultRes = await fetch(resultEndpoint, {
-          method: "GET",
-          headers: pollHeaders,
-        });
-        if (!resultRes.ok) {
-          logger.error(`${logPrefix} result fetch failed`, {
-            job_id: statusData.job_id,
-            status: resultRes.status,
-          });
-          onEvent({
-            type: "error",
-            data: {
-              message: `Erreur résultat HTTP ${resultRes.status}`,
-              status_code: resultRes.status,
-            },
-          });
-          return;
-        }
-        const resultData = (await resultRes.json()) as ScanResult;
-        logger.info(`${logPrefix} result received`, {
-          job_id: statusData.job_id,
-          findings_count: resultData.findings?.length ?? 0,
-          score: resultData.score,
-        });
-        onEvent({ type: "result", data: resultData });
-        return;
-      }
-      await delay(pollIntervalMs);
-    }
-  } catch (err) {
-    onEvent({
-      type: "error",
-      data: {
-        message:
-          err instanceof Error
-            ? err.message
-            : "Erreur lors de la lecture du flux",
-        status_code: 500,
-      },
-    });
-  }
+  void createData;
 }
 
 /**
@@ -375,8 +248,8 @@ export async function runMultiScan(
   getToken: () => Promise<string | null>,
 ): Promise<void> {
   const logPrefix = "[multi-scan-polling]";
-  const baseUrl = getApiBaseUrl();
-  const endpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan/multi-async`;
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  const createEndpoint = `${base}/scan/api/scan/multi-async`;
 
   const token = await getToken();
   if (!token) {
@@ -390,162 +263,60 @@ export async function runMultiScan(
     return;
   }
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    Authorization: `Bearer ${token}`,
-  };
+  const authHeader = `Bearer ${token}`;
 
-  let createResponse: Response;
-  try {
-    logger.info(`${logPrefix} create job request`, {
-      endpoint,
-      urlsCount: urls.length,
-    });
-    createResponse = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ urls, scan_type: "frontend" }),
-    });
-  } catch (err) {
-    onEvent({
-      type: "error",
-      data: {
-        message: err instanceof Error ? err.message : "Erreur réseau",
-        status_code: 0,
-      },
-    });
-    return;
-  }
-
-  if (!createResponse.ok) {
-    let errorMsg = `Erreur HTTP ${createResponse.status}`;
-    try {
-      const body = await createResponse.json();
-      if (body?.detail) errorMsg = body.detail;
-    } catch {}
-    onEvent({
-      type: "error",
-      data: { message: errorMsg, status_code: createResponse.status },
-    });
-    return;
-  }
-
-  interface MultiCreateResponse {
-    job_id: string;
-    status: string;
-    scan_type: string;
-  }
-
-  let createData: MultiCreateResponse;
-  try {
-    createData = (await createResponse.json()) as MultiCreateResponse;
-    logger.info(`${logPrefix} create job success`, {
-      job_id: createData.job_id,
-    });
-  } catch {
-    onEvent({
-      type: "error",
-      data: { message: "Réponse de création invalide", status_code: 500 },
-    });
-    return;
-  }
-
-  const jobId = createData.job_id;
-  const statusEndpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan/async/${jobId}`;
-  const resultEndpoint = `${statusEndpoint}/result`;
-  let seenProgress = 0;
-  let pollIntervalMs = 500;
-
-  try {
-    while (true) {
-      const pollHeaders: Record<string, string> = {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-      };
-
-      const statusRes = await fetch(statusEndpoint, {
-        method: "GET",
-        headers: pollHeaders,
+  await pollAsyncJob<MultiScanResult>({
+    logPrefix,
+    createJob: async () => {
+      logger.info(`${logPrefix} create job request`, {
+        endpoint: createEndpoint,
+        urlsCount: urls.length,
       });
-      if (!statusRes.ok) {
+      const res = await fetch(createEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({ urls, scan_type: "frontend" }),
+      });
+      if (!res.ok) {
+        let errorMsg = `Erreur HTTP ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body?.detail) errorMsg = body.detail;
+        } catch {}
         onEvent({
           type: "error",
-          data: {
-            message: `Erreur statut HTTP ${statusRes.status}`,
-            status_code: statusRes.status,
-          },
+          data: { message: errorMsg, status_code: res.status },
         });
-        return;
+        throw new Error(`create job failed: ${res.status}`);
       }
-
-      interface StatusResponse {
-        job_id: string;
-        status: string;
-        result_mode?: string;
-        progress_log?: Array<ScanStep & { at: string }>;
-        error?: { message?: string; status_code?: number; error_type?: string };
-      }
-
-      const statusData = (await statusRes.json()) as StatusResponse;
-      const progress = statusData.progress_log ?? [];
-      const hasNewProgress = progress.length > seenProgress;
-      for (let i = seenProgress; i < progress.length; i++) {
-        const { at, ...stepData } = progress[i];
-        void at;
-        onEvent({ type: "step", data: stepData });
-      }
-      seenProgress = progress.length;
-      pollIntervalMs = hasNewProgress
-        ? 500
-        : Math.min(8000, pollIntervalMs + 500);
-
-      if (statusData.status === "failed") {
-        onEvent({
-          type: "error",
-          data: {
-            message: statusData.error?.message ?? "Erreur de scan multi-URL",
-            status_code: statusData.error?.status_code ?? 500,
-            error_type: statusData.error?.error_type,
-          },
-        });
-        return;
-      }
-
-      if (statusData.status === "completed") {
-        const resultRes = await fetch(resultEndpoint, {
-          method: "GET",
-          headers: pollHeaders,
-        });
-        if (!resultRes.ok) {
-          onEvent({
-            type: "error",
-            data: {
-              message: `Erreur résultat HTTP ${resultRes.status}`,
-              status_code: resultRes.status,
-            },
-          });
-          return;
-        }
-        const resultData = (await resultRes.json()) as MultiScanResult;
+      const data = (await res.json()) as { job_id: string; status: string };
+      logger.info(`${logPrefix} create job success`, { job_id: data.job_id });
+      return { job_id: data.job_id };
+    },
+    pollUrl: (jobId) => `${base}/scan/api/scan/async/${jobId}`,
+    resultUrl: (jobId) => `${base}/scan/api/scan/async/${jobId}/result`,
+    buildPollHeaders: () => ({
+      Accept: "application/json",
+      Authorization: authHeader,
+    }),
+    onEvent: (ev) => {
+      if (ev.type === "step") {
+        onEvent({ type: "step", data: ev.data });
+      } else if (ev.type === "result") {
+        const data = ev.data as MultiScanResult;
         logger.info(`${logPrefix} result received`, {
-          job_id: jobId,
-          pages: resultData.page_results?.length ?? 0,
-          score_global: resultData.score_global,
+          pages: data.page_results?.length ?? 0,
+          score_global: data.score_global,
         });
-        onEvent({ type: "result", data: resultData });
-        return;
+        onEvent({ type: "result", data });
+      } else if (ev.type === "error") {
+        onEvent({ type: "error", data: ev.data });
       }
-
-      await delay(pollIntervalMs);
-    }
-  } catch (err) {
-    onEvent({
-      type: "error",
-      data: {
-        message: err instanceof Error ? err.message : "Erreur lors du polling",
-        status_code: 500,
-      },
-    });
-  }
+    },
+    backoff: { initialMs: 500, maxMs: 8000, stepMs: 500 },
+  });
 }

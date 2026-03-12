@@ -14,7 +14,7 @@ import {
   buildScanBaseFilename,
   downloadBlob,
   escapeCsvCell,
-} from "./exportScan";
+} from "./exportCore";
 
 type EnrichedFinding = ScanFinding & {
   page_url: string;
