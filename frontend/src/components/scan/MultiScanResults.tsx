@@ -252,7 +252,7 @@ export default function MultiScanResults({
       {/* Header global */}
       <Card disableHover>
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-3">
             <Globe className="h-6 w-6 text-[rgb(var(--primary))]" />
             <div>
               <h2 className="section-title !mb-0 !text-left">
