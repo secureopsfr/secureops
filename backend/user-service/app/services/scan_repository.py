@@ -36,7 +36,10 @@ async def create_scan(
     findings: List[dict[str, Any]],
     timestamp: str,
     duration: float,
+    result_mode: str = "single",
     category_summaries: Optional[List[dict[str, Any]]] = None,
+    page_results: Optional[List[dict[str, Any]]] = None,
+    urls: Optional[List[str]] = None,
 ) -> Scan:
     """Crée un scan dans l'historique.
 
@@ -58,12 +61,15 @@ async def create_scan(
         user_id=user_id,
         url=url,
         scan_type=scan_type,
+        result_mode=result_mode,
         status=status,
         score=score,
         findings_json=findings,
         timestamp=_parse_timestamp(timestamp),
         duration=duration,
         category_summaries_json=category_summaries,
+        page_results_json=page_results,
+        urls_json=urls,
     )
     session.add(scan)
     await session.commit()

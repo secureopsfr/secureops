@@ -513,6 +513,8 @@
     "scanTypeFrontend": "Frontend",
     "scanTypeBackend": "Backend",
     "scanTypeCustom": "Personnalisé",
+    "scanResultModeSingle": "Mono-page",
+    "scanResultModeMulti": "Multi-pages",
     "docsLink": "Documentation"
   },
   "auth": {

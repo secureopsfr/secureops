@@ -9,7 +9,7 @@ import {
 } from "../utils/apiClient";
 import { buildPaginatedQuery } from "../utils/apiQueryParams";
 import type { PaginatedListResponse } from "../types/api";
-import type { ScanResult } from "./scanService";
+import type { MultiScanResult, ScanResult } from "./scanService";
 
 export type ScanType = "frontend" | "backend" | "custom";
 
@@ -17,6 +17,7 @@ export interface ScanHistoryItem {
   id: string;
   url: string;
   scan_type: ScanType;
+  result_mode: "single" | "multi";
   status: string;
   score: number | null;
   timestamp: string;
@@ -28,8 +29,17 @@ export type ScanHistoryListResponse = PaginatedListResponse<ScanHistoryItem>;
 
 export interface ScanHistoryDetail extends ScanResult {
   id: string;
+  scan_type: ScanType;
+  status: string;
   created_at: string;
+  result_mode?: "single" | "multi";
+  page_results?: MultiScanResult["page_results"];
+  urls?: string[];
 }
+
+export type ScanHistorySelection =
+  | { result_mode: "single"; scan_id: string; result: ScanResult }
+  | { result_mode: "multi"; scan_id: string; result: MultiScanResult };
 
 /**
  * Enregistre un scan dans l'historique.
@@ -58,6 +68,33 @@ export async function saveScan(result: ScanResult): Promise<string | null> {
       body: JSON.stringify(body),
     },
     "Erreur lors de la sauvegarde du scan",
+  );
+  return data?.id && data.id.length > 0 ? data.id : null;
+}
+
+/** Enregistre un scan multi-URL dans l'historique utilisateur. */
+export async function saveMultiScan(
+  result: MultiScanResult,
+): Promise<string | null> {
+  const body: Record<string, unknown> = {
+    url: result.base_url,
+    scan_type: result.scan_type || "frontend",
+    result_mode: "multi",
+    status: result.status || "success",
+    score: result.score_global,
+    findings: [],
+    timestamp: result.timestamp,
+    duration: result.duration,
+    page_results: result.page_results,
+    urls: result.urls,
+  };
+  const data = await fetchJsonWithAuth<{ id?: string }>(
+    `${getApiBaseUrl()}/user/api/scans/history`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+    "Erreur lors de la sauvegarde du scan multi-URL",
   );
   return data?.id && data.id.length > 0 ? data.id : null;
 }

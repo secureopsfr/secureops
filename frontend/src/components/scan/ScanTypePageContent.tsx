@@ -12,6 +12,7 @@ import ScannerHistoryAlertsSection from "./ScannerHistoryAlertsSection";
 import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
 import ScanLaunchBubble from "./ScanLaunchBubble";
+import type { ScanHistorySelection } from "../../services/scanHistoryService";
 import {
   runAsyncScan,
   type ScanResult,
@@ -44,9 +45,10 @@ export default function ScanTypePageContent({
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const handleSelectScan = (result: ScanResult, id?: string) => {
-    setSelectedResult(result);
-    setSelectedScanId(id ?? null);
+  const handleSelectScan = (selection: ScanHistorySelection) => {
+    if (selection.result_mode !== "single") return;
+    setSelectedResult(selection.result);
+    setSelectedScanId(selection.scan_id ?? null);
   };
 
   const handleNewScan = () => {

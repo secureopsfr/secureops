@@ -39,7 +39,11 @@ import {
   savePendingScanResult,
   consumePendingScanResult,
 } from "../../utils/scanStorage";
-import { saveScan } from "../../services/scanHistoryService";
+import {
+  saveMultiScan,
+  saveScan,
+  type ScanHistorySelection,
+} from "../../services/scanHistoryService";
 import {
   showErrorToast,
   showSuccessToast,
@@ -432,6 +436,13 @@ export default function ScannerContent() {
             });
           } else if (ev.type === "result") {
             setMultiResult(ev.data);
+            if (isAuthenticated) {
+              saveMultiScan(ev.data)
+                .then((id) => {
+                  if (id) setScanId(id);
+                })
+                .catch(() => showErrorToast(t("scanner.saveFailed")));
+            }
             setState("success");
           } else if (ev.type === "error") {
             setError(ev.data);
@@ -450,7 +461,7 @@ export default function ScannerContent() {
         setErrorModalOpen(true);
       });
     },
-    [t],
+    [isAuthenticated, t],
   );
 
   const handleLaunchScanFromValidation = useCallback(() => {
@@ -479,9 +490,15 @@ export default function ScannerContent() {
     setCrawlSteps([]);
   }, []);
 
-  const handleSelectScan = useCallback((r: ScanResult, id?: string) => {
-    setResult(r);
-    setScanId(id ?? null);
+  const handleSelectScan = useCallback((selection: ScanHistorySelection) => {
+    setScanId(selection.scan_id ?? null);
+    if (selection.result_mode === "multi") {
+      setMultiResult(selection.result);
+      setResult(null);
+    } else {
+      setResult(selection.result);
+      setMultiResult(null);
+    }
     setState("success");
   }, []);
 
