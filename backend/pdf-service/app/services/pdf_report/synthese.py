@@ -212,7 +212,7 @@ def build_synthese(
     score_val: int,
     score_color: str,
     lang: str,
-    base_url: str,
+    base_url: str = "",
     result_mode: str | None = None,
     page_results: list[dict] | None = None,
 ) -> str:
