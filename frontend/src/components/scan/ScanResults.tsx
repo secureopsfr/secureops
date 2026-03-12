@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState } from "react";
 import {
   Download,
   FileSpreadsheet,
@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import AnimateInView from "../AnimateInView";
-import Card from "../ui/cards/Card";
 import Modal from "../ui/Modal";
 import ScanResultHeroCard from "./ScanResultHeroCard";
 import ScanSummarySection from "./ScanSummarySection";
@@ -18,7 +17,6 @@ import FloatingActionDock from "./FloatingActionDock";
 import type { ScanResult } from "../../services/scanService";
 import { severitySort } from "./scanConstants";
 import { exportScanResult, type ExportFormat } from "../../utils/exportScan";
-import { formatUrlDisplay } from "../../utils/urlFormat";
 import { downloadScanPdf } from "../../services/scanHistoryService";
 import { showErrorToast } from "../../utils/toastNotifications";
 import { LoadingSpinner } from "../LoadingScreen";
