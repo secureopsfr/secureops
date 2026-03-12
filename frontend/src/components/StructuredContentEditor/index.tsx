@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import ImageModal from "./ImageModal";
 import type { StructuredContentEditorProps } from "./types";
+import { useLanguage } from "../LanguageProvider";
 
 /* ────────────────────────── Toolbar button ────────────────────────── */
 
@@ -113,6 +114,7 @@ function EditorToolbar({
   editor: ReturnType<typeof useEditor> | null;
   onInsertImage: () => void;
 }) {
+  const { t } = useLanguage();
   const [showColorPicker, setShowColorPicker] = useState(false);
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
@@ -223,14 +225,14 @@ function EditorToolbar({
       <ToolbarBtn
         onClick={() => editor.chain().focus().undo().run()}
         disabled={!editor.can().undo()}
-        title="Annuler"
+        title={t("editor.undo")}
       >
         <Undo2 size={s} />
       </ToolbarBtn>
       <ToolbarBtn
         onClick={() => editor.chain().focus().redo().run()}
         disabled={!editor.can().redo()}
-        title="Rétablir"
+        title={t("editor.redo")}
       >
         <Redo2 size={s} />
       </ToolbarBtn>
@@ -241,28 +243,28 @@ function EditorToolbar({
       <ToolbarBtn
         onClick={() => editor.chain().focus().toggleBold().run()}
         active={editor.isActive("bold")}
-        title="Gras"
+        title={t("editor.bold")}
       >
         <Bold size={s} />
       </ToolbarBtn>
       <ToolbarBtn
         onClick={() => editor.chain().focus().toggleItalic().run()}
         active={editor.isActive("italic")}
-        title="Italique"
+        title={t("editor.italic")}
       >
         <Italic size={s} />
       </ToolbarBtn>
       <ToolbarBtn
         onClick={() => editor.chain().focus().toggleUnderline().run()}
         active={editor.isActive("underline")}
-        title="Souligné"
+        title={t("editor.underline")}
       >
         <UnderlineIcon size={s} />
       </ToolbarBtn>
       <ToolbarBtn
         onClick={() => editor.chain().focus().toggleStrike().run()}
         active={editor.isActive("strike")}
-        title="Barré"
+        title={t("editor.strikethrough")}
       >
         <Strikethrough size={s} />
       </ToolbarBtn>
@@ -273,21 +275,21 @@ function EditorToolbar({
       <ToolbarBtn
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         active={editor.isActive("heading", { level: 1 })}
-        title="Titre 1"
+        title={t("editor.h1")}
       >
         <Heading1 size={s} />
       </ToolbarBtn>
       <ToolbarBtn
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         active={editor.isActive("heading", { level: 2 })}
-        title="Titre 2"
+        title={t("editor.h2")}
       >
         <Heading2 size={s} />
       </ToolbarBtn>
       <ToolbarBtn
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         active={editor.isActive("heading", { level: 3 })}
-        title="Titre 3"
+        title={t("editor.h3")}
       >
         <Heading3 size={s} />
       </ToolbarBtn>
@@ -298,14 +300,14 @@ function EditorToolbar({
       <ToolbarBtn
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         active={editor.isActive("bulletList")}
-        title="Liste à puces"
+        title={t("editor.bulletList")}
       >
         <List size={s} />
       </ToolbarBtn>
       <ToolbarBtn
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         active={editor.isActive("orderedList")}
-        title="Liste numérotée"
+        title={t("editor.numberedList")}
       >
         <ListOrdered size={s} />
       </ToolbarBtn>
@@ -316,21 +318,21 @@ function EditorToolbar({
       <ToolbarBtn
         onClick={() => editor.chain().focus().setTextAlign("left").run()}
         active={editor.isActive({ textAlign: "left" })}
-        title="Aligner à gauche"
+        title={t("editor.alignLeft")}
       >
         <AlignLeft size={s} />
       </ToolbarBtn>
       <ToolbarBtn
         onClick={() => editor.chain().focus().setTextAlign("center").run()}
         active={editor.isActive({ textAlign: "center" })}
-        title="Centrer"
+        title={t("editor.alignCenter")}
       >
         <AlignCenter size={s} />
       </ToolbarBtn>
       <ToolbarBtn
         onClick={() => editor.chain().focus().setTextAlign("right").run()}
         active={editor.isActive({ textAlign: "right" })}
-        title="Aligner à droite"
+        title={t("editor.alignRight")}
       >
         <AlignRight size={s} />
       </ToolbarBtn>
@@ -342,7 +344,7 @@ function EditorToolbar({
         <ToolbarBtn
           onClick={openLinkBubble}
           active={showLinkBubble || editor.isActive("link")}
-          title="Insérer un lien"
+          title={t("editor.insertLink")}
         >
           <LinkIcon size={s} />
         </ToolbarBtn>
@@ -366,7 +368,7 @@ function EditorToolbar({
                   }
                   if (e.key === "Escape") setShowLinkBubble(false);
                 }}
-                placeholder="https://example.com"
+                placeholder={t("editor.linkUrlPlaceholder")}
                 className="w-full px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[rgb(var(--primary))] transition-colors"
               />
             </div>
@@ -388,7 +390,7 @@ function EditorToolbar({
                     }
                     if (e.key === "Escape") setShowLinkBubble(false);
                   }}
-                  placeholder="Texte du lien"
+                  placeholder={t("editor.linkTextPlaceholder")}
                   className="w-full px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[rgb(var(--primary))] transition-colors"
                 />
               </div>
@@ -418,7 +420,7 @@ function EditorToolbar({
                   className="btn btn-secondary !py-1.5 !px-3 !text-xs flex items-center gap-1 hover:!bg-[rgba(var(--danger),0.2)] hover:!border-[rgba(var(--danger),0.3)]"
                 >
                   <Unlink size={12} />
-                  Supprimer
+                  {t("editor.remove")}
                 </button>
               )}
               <button
@@ -434,7 +436,7 @@ function EditorToolbar({
       </div>
 
       {/* Image */}
-      <ToolbarBtn onClick={onInsertImage} title="Insérer une image">
+      <ToolbarBtn onClick={onInsertImage} title={t("editor.insertImage")}>
         <ImageIcon size={s} />
       </ToolbarBtn>
 
@@ -445,7 +447,7 @@ function EditorToolbar({
         <ToolbarBtn
           onClick={() => setShowColorPicker((v) => !v)}
           active={showColorPicker}
-          title="Couleur du texte"
+          title={t("editor.textColor")}
         >
           <div className="flex flex-col items-center gap-0">
             <Palette size={s} />
@@ -509,7 +511,7 @@ function EditorToolbar({
                     setShowColorPicker(false);
                   }}
                   className="px-2.5 py-1.5 text-xs rounded-full border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[rgba(var(--danger),0.2)] hover:border-[rgba(var(--danger),0.3)] transition-all duration-200 text-[var(--muted)] cursor-pointer"
-                  title="Réinitialiser"
+                  title={t("editor.reset")}
                 >
                   ✕
                 </button>
@@ -522,7 +524,7 @@ function EditorToolbar({
       {/* Séparateur */}
       <ToolbarBtn
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
-        title="Ligne de séparation"
+        title={t("editor.divider")}
       >
         <Minus size={s} />
       </ToolbarBtn>
@@ -531,7 +533,7 @@ function EditorToolbar({
       <ToolbarBtn
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         active={editor.isActive("codeBlock")}
-        title="Bloc de code"
+        title={t("editor.codeBlock")}
       >
         <Code size={s} />
       </ToolbarBtn>

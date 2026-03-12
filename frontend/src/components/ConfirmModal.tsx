@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
-import Modal from "./Modal";
+import Modal from "./ui/Modal";
 import { GenericButton } from "./buttons";
+import { useLanguage } from "./LanguageProvider";
 
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   title: string;
   message: string;
   confirmText?: string;
@@ -16,6 +17,8 @@ interface ConfirmModalProps {
   variant?: "default" | "danger";
   confirmationText?: string;
   icon?: React.ComponentType<{ className?: string }>;
+  /** Si true, désactive le bouton de confirmation et affiche un état de chargement */
+  loading?: boolean;
 }
 
 /**
@@ -28,13 +31,17 @@ export default function ConfirmModal({
   onConfirm,
   title,
   message,
-  confirmText = "Confirmer",
-  cancelText = "Annuler",
+  confirmText,
+  cancelText,
   variant = "default",
   confirmationText,
   icon: Icon,
+  loading = false,
 }: ConfirmModalProps) {
+  const { t } = useLanguage();
   const [confirmationInput, setConfirmationInput] = useState("");
+  const displayConfirmText = confirmText ?? t("common.confirm");
+  const displayCancelText = cancelText ?? t("common.cancel");
 
   // Réinitialiser l'input quand le modal s'ouvre
   useEffect(() => {
@@ -43,7 +50,7 @@ export default function ConfirmModal({
     }
   }, [isOpen]);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (
       confirmationText &&
       confirmationInput.toLowerCase().trim() !==
@@ -51,8 +58,13 @@ export default function ConfirmModal({
     ) {
       return;
     }
-    onConfirm();
-    onClose();
+    const result = onConfirm();
+    if (result instanceof Promise) {
+      await result;
+      // Le parent ferme le modal dans son handler (ex. après révocation)
+    } else {
+      onClose();
+    }
   };
 
   const isDanger = variant === "danger";
@@ -113,14 +125,14 @@ export default function ConfirmModal({
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
           <GenericButton
-            label={cancelText}
+            label={displayCancelText}
             onClick={onClose}
             variant="secondary"
           />
           <GenericButton
-            label={confirmText}
+            label={loading ? t("common.loading") : displayConfirmText}
             onClick={handleConfirm}
-            disabled={isConfirmDisabled}
+            disabled={isConfirmDisabled || loading}
             variant={isDanger ? "danger" : "primary"}
           />
         </div>

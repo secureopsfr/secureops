@@ -2,7 +2,7 @@
 
 import React, { useCallback } from "react";
 import { Bell, Trash2 } from "lucide-react";
-import { SectionCard } from "../cards";
+import { SectionCard } from "../ui/cards";
 import LoadingScreen from "../LoadingScreen";
 import PaginationBar from "../PaginationBar";
 import { useLanguage } from "../LanguageProvider";
@@ -20,7 +20,23 @@ import {
   showSuccessToast,
 } from "../../utils/toastNotifications";
 
-export default function AlertHistoryBlock() {
+interface AlertHistoryBlockProps {
+  /** Filtre optionnel par URL (alertes limitées à cette URL). */
+  filterUrl?: string | null;
+  /** Filtre optionnel par type de scan (frontend, backend, custom). */
+  filterScanType?: string | null;
+  /** Filtre optionnel date de début (ISO string). */
+  filterDateFrom?: string | null;
+  /** Filtre optionnel date de fin (ISO string). */
+  filterDateTo?: string | null;
+}
+
+export default function AlertHistoryBlock({
+  filterUrl,
+  filterScanType,
+  filterDateFrom,
+  filterDateTo,
+}: AlertHistoryBlockProps) {
   const { t } = useLanguage();
 
   const onError = useCallback(
@@ -29,9 +45,18 @@ export default function AlertHistoryBlock() {
   );
   const { items, page, setPage, loading, load, totalPages } =
     usePaginatedFetch<ScanAlertEvent>({
-      fetchFn: (p, perPage) => getScanAlertHistory(p, perPage),
+      fetchFn: (p, perPage) =>
+        getScanAlertHistory(
+          p,
+          perPage,
+          filterUrl ?? undefined,
+          filterScanType ?? undefined,
+          filterDateFrom ?? undefined,
+          filterDateTo ?? undefined,
+        ),
       perPage: 10,
       onError,
+      refreshTrigger: `${filterUrl ?? ""}_${filterScanType ?? ""}_${filterDateFrom ?? ""}_${filterDateTo ?? ""}`,
     });
 
   const handleDeleteConfirm = useCallback(
@@ -65,6 +90,12 @@ export default function AlertHistoryBlock() {
     return alertType;
   };
 
+  const getScanTypeLabel = (scanType: string) => {
+    if (scanType === "backend") return t("scanner.scanTypeBackend");
+    if (scanType === "custom") return t("scanner.scanTypeCustom");
+    return t("scanner.scanTypeFrontend");
+  };
+
   return (
     <SectionCard icon={Bell} title={t("scheduledScans.alertHistoryTitle")}>
       <div className="space-y-4">
@@ -90,6 +121,11 @@ export default function AlertHistoryBlock() {
                       {formatUrlDisplay(item.url)}
                     </span>
                     <span className="text-xs text-[var(--muted)]">
+                      {!filterScanType && (
+                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
+                          {getScanTypeLabel(item.scan_type ?? "frontend")}
+                        </span>
+                      )}
                       {formatDate(item.triggered_at)} ·{" "}
                       {getAlertTypeLabel(item.alert_type)} ·{" "}
                       {item.email_sent

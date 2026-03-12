@@ -99,6 +99,26 @@ export async function handleFetchError(
 }
 
 /**
+ * Appel fetch sans auth : vérifie response.ok, sinon parse le JSON d'erreur et lance Error.
+ *
+ * @param url - URL à appeler
+ * @param options - Options fetch (method, body, headers, etc.)
+ * @param fallbackError - Message d'erreur par défaut si le body n'a pas de détail
+ * @returns Promise<T> - Données JSON parsées
+ */
+export async function fetchJson<T>(
+  url: string,
+  options: RequestInit = {},
+  fallbackError: string,
+): Promise<T> {
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    await handleFetchError(response, fallbackError);
+  }
+  return response.json() as Promise<T>;
+}
+
+/**
  * Effectue un appel API authentifié, parse le JSON et gère les erreurs.
  *
  * @param url - URL de l'endpoint

@@ -2,7 +2,7 @@
 
 Charge les entrées depuis recommendations.json. Chaque entrée associe un slug
 à (recommendation, recommendation_en, title_fr, title_en, evidence_fr, evidence_en,
-detail_fr, detail_en, references). Support i18n pour PDF fr/en.
+detail_fr, detail_en, references). Support i18n fr/en (scan et pdf-service).
 """
 
 import json

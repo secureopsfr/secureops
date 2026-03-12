@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useLanguage } from "../LanguageProvider";
 
 const WEEKDAY_LABELS = ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"];
 const MONTH_LABELS = [
@@ -35,6 +36,8 @@ interface DatePickerProps {
   /** Afficher le champ de saisie manuelle (AAAA-MM-JJ). Défaut: true */
   showInput?: boolean;
   placeholder?: string;
+  /** Variante compacte (taille réduite) */
+  compact?: boolean;
 }
 
 /**
@@ -47,7 +50,9 @@ export default function DatePicker({
   className = "",
   showInput = true,
   placeholder = "AAAA-MM-JJ",
+  compact = false,
 }: DatePickerProps) {
+  const { t } = useLanguage();
   const minDate = useMemo(
     () => (min ? new Date(min + "T00:00:00") : null),
     [min],
@@ -165,7 +170,9 @@ export default function DatePicker({
   const canNext = true;
 
   return (
-    <div className={`theme-calendar ${className}`.trim()}>
+    <div
+      className={`theme-calendar ${compact ? "theme-calendar-compact" : ""} ${className}`.trim()}
+    >
       {showInput && (
         <input
           type="text"
@@ -174,7 +181,7 @@ export default function DatePicker({
           onBlur={handleInputBlur}
           placeholder={placeholder}
           className="auth-input w-full mb-3 min-w-0"
-          aria-label="Date au format AAAA-MM-JJ"
+          aria-label={t("datePicker.ariaDate")}
         />
       )}
       <div className="theme-calendar-header">
@@ -195,7 +202,7 @@ export default function DatePicker({
           onClick={nextMonth}
           disabled={!canNext}
           className="theme-calendar-nav"
-          aria-label="Mois suivant"
+          aria-label={t("datePicker.ariaNextMonth")}
         >
           <ChevronRight className="w-4 h-4" />
         </button>

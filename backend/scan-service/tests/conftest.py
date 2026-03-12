@@ -48,6 +48,7 @@ def patch_scan_checks(**overrides):
         sensitive_routes=(),
         findings=(),
         fetch_ok=True,
+        found=True,
         crawl_delay=None,
         sitemap_urls=(),
     )
@@ -89,43 +90,43 @@ def patch_scan_checks(**overrides):
         details=None,
     )
     with (
-        patch("app.services.scan_stream.check_ssrf", new_callable=AsyncMock),
-        patch("app.services.scan_stream.scan_client", _fake_scan_client),
-        patch("app.services.scan_stream.get_with_client_or_error", new_callable=AsyncMock, return_value=fetch_result_ok),
-        patch("app.services.scan_stream.run_tls_checks", new_callable=AsyncMock, return_value=tls_result),
-        patch("app.services.scan_stream.run_exposed_files_checks", new_callable=AsyncMock, return_value=exposed_result),
+        patch("app.services.scan_runner.check_ssrf", new_callable=AsyncMock),
+        patch("app.services.scan_runner.scan_client", _fake_scan_client),
+        patch("app.services.scan_runner.get_with_client_or_error", new_callable=AsyncMock, return_value=fetch_result_ok),
+        patch("app.services._scan_core.run_tls_checks", new_callable=AsyncMock, return_value=tls_result),
+        patch("app.services._scan_core.run_exposed_files_checks", new_callable=AsyncMock, return_value=exposed_result),
         patch(
-            "app.services.scan_stream.run_directory_listing_checks",
+            "app.services._scan_core.run_directory_listing_checks",
             new_callable=AsyncMock,
             return_value=directory_listing_result,
         ),
         patch(
-            "app.services.scan_stream.run_robots_txt_checks",
+            "app.services._scan_core.run_robots_txt_checks",
             new_callable=AsyncMock,
             return_value=robots_txt_result,
         ),
         patch(
-            "app.services.scan_stream.run_sitemap_checks",
+            "app.services._scan_core.run_sitemap_checks",
             new_callable=AsyncMock,
             return_value=sitemap_result,
         ),
         patch(
-            "app.services.scan_stream.check_tech_fingerprinting_from_response",
+            "app.services._scan_core.check_tech_fingerprinting_from_response",
             new_callable=MagicMock,
             return_value=tech_fingerprinting_result,
         ),
         patch(
-            "app.services.scan_stream.check_information_disclosure_from_response",
+            "app.services._scan_core.check_information_disclosure_from_response",
             new_callable=MagicMock,
             return_value=information_disclosure_result,
         ),
         patch(
-            "app.services.scan_stream.check_integrity_from_response",
+            "app.services._scan_core.check_integrity_from_response",
             new_callable=MagicMock,
             return_value=integrity_result,
         ),
         patch(
-            "app.services.scan_stream.run_cors_cross_origin_checks",
+            "app.services._scan_core.run_cors_cross_origin_checks",
             new_callable=AsyncMock,
             return_value=cors_cross_origin_result,
         ),

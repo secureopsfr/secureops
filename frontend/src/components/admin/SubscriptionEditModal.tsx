@@ -12,7 +12,7 @@ import {
 import { formatDate } from "../../utils/dateFormat";
 import { getStatusLabel } from "../../utils/adminHelpers";
 import { GenericButton } from "../buttons";
-import Modal from "../Modal";
+import Modal from "../ui/Modal";
 import { useLanguage } from "../LanguageProvider";
 
 /* ─────────────── Types ─────────────── */

@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import useSWR from "swr";
 import { Clock, CheckCircle, AlertTriangle, Zap, Activity } from "lucide-react";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 import { DropdownSelector } from "../buttons";
 import RouteMetrics, {
   WINDOW_OPTIONS,

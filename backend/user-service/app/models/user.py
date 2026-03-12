@@ -40,6 +40,8 @@ class User(Base):
 
     scheduled_scans = relationship("ScheduledScan", back_populates="user", cascade="all, delete-orphan")
 
+    api_keys = relationship("ApiKey", back_populates="user", cascade="all, delete-orphan")
+
     __table_args__ = (UniqueConstraint("cognito_sub", name="uq_users_cognito_sub"),)
 
     def __repr__(self) -> str:

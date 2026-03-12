@@ -11,7 +11,7 @@ import {
 import { useUserManagement } from "./hooks/useUserManagement";
 import { useUserColumns, useHistoryColumns } from "./UserColumns";
 import UserKpiStats from "./UserKpiStats";
-import Card from "../../cards/Card";
+import Card from "../../ui/cards/Card";
 import { GenericButton, DropdownSelector } from "../../buttons";
 import Pagination from "../Pagination";
 import Table from "../../Table";

@@ -107,15 +107,6 @@ _VERSION_PATTERN = re.compile(r"(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)")
 # Produits serveur avec préfixe connu.
 _SERVER_PRODUCTS = ("nginx", "apache", "iis", "openresty", "caddy", "lighttpd")
 
-# Versions minimales sûres (curated, à étendre). Versions antérieures = alerte.
-_VULNERABLE_VERSION_THRESHOLDS: dict[str, str] = {
-    "nginx": "1.20.0",
-    "apache": "2.4.50",
-    "php": "8.0.0",
-    "wordpress": "6.0.0",
-    "drupal": "9.0.0",
-}
-
 
 def _parse_version(value: str) -> str | None:
     """Extrait la première version (X.Y.Z) d'une chaîne.

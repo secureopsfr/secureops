@@ -12,7 +12,7 @@ from app.services.cognito_service import delete_user as delete_cognito_user
 from app.services.cognito_service import revoke_all_user_tokens
 from app.services.user_repository import delete_user_by_id
 from app.services.user_service import change_user_password_service
-from app.utils.auth import get_current_user, resolve_user
+from app.utils.auth import require_jwt_user, resolve_user
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/user", tags=["user – sécurité"])
 @router.post("/change-password", response_model=ChangePasswordResponse)
 async def change_password(
     password_data: ChangePasswordRequest,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    current_user: Annotated[Dict, Depends(require_jwt_user)],
 ) -> ChangePasswordResponse:
     """Change le mot de passe de l'utilisateur."""
     try:
@@ -52,7 +52,7 @@ async def change_password(
 
 @router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_account(
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    current_user: Annotated[Dict, Depends(require_jwt_user)],
 ) -> None:
     """Supprime le compte de l'utilisateur (Cognito + BDD)."""
     try:
@@ -90,7 +90,7 @@ async def delete_account(
 
 @router.post("/logout-all-devices", status_code=status.HTTP_204_NO_CONTENT)
 async def logout_all_devices(
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    current_user: Annotated[Dict, Depends(require_jwt_user)],
 ) -> None:
     """Révoque tous les tokens, déconnectant tous les appareils."""
     try:

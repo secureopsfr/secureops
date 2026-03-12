@@ -33,6 +33,12 @@ services:
     scan:
       prefix: "scan"
       url: "http://scan-service:8012"
+    crawl:
+      prefix: "crawl"
+      url: "http://crawl-service:8014"
+    pdf:
+      prefix: "pdf"
+      url: "http://pdf-service:8013"
 
   # Configuration pour l'environnement local
   local:
@@ -45,10 +51,17 @@ services:
     scan:
       prefix: "scan"
       url: "http://localhost:8012"
+    crawl:
+      prefix: "crawl"
+      url: "http://localhost:8014"
+    pdf:
+      prefix: "pdf"
+      url: "http://localhost:8013"
 
 # Configuration des timeouts
 timeouts:
-  request_timeout: 20.0  # Timeout en secondes pour les requêtes HTTP (augmenté pour autocomplétion)
+  request_timeout: 20.0  # Timeout en secondes pour les requêtes HTTP
+  crawl_timeout: 90.0    # Timeout pour POST /crawl/api/crawl (crawl SPA peut prendre 60s+)
 
 # Configuration des headers
 headers:
@@ -62,7 +75,3 @@ headers:
     - "trailers"
     - "transfer-encoding"
     - "upgrade"
-
-# Configuration des types de contenu
-content_types:
-  vector_tile: "application/vnd.mapbox-vector-tile"

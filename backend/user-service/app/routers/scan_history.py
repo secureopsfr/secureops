@@ -2,12 +2,14 @@
 
 import logging
 import uuid
-from typing import Annotated
+from datetime import datetime
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.db import get_async_session
 from app.schemas.scan import ScanCreateRequest, ScanDetailResponse, ScanListItem, ScanListResponse
+from app.services.scan_aggregation_service import get_scan_overview
 from app.services.scan_repository import (
     count_user_scans,
     create_scan,
@@ -39,29 +41,39 @@ async def create_scan_entry(
                 return ScanDetailResponse(
                     id="",
                     url=body.url,
+                    scan_type=body.scan_type,
+                    result_mode=body.result_mode,
                     status=body.status,
                     score=body.score,
                     findings=body.findings,
                     timestamp=body.timestamp,
                     duration=body.duration,
                     created_at=None,
+                    page_results=body.page_results,
+                    urls=body.urls,
                 )
             scan = await create_scan(
                 session=session,
                 user_id=user_id,
                 url=body.url,
+                scan_type=body.scan_type,
                 status=body.status,
                 score=body.score,
                 findings=body.findings,
                 timestamp=body.timestamp,
                 duration=body.duration,
+                result_mode=body.result_mode,
                 category_summaries=body.category_summaries,
+                page_results=body.page_results,
+                urls=body.urls,
             )
             summaries = scan.category_summaries_json or []
             total_tests = sum(s.get("checks_count", 0) for s in summaries) if summaries else None
             return ScanDetailResponse(
                 id=str(scan.id),
                 url=scan.url,
+                scan_type=getattr(scan, "scan_type", "frontend"),
+                result_mode=getattr(scan, "result_mode", "single") or "single",
                 status=scan.status,
                 score=scan.score,
                 findings=scan.findings_json,
@@ -69,6 +81,8 @@ async def create_scan_entry(
                 duration=scan.duration,
                 created_at=scan.created_at,
                 category_summaries=summaries or None,
+                page_results=scan.page_results_json or None,
+                urls=scan.urls_json or None,
                 total_tests_count=total_tests,
             )
     except HTTPException:
@@ -81,20 +95,53 @@ async def create_scan_entry(
         )
 
 
+def _parse_optional_datetime(value: Optional[str]) -> Optional[datetime]:
+    """Parse une chaîne ISO en datetime timezone-aware, ou None si vide/invalide."""
+    if not value or not value.strip():
+        return None
+    try:
+        s = value.strip().replace("Z", "+00:00")
+        return datetime.fromisoformat(s)
+    except (ValueError, TypeError):
+        return None
+
+
 @router.get("/history", response_model=ScanListResponse)
 async def list_scans(
     user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
     page: int = 1,
     limit: int = 20,
+    url: str | None = None,
+    scan_type: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> ScanListResponse:
-    """Liste les scans de l'utilisateur (pagination)."""
+    """Liste les scans de l'utilisateur (pagination). Filtres optionnels par url, scan_type et plage de dates."""
     try:
         limit = min(max(limit, 1), 100)
         offset = (page - 1) * limit
+        date_from_dt = _parse_optional_datetime(date_from)
+        date_to_dt = _parse_optional_datetime(date_to)
 
         async with get_async_session() as session:
-            total = await count_user_scans(session, user_id)
-            scans = await list_scans_by_user_id(session, user_id, limit=limit, offset=offset)
+            total = await count_user_scans(
+                session,
+                user_id,
+                url=url,
+                scan_type=scan_type,
+                date_from=date_from_dt,
+                date_to=date_to_dt,
+            )
+            scans = await list_scans_by_user_id(
+                session,
+                user_id,
+                limit=limit,
+                offset=offset,
+                url=url,
+                scan_type=scan_type,
+                date_from=date_from_dt,
+                date_to=date_to_dt,
+            )
 
             total_pages = max((total + limit - 1) // limit, 1) if total > 0 else 0
 
@@ -103,6 +150,8 @@ async def list_scans(
                     ScanListItem(
                         id=str(s.id),
                         url=s.url,
+                        scan_type=getattr(s, "scan_type", "frontend"),
+                        result_mode=getattr(s, "result_mode", "single") or "single",
                         status=s.status,
                         score=s.score,
                         timestamp=s.timestamp,
@@ -123,6 +172,41 @@ async def list_scans(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erreur lors de la récupération de l'historique",
+        )
+
+
+@router.get("/history/overview")
+async def get_overview(
+    user_id: Annotated[uuid.UUID, Depends(get_current_user_id)],
+    url: str | None = None,
+    scan_type: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+):
+    """Return KPIs and chart data for the scanner overview.
+
+    Optional filters: url, scan_type, date_from (ISO), date_to (ISO).
+    """
+    try:
+        date_from_dt = _parse_optional_datetime(date_from)
+        date_to_dt = _parse_optional_datetime(date_to)
+
+        async with get_async_session() as session:
+            return await get_scan_overview(
+                session,
+                user_id,
+                url=url,
+                scan_type=scan_type,
+                date_from=date_from_dt,
+                date_to=date_to_dt,
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Erreur lors de l'agrégation des scans: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de la récupération des statistiques",
         )
 
 
@@ -150,6 +234,8 @@ async def get_scan_detail(
             return ScanDetailResponse(
                 id=str(scan.id),
                 url=scan.url,
+                scan_type=getattr(scan, "scan_type", "frontend"),
+                result_mode=getattr(scan, "result_mode", "single") or "single",
                 status=scan.status,
                 score=scan.score,
                 findings=scan.findings_json,
@@ -157,6 +243,8 @@ async def get_scan_detail(
                 duration=scan.duration,
                 created_at=scan.created_at,
                 category_summaries=summaries or None,
+                page_results=scan.page_results_json or None,
+                urls=scan.urls_json or None,
                 total_tests_count=total_tests,
             )
     except HTTPException:

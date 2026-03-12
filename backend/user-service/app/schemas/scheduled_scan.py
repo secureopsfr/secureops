@@ -2,18 +2,27 @@
 
 from datetime import datetime
 from typing import List, Literal, Optional
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, field_validator
 
 from app.utils.url_utils import URLValidationError, normalize_scan_url
 
 FrequencyType = Literal["daily", "weekly", "monthly"]
+ScanType = Literal["frontend", "backend", "custom"]
+ResultMode = Literal["single", "multi"]
 
 
 class ScheduledScanCreateRequest(BaseModel):
     """Schéma pour la création d'un scan planifié."""
 
     url: str = Field(..., description="URL à scanner (http ou https, ex. https://example.com)")
+    scan_type: ScanType = Field(..., description="Type de scan : frontend, backend, custom")
+    result_mode: ResultMode = Field("single", description="Mode de résultat : single ou multi")
+    urls: Optional[List[str]] = Field(
+        None,
+        description="Liste d'URLs pour un scan multi-pages (normalisées).",
+    )
     frequency: FrequencyType = Field(..., description="Fréquence : daily, weekly, monthly")
     schedule_hour: int = Field(2, ge=0, le=23, description="Heure d'exécution (0-23) dans le fuseau utilisateur")
     schedule_minute: int = Field(0, ge=0, le=59, description="Minute d'exécution (0-59)")
@@ -30,6 +39,39 @@ class ScheduledScanCreateRequest(BaseModel):
             return normalize_scan_url(v)
         except URLValidationError as e:
             raise ValueError(str(e)) from e
+
+    @field_validator("urls")
+    @classmethod
+    def validate_and_normalize_urls(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        """Valide et normalise la liste d'URLs si fournie."""
+        if v is None:
+            return None
+        normalized: list[str] = []
+        for raw_url in v:
+            try:
+                normalized.append(normalize_scan_url(raw_url))
+            except URLValidationError as e:
+                raise ValueError(str(e)) from e
+        return normalized
+
+    @field_validator("result_mode")
+    @classmethod
+    def validate_result_mode(cls, v: ResultMode) -> ResultMode:
+        """Valide la valeur du mode de résultat."""
+        return v
+
+    @field_validator("urls")
+    @classmethod
+    def validate_urls_for_mode(cls, urls: Optional[List[str]], info) -> Optional[List[str]]:
+        """Impose urls en mode multi et vérifie un même domaine racine."""
+        result_mode = info.data.get("result_mode", "single")
+        if result_mode == "multi":
+            if not urls or len(urls) < 2:
+                raise ValueError("Le mode multi nécessite au moins 2 URLs.")
+            hosts = {(urlparse(u).hostname or "").replace("www.", "").lower() for u in urls}
+            if len(hosts) > 1:
+                raise ValueError("Toutes les URLs du scan multi doivent appartenir au même domaine.")
+        return urls
 
 
 class ScheduledScanUpdateRequest(BaseModel):
@@ -60,6 +102,9 @@ class ScheduledScanResponse(BaseModel):
 
     id: str = Field(..., description="UUID du scan planifié")
     url: str = Field(..., description="URL à scanner")
+    scan_type: str = Field(..., description="Type de scan : frontend, backend, custom")
+    result_mode: ResultMode = Field("single", description="Mode de résultat : single ou multi")
+    urls: Optional[List[str]] = Field(None, description="Liste d'URLs en mode multi-pages")
     frequency: str = Field(..., description="Fréquence")
     schedule_hour: int = Field(..., description="Heure d'exécution")
     schedule_minute: int = Field(..., description="Minute d'exécution")
@@ -77,6 +122,7 @@ class ScanAlertEventResponse(BaseModel):
 
     id: str = Field(..., description="UUID de l'événement")
     url: str = Field(..., description="URL scannée")
+    scan_type: str = Field(..., description="Type de scan : frontend, backend, custom")
     alert_type: str = Field(..., description="Type : regression ou critical_finding")
     email_sent: bool = Field(..., description="True si l'email a été envoyé avec succès")
     triggered_at: datetime = Field(..., description="Date/heure du déclenchement")

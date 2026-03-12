@@ -1,153 +1,66 @@
-"""Helpers pour extraction et construction d'URLs (host, port, build http/https).
+"""Re-export des helpers URL depuis common + helpers locaux."""
 
-Inclut aussi la construction de l'URL de base utilisée pour le scan principal.
-En production, on force systématiquement une URL HTTPS canonique. En
-environnement non prod, on garde l'URL d'origine pour les cas localhost /
-127.0.0.1 avec port explicite afin de faciliter les tests locaux.
-"""
+from urllib.parse import urlparse
 
-import os
-from urllib.parse import urljoin, urlparse, urlunparse
+import tldextract
+from common.url_helpers import (
+    build_http_url,
+    build_https_url,
+    build_url_with_path,
+    extract_host_from_url,
+    extract_port_from_url,
+    get_host_from_url,
+    get_https_port_from_url,
+    get_scan_base_url,
+    location_redirects_to_https,
+)
 
-
-def _is_prod_env() -> bool:
-    """Indique si l'environnement est en mode production.
-
-    La variable d'environnement IS_PROD est considérée vraie si elle vaut
-    "1", "true" ou "yes" (insensible à la casse). Si elle est absente,
-    le comportement par défaut est conservateur (prod).
-
-    Returns:
-        bool: True si l'environnement est considéré comme production.
-    """
-    value = os.getenv("IS_PROD", "true").lower().strip()
-    return value in ("1", "true", "yes")
-
-
-def extract_host_from_url(url: str) -> str:
-    """Extrait le hostname de l'URL (sans port).
-
-    Args:
-        url: URL à parser (ex. https://example.com:443/path).
-
-    Returns:
-        str: Hostname (ex. example.com). Utilise netloc si hostname absent.
-    """
-    parsed = urlparse(url)
-    return parsed.hostname or parsed.netloc.split(":")[0]
+# Instance qui utilise uniquement le snapshot intégré (pas de fetch réseau,
+# pas de cache disque). Suffit pour tous les TLDs courants (la liste est
+# régulièrement mise à jour lors des releases de la lib).
+_tld_extract = tldextract.TLDExtract(
+    suffix_list_urls=(),  # Désactive le fetch réseau
+    fallback_to_snapshot=True,
+    cache_dir=None,
+)
 
 
-def extract_port_from_url(url: str) -> int | None:
-    """Extrait le port explicite de l'URL.
+def registered_domain(url_or_netloc: str) -> str:
+    """Retourne le domaine enregistré (eTLD+1) d'une URL ou d'un netloc.
+
+    Utilise tldextract pour gérer correctement les TLDs composés (.co.uk, .com.br…).
+
+    Exemples :
+        registered_domain("https://blog.example.com/")       → "example.com"
+        registered_domain("www.example.com")                 → "example.com"
+        registered_domain("example.com")                     → "example.com"
+        registered_domain("https://api.example.co.uk/path")  → "example.co.uk"
 
     Args:
-        url: URL à parser.
+        url_or_netloc: URL complète ou netloc brut.
 
     Returns:
-        int | None: Port si présent dans l'URL, None sinon.
+        str: Domaine enregistré (eTLD+1), ou chaîne vide si non déterminable.
     """
-    parsed = urlparse(url)
-    return parsed.port
+    netloc = urlparse(url_or_netloc).netloc or url_or_netloc
+    # Retire le port éventuel (ex. example.com:8080 → example.com)
+    host = netloc.split(":")[0]
+    ext = _tld_extract(host)
+    if ext.domain and ext.suffix:
+        return f"{ext.domain}.{ext.suffix}"
+    # Fallback : hôte brut (IP, localhost, etc.)
+    return host
 
 
-def build_https_url(url: str) -> str:
-    """Construit l'URL HTTPS canonique à tester à partir de l'URL fournie.
-
-    Préserve le port explicite non standard pour HTTPS (ex. badssl.com:1010 pour tests TLS 1.0).
-    Pour http://host:80, produit https://host/ (port 443 implicite).
-
-    Args:
-        url: URL normalisée (http ou https).
-
-    Returns:
-        str: URL https://host[:port]/ (port 443 implicite si absent ou standard).
-    """
-    host = extract_host_from_url(url)
-    # Port non-443 uniquement si l'URL source est https avec port explicite
-    port = extract_port_from_url(url) if (urlparse(url).scheme or "").lower() == "https" else None
-    netloc = f"{host}:{port}" if port is not None and port != 443 else host
-    return urlunparse(("https", netloc, "/", "", "", ""))
-
-
-def build_http_url(url: str) -> str:
-    """Construit l'URL HTTP à tester (pour la vérification redirection).
-
-    Args:
-        url: URL normalisée (http ou https).
-
-    Returns:
-        str: URL http://host/ (port 80 implicite).
-    """
-    host = extract_host_from_url(url)
-    return urlunparse(("http", host, "/", "", "", ""))
-
-
-def get_host_from_url(url: str) -> str:
-    """Extrait le hostname de l'URL (alias de extract_host_from_url)."""
-    return extract_host_from_url(url)
-
-
-def get_https_port_from_url(url: str) -> int:
-    """Extrait le port HTTPS de l'URL (443 par défaut si absent ou si http)."""
-    parsed = urlparse(url)
-    if (parsed.scheme or "").lower() == "https":
-        port = extract_port_from_url(url)
-        if port is not None:
-            return port
-    return 443
-
-
-def get_scan_base_url(url: str) -> str:
-    """Construit l'URL de base utilisée pour le scan principal.
-
-    En production (`IS_PROD=true`), on utilise toujours l'URL HTTPS canonique
-    (upgrade éventuel depuis http → https, port 443 par défaut).
-
-    En environnement non prod (`IS_PROD=false`), pour les URLs locales de test
-    (localhost ou 127.0.0.1 avec port explicite), on conserve l'URL d'origine
-    afin d'éviter un upgrade vers https://host/ sur le port 443 qui échouerait
-    (cas typique d'un petit serveur HTTP de test sur 127.0.0.1:8001).
-
-    Args:
-        url: URL normalisée (http ou https).
-
-    Returns:
-        str: URL de base à utiliser pour le fetch principal.
-    """
-    parsed = urlparse(url)
-    scheme = (parsed.scheme or "").lower()
-    host = extract_host_from_url(url)
-    port = extract_port_from_url(url)
-
-    if not _is_prod_env() and scheme == "http" and port is not None and host in ("127.0.0.1", "localhost"):
-        return url
-
-    return build_https_url(url)
-
-
-def build_url_with_path(base_url: str, path: str) -> str:
-    """Construit une URL complète à partir de la base et d'un chemin.
-
-    Args:
-        base_url: URL de base (ex. https://example.com/).
-        path: Chemin à joindre (ex. .env, .git/config).
-
-    Returns:
-        str: URL complète (ex. https://example.com/.env).
-    """
-    base = base_url.rstrip("/") + "/"
-    return urljoin(base, path.lstrip("/"))
-
-
-def location_redirects_to_https(location: str | None) -> bool:
-    """Vérifie si l'en-tête Location pointe vers https://.
-
-    Args:
-        location: Valeur de l'en-tête Location.
-
-    Returns:
-        bool: True si Location commence par https:// (insensible à la casse).
-    """
-    if not location or not isinstance(location, str):
-        return False
-    return location.strip().lower().startswith("https://")
+__all__ = [
+    "build_http_url",
+    "build_https_url",
+    "build_url_with_path",
+    "extract_host_from_url",
+    "extract_port_from_url",
+    "get_host_from_url",
+    "get_https_port_from_url",
+    "get_scan_base_url",
+    "location_redirects_to_https",
+    "registered_domain",
+]

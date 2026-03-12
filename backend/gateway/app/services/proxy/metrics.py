@@ -14,16 +14,17 @@ from fastapi import Request
 from .pseudonymizer import pseudonymize_ip_address, pseudonymize_user_id
 
 logger = logging.getLogger(__name__)
+UUID_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
 
 
 def extract_route(endpoint: str) -> str:
     """Extrait la route de base à partir de l'endpoint, sans les paramètres ni les valeurs numériques.
 
     Args:
-        endpoint (str): Chemin complet de l'endpoint (ex: "/analytics-query/dvf/bbox-sales/40.21/-10.82")
+        endpoint (str): Chemin complet de l'endpoint (ex: "/scan/api/results/123")
 
     Returns:
-        str: Route de base sans paramètres (ex: "/analytics-query/dvf/bbox-sales")
+        str: Route de base sans paramètres (ex: "/scan/api/results")
     """
     if not endpoint:
         return endpoint
@@ -48,17 +49,7 @@ def extract_route(endpoint: str) -> str:
             pass
 
         # Si le segment ressemble à un UUID (format standard), arrêter ici
-        uuid_pattern = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
-        if uuid_pattern.match(part):
-            break
-
-        # Si le segment ressemble à un Wikidata ID (Q suivi de chiffres), arrêter ici
-        if part.startswith("Q") and len(part) > 1 and part[1:].isdigit():
-            break
-
-        # Si le segment ressemble à un ID Immosphere (type_code, ex: commune_75001, quartier_750010102, pays_FR), arrêter ici
-        immosphere_pattern = re.compile(r"^(commune|departement|region|quartier|pays)_[a-zA-Z0-9]+$")
-        if immosphere_pattern.match(part):
+        if UUID_PATTERN.match(part):
             break
 
         # Sinon, ajouter le segment à la route
@@ -71,11 +62,11 @@ def build_endpoint(prefix: str, path: str) -> str:
     """Construit le chemin complet de l'endpoint.
 
     Args:
-        prefix (str): Préfixe du service (ex: "analytics-query")
-        path (str): Chemin de la requête (ex: "/dpe")
+        prefix (str): Préfixe du service (ex: "scan")
+        path (str): Chemin de la requête (ex: "/api/scan")
 
     Returns:
-        str: Chemin complet (ex: "/analytics-query/dpe")
+        str: Chemin complet (ex: "/scan/api/scan")
     """
     cleaned_path = path.lstrip("/")
     if cleaned_path:

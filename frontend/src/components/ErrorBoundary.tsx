@@ -3,13 +3,20 @@
 import React, { Component, ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { error as logError } from "../utils/logger";
-import Card from "./cards/Card";
+import Card from "./ui/cards/Card";
 import { GenericButton } from "./buttons";
+import { useLanguage } from "./LanguageProvider";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
-  /** Message personnalisé à afficher */
+  /** Message personnalisé à afficher (si pas de renderFallback) */
   fallbackMessage?: string;
+  /** Rendu personnalisé en cas d'erreur (ex. avec i18n) */
+  renderFallback?: (
+    error: Error,
+    errorInfo: React.ErrorInfo | null,
+    actions: { onReset: () => void; onReload: () => void },
+  ) => ReactNode;
   /** Fonction callback appelée lors d'une erreur */
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
   /** Afficher les détails de l'erreur (dev mode) */
@@ -76,100 +83,190 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   render(): ReactNode {
     if (this.state.hasError) {
-      const { fallbackMessage, showDetails } = this.props;
+      const { renderFallback } = this.props;
       const { error, errorInfo } = this.state;
-
-      return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-[var(--color-background)]">
-          <Card disableHover>
-            <div className="max-w-2xl mx-auto text-center space-y-6 p-6">
-              {/* Icône d'erreur */}
-              <div className="flex justify-center">
-                <div
-                  className="rounded-full p-4"
-                  style={{ backgroundColor: "rgba(var(--danger),0.1)" }}
-                >
-                  <AlertTriangle className="w-12 h-12 text-[rgb(var(--danger))]" />
-                </div>
-              </div>
-
-              {/* Titre */}
-              <div>
-                <h1 className="text-2xl font-bold text-[var(--text)] mb-2">
-                  Une erreur est survenue
-                </h1>
-                <p className="text-[var(--muted)]">
-                  {fallbackMessage ||
-                    "Désolé, quelque chose s'est mal passé. Veuillez réessayer."}
-                </p>
-              </div>
-
-              {/* Détails de l'erreur (mode dev) */}
-              {showDetails && error && (
-                <div className="text-left space-y-3">
-                  <div
-                    className="p-4 rounded-lg border"
-                    style={{
-                      backgroundColor: "rgba(var(--danger),0.05)",
-                      borderColor: "rgba(var(--danger),0.2)",
-                    }}
-                  >
-                    <p className="text-xs font-mono font-semibold mb-2 text-[rgb(var(--danger))]">
-                      Error Message:
-                    </p>
-                    <p
-                      className="text-xs font-mono"
-                      style={{ color: "rgba(var(--danger),0.8)" }}
-                    >
-                      {error.toString()}
-                    </p>
-                  </div>
-
-                  {errorInfo && (
-                    <details className="p-4 rounded-lg bg-[var(--color-surface-input)] border border-[var(--border)]">
-                      <summary className="cursor-pointer text-xs font-semibold text-[var(--muted)] mb-2">
-                        Stack Trace (cliquer pour afficher)
-                      </summary>
-                      <pre className="text-xs text-[var(--muted)] overflow-auto max-h-48 mt-2">
-                        {errorInfo.componentStack}
-                      </pre>
-                    </details>
-                  )}
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex items-center justify-center gap-3 pt-4">
-                <GenericButton
-                  label="Réessayer"
-                  onClick={this.handleReset}
-                  variant="secondary"
-                  icon={<RefreshCw className="w-4 h-4" />}
-                  iconPosition="left"
-                />
-                <GenericButton
-                  label="Recharger la page"
-                  onClick={this.handleReload}
-                  variant="primary"
-                />
-              </div>
-
-              {/* Info */}
-              <p className="text-xs text-[var(--muted)] pt-4 border-t border-[var(--border)]">
-                Si le problème persiste, veuillez contacter le support
-                technique.
-              </p>
-            </div>
-          </Card>
-        </div>
-      );
+      if (renderFallback && error) {
+        return renderFallback(error, errorInfo, {
+          onReset: this.handleReset,
+          onReload: this.handleReload,
+        });
+      }
+      return this.renderDefaultFallback();
     }
 
     return this.props.children;
   }
+
+  private renderDefaultFallback(): ReactNode {
+    const { fallbackMessage, showDetails } = this.props;
+    const { error, errorInfo } = this.state;
+
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[var(--color-background)]">
+        <Card disableHover>
+          <div className="max-w-2xl mx-auto text-center space-y-6 p-6">
+            <div className="flex justify-center">
+              <div
+                className="rounded-full p-4"
+                style={{ backgroundColor: "rgba(var(--danger),0.1)" }}
+              >
+                <AlertTriangle className="w-12 h-12 text-[rgb(var(--danger))]" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-[var(--text)] mb-2">
+                Une erreur est survenue
+              </h1>
+              <p className="text-[var(--muted)]">
+                {fallbackMessage ||
+                  "Désolé, quelque chose s'est mal passé. Veuillez réessayer."}
+              </p>
+            </div>
+            {showDetails && error && (
+              <div className="text-left space-y-3">
+                <div
+                  className="p-4 rounded-lg border"
+                  style={{
+                    backgroundColor: "rgba(var(--danger),0.05)",
+                    borderColor: "rgba(var(--danger),0.2)",
+                  }}
+                >
+                  <p className="text-xs font-mono font-semibold mb-2 text-[rgb(var(--danger))]">
+                    Error Message:
+                  </p>
+                  <p
+                    className="text-xs font-mono"
+                    style={{ color: "rgba(var(--danger),0.8)" }}
+                  >
+                    {error.toString()}
+                  </p>
+                </div>
+                {errorInfo && (
+                  <details className="p-4 rounded-lg bg-[var(--color-surface-input)] border border-[var(--border)]">
+                    <summary className="cursor-pointer text-xs font-semibold text-[var(--muted)] mb-2">
+                      Stack Trace (cliquer pour afficher)
+                    </summary>
+                    <pre className="text-xs text-[var(--muted)] overflow-auto max-h-48 mt-2">
+                      {errorInfo.componentStack}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            )}
+            <div className="flex items-center justify-center gap-3 pt-4">
+              <GenericButton
+                label="Réessayer"
+                onClick={this.handleReset}
+                variant="secondary"
+                icon={<RefreshCw className="w-4 h-4" />}
+                iconPosition="left"
+              />
+              <GenericButton
+                label="Recharger la page"
+                onClick={this.handleReload}
+                variant="primary"
+              />
+            </div>
+            <p className="text-xs text-[var(--muted)] pt-4 border-t border-[var(--border)]">
+              Si le problème persiste, veuillez contacter le support technique.
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 }
 
 export default ErrorBoundary;
+
+/**
+ * Fallback traduit pour l'Error Boundary (utilise useLanguage).
+ */
+export function ErrorBoundaryFallback({
+  error,
+  errorInfo,
+  showDetails,
+  onReset,
+  onReload,
+}: {
+  error: Error;
+  errorInfo: React.ErrorInfo | null;
+  showDetails?: boolean;
+  onReset: () => void;
+  onReload: () => void;
+}) {
+  const { t } = useLanguage();
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[var(--color-background)]">
+      <Card disableHover>
+        <div className="max-w-2xl mx-auto text-center space-y-6 p-6">
+          <div className="flex justify-center">
+            <div
+              className="rounded-full p-4"
+              style={{ backgroundColor: "rgba(var(--danger),0.1)" }}
+            >
+              <AlertTriangle className="w-12 h-12 text-[rgb(var(--danger))]" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--text)] mb-2">
+              {t("errorBoundary.title")}
+            </h1>
+            <p className="text-[var(--muted)]">{t("errorBoundary.message")}</p>
+          </div>
+          {showDetails && error && (
+            <div className="text-left space-y-3">
+              <div
+                className="p-4 rounded-lg border"
+                style={{
+                  backgroundColor: "rgba(var(--danger),0.05)",
+                  borderColor: "rgba(var(--danger),0.2)",
+                }}
+              >
+                <p className="text-xs font-mono font-semibold mb-2 text-[rgb(var(--danger))]">
+                  {t("errorBoundary.errorMessageLabel")}:
+                </p>
+                <p
+                  className="text-xs font-mono"
+                  style={{ color: "rgba(var(--danger),0.8)" }}
+                >
+                  {error.toString()}
+                </p>
+              </div>
+              {errorInfo && (
+                <details className="p-4 rounded-lg bg-[var(--color-surface-input)] border border-[var(--border)]">
+                  <summary className="cursor-pointer text-xs font-semibold text-[var(--muted)] mb-2">
+                    {t("errorBoundary.stackTraceSummary")}
+                  </summary>
+                  <pre className="text-xs text-[var(--muted)] overflow-auto max-h-48 mt-2">
+                    {errorInfo.componentStack}
+                  </pre>
+                </details>
+              )}
+            </div>
+          )}
+          <div className="flex items-center justify-center gap-3 pt-4">
+            <GenericButton
+              label={t("errorBoundary.tryAgain")}
+              onClick={onReset}
+              variant="secondary"
+              icon={<RefreshCw className="w-4 h-4" />}
+              iconPosition="left"
+            />
+            <GenericButton
+              label={t("errorBoundary.reloadPage")}
+              onClick={onReload}
+              variant="primary"
+            />
+          </div>
+          <p className="text-xs text-[var(--muted)] pt-4 border-t border-[var(--border)]">
+            {t("errorBoundary.supportMessage")}
+          </p>
+        </div>
+      </Card>
+    </div>
+  );
+}
 
 /**
  * Hook pour utiliser l'Error Boundary de manière programmatique.

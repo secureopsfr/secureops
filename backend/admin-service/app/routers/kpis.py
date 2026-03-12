@@ -30,7 +30,7 @@ limit_config = config.metrics.queries.limit
 
 WINDOW_MINUTES_QUERY = Query(
     default=None,
-    ge=window_minutes_config.ge if window_minutes_config.le is not None else None,
+    ge=window_minutes_config.ge if window_minutes_config.ge is not None else None,
     le=window_minutes_config.le if window_minutes_config.le is not None else None,
     description=window_minutes_config.description,
 )
@@ -60,10 +60,7 @@ def verify_metrics_api_key(x_admin_metrics_key: str | None = HEADER_X_ADMIN_METR
         return
     # Si une clé est configurée, vérifier qu'elle correspond
     if x_admin_metrics_key != METRICS_API_KEY:
-        logger.warning(
-            f"Clé API métriques invalide. Reçue: {x_admin_metrics_key[:10] if x_admin_metrics_key else None}..., "
-            f"Attendue: {METRICS_API_KEY[:10]}..."
-        )
+        logger.warning("Clé API métriques invalide")
         raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="Clé API métriques invalide")
 
 

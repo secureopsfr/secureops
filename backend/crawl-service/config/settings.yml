@@ -1,0 +1,126 @@
+general:
+  service_name: "crawl-service"
+  environment: "development"
+
+server:
+  host: "0.0.0.0"
+  port: 8014
+
+logging:
+  level: "INFO"
+
+async_jobs:
+  worker_poll_interval_seconds: 2
+  job_timeout_seconds: 300
+  max_attempts: 3
+  progress_batch_window_seconds: 0.2
+
+routers:
+  health:
+    prefix: "/api"
+    tags:
+      - "health"
+
+url_validation:
+  max_url_length: 2048
+  allowed_schemes:
+    - "http"
+    - "https"
+  allowed_ports:
+    - 80
+    - 443
+    - 1010
+    - 1011
+
+ssrf:
+  dns_timeout: 5.0
+  blocked_hostnames:
+    - "localhost"
+    - "localhost."
+    - "127.0.0.1"
+    - "::1"
+    - "[::1]"
+    - "0.0.0.0"
+  blocked_ipv4_networks:
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+    - "169.254.0.0/16"
+    - "127.0.0.0/8"
+    - "0.0.0.0/8"
+  blocked_ipv6_networks:
+    - "::1/128"
+    - "fe80::/10"
+    - "fc00::/7"
+
+robots_txt:
+  patterns: []
+  messages:
+    unavailable: "Impossible de récupérer robots.txt (connexion refusée ou timeout)."
+
+crawler:
+  max_depth: 2
+  max_urls: 50
+  timeout_seconds: 60
+  stream_timeout_seconds: 120
+  respect_robots_txt: true
+  user_agent: "SecureOps-Crawler/1.0"
+  playwright_page_timeout_ms: 15000
+  playwright_network_idle_timeout_ms: 5000
+  max_child_sitemaps: 50
+  consecutive_403_threshold: 5
+  api_patterns:
+    - "/api"
+    - "/graphql"
+    - "/v1"
+    - "/rest"
+    - "/swagger"
+    - "/api-docs"
+  anti_bot_indicators:
+    - "checking your browser"
+    - "cf-browser-verification"
+    - "challenge-running"
+    - "datadome"
+    - "blocked"
+    - "ak_bmsc"
+    - "bot manager"
+    - "g-recaptcha"
+    - "hcaptcha"
+    - "recaptcha"
+    - "access denied"
+    - "unusual traffic"
+    - "please enable javascript"
+    - "enable javascript"
+    - "cloudflare"
+    - "ddos protection"
+    - "ray id"
+    - "performance and security by cloudflare"
+    - "veuillez patienter"
+    - "vérification en cours"
+    - "just a moment"
+    - "human verification"
+    - "security check"
+  excluded_extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".gif"
+    - ".webp"
+    - ".svg"
+    - ".ico"
+    - ".pdf"
+    - ".zip"
+    - ".tar"
+    - ".gz"
+    - ".mp4"
+    - ".mp3"
+    - ".woff"
+    - ".woff2"
+    - ".ttf"
+    - ".eot"
+    - ".js"
+    - ".css"
+  excluded_path_prefixes:
+    - "/_next/"
+    - "/__next/"
+    - "/static/"

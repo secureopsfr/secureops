@@ -1,15 +1,20 @@
 """Schémas Pydantic pour les endpoints d'historique des scans."""
 
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, Field
+
+ScanType = Literal["frontend", "backend", "custom"]
+ResultMode = Literal["single", "multi"]
 
 
 class ScanCreateRequest(BaseModel):
     """Schéma pour la création d'un scan (appelé par scan-service)."""
 
     url: str = Field(..., description="URL scannée")
+    scan_type: ScanType = Field(..., description="Type de scan : frontend, backend, custom")
+    result_mode: ResultMode = Field(default="single", description="Mode du résultat : single ou multi")
     status: str = Field(default="success", description="Statut du scan")
     score: int | None = Field(None, description="Note /100")
     findings: List[dict[str, Any]] = Field(default_factory=list, description="Liste des findings")
@@ -19,6 +24,14 @@ class ScanCreateRequest(BaseModel):
         default=None,
         description="Résumés par catégorie (checks_count, etc.)",
     )
+    page_results: Optional[List[dict[str, Any]]] = Field(
+        default=None,
+        description="Résultats par page pour un scan multi-URL",
+    )
+    urls: Optional[List[str]] = Field(
+        default=None,
+        description="Liste des URLs scannées pour un scan multi-URL",
+    )
 
 
 class ScanListItem(BaseModel):
@@ -26,6 +39,8 @@ class ScanListItem(BaseModel):
 
     id: str = Field(..., description="UUID du scan")
     url: str = Field(..., description="URL scannée")
+    scan_type: str = Field(..., description="Type de scan : frontend, backend, custom")
+    result_mode: ResultMode = Field(default="single", description="Mode du résultat : single ou multi")
     status: str = Field(..., description="Statut")
     score: int | None = Field(None, description="Note /100")
     timestamp: datetime = Field(..., description="Horodatage du scan")
@@ -53,6 +68,8 @@ class ScanDetailResponse(BaseModel):
 
     id: str = Field(..., description="UUID du scan")
     url: str = Field(..., description="URL scannée")
+    scan_type: str = Field(..., description="Type de scan : frontend, backend, custom")
+    result_mode: ResultMode = Field(default="single", description="Mode du résultat : single ou multi")
     status: str = Field(..., description="Statut")
     score: int | None = Field(None, description="Note /100")
     findings: List[dict[str, Any]] = Field(default_factory=list, description="Findings")
@@ -62,6 +79,14 @@ class ScanDetailResponse(BaseModel):
     category_summaries: Optional[List[dict[str, Any]]] = Field(
         default=None,
         description="Résumés par catégorie (checks_count, etc.)",
+    )
+    page_results: Optional[List[dict[str, Any]]] = Field(
+        default=None,
+        description="Résultats par page pour un scan multi-URL",
+    )
+    urls: Optional[List[str]] = Field(
+        default=None,
+        description="Liste des URLs scannées pour un scan multi-URL",
     )
     total_tests_count: Optional[int] = Field(
         default=None,

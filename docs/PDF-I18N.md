@@ -2,6 +2,8 @@
 
 Ce document décrit comment le rapport PDF gère les traductions et comment ajouter une nouvelle langue ou un nouveau finding.
 
+**Contexte :** le code de génération PDF est dans le micro-service **backend/pdf-service**. Les chemins ci-dessous sont relatifs à ce projet.
+
 ## Architecture
 
 - **`app/services/pdf_report/pdf_i18n.py`** : libellés UI (Sommaire, Preuve, Détail, Comment corriger, etc.)

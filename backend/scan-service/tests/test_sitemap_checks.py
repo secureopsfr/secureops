@@ -19,6 +19,7 @@ async def test_run_sitemap_checks_no_sitemap_found() -> None:
             sensitive_routes=(),
             findings=(),
             fetch_ok=True,
+            found=True,
             crawl_delay=None,
             sitemap_urls=(),
         )
@@ -56,6 +57,7 @@ async def test_run_sitemap_checks_sitemap_with_sensitive_url() -> None:
             sensitive_routes=(),
             findings=(),
             fetch_ok=True,
+            found=True,
             crawl_delay=None,
             sitemap_urls=(),
         )
@@ -90,6 +92,7 @@ async def test_run_sitemap_checks_uses_robots_sitemap_url() -> None:
             sensitive_routes=(),
             findings=(),
             fetch_ok=True,
+            found=True,
             crawl_delay=None,
             sitemap_urls=("https://example.com/sitemap.xml",),
         )

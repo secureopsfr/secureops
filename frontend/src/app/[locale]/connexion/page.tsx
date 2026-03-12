@@ -9,7 +9,7 @@ import {
 } from "../../../utils/toastNotifications";
 import { debug } from "../../../utils/logger";
 import { useLanguage } from "../../../components/LanguageProvider";
-import { AuthFormSkeleton } from "../../../components/skeletons";
+import { AuthFormSkeleton } from "../../../components/ui/skeletons";
 
 import { translateAuthError } from "./translateAuthError";
 import PasswordChangeForm from "./PasswordChangeForm";

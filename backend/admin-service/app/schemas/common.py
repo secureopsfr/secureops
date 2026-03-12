@@ -2,6 +2,7 @@
 
 from typing import List, Optional
 
+from common.schemas import make_pagination_meta  # noqa: F401
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -19,28 +20,6 @@ class PaginationMeta(BaseModel):
     page: int = Field(..., ge=1, description="Numéro de page actuel (1-indexé)")
     per_page: int = Field(..., ge=1, description="Nombre d'éléments par page")
     total_pages: int = Field(..., ge=0, description="Nombre total de pages")
-
-
-def make_pagination_meta(*, total: int, limit: int, offset: int) -> dict:
-    """Calcule les métadonnées de pagination à partir de limit/offset.
-
-    Args:
-        total: Nombre total d'éléments.
-        limit: Nombre d'éléments demandés (per_page).
-        offset: Décalage (0-indexé).
-
-    Returns:
-        dict avec total, page, per_page, total_pages.
-    """
-    per_page = max(limit, 1)
-    page = (offset // per_page) + 1
-    total_pages = max((total + per_page - 1) // per_page, 1) if total > 0 else 0
-    return {
-        "total": total,
-        "page": page,
-        "per_page": per_page,
-        "total_pages": total_pages,
-    }
 
 
 class ContactMessageResponse(BaseModel):

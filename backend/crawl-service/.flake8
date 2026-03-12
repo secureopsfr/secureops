@@ -1,0 +1,27 @@
+[flake8]
+max-line-length = 150
+
+exclude =
+    .git,
+    __pycache__,
+    venv,
+    build,
+    dist
+
+ignore = D401
+
+select =
+    D,
+    E, F, W,
+    C,
+    Q,
+    B,
+    SIM,
+    C4,
+    PT
+
+max-complexity = 10
+
+inline-quotes = "
+multiline-quotes = """
+docstring-quotes = """

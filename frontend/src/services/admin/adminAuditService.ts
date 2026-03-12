@@ -2,7 +2,7 @@
  * Service d'administration pour les journaux d'audit.
  */
 
-import { fetchWithAuth, getApiBaseUrl } from "../../utils/apiClient";
+import { fetchJsonWithAuth, getApiBaseUrl } from "../../utils/apiClient";
 import { error as logError } from "../../utils/logger";
 import { showErrorToast, getToastT } from "../../utils/toastNotifications";
 
@@ -53,16 +53,11 @@ export async function getAuditLogs({
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
 
-    const response = await fetchWithAuth(url.toString(), { method: "GET" });
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la récupération du journal",
-      );
-    }
-    return await response.json();
+    return await fetchJsonWithAuth<{ logs: AuditLogEntry[]; total: number }>(
+      url.toString(),
+      { method: "GET" },
+      "Erreur lors de la récupération du journal",
+    );
   } catch (err: unknown) {
     logError("[AdminAuditService] Erreur récupération audit logs:", err);
     showErrorToast(getToastT()("admin.toast.loadAuditLog"));
@@ -80,16 +75,11 @@ export async function getAuditStats({
     if (windowMinutes)
       url.searchParams.set("window_minutes", String(windowMinutes));
 
-    const response = await fetchWithAuth(url.toString(), { method: "GET" });
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la récupération des stats audit",
-      );
-    }
-    return await response.json();
+    return await fetchJsonWithAuth<AuditStatsResponse>(
+      url.toString(),
+      { method: "GET" },
+      "Erreur lors de la récupération des stats audit",
+    );
   } catch (err: unknown) {
     logError("[AdminAuditService] Erreur récupération audit stats:", err);
     showErrorToast(getToastT()("admin.toast.loadAuditStats"));

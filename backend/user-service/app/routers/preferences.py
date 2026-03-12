@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.db import get_async_session
 from app.schemas.user import LanguagePreferenceResponse, LanguagePreferenceUpdateRequest, ThemePreferenceResponse, ThemePreferenceUpdateRequest
 from app.services.user_repository import update_user_dark_mode, update_user_language
-from app.utils.auth import get_current_user, resolve_user
+from app.utils.auth import require_jwt_user, resolve_user
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/user", tags=["user – préférences"])
 @router.patch("/preferences/theme", response_model=ThemePreferenceResponse)
 async def update_theme_preference(
     theme_data: ThemePreferenceUpdateRequest,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    current_user: Annotated[Dict, Depends(require_jwt_user)],
 ) -> ThemePreferenceResponse:
     """Met à jour la préférence de thème (dark/light mode)."""
     try:
@@ -41,7 +41,7 @@ async def update_theme_preference(
 @router.patch("/preferences/language", response_model=LanguagePreferenceResponse)
 async def update_language_preference(
     language_data: LanguagePreferenceUpdateRequest,
-    current_user: Annotated[Dict, Depends(get_current_user)],
+    current_user: Annotated[Dict, Depends(require_jwt_user)],
 ) -> LanguagePreferenceResponse:
     """Met à jour la préférence de langue."""
     try:

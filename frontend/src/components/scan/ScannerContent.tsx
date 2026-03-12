@@ -1,253 +1,137 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { fetchAuthSession } from "aws-amplify/auth";
-import { AlertTriangle, Globe } from "lucide-react";
+import { useState, useCallback } from "react";
+import { createPortal } from "react-dom";
+import Link from "next/link";
+import { AlertTriangle, FileText, Globe } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
-import { GenericButton } from "../buttons";
+import { useAuthToken } from "../../hooks/useAuthToken";
+import { useScanFlow } from "../../hooks/useScanFlow";
+import { useScheduleForm } from "../../hooks/useScheduleForm";
 import AnimateInView from "../AnimateInView";
-import Card from "../cards/Card";
-import Modal from "../Modal";
+import { GenericButton } from "../buttons";
+import Card from "../ui/cards/Card";
+import Modal from "../ui/Modal";
+import CrawlValidationStep from "./CrawlValidationStep";
 import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
+import MultiScanResults from "./MultiScanResults";
 import ScanResultsGate from "./ScanResultsGate";
+import ScannerHistoryAlertsSection from "./ScannerHistoryAlertsSection";
 import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
-import ScanHistoryBlock from "./ScanHistoryBlock";
-import ScheduledScansBlock from "./ScheduledScansBlock";
-import AlertHistoryBlock from "./AlertHistoryBlock";
-import { RecurrenceScheduleFields } from "../schedule";
-import { Checkbox } from "../inputs";
-import {
-  runScan,
-  type ScanResult,
-  type ScanError,
-  type ScanStepDisplay,
-} from "../../services/scanService";
-import {
-  createScheduledScan,
-  getUserTimezone,
-  type Frequency,
-} from "../../services/scheduledScanService";
+import ScheduleFormSection from "./ScheduleFormSection";
+import ScanTypeSelector from "./ScanTypeSelector";
 import { normalizeScanUrl } from "../../utils/scanUrl";
-import {
-  savePendingScanResult,
-  consumePendingScanResult,
-} from "../../utils/scanStorage";
-import { saveScan } from "../../services/scanHistoryService";
-import {
-  showErrorToast,
-  showSuccessToast,
-} from "../../utils/toastNotifications";
-
-const FREQUENCY_OPTIONS = [
-  { value: "daily" as const, labelKey: "scheduledScans.frequencyDaily" },
-  { value: "weekly" as const, labelKey: "scheduledScans.frequencyWeekly" },
-  { value: "monthly" as const, labelKey: "scheduledScans.frequencyMonthly" },
-];
-
-const DAYS_OF_WEEK = [
-  { value: 0, labelKey: "scheduledScans.dayMonday" },
-  { value: 1, labelKey: "scheduledScans.dayTuesday" },
-  { value: 2, labelKey: "scheduledScans.dayWednesday" },
-  { value: 3, labelKey: "scheduledScans.dayThursday" },
-  { value: 4, labelKey: "scheduledScans.dayFriday" },
-  { value: 5, labelKey: "scheduledScans.daySaturday" },
-  { value: 6, labelKey: "scheduledScans.daySunday" },
-];
-
-function parseTimeToHourMinute(time: string): { hour: number; minute: number } {
-  const [h, m] = (time || "00:00").split(":").map(Number);
-  return { hour: h ?? 0, minute: m ?? 0 };
-}
-
-type ScanState = "idle" | "loading" | "success" | "error";
+import { Checkbox } from "../inputs";
 
 export default function ScannerContent() {
   const { t, lp } = useLanguage();
   const { isAuthenticated, isLoading: authLoading } = useAuthUser({
     listenToAuthEvents: true,
   });
-  const [url, setUrl] = useState("");
-  const [state, setState] = useState<ScanState>("idle");
-  const [steps, setSteps] = useState<ScanStepDisplay[]>([]);
-  const [result, setResult] = useState<ScanResult | null>(null);
-  const [scanId, setScanId] = useState<string | null>(null);
-  const [error, setError] = useState<ScanError | null>(null);
-  const [errorModalOpen, setErrorModalOpen] = useState(false);
-  const [scheduleRefreshTrigger, setScheduleRefreshTrigger] = useState(0);
-  const [formFrequency, setFormFrequency] = useState<Frequency>("daily");
-  const [formTime, setFormTime] = useState("02:00");
-  const [formDayOfWeek, setFormDayOfWeek] = useState(0);
-  const [formDayOfMonth, setFormDayOfMonth] = useState(15);
-  const [formScanAlertsEnabled, setFormScanAlertsEnabled] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const getToken = useAuthToken(isAuthenticated);
+
+  const {
+    url,
+    setUrl,
+    scanOnlyThisPage,
+    setScanOnlyThisPage,
+    state,
+    setState,
+    steps,
+    crawlSteps,
+    result,
+    multiResult,
+    scanId,
+    error,
+    errorModalOpen,
+    setErrorModalOpen,
+    crawl,
+    setCrawlMode,
+    setCrawlMaxUrls,
+    setCrawlUrls,
+    resetCrawlState,
+    handleSubmit,
+    handleLaunchScanFromValidation,
+    handleBackFromValidation,
+    handleSelectScan,
+    handleNewScan,
+  } = useScanFlow({ isAuthenticated, authLoading, getToken, t });
+
+  const { form, actions, saving, submitSchedule } = useScheduleForm(t);
+
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
-
-  useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      const pending = consumePendingScanResult();
-      if (pending) {
-        setResult(pending);
-        setState("success");
-        // Sauvegarder dans l'historique (scan fait sans être connecté, puis connexion)
-        saveScan(pending)
-          .then((id) => {
-            if (id) setScanId(id);
-          })
-          .catch(() => showErrorToast(t("scanner.saveFailed")));
-      }
-    }
-  }, [authLoading, isAuthenticated, t]);
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      const trimmed = url.trim();
-      if (!trimmed) return;
-      const urlToScan = normalizeScanUrl(trimmed);
-      setState("loading");
-      setSteps([]);
-      setResult(null);
-      setScanId(null);
-      setError(null);
-      setErrorModalOpen(false);
-
-      const getToken = isAuthenticated
-        ? async () => {
-            try {
-              const session = await fetchAuthSession();
-              return session.tokens?.accessToken?.toString() ?? null;
-            } catch {
-              return null;
-            }
-          }
-        : undefined;
-
-      try {
-        await runScan(
-          urlToScan,
-          (ev) => {
-            if (ev.type === "step") {
-              const done = ev.data.step.endsWith("_done");
-              setSteps((prev) => {
-                if (done && prev.length > 0) {
-                  // Remplace la dernière ligne (en chargement) par la version terminée
-                  const updated = [...prev];
-                  updated[updated.length - 1] = {
-                    step: ev.data.step,
-                    message: ev.data.message,
-                    done: true,
-                  };
-                  return updated;
-                }
-                return [
-                  ...prev,
-                  {
-                    step: ev.data.step,
-                    message: ev.data.message,
-                    done: false,
-                  },
-                ];
-              });
-            } else if (ev.type === "result") {
-              if (isAuthenticated) {
-                setResult(ev.data);
-                setState("success");
-              } else {
-                savePendingScanResult(ev.data);
-                setResult(ev.data);
-                setState("success");
-              }
-            } else if (ev.type === "save_done") {
-              setScanId(ev.data.scan_id);
-            } else if (ev.type === "error") {
-              setError(ev.data);
-              setState("error");
-              setErrorModalOpen(true);
-            } else if (ev.type === "save_failed") {
-              showErrorToast(ev.data || t("scanner.saveFailed"));
-            }
-          },
-          getToken,
-        );
-      } catch (err) {
-        setError({
-          message:
-            err instanceof Error ? err.message : t("scanner.errorGeneric"),
-          status_code: 500,
-        });
-        setState("error");
-        setErrorModalOpen(true);
-      }
-    },
-    [url, t, isAuthenticated],
-  );
-
-  const handleNewScan = useCallback(() => {
-    setState("idle");
-    setSteps([]);
-    setResult(null);
-    setScanId(null);
-    setError(null);
-  }, []);
 
   const handleAddScheduledScan = useCallback(async () => {
     if (!url.trim()) {
-      showErrorToast(t("scheduledScans.urlRequired"));
       return;
     }
-    const normalizedUrl = normalizeScanUrl(url);
-    const { hour, minute } = parseTimeToHourMinute(formTime);
-    setSaving(true);
-    try {
-      await createScheduledScan({
-        url: normalizedUrl,
-        frequency: formFrequency,
-        schedule_hour: hour,
-        schedule_minute: minute,
-        schedule_day_of_week:
-          formFrequency === "weekly" ? formDayOfWeek : undefined,
-        schedule_day_of_month:
-          formFrequency === "monthly" ? formDayOfMonth : undefined,
-        timezone: getUserTimezone(),
-        scan_alerts_enabled: formScanAlertsEnabled,
-      });
-      setScheduleRefreshTrigger((n) => n + 1);
-      showSuccessToast(t("scheduledScans.createSuccess"));
-    } catch (err) {
-      showErrorToast(
-        err instanceof Error ? err.message : t("scheduledScans.createError"),
-      );
-    } finally {
-      setSaving(false);
+    await submitSchedule({
+      url: normalizeScanUrl(url),
+      scan_type: "frontend",
+    });
+  }, [url, submitSchedule]);
+
+  const handleScheduleFromValidation = useCallback(async () => {
+    if (!isAuthenticated || authLoading) return;
+    const urlStrings = crawl.urls.map((u) => u.url).filter(Boolean);
+    if (urlStrings.length === 0) return;
+
+    const normalizedBaseUrl = normalizeScanUrl(url.trim() || urlStrings[0]);
+    const success = await submitSchedule({
+      url: normalizedBaseUrl,
+      scan_type: "frontend",
+      result_mode: urlStrings.length > 1 ? "multi" : "single",
+      urls: urlStrings.length > 1 ? urlStrings : undefined,
+    });
+    if (success) {
+      setState("idle");
+      resetCrawlState();
     }
   }, [
+    authLoading,
+    crawl.urls,
+    isAuthenticated,
+    resetCrawlState,
+    setState,
+    submitSchedule,
     url,
-    formFrequency,
-    formTime,
-    formDayOfWeek,
-    formDayOfMonth,
-    formScanAlertsEnabled,
-    t,
   ]);
 
   const showHeader = state === "idle" || state === "error";
+  const showScheduleValidationPopup = state === "validation" && scheduleEnabled;
+  const showScannerForm =
+    state === "idle" || state === "error" || showScheduleValidationPopup;
+
+  const showScheduleBtn =
+    scheduleEnabled && isAuthenticated && !authLoading && scanOnlyThisPage;
 
   return (
     <div className="space-y-4 w-full">
-      {showHeader && (
+      {(showHeader || showScheduleValidationPopup) && (
         <AnimateInView
           initialOnly
           delay={80}
           className="page-section landing-reveal-page"
           as="section"
-          aria-label="Scanner header"
+          aria-label={t("scanner.ariaHeader")}
         >
           <div className="page-container">
             <div className="page-header text-center mb-4">
               <h1 className="page-title mb-2">{t("scanner.title")}</h1>
               <p className="page-subtitle mt-0">{t("scanner.subtitle")}</p>
+              <Link
+                href={lp("/scanner/docs/scan-frontend")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
+              >
+                <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
+                  <FileText className="w-4 h-4" />
+                  {t("scanner.docsLink")}
+                </span>
+              </Link>
             </div>
           </div>
         </AnimateInView>
@@ -259,134 +143,211 @@ export default function ScannerContent() {
         aria-label="Scanner content"
       >
         <div className="scanner-content">
-          {(state === "idle" || state === "error") && (
-            <>
-              <div className="w-full">
-                <Card disableHover>
-                  <div className="flex items-center gap-3 mb-4 -mt-2">
-                    <Globe className="w-6 h-6 text-[rgb(var(--primary))]" />
-                    <h2 className="section-title !text-left !mb-0">
-                      {t("scheduledScans.newScheduledScanTitle")}
-                    </h2>
-                  </div>
-                  <div className="space-y-4">
-                    <form
-                      onSubmit={handleSubmit}
-                      aria-label="Scan form"
-                      className="space-y-4"
+          {showScannerForm && (
+            <div className="w-full">
+              <Card disableHover>
+                <div className="flex items-center gap-3 mb-4 -mt-2">
+                  <Globe className="w-6 h-6 text-[rgb(var(--primary))]" />
+                  <h2 className="section-title !text-left !mb-0">
+                    {t("scheduledScans.newScheduledScanTitle")}
+                  </h2>
+                </div>
+                <div className="space-y-4">
+                  <form
+                    onSubmit={handleSubmit}
+                    aria-label={t("scanner.ariaForm")}
+                    className="space-y-4"
+                  >
+                    <label
+                      htmlFor="scan-url"
+                      className="block text-sm font-medium text-[var(--text)]"
                     >
-                      <label
-                        htmlFor="scan-url"
-                        className="block text-sm font-medium text-[var(--text)]"
-                      >
-                        {t("scheduledScans.urlLabel")}
-                      </label>
-                      <input
-                        id="scan-url"
-                        type="text"
-                        inputMode="url"
-                        value={url}
-                        onChange={(e) => setUrl(e.target.value)}
-                        placeholder={t("scheduledScans.urlPlaceholder")}
-                        required
-                        className="auth-input w-full"
+                      {t("scheduledScans.urlLabel")}
+                    </label>
+                    <input
+                      id="scan-url"
+                      type="text"
+                      inputMode="url"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder={t("scheduledScans.urlPlaceholder")}
+                      required
+                      className="auth-input w-full"
+                    />
+                    <ScanTypeSelector
+                      scanOnlyThisPage={scanOnlyThisPage}
+                      onScanOnlyThisPageChange={setScanOnlyThisPage}
+                      crawlMode={crawl.mode}
+                      crawlMaxUrls={crawl.maxUrls}
+                      onCrawlModeChange={setCrawlMode}
+                      onCrawlMaxUrlsChange={setCrawlMaxUrls}
+                      t={t}
+                    />
+                    {isAuthenticated && !authLoading && (
+                      <Checkbox
+                        label={t("scheduledScans.scheduleScanCheckbox")}
+                        checked={scheduleEnabled}
+                        onChange={(checked) => setScheduleEnabled(checked)}
                       />
-                      {isAuthenticated && !authLoading && (
-                        <Checkbox
-                          label={t("scheduledScans.scheduleScanCheckbox")}
-                          checked={scheduleEnabled}
-                          onChange={(checked) => setScheduleEnabled(checked)}
+                    )}
+                    {scheduleEnabled && (
+                      <ScheduleFormSection
+                        form={form}
+                        actions={actions}
+                        t={t}
+                      />
+                    )}
+                    <div className="flex gap-2 flex-wrap">
+                      {showScheduleBtn ? (
+                        <GenericButton
+                          type="button"
+                          label={t("scheduledScans.scheduleBtn")}
+                          variant="primary"
+                          onClick={handleAddScheduledScan}
+                          loading={saving}
+                          disabled={!url.trim()}
+                        />
+                      ) : (
+                        <GenericButton
+                          type="submit"
+                          label={t("scanner.cta")}
+                          variant="primary"
+                          disabled={!url.trim()}
                         />
                       )}
-                      {scheduleEnabled && (
-                        <>
-                          <RecurrenceScheduleFields
-                            frequencyLabelKey="scheduledScans.frequencyLabel"
-                            timeLabelKey="scheduledScans.timeLabel"
-                            dayOfWeekLabelKey="scheduledScans.dayOfWeekLabel"
-                            dayOfMonthLabelKey="scheduledScans.dayOfMonthLabel"
-                            frequencyOptions={FREQUENCY_OPTIONS}
-                            daysOfWeek={DAYS_OF_WEEK}
-                            frequency={formFrequency}
-                            timeValue={formTime}
-                            dayOfWeek={formDayOfWeek}
-                            dayOfMonth={formDayOfMonth}
-                            onFrequencyChange={setFormFrequency}
-                            onTimeChange={setFormTime}
-                            onDayOfWeekChange={setFormDayOfWeek}
-                            onDayOfMonthChange={setFormDayOfMonth}
-                            afterTimeSlot={
-                              <Checkbox
-                                label={
-                                  <>
-                                    <span className="block font-medium text-[var(--text)]">
-                                      {t("scheduledScans.scanAlerts")}
-                                    </span>
-                                    <span className="text-xs text-[var(--muted)]">
-                                      {t("scheduledScans.scanAlertsDesc")}
-                                    </span>
-                                  </>
-                                }
-                                checked={formScanAlertsEnabled}
-                                onChange={(checked) =>
-                                  setFormScanAlertsEnabled(checked)
-                                }
-                              />
-                            }
-                          />
-                        </>
-                      )}
-                      <div className="flex gap-2 flex-wrap">
-                        {scheduleEnabled && isAuthenticated && !authLoading ? (
-                          <GenericButton
-                            type="button"
-                            label={t("scheduledScans.scheduleBtn")}
-                            variant="primary"
-                            onClick={handleAddScheduledScan}
-                            loading={saving}
-                            disabled={!url.trim()}
-                          />
-                        ) : (
-                          <GenericButton
-                            type="submit"
-                            label={t("scanner.cta")}
-                            variant="primary"
-                            disabled={!url.trim()}
-                          />
-                        )}
-                      </div>
-                    </form>
-                  </div>
-                </Card>
-              </div>
-              {isAuthenticated && !authLoading && (
-                <>
-                  <ScheduledScansBlock
-                    refreshTrigger={scheduleRefreshTrigger}
-                  />
-                  <div className="flex flex-col lg:flex-row gap-6 mt-6">
-                    <div className="flex-1 min-w-0">
-                      <ScanHistoryBlock
-                        onSelectScan={(r, id) => {
-                          setResult(r);
-                          setScanId(id ?? null);
-                          setState("success");
-                        }}
-                      />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <AlertHistoryBlock />
-                    </div>
-                  </div>
-                </>
-              )}
-            </>
+                  </form>
+                </div>
+              </Card>
+            </div>
           )}
 
-          {state === "loading" && <ScanLoader steps={steps} />}
+          {state === "crawling" &&
+            (typeof document !== "undefined"
+              ? createPortal(
+                  <div className="scan-loading-overlay fixed inset-0 z-[60]">
+                    <ScanLoader
+                      steps={crawlSteps}
+                      titleKey="scanner.crawlLoading"
+                      crawlMode={crawl.mode}
+                      onAnimationComplete={
+                        crawl.urls.length > 0
+                          ? () => setState("validation")
+                          : undefined
+                      }
+                    />
+                  </div>,
+                  document.body,
+                )
+              : null)}
+
+          {(state === "validation" || showScheduleValidationPopup) &&
+            (() => {
+              const validationProps = {
+                urls: crawl.urls,
+                identifiedCount: crawl.identifiedCount,
+                startUrl: url.trim(),
+                timeoutReached: crawl.timeoutReached,
+                timeoutHtml: crawl.timeoutHtml,
+                timeoutPlaywright: crawl.timeoutPlaywright,
+                antiBotSignatureDetected: crawl.antiBotSignatureDetected,
+                antiBotLowUrlSuspected: crawl.antiBotLowUrlSuspected,
+                requestsBlocked: crawl.requestsBlocked,
+                requestsBlockedHtml: crawl.requestsBlockedHtml,
+                requestsBlockedPlaywright: crawl.requestsBlockedPlaywright,
+                maxConsecutive403: crawl.maxConsecutive403,
+                disallowPaths: crawl.disallowPaths,
+                onUrlsChange: setCrawlUrls,
+                onBack: handleBackFromValidation,
+              };
+
+              const inner =
+                state === "validation" && !scheduleEnabled ? (
+                  <CrawlValidationStep
+                    {...validationProps}
+                    onLaunchScan={handleLaunchScanFromValidation}
+                    launchButtonLabelKey="scanner.launchScanFromList"
+                    showFloatingBackAction={false}
+                  />
+                ) : showScheduleValidationPopup ? (
+                  <CrawlValidationStep
+                    {...validationProps}
+                    onLaunchScan={handleScheduleFromValidation}
+                    launchButtonLabelKey="scheduledScans.scheduleBtn"
+                    showFloatingBackAction={false}
+                    compact
+                  />
+                ) : null;
+
+              if (!inner) return null;
+
+              if (
+                showScheduleValidationPopup &&
+                typeof document !== "undefined"
+              ) {
+                return createPortal(
+                  <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                    style={{
+                      backgroundColor: "var(--color-overlay)",
+                      backdropFilter: "blur(4px)",
+                      WebkitBackdropFilter: "blur(4px)",
+                    }}
+                    onClick={handleBackFromValidation}
+                  >
+                    <div
+                      className="w-full max-w-4xl"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {inner}
+                    </div>
+                  </div>,
+                  document.body,
+                );
+              }
+              return inner;
+            })()}
+
+          {state === "loading" &&
+            (typeof document !== "undefined"
+              ? createPortal(
+                  <div className="scan-loading-overlay fixed inset-0 z-[60]">
+                    <ScanLoader
+                      steps={steps}
+                      crawlMode={scanOnlyThisPage ? undefined : crawl.mode}
+                      onAnimationComplete={
+                        result ? () => setState("success") : undefined
+                      }
+                    />
+                  </div>,
+                  document.body,
+                )
+              : null)}
+
+          {(state === "idle" || state === "error") &&
+            isAuthenticated &&
+            !authLoading && (
+              <ScannerHistoryAlertsSection
+                className="mt-6"
+                onSelectScan={handleSelectScan}
+                filterScanType="frontend"
+              />
+            )}
+
+          {state === "success" &&
+            multiResult &&
+            isAuthenticated &&
+            !authLoading && (
+              <MultiScanResults
+                result={multiResult}
+                scanId={scanId}
+                onNewScan={handleNewScan}
+              />
+            )}
 
           {state === "success" &&
             result &&
+            !multiResult &&
             !authLoading &&
             (isAuthenticated ? (
               <ScanResults
@@ -418,7 +379,6 @@ export default function ScannerContent() {
               onClose={() => setErrorModalOpen(false)}
               onExited={() => {
                 setState("idle");
-                setError(null);
               }}
               title={
                 <div className="flex items-center gap-3">
@@ -429,7 +389,7 @@ export default function ScannerContent() {
               maxWidth="500px"
             >
               <p className="text-[var(--text)] leading-relaxed">
-                {error.message}
+                {error.i18nKey ? t(error.i18nKey) : error.message}
               </p>
             </Modal>
           )}

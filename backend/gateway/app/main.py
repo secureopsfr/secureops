@@ -1,7 +1,6 @@
 """Module principal de l'API Gateway.
 
-Proxy buffer pour JSON/CSV/etc. ; proxy stream pour
-tuiles vectorielles .pbf avec CORS explicite.
+Proxy buffer pour JSON/CSV/etc. et proxy stream pour SSE.
 """
 
 from common.error_handlers import register_exception_handlers
@@ -30,14 +29,7 @@ logger = get_logger(__name__)
 # --- FastAPI & Middlewares ------------------------
 app = FastAPI(title=config.general.project_name, version=get_app_version())
 
-# Middleware de correlation ID (traçabilité cross-services)
-app.add_middleware(CorrelationIdMiddleware)
-
-# Middleware d'authentification (protège toutes les routes sauf /health)
-app.add_middleware(AuthMiddleware)
-
-# Middleware CORS (doit être ajouté en dernier pour envelopper aussi les réponses d'erreur, ex: 401/403)
-# Note: dans Starlette, le dernier middleware ajouté est exécuté en premier.
+# Middleware CORS (doit être ajouté en premier pour être exécuté en dernier)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.cors.allow_origins,
@@ -45,6 +37,13 @@ app.add_middleware(
     allow_headers=config.cors.allow_headers,
     allow_credentials=config.cors.allow_credentials,
 )
+
+# Middleware d'authentification (protège toutes les routes sauf /health)
+app.add_middleware(AuthMiddleware)
+
+# Middleware de correlation ID (traçabilité cross-services)
+# Note: dernier ajouté = exécuté en premier (pile LIFO Starlette).
+app.add_middleware(CorrelationIdMiddleware)
 
 # Routers
 app.include_router(health_router)

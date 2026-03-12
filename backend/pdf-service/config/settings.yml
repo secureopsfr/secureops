@@ -1,0 +1,128 @@
+general:
+  service_name: "pdf-service"
+  environment: "development"
+  cors_allow_origins:
+    - "*"
+  # Pas de BDD : le service ne fait que générer des PDF.
+
+server:
+  host: "0.0.0.0"
+  port: 8013
+
+logging:
+  level: "INFO"
+
+database:
+  pool_size: 5
+  max_overflow: 5
+  pool_timeout: 30
+  pool_recycle: 3600
+  pool_pre_ping: true
+  echo: false
+  connect_args:
+    server_settings:
+      application_name: "pdf-service"
+  ssl_mode: "prefer"
+  pool_logging: false
+
+routers:
+  health:
+    prefix: "/api"
+    tags:
+      - "health"
+
+# PDF (rapport de scan) : rendu, catégories, libellés i18n, footer.
+pdf:
+  footer_url: "https://secureops.example.com"
+  render:
+    evidence_max_len: 800
+    recommendation_max_len: 800
+    cover_url_max_len: 60
+    cover_logo_primary_color: "#38bdf8"
+    cover_logo_secondary_color: "#0f172a"
+    score_good: 80
+    score_medium: 50
+    score_color_good: "#10b981"
+    score_color_medium: "#f59e0b"
+    score_color_low: "#ef4444"
+    references_max_list: 10
+    references_max_inline: 3
+    severity_badges:
+      critical:
+        bg: "#fef2f2"
+        text: "#dc2626"
+      high:
+        bg: "#fffbeb"
+        text: "#d97706"
+      medium:
+        bg: "#fffbeb"
+        text: "#d97706"
+      low:
+        bg: "#eff6ff"
+        text: "#2563eb"
+      info:
+        bg: "#eff6ff"
+        text: "#2563eb"
+    matrix:
+      border_color: "#333333"
+      cells:
+        - ["#22c55e", "#22c55e", "#facc15", "#facc15"]
+        - ["#22c55e", "#facc15", "#f97316", "#f97316"]
+        - ["#facc15", "#f97316", "#ef4444", "#ef4444"]
+        - ["#f97316", "#ef4444", "#ef4444", "#ef4444"]
+  categories:
+    order:
+      - tls
+      - headers
+      - cache
+      - integrity
+      - cookies
+      - exposed_files
+      - directory_listing
+      - robots_txt
+      - sitemap
+      - tech_fingerprinting
+      - information_disclosure
+      - cors_cross_origin
+      - other
+    checked:
+      - tls
+      - headers
+      - cache
+      - integrity
+      - cookies
+      - exposed_files
+      - directory_listing
+      - robots_txt
+      - sitemap
+      - tech_fingerprinting
+      - information_disclosure
+      - cors_cross_origin
+    labels_fr:
+      tls: "TLS / HTTPS"
+      headers: "Security Headers"
+      cache: "Cache et performances"
+      integrity: "Intégrité et sous-ressources"
+      cookies: "Cookies"
+      exposed_files: "Fichiers exposés"
+      directory_listing: "Directory listing"
+      robots_txt: "robots.txt"
+      sitemap: "Sitemap"
+      tech_fingerprinting: "Tech fingerprinting"
+      information_disclosure: "Fuites d'information"
+      cors_cross_origin: "CORS et cross-origin"
+      other: "Autres"
+    labels_en:
+      tls: "TLS / HTTPS"
+      headers: "Security Headers"
+      cache: "Cache and performance"
+      integrity: "Integrity and subresources"
+      cookies: "Cookies"
+      exposed_files: "Exposed files"
+      directory_listing: "Directory listing"
+      robots_txt: "robots.txt"
+      sitemap: "Sitemap"
+      tech_fingerprinting: "Tech fingerprinting"
+      information_disclosure: "Information disclosure"
+      cors_cross_origin: "CORS and cross-origin"
+      other: "Other"

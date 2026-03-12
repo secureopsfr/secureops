@@ -89,3 +89,25 @@ export function formatTimestamp(ts: string, windowMinutes: number): string {
   }
   return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 }
+
+/**
+ * Calcule le temps écoulé depuis une date (pour affichage "il y a X min/h/j").
+ * @param dateString - Date ISO
+ * @returns { unit, value } ou null si date invalide
+ */
+export function getTimeAgo(dateString: string | null | undefined): {
+  unit: "minutes" | "hours" | "days";
+  value: number;
+} | null {
+  if (!dateString) return null;
+  const d = new Date(dateString);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = Date.now();
+  const diffMs = now - d.getTime();
+  const diffM = Math.floor(diffMs / (60 * 1000));
+  const diffH = Math.floor(diffMs / (60 * 60 * 1000));
+  const diffD = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  if (diffM < 60) return { unit: "minutes", value: Math.max(1, diffM) };
+  if (diffH < 24) return { unit: "hours", value: diffH };
+  return { unit: "days", value: diffD };
+}

@@ -4,16 +4,19 @@ import { useState, lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import useSWR from "swr";
 import { Plus, RefreshCw } from "lucide-react";
-import { log, error } from "../../utils/logger";
+import { error } from "../../utils/logger";
 import { showSuccessToast } from "../../utils/toastNotifications";
 import EmailList from "./email/EmailList";
 import SubscribersList from "./email/SubscribersList";
 import SendEmailModal from "./email/SendEmailModal";
 import { AdminInlineLoading } from "./AdminSectionLoading";
 import { useLanguage } from "../LanguageProvider";
-import adminService from "../../services/admin";
-import type { TemplateRecord } from "../../services/admin";
-import { ADMIN_TEMPLATES_KEY } from "../../hooks/swr/keys";
+import {
+  useAdminTemplates,
+  useAdminEmails,
+  useAdminSubscribers,
+} from "../../hooks/swr";
+import type { AdminEmailType } from "../../hooks/swr";
 import type { EmailFormData } from "./email/EmailEditor";
 
 /* ── Lazy-load de l'éditeur (StructuredContentEditor + TipTap) ── */
@@ -44,8 +47,10 @@ interface SubscriberRecord {
 interface EmailManagementProps {
   title: string;
   description: string;
-  getEmailsMethod: () => Promise<EmailRecord[]>;
-  getSubscribersMethod: () => Promise<SubscriberRecord[]>;
+  /** Type email (newsletter | notification) : si fourni, utilise les hooks SWR dédiés. */
+  emailType?: AdminEmailType;
+  getEmailsMethod?: () => Promise<EmailRecord[]>;
+  getSubscribersMethod?: () => Promise<SubscriberRecord[]>;
   createEmailMethod: (data: {
     subject: string;
     content: string;
@@ -81,6 +86,7 @@ const DEFAULT_FORM: EmailFormData = {
 export default function EmailManagement({
   title,
   description,
+  emailType,
   getEmailsMethod,
   getSubscribersMethod,
   createEmailMethod,
@@ -112,55 +118,72 @@ export default function EmailManagement({
   const [showSendModal, setShowSendModal] = useState(false);
   const [emailToSend, setEmailToSend] = useState<EmailRecord | null>(null);
 
-  /* ── SWR : templates disponibles ── */
-  const { data: templatesRes } = useSWR(ADMIN_TEMPLATES_KEY, () =>
-    adminService.getTemplates(),
+  /* ── SWR : templates ── */
+  const { templates: availableTemplates } = useAdminTemplates();
+
+  /* ── SWR : emails et abonnés (hooks dédiés si emailType, sinon legacy) ── */
+  const emailsFromHook = useAdminEmails(emailType ?? "newsletter");
+  const subscribersFromHook = useAdminSubscribers(emailType ?? "newsletter");
+  const useHooks = emailType !== undefined;
+
+  const legacyEmailsSWR = useSWR(
+    useHooks ? null : ["admin-emails", title],
+    async () => {
+      const data = await (getEmailsMethod ?? (() => Promise.resolve([])))();
+      return Array.isArray(data) ? data : [];
+    },
   );
-  const availableTemplates: TemplateRecord[] = templatesRes?.templates ?? [];
+  const legacySubscribersSWR = useSWR(
+    useHooks ? null : ["admin-subscribers", title],
+    async () => {
+      const data = await (
+        getSubscribersMethod ?? (() => Promise.resolve([]))
+      )();
+      return Array.isArray(data) ? data : [];
+    },
+  );
 
-  /* ── SWR : emails ── */
-  const {
-    data: emailsRaw,
-    isLoading: loading,
-    error: emailsSWRError,
-    mutate: mutateEmails,
-  } = useSWR(["admin-emails", title], async () => {
-    const data = await getEmailsMethod();
-    log(
-      `[EmailManagement] Emails chargés:`,
-      Array.isArray(data) ? data.length : 0,
-    );
-    return Array.isArray(data) ? data : [];
-  });
+  const emails = useHooks
+    ? emailsFromHook.emails
+    : (legacyEmailsSWR.data ?? []);
+  const loading = useHooks
+    ? emailsFromHook.isLoading
+    : legacyEmailsSWR.isLoading;
+  const errorMessage = useHooks
+    ? emailsFromHook.error instanceof Error
+      ? emailsFromHook.error.message
+      : emailsFromHook.error
+        ? t("admin.emails.errorLoadingEmails")
+        : null
+    : legacyEmailsSWR.error instanceof Error
+      ? legacyEmailsSWR.error.message
+      : legacyEmailsSWR.error
+        ? t("admin.emails.errorLoadingEmails")
+        : null;
+  const mutateEmails = useHooks
+    ? emailsFromHook.mutate
+    : legacyEmailsSWR.mutate;
 
-  const emails = emailsRaw ?? [];
-  const errorMessage = emailsSWRError
-    ? emailsSWRError instanceof Error
-      ? emailsSWRError.message
-      : t("admin.emails.errorLoadingEmails")
-    : null;
-
-  /* ── SWR : abonnés ── */
-  const {
-    data: subscribersRaw,
-    isLoading: subscribersLoading,
-    error: subscribersSWRError,
-    mutate: mutateSubscribers,
-  } = useSWR(["admin-subscribers", title], async () => {
-    const data = await getSubscribersMethod();
-    log(
-      `[EmailManagement] ${subscribersLabel} chargés:`,
-      Array.isArray(data) ? data.length : 0,
-    );
-    return Array.isArray(data) ? data : [];
-  });
-
-  const subscribers = subscribersRaw ?? [];
-  const subscribersError = subscribersSWRError
-    ? subscribersSWRError instanceof Error
-      ? subscribersSWRError.message
-      : t("admin.emails.loadingSubscribers")
-    : null;
+  const subscribers = useHooks
+    ? subscribersFromHook.subscribers
+    : (legacySubscribersSWR.data ?? []);
+  const subscribersLoading = useHooks
+    ? subscribersFromHook.isLoading
+    : legacySubscribersSWR.isLoading;
+  const subscribersError = useHooks
+    ? subscribersFromHook.error instanceof Error
+      ? subscribersFromHook.error.message
+      : subscribersFromHook.error
+        ? t("admin.emails.loadingSubscribers")
+        : null
+    : legacySubscribersSWR.error instanceof Error
+      ? legacySubscribersSWR.error.message
+      : legacySubscribersSWR.error
+        ? t("admin.emails.loadingSubscribers")
+        : null;
+  const mutateSubscribers = useHooks
+    ? subscribersFromHook.mutate
+    : legacySubscribersSWR.mutate;
 
   const effectiveLoading = loading || mutating;
   const effectiveError = errorMessage || mutationError;

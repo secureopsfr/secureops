@@ -10,7 +10,7 @@ from common.error_handlers import register_exception_handlers
 from common.logging_config import get_logger, setup_logging
 from common.middleware import CorrelationIdMiddleware
 from common.version import get_app_version
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.config_loader import settings
@@ -21,6 +21,7 @@ from app.routers.analytics import router as analytics_router
 from app.routers.audit import router as audit_router
 from app.routers.contact import router as contact_router
 from app.routers.contact_public import router as contact_public_router
+from app.routers.doc_pages import router as doc_pages_router
 from app.routers.email_templates import router as email_templates_router
 from app.routers.health import router as health_router
 from app.routers.image_upload import router as image_upload_router
@@ -31,6 +32,7 @@ from app.routers.newsletter import router as newsletter_router
 from app.routers.notification import router as notification_router
 from app.routers.subscription import router as subscription_router
 from app.routers.user_management import router as user_management_router
+from app.utils.auth import require_admin_user
 
 setup_logging(service_name="admin-service")
 
@@ -165,17 +167,19 @@ def create_app() -> FastAPI:
 
     # Routers de contenu/admin (anciennement agrégés via content.py)
     _API = "/api"
-    app.include_router(contact_router, prefix=_API)
+    admin_only = [Depends(require_admin_user)]
+    app.include_router(contact_router, prefix=_API, dependencies=admin_only)
     app.include_router(contact_public_router, prefix=_API)
-    app.include_router(newsletter_router, prefix=_API)
-    app.include_router(notification_router, prefix=_API)
-    app.include_router(mailing_list_router, prefix=_API)
-    app.include_router(image_upload_router, prefix=_API)
-    app.include_router(email_templates_router, prefix=_API)
-    app.include_router(user_management_router, prefix=_API)
-    app.include_router(subscription_router, prefix=_API)
-    app.include_router(audit_router, prefix=_API)
-    app.include_router(alerting_router, prefix=_API)
+    app.include_router(newsletter_router, prefix=_API, dependencies=admin_only)
+    app.include_router(notification_router, prefix=_API, dependencies=admin_only)
+    app.include_router(mailing_list_router, prefix=_API, dependencies=admin_only)
+    app.include_router(image_upload_router, prefix=_API, dependencies=admin_only)
+    app.include_router(doc_pages_router, prefix=_API, dependencies=admin_only)
+    app.include_router(email_templates_router, prefix=_API, dependencies=admin_only)
+    app.include_router(user_management_router, prefix=_API, dependencies=admin_only)
+    app.include_router(subscription_router, prefix=_API, dependencies=admin_only)
+    app.include_router(audit_router, prefix=_API, dependencies=admin_only)
+    app.include_router(alerting_router, prefix=_API, dependencies=admin_only)
     app.include_router(internal_notifications_router)
 
     register_exception_handlers(app)

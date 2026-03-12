@@ -2,7 +2,7 @@
  * Service d'administration pour la gestion des emails (Newsletter & Notifications).
  */
 
-import { fetchWithAuth, getApiBaseUrl } from "../../utils/apiClient";
+import { fetchJsonWithAuth, getApiBaseUrl } from "../../utils/apiClient";
 import { error as logError } from "../../utils/logger";
 import { showErrorToast, getToastT } from "../../utils/toastNotifications";
 
@@ -34,14 +34,14 @@ export async function getNewsletterEmails(
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
 
-    const response = await fetchWithAuth(url.toString(), { method: "GET" });
-
-    if (!response.ok) {
-      throw new Error(`Erreur API: ${response.status}`);
-    }
-
-    const result = await response.json();
-    return Array.isArray(result) ? result : result.data || [];
+    const result = await fetchJsonWithAuth<
+      EmailRecord[] | { data?: EmailRecord[] }
+    >(
+      url.toString(),
+      { method: "GET" },
+      "Erreur lors de la récupération des emails newsletter",
+    );
+    return Array.isArray(result) ? result : (result?.data ?? []);
   } catch (err: unknown) {
     logError(
       "[AdminEmailsService] Erreur récupération emails newsletter:",
@@ -58,24 +58,11 @@ export async function createNewsletterEmail(emailData: {
   template_name?: string;
 }): Promise<EmailRecord> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<EmailRecord>(
       `${getApiBaseUrl()}/admin/api/newsletter`,
-      {
-        method: "POST",
-        body: JSON.stringify(emailData),
-      },
+      { method: "POST", body: JSON.stringify(emailData) },
+      "Erreur lors de la création de l'email newsletter",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la création de l'email newsletter",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminEmailsService] Erreur création email newsletter:", err);
     showErrorToast(getToastT()("admin.toast.createNewsletterEmail"));
@@ -88,25 +75,11 @@ export async function updateNewsletterEmail(
   emailData: { subject: string; content: string; template_name?: string },
 ): Promise<EmailRecord> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<EmailRecord>(
       `${getApiBaseUrl()}/admin/api/newsletter/${emailId}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(emailData),
-      },
+      { method: "PUT", body: JSON.stringify(emailData) },
+      "Erreur lors de la mise à jour de l'email newsletter",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail ||
-          "Erreur lors de la mise à jour de l'email newsletter",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminEmailsService] Erreur mise à jour email newsletter:", err);
     showErrorToast(getToastT()("admin.toast.updateNewsletterEmail"));
@@ -118,22 +91,11 @@ export async function deleteNewsletterEmail(
   emailId: number,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/newsletter/${emailId}`,
       { method: "DELETE" },
+      "Erreur lors de la suppression de l'email newsletter",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail ||
-          "Erreur lors de la suppression de l'email newsletter",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminEmailsService] Erreur suppression email newsletter:", err);
     showErrorToast(getToastT()("admin.toast.deleteNewsletterEmail"));
@@ -145,24 +107,11 @@ export async function sendNewsletterEmail(
   emailId: number,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/newsletter/send`,
-      {
-        method: "POST",
-        body: JSON.stringify({ email_id: emailId }),
-      },
+      { method: "POST", body: JSON.stringify({ email_id: emailId }) },
+      "Erreur lors de l'envoi de l'email newsletter",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de l'envoi de l'email newsletter",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminEmailsService] Erreur envoi email newsletter:", err);
     showErrorToast(getToastT()("admin.toast.sendNewsletterEmail"));
@@ -175,7 +124,7 @@ export async function scheduleNewsletterEmail(
   scheduledDate: Date,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/newsletter/schedule`,
       {
         method: "POST",
@@ -184,19 +133,8 @@ export async function scheduleNewsletterEmail(
           scheduled_at: scheduledDate.toISOString(),
         }),
       },
+      "Erreur lors de la programmation de l'email newsletter",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail ||
-          "Erreur lors de la programmation de l'email newsletter",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError(
       "[AdminEmailsService] Erreur programmation email newsletter:",
@@ -211,21 +149,11 @@ export async function cancelScheduledEmail(
   emailId: number,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/newsletter/cancel-schedule/${emailId}`,
       { method: "POST" },
+      "Erreur lors de l'annulation de l'email programmé",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de l'annulation de l'email programmé",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminEmailsService] Erreur annulation email programmé:", err);
     showErrorToast(getToastT()("admin.toast.cancelScheduleEmail"));
@@ -235,20 +163,18 @@ export async function cancelScheduledEmail(
 
 export async function getMailingList(): Promise<SubscriberRecord[]> {
   try {
-    const response = await fetchWithAuth(
+    const data = await fetchJsonWithAuth<
+      { entries?: SubscriberRecord[] } | SubscriberRecord[]
+    >(
       `${getApiBaseUrl()}/admin/api/mailing-list`,
       { method: "GET" },
+      "Erreur lors de la récupération de la liste de diffusion",
     );
-
-    if (!response.ok) {
-      throw new Error(`Erreur API: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return Array.isArray(data.entries)
-      ? data.entries
+    const withEntries = data as { entries?: SubscriberRecord[] };
+    return Array.isArray(withEntries.entries)
+      ? withEntries.entries
       : Array.isArray(data)
-        ? data
+        ? (data as SubscriberRecord[])
         : [];
   } catch (err: unknown) {
     logError("[AdminEmailsService] Erreur récupération mailing list:", err);
@@ -261,21 +187,11 @@ export async function deleteSubscriber(
   email: string,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/mailing-list/${encodeURIComponent(email)}`,
       { method: "DELETE" },
+      "Erreur lors de la suppression de l'abonné",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la suppression de l'abonné",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminEmailsService] Erreur suppression abonné:", err);
     showErrorToast(getToastT()("admin.toast.deleteSubscriber"));
@@ -294,14 +210,14 @@ export async function getNotificationEmails(
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
 
-    const response = await fetchWithAuth(url.toString(), { method: "GET" });
-
-    if (!response.ok) {
-      throw new Error(`Erreur API: ${response.status}`);
-    }
-
-    const result = await response.json();
-    return Array.isArray(result) ? result : result.data || [];
+    const result = await fetchJsonWithAuth<
+      EmailRecord[] | { data?: EmailRecord[] }
+    >(
+      url.toString(),
+      { method: "GET" },
+      "Erreur lors de la récupération des emails de notification",
+    );
+    return Array.isArray(result) ? result : (result?.data ?? []);
   } catch (err: unknown) {
     logError(
       "[AdminEmailsService] Erreur récupération emails notifications:",
@@ -318,25 +234,11 @@ export async function createNotificationEmail(emailData: {
   template_name?: string;
 }): Promise<EmailRecord> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<EmailRecord>(
       `${getApiBaseUrl()}/admin/api/notifications`,
-      {
-        method: "POST",
-        body: JSON.stringify(emailData),
-      },
+      { method: "POST", body: JSON.stringify(emailData) },
+      "Erreur lors de la création de l'email de notification",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail ||
-          "Erreur lors de la création de l'email de notification",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminEmailsService] Erreur création email notification:", err);
     showErrorToast(getToastT()("admin.toast.createNotificationEmail"));
@@ -349,25 +251,11 @@ export async function updateNotificationEmail(
   emailData: { subject: string; content: string; template_name?: string },
 ): Promise<EmailRecord> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<EmailRecord>(
       `${getApiBaseUrl()}/admin/api/notifications/${emailId}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(emailData),
-      },
+      { method: "PUT", body: JSON.stringify(emailData) },
+      "Erreur lors de la mise à jour de l'email de notification",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail ||
-          "Erreur lors de la mise à jour de l'email de notification",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError(
       "[AdminEmailsService] Erreur mise à jour email notification:",
@@ -382,22 +270,11 @@ export async function deleteNotificationEmail(
   emailId: number,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/notifications/${emailId}`,
       { method: "DELETE" },
+      "Erreur lors de la suppression de l'email de notification",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail ||
-          "Erreur lors de la suppression de l'email de notification",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError(
       "[AdminEmailsService] Erreur suppression email notification:",
@@ -412,24 +289,11 @@ export async function sendNotificationEmail(
   emailId: number,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/notifications/send`,
-      {
-        method: "POST",
-        body: JSON.stringify({ email_id: emailId }),
-      },
+      { method: "POST", body: JSON.stringify({ email_id: emailId }) },
+      "Erreur lors de l'envoi de l'email de notification",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de l'envoi de l'email de notification",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminEmailsService] Erreur envoi email notification:", err);
     showErrorToast(getToastT()("admin.toast.sendNotificationEmail"));
@@ -442,7 +306,7 @@ export async function scheduleNotificationEmail(
   scheduledDate: Date,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/notifications/schedule`,
       {
         method: "POST",
@@ -451,19 +315,8 @@ export async function scheduleNotificationEmail(
           scheduled_at: scheduledDate.toISOString(),
         }),
       },
+      "Erreur lors de la programmation de l'email de notification",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail ||
-          "Erreur lors de la programmation de l'email de notification",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError(
       "[AdminEmailsService] Erreur programmation email notification:",
@@ -478,21 +331,11 @@ export async function cancelScheduledNotification(
   emailId: number,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/notifications/cancel-schedule/${emailId}`,
       { method: "POST" },
+      "Erreur lors de l'annulation de l'email programmé",
     );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de l'annulation de l'email programmé",
-      );
-    }
-
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminEmailsService] Erreur annulation email programmé:", err);
     showErrorToast(getToastT()("admin.toast.cancelScheduleNotification"));
@@ -504,20 +347,18 @@ export async function getNotificationSubscribers(): Promise<
   SubscriberRecord[]
 > {
   try {
-    const response = await fetchWithAuth(
+    const data = await fetchJsonWithAuth<
+      { entries?: SubscriberRecord[] } | SubscriberRecord[]
+    >(
       `${getApiBaseUrl()}/admin/api/notifications/subscribers`,
       { method: "GET" },
+      "Erreur lors de la récupération des abonnés aux notifications",
     );
-
-    if (!response.ok) {
-      throw new Error(`Erreur API: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return Array.isArray(data.entries)
-      ? data.entries
+    const withEntries = data as { entries?: SubscriberRecord[] };
+    return Array.isArray(withEntries.entries)
+      ? withEntries.entries
       : Array.isArray(data)
-        ? data
+        ? (data as SubscriberRecord[])
         : [];
   } catch (err: unknown) {
     logError(

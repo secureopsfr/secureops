@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -42,6 +42,24 @@ class ScheduledScan(Base):
     )
 
     url = Column(String(2048), nullable=False, comment="URL à scanner")
+
+    scan_type = Column(
+        String(20),
+        nullable=False,
+        default="frontend",
+        comment="Type de scan : frontend, backend, custom",
+    )
+    result_mode = Column(
+        String(10),
+        nullable=False,
+        default="single",
+        comment="Mode de résultat : single ou multi",
+    )
+    urls_json = Column(
+        JSONB,
+        nullable=True,
+        comment="Liste d'URLs pour un scan planifié multi-pages",
+    )
 
     frequency = Column(String(20), nullable=False, comment="Fréquence : daily, weekly, monthly")
 

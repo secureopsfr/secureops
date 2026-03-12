@@ -2,6 +2,7 @@
 
 import React from "react";
 import { TrendingUp } from "lucide-react";
+import { useLanguage } from "../LanguageProvider";
 import {
   ResponsiveContainer,
   BarChart,
@@ -12,7 +13,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 
 const MONTH_LABELS = [
   "Jan",
@@ -37,7 +38,10 @@ interface SubscriptionChartProps {
  * Graphique en barres montrant l'évolution des inscriptions free vs premium
  * sur les 12 derniers mois.
  */
-export default function SubscriptionChart({ data }: SubscriptionChartProps) {
+const SubscriptionChart = React.memo(function SubscriptionChart({
+  data,
+}: SubscriptionChartProps) {
+  const { t } = useLanguage();
   if (!data || data.length === 0) return null;
 
   return (
@@ -48,7 +52,7 @@ export default function SubscriptionChart({ data }: SubscriptionChartProps) {
           className="text-base font-semibold text-[var(--text)]"
           style={{ margin: 0 }}
         >
-          Évolution des inscriptions (12 mois)
+          {t("admin.overview.registrationsEvolution12")}
         </h3>
       </div>
       <div style={{ width: "100%", height: 280 }}>
@@ -90,13 +94,13 @@ export default function SubscriptionChart({ data }: SubscriptionChartProps) {
             />
             <Bar
               dataKey="free"
-              name="Free"
+              name={t("admin.chart.free")}
               fill="rgba(var(--primary),0.6)"
               radius={[4, 4, 0, 0]}
             />
             <Bar
               dataKey="premium"
-              name="Premium"
+              name={t("admin.chart.premium")}
               fill="rgb(var(--warning))"
               radius={[4, 4, 0, 0]}
             />
@@ -105,4 +109,6 @@ export default function SubscriptionChart({ data }: SubscriptionChartProps) {
       </div>
     </Card>
   );
-}
+});
+
+export default SubscriptionChart;

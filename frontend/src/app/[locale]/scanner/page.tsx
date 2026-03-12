@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Header from "../../../components/Header";
-import Footer from "../../../components/Footer";
-import ScannerContent from "../../../components/scan/ScannerContent";
+import Header from "../../../components/ui/Header";
+import Footer from "../../../components/ui/Footer";
+import ScannerHub from "../../../components/scan/ScannerHub";
 import { getTranslation } from "../../../i18n/server";
 import {
   SITE_URL,
@@ -59,7 +59,7 @@ export default async function ScannerPage({
         className="min-h-screen py-6 w-full flex justify-center scanner-page"
       >
         <div className="w-full max-w-[1400px] px-8">
-          <ScannerContent />
+          <ScannerHub />
         </div>
       </main>
       <Footer locale={locale} />

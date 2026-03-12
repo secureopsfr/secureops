@@ -2,8 +2,9 @@
 
 import React, { type ReactNode } from "react";
 import { Search, X, SortAsc, SortDesc, Grid, List } from "lucide-react";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 import { useDebounce } from "../../hooks/useDebounce";
+import { useLanguage } from "../LanguageProvider";
 
 /* ─────────────────────── Types ─────────────────────── */
 
@@ -76,6 +77,7 @@ export default function SearchToolbar({
   onViewModeChange,
   children,
 }: SearchToolbarProps) {
+  const { t } = useLanguage();
   const hasSort = sortOptions && sortOptions.length > 0;
   const hasViewToggle =
     viewMode !== undefined && onViewModeChange !== undefined;
@@ -185,7 +187,7 @@ export default function SearchToolbar({
                   ? "bg-[rgba(var(--primary),0.2)] text-[rgb(var(--primary))]"
                   : "text-[var(--muted)] hover:text-[var(--text)]"
               }`}
-              title="Vue grille"
+              title={t("admin.gallery.viewGrid")}
             >
               <Grid className="w-4 h-4" />
             </button>
@@ -196,7 +198,7 @@ export default function SearchToolbar({
                   ? "bg-[rgba(var(--primary),0.2)] text-[rgb(var(--primary))]"
                   : "text-[var(--muted)] hover:text-[var(--text)]"
               }`}
-              title="Vue liste"
+              title={t("admin.gallery.viewList")}
             >
               <List className="w-4 h-4" />
             </button>

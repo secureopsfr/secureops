@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_async_session
 from app.exceptions import UserNotFoundError
 from app.models.user import User
+from app.services.api_key_repository import get_api_key_by_plain_key, update_last_used_at
 from app.services.cognito_service import get_user_email
 from app.services.user_repository import get_or_create_user, get_user_by_cognito_sub
 
@@ -114,10 +115,18 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Détection clé API vs JWT : JWT = 3 parties base64 séparées par des points
+    is_likely_jwt = token.count(".") == 2 and all(len(p) > 0 for p in token.split(".", 2))
+
+    if not is_likely_jwt:
+        # Traiter comme clé API
+        return await _get_user_from_api_key(token)
+
     try:
         # Vérifier le token et obtenir les claims
         logger.info("Vérification du token JWT...")
         claims = verify_cognito_jwt(token)
+        claims["auth_type"] = "jwt"
         logger.info("Token vérifié, sub=%s", claims.get("sub"))
 
         # Lazy user creation : créer l'utilisateur en base au premier appel
@@ -138,7 +147,7 @@ async def get_current_user(
         logger.error("Token JWT invalide: %s", e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token JWT invalide: {str(e)}",
+            detail="Token JWT invalide ou expiré.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:
@@ -147,7 +156,7 @@ async def get_current_user(
         logger.error("Erreur de vérification JWT (%s): %s", error_type, e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Erreur d'authentification: {str(e)}",
+            detail="Erreur d'authentification.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -170,6 +179,38 @@ async def get_current_user_id(
         HTTPException: 401 si sub manquant, 404 si utilisateur non trouvé.
     """
     return await resolve_user_id(current_user)
+
+
+async def require_jwt_user(
+    current_user: Annotated[Dict[str, Any], Depends(get_current_user)],
+) -> Dict[str, Any]:
+    """Exige une authentification JWT (et refuse les clés API)."""
+    if current_user.get("auth_type") != "jwt":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cette opération nécessite une authentification utilisateur JWT.",
+        )
+    return current_user
+
+
+async def _get_user_from_api_key(plain_key: str) -> Dict[str, Any]:
+    """Résout une clé API en dict de claims (compatible avec resolve_user)."""
+    async with get_async_session() as session:
+        api_key = await get_api_key_by_plain_key(session, plain_key)
+        if not api_key:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Clé API invalide ou révoquée",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        await update_last_used_at(session, api_key)
+        await session.commit()
+        user = api_key.user
+        return {
+            "sub": user.cognito_sub,
+            "email": user.email,
+            "auth_type": "api_key",
+        }
 
 
 async def _ensure_user_in_db(cognito_sub: str, claims: Dict[str, Any]) -> bool:

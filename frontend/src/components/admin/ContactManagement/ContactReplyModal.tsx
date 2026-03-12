@@ -2,7 +2,7 @@
 
 import { User, FileText, Send } from "lucide-react";
 import { GenericButton } from "../../buttons";
-import Modal from "../../Modal";
+import Modal from "../../ui/Modal";
 import type { ContactMessage } from "./hooks/useContactManagement";
 import { useLanguage } from "../../LanguageProvider";
 

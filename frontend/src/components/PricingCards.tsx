@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { GenericButton } from "./buttons";
-import { Card } from "./cards";
+import { Card } from "./ui/cards";
 
 export interface PricingPlan {
   name: string;

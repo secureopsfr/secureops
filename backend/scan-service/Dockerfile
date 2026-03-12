@@ -1,18 +1,13 @@
 # Image pour scan-service (port 8012). Contexte de build attendu : backend/ (depuis la racine du repo).
 FROM python:3.11-slim
+ARG INSTALL_DEV_DEPS=false
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Dépendances système : build-essential + WeasyPrint (Cairo, Pango, GDK-PixBuf)
+# Dépendances système
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       build-essential \
-      libcairo2 \
-      libpango-1.0-0 \
-      libpangocairo-1.0-0 \
-      libgdk-pixbuf-2.0-0 \
-      libffi-dev \
-      shared-mime-info \
  && rm -rf /var/lib/apt/lists/*
 
 # Utilisateur non-root
@@ -25,8 +20,11 @@ RUN pip install --upgrade pip setuptools wheel \
  && pip install /tmp/common
 
 # Installer dépendances du service
-COPY scan-service/requirements.txt .
-RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
+COPY scan-service/requirements.txt scan-service/requirements-dev.txt ./
+RUN pip install --no-cache-dir --prefer-binary -r requirements.txt \
+ && if [ "$INSTALL_DEV_DEPS" = "true" ] && [ -f requirements-dev.txt ]; then \
+      pip install --no-cache-dir --prefer-binary -r requirements-dev.txt; \
+    fi
 
 # Copier l'appli et passer en non-root
 COPY --chown=appuser:appuser scan-service/ .

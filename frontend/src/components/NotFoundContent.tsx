@@ -1,8 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import Header from "./Header";
-import Footer from "./Footer";
+import Header from "./ui/Header";
+import Footer from "./ui/Footer";
 import { GenericButton } from "./buttons";
 import AnimateInView from "./AnimateInView";
 import { useLanguage } from "./LanguageProvider";

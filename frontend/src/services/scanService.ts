@@ -1,13 +1,24 @@
 /**
- * Service de scan de posture sécurité.
- * Appelle l'API SSE et parse les événements (step, result, error).
+ * Service de scan de posture sécurité (mode async + polling).
  */
 
 import { getApiBaseUrl } from "../utils/apiClient";
+import { pollAsyncJob } from "../utils/pollAsyncJob";
+import logger from "../utils/logger";
 
 export interface ScanStep {
   step: string;
+  /** Vide depuis le backend ; conservé pour compatibilité et fallback. */
   message: string;
+  anomaly_count?: number;
+  /** Données structurées pour les steps multi-scan (page_scan_*). */
+  url?: string;
+  page_index?: number;
+  total_pages?: number;
+  /** Score global pour multi_scan_done. */
+  score?: number;
+  /** Nombre d'URLs explorées pour crawl_progress / crawl_done. */
+  url_count?: number;
 }
 
 /** Étape affichée dans le loader (done dérivé de step.endsWith("_done")). */
@@ -51,10 +62,43 @@ export interface ScanResult {
   total_tests_count?: number;
 }
 
+/** Résultat du scan pour une page individuelle (mode multi-URL). */
+export interface PageScanResult {
+  url: string;
+  score: number;
+  findings: ScanFinding[];
+  category_summaries?: CategorySummary[];
+  total_tests_count?: number;
+  /** Message d'erreur si la page était inaccessible. */
+  error?: string;
+}
+
+/** Résultat agrégé d'un scan multi-URL sur un même domaine. */
+export interface MultiScanResult {
+  result_mode: "multi";
+  base_url: string;
+  urls: string[];
+  score_global: number;
+  page_results: PageScanResult[];
+  timestamp: string;
+  duration: number;
+  scan_type: string;
+  status: string;
+}
+
+export type MultiScanEventHandler =
+  | { type: "step"; data: ScanStep }
+  | { type: "result"; data: MultiScanResult }
+  | { type: "error"; data: ScanError }
+  | { type: "save_done"; data: { scan_id: string } }
+  | { type: "save_failed"; data: string };
+
 export interface ScanError {
   message: string;
   status_code: number;
   error_type?: string;
+  /** Clé i18n pour afficher un message traduit (ex. scanner.crawlStreamError). */
+  i18nKey?: string;
 }
 
 export type ScanEventType =
@@ -71,22 +115,13 @@ export type ScanEventHandler =
   | { type: "save_failed"; data: string }
   | { type: "save_done"; data: { scan_id: string } };
 
-function parseSSEBlock(block: string): { event: string; data: unknown } | null {
-  let event = "message";
-  let data: unknown = null;
-  for (const line of block.split("\n")) {
-    if (line.startsWith("event: ")) {
-      event = line.slice(7).trim();
-    } else if (line.startsWith("data: ")) {
-      try {
-        data = JSON.parse(line.slice(6));
-      } catch {
-        data = line.slice(6);
-      }
-    }
-  }
-  if (data === null) return null;
-  return { event, data };
+export type AsyncScanType = "frontend" | "backend" | "custom";
+
+interface AsyncScanCreateResponse {
+  job_id: string;
+  status: string;
+  scan_type: string;
+  job_token?: string | null;
 }
 
 /**
@@ -102,122 +137,186 @@ export async function runScan(
   onEvent: (ev: ScanEventHandler) => void,
   getToken?: () => Promise<string | null>,
 ): Promise<void> {
-  const baseUrl = getApiBaseUrl();
-  const endpoint = `${baseUrl.replace(/\/$/, "")}/scan/api/scan`;
+  return runAsyncScan(
+    url,
+    onEvent,
+    {
+      scanType: "frontend",
+      input: {},
+      logPrefix: "[scan-polling]",
+    },
+    getToken,
+  );
+}
 
-  const headers: Record<string, string> = {
+export async function runAsyncScan(
+  url: string,
+  onEvent: (ev: ScanEventHandler) => void,
+  options: {
+    scanType: AsyncScanType;
+    input?: Record<string, unknown>;
+    logPrefix?: string;
+  },
+  getToken?: () => Promise<string | null>,
+): Promise<void> {
+  const logPrefix = options.logPrefix ?? "[scan-polling]";
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  const createEndpoint = `${base}/scan/api/scan/async`;
+
+  const authHeaders: Record<string, string> = {
     "Content-Type": "application/json",
-    Accept: "text/event-stream",
+    Accept: "application/json",
   };
   if (getToken) {
     const token = await getToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
+    if (token) authHeaders.Authorization = `Bearer ${token}`;
   }
 
-  let response: Response;
-  try {
-    response = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ url }),
-    });
-  } catch (err) {
-    onEvent({
-      type: "error",
-      data: {
-        message: err instanceof Error ? err.message : "Erreur réseau",
-        status_code: 0,
-      },
-    });
-    return;
-  }
+  let createData: AsyncScanCreateResponse | null = null;
 
-  if (!response.ok) {
-    onEvent({
-      type: "error",
-      data: {
-        message: `Erreur HTTP ${response.status}`,
-        status_code: response.status,
-      },
-    });
-    return;
-  }
-
-  const reader = response.body?.getReader();
-  if (!reader) {
-    onEvent({
-      type: "error",
-      data: {
-        message: "Flux de réponse indisponible",
-        status_code: 500,
-      },
-    });
-    return;
-  }
-
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const blocks = buffer.split("\n\n");
-      buffer = blocks.pop() ?? "";
-      for (const block of blocks) {
-        if (!block.trim()) continue;
-        const parsed = parseSSEBlock(block);
-        if (!parsed) continue;
-        const { event, data } = parsed;
-        if (
-          event === "step" &&
-          data &&
-          typeof data === "object" &&
-          "step" in data
-        ) {
-          onEvent({ type: "step", data: data as ScanStep });
-        } else if (event === "result" && data && typeof data === "object") {
-          onEvent({ type: "result", data: data as ScanResult });
-          // Ne pas return : le flux peut encore émettre save_failed
-        } else if (event === "error" && data && typeof data === "object") {
-          onEvent({ type: "error", data: data as ScanError });
-          return;
-        } else if (
-          event === "save_failed" &&
-          data &&
-          typeof data === "object"
-        ) {
-          onEvent({
-            type: "save_failed",
-            data:
-              (data as { message?: string }).message ?? "Erreur de sauvegarde",
-          });
-        } else if (
-          event === "save_done" &&
-          data &&
-          typeof data === "object" &&
-          "scan_id" in data
-        ) {
-          onEvent({
-            type: "save_done",
-            data: { scan_id: (data as { scan_id: string }).scan_id },
-          });
-        }
+  await pollAsyncJob<ScanResult>({
+    logPrefix,
+    createJob: async () => {
+      logger.info(`${logPrefix} create job request`, {
+        endpoint: createEndpoint,
+        url,
+      });
+      const res = await fetch(createEndpoint, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          url,
+          scan_type: options.scanType,
+          input: options.input ?? {},
+        }),
+      });
+      if (!res.ok) {
+        logger.error(`${logPrefix} create job failed`, { status: res.status });
+        onEvent({
+          type: "error",
+          data: {
+            message: `Erreur HTTP ${res.status}`,
+            status_code: res.status,
+          },
+        });
+        throw new Error(`create job failed: ${res.status}`);
       }
-    }
-  } catch (err) {
+      const data = (await res.json()) as AsyncScanCreateResponse;
+      createData = data;
+      logger.info(`${logPrefix} create job success`, {
+        job_id: data.job_id,
+        scan_type: data.scan_type,
+        anonymous: Boolean(data.job_token),
+      });
+      return { job_id: data.job_id, job_token: data.job_token };
+    },
+    pollUrl: (jobId) => `${base}/scan/api/scan/async/${jobId}`,
+    resultUrl: (jobId) => `${base}/scan/api/scan/async/${jobId}/result`,
+    buildPollHeaders: (jobToken) => {
+      const h: Record<string, string> = { Accept: "application/json" };
+      if (authHeaders.Authorization)
+        h.Authorization = authHeaders.Authorization;
+      if (jobToken) h["X-Job-Token"] = jobToken;
+      return h;
+    },
+    onEvent: (ev) => {
+      if (ev.type === "step") {
+        onEvent({ type: "step", data: ev.data });
+      } else if (ev.type === "result") {
+        onEvent({ type: "result", data: ev.data });
+      } else if (ev.type === "error") {
+        onEvent({ type: "error", data: ev.data });
+      }
+    },
+    backoff: { initialMs: 500, maxMs: 5000, stepMs: 250 },
+  });
+
+  void createData;
+}
+
+/**
+ * Lance un scan multi-URL (même domaine, utilisateur connecté requis).
+ * Crée un job via POST /scan/api/scan/multi-async puis poll le résultat.
+ *
+ * @param urls       - Liste d'URLs à scanner (même domaine)
+ * @param onEvent    - Callback pour chaque événement (step, result, error)
+ * @param getToken   - Retourne le token d'authentification (requis)
+ */
+export async function runMultiScan(
+  urls: string[],
+  onEvent: (ev: MultiScanEventHandler) => void,
+  getToken: () => Promise<string | null>,
+): Promise<void> {
+  const logPrefix = "[multi-scan-polling]";
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  const createEndpoint = `${base}/scan/api/scan/multi-async`;
+
+  const token = await getToken();
+  if (!token) {
     onEvent({
       type: "error",
       data: {
-        message:
-          err instanceof Error
-            ? err.message
-            : "Erreur lors de la lecture du flux",
-        status_code: 500,
+        message: "Authentification requise pour le scan multi-URL",
+        status_code: 401,
       },
     });
-  } finally {
-    reader.releaseLock();
+    return;
   }
+
+  const authHeader = `Bearer ${token}`;
+
+  await pollAsyncJob<MultiScanResult>({
+    logPrefix,
+    createJob: async () => {
+      logger.info(`${logPrefix} create job request`, {
+        endpoint: createEndpoint,
+        urlsCount: urls.length,
+      });
+      const res = await fetch(createEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({ urls, scan_type: "frontend" }),
+      });
+      if (!res.ok) {
+        let errorMsg = `Erreur HTTP ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body?.detail) errorMsg = body.detail;
+        } catch {}
+        onEvent({
+          type: "error",
+          data: { message: errorMsg, status_code: res.status },
+        });
+        throw new Error(`create job failed: ${res.status}`);
+      }
+      const data = (await res.json()) as { job_id: string; status: string };
+      logger.info(`${logPrefix} create job success`, { job_id: data.job_id });
+      return { job_id: data.job_id };
+    },
+    pollUrl: (jobId) => `${base}/scan/api/scan/async/${jobId}`,
+    resultUrl: (jobId) => `${base}/scan/api/scan/async/${jobId}/result`,
+    buildPollHeaders: () => ({
+      Accept: "application/json",
+      Authorization: authHeader,
+    }),
+    onEvent: (ev) => {
+      if (ev.type === "step") {
+        onEvent({ type: "step", data: ev.data });
+      } else if (ev.type === "result") {
+        const data = ev.data as MultiScanResult;
+        logger.info(`${logPrefix} result received`, {
+          pages: data.page_results?.length ?? 0,
+          score_global: data.score_global,
+        });
+        onEvent({ type: "result", data });
+      } else if (ev.type === "error") {
+        onEvent({ type: "error", data: ev.data });
+      }
+    },
+    backoff: { initialMs: 500, maxMs: 8000, stepMs: 500 },
+  });
 }

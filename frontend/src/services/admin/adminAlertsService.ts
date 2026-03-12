@@ -2,7 +2,7 @@
  * Service d'administration pour la gestion des alertes.
  */
 
-import { fetchWithAuth, getApiBaseUrl } from "../../utils/apiClient";
+import { fetchJsonWithAuth, getApiBaseUrl } from "../../utils/apiClient";
 import { error as logError } from "../../utils/logger";
 import { showErrorToast, getToastT } from "../../utils/toastNotifications";
 
@@ -47,12 +47,11 @@ export interface AlertSummaryResponse {
 
 export async function getAlertRules(): Promise<AlertRuleRecord[]> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<AlertRuleRecord[]>(
       `${getApiBaseUrl()}/admin/api/alerts/rules`,
       { method: "GET" },
+      "Erreur lors de la récupération des règles d'alertes",
     );
-    if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminAlertsService] Erreur récupération règles alertes:", err);
     showErrorToast(getToastT()("admin.toast.loadAlertRules"));
@@ -64,17 +63,11 @@ export async function createAlertRule(
   data: Omit<AlertRuleRecord, "id" | "created_at" | "updated_at">,
 ): Promise<AlertRuleRecord> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<AlertRuleRecord>(
       `${getApiBaseUrl()}/admin/api/alerts/rules`,
       { method: "POST", body: JSON.stringify(data) },
+      "Erreur création règle",
     );
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(errorData.detail || "Erreur création règle");
-    }
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminAlertsService] Erreur création règle alerte:", err);
     showErrorToast(getToastT()("admin.toast.createAlertRule"));
@@ -87,17 +80,11 @@ export async function updateAlertRule(
   data: Partial<AlertRuleRecord>,
 ): Promise<AlertRuleRecord> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<AlertRuleRecord>(
       `${getApiBaseUrl()}/admin/api/alerts/rules/${ruleId}`,
       { method: "PUT", body: JSON.stringify(data) },
+      "Erreur mise à jour règle",
     );
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(errorData.detail || "Erreur mise à jour règle");
-    }
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminAlertsService] Erreur mise à jour règle alerte:", err);
     showErrorToast(getToastT()("admin.toast.updateAlertRule"));
@@ -109,17 +96,11 @@ export async function deleteAlertRule(
   ruleId: string,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/alerts/rules/${ruleId}`,
       { method: "DELETE" },
+      "Erreur suppression règle",
     );
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(errorData.detail || "Erreur suppression règle");
-    }
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminAlertsService] Erreur suppression règle alerte:", err);
     showErrorToast(getToastT()("admin.toast.deleteAlertRule"));
@@ -131,12 +112,11 @@ export async function toggleAlertRule(
   ruleId: string,
 ): Promise<AlertRuleRecord> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<AlertRuleRecord>(
       `${getApiBaseUrl()}/admin/api/alerts/rules/${ruleId}/toggle`,
       { method: "POST" },
+      "Erreur lors du basculement de la règle",
     );
-    if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminAlertsService] Erreur toggle règle alerte:", err);
     showErrorToast(getToastT()("admin.toast.toggleAlertRule"));
@@ -163,9 +143,14 @@ export async function getAlertEvents({
     url.searchParams.set("limit", String(limit));
     url.searchParams.set("offset", String(offset));
 
-    const response = await fetchWithAuth(url.toString(), { method: "GET" });
-    if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
-    return await response.json();
+    return await fetchJsonWithAuth<{
+      events: AlertEventRecord[];
+      total: number;
+    }>(
+      url.toString(),
+      { method: "GET" },
+      "Erreur lors de la récupération des événements d'alerte",
+    );
   } catch (err: unknown) {
     logError("[AdminAlertsService] Erreur récupération alertes:", err);
     showErrorToast(getToastT()("admin.toast.loadAlerts"));
@@ -178,15 +163,14 @@ export async function acknowledgeAlert(
   adminEmail: string,
 ): Promise<AlertEventRecord> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<AlertEventRecord>(
       `${getApiBaseUrl()}/admin/api/alerts/events/${eventId}/acknowledge`,
       {
         method: "POST",
         body: JSON.stringify({ admin_email: adminEmail }),
       },
+      "Erreur lors de l'acquittement de l'alerte",
     );
-    if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminAlertsService] Erreur acquittement alerte:", err);
     showErrorToast(getToastT()("admin.toast.acknowledgeAlert"));
@@ -198,15 +182,14 @@ export async function acknowledgeAllAlerts(
   adminEmail: string,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/alerts/events/acknowledge-all`,
       {
         method: "POST",
         body: JSON.stringify({ admin_email: adminEmail }),
       },
+      "Erreur lors de l'acquittement de toutes les alertes",
     );
-    if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminAlertsService] Erreur acquittement toutes alertes:", err);
     showErrorToast(getToastT()("admin.toast.acknowledgeAllAlerts"));
@@ -216,12 +199,11 @@ export async function acknowledgeAllAlerts(
 
 export async function checkAlerts(): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/alerts/check`,
       { method: "POST" },
+      "Erreur lors de la vérification des alertes",
     );
-    if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminAlertsService] Erreur vérification alertes:", err);
     showErrorToast(getToastT()("admin.toast.checkAlerts"));
@@ -231,12 +213,11 @@ export async function checkAlerts(): Promise<Record<string, unknown>> {
 
 export async function getAlertSummary(): Promise<AlertSummaryResponse> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<AlertSummaryResponse>(
       `${getApiBaseUrl()}/admin/api/alerts/summary`,
       { method: "GET" },
+      "Erreur lors de la récupération du résumé des alertes",
     );
-    if (!response.ok) throw new Error(`Erreur API: ${response.status}`);
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminAlertsService] Erreur récupération résumé alertes:", err);
     showErrorToast(getToastT()("admin.toast.loadAlertSummary"));

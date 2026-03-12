@@ -2,7 +2,7 @@
 
 import React, { useCallback } from "react";
 import { CalendarClock, Mail, Pause, Play, Trash2 } from "lucide-react";
-import { SectionCard } from "../cards";
+import { SectionCard } from "../ui/cards";
 import LoadingScreen from "../LoadingScreen";
 import PaginationBar from "../PaginationBar";
 import { IconActionButton } from "../buttons";
@@ -30,10 +30,16 @@ const FREQUENCY_OPTIONS = [
 
 interface ScheduledScansBlockProps {
   refreshTrigger?: number;
+  /** Filtre optionnel par URL (suivis limités à cette URL). */
+  filterUrl?: string | null;
+  /** Filtre optionnel par type de scan (frontend, backend, custom). */
+  filterScanType?: string | null;
 }
 
 export default function ScheduledScansBlock({
   refreshTrigger = 0,
+  filterUrl,
+  filterScanType,
 }: ScheduledScansBlockProps) {
   const { t } = useLanguage();
 
@@ -43,10 +49,19 @@ export default function ScheduledScansBlock({
   );
   const { items, setItems, page, setPage, loading, load, totalPages } =
     usePaginatedFetch<ScheduledScan>({
-      fetchFn: (p, perPage) => getScheduledScans(p, perPage),
+      fetchFn: (p, perPage) =>
+        getScheduledScans(
+          p,
+          perPage,
+          filterUrl ?? undefined,
+          filterScanType ?? undefined,
+        ),
       perPage: 10,
       onError,
-      refreshTrigger,
+      refreshTrigger:
+        filterUrl != null || filterScanType != null
+          ? `${filterUrl ?? ""}_${filterScanType ?? ""}`
+          : refreshTrigger,
     });
 
   const handleDeleteConfirm = useCallback(
@@ -109,13 +124,15 @@ export default function ScheduledScansBlock({
     return opt ? t(opt.labelKey) : freq;
   };
 
+  const getScanTypeLabel = (scanType: string) => {
+    if (scanType === "backend") return t("scanner.scanTypeBackend");
+    if (scanType === "custom") return t("scanner.scanTypeCustom");
+    return t("scanner.scanTypeFrontend");
+  };
+
   return (
     <>
-      <SectionCard
-        icon={CalendarClock}
-        title={t("scheduledScans.title")}
-        className="mt-6"
-      >
+      <SectionCard icon={CalendarClock} title={t("scheduledScans.title")}>
         {loading ? (
           <LoadingScreen
             variant="section"
@@ -138,6 +155,11 @@ export default function ScheduledScansBlock({
                           {formatUrlDisplay(item.url)}
                         </p>
                         <p className="text-xs text-[var(--muted)] mt-0.5">
+                          {!filterScanType && (
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
+                              {getScanTypeLabel(item.scan_type ?? "frontend")}
+                            </span>
+                          )}
                           {getFrequencyLabel(item.frequency)}
                           {item.enabled && (
                             <>

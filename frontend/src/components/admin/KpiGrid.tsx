@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 
 /* ─────────────────────── Types ─────────────────────── */
 
@@ -59,7 +59,7 @@ KpiCard.displayName = "KpiCard";
  * Chaque KPI est rendu dans une `KpiCard` memoïsée avec une pastille
  * icône colorée, un libellé en uppercase et une valeur en gras.
  */
-export default function KpiGrid({ items, columns }: KpiGridProps) {
+const KpiGrid = React.memo(function KpiGrid({ items, columns }: KpiGridProps) {
   const cols = columns ?? (Math.min(items.length, 6) as 2 | 3 | 4 | 5 | 6);
 
   return (
@@ -71,4 +71,6 @@ export default function KpiGrid({ items, columns }: KpiGridProps) {
       ))}
     </div>
   );
-}
+});
+
+export default KpiGrid;

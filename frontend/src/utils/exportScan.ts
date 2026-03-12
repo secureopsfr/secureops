@@ -4,44 +4,15 @@
 
 import * as XLSX from "xlsx";
 import type { ScanResult, ScanFinding } from "../services/scanService";
+import {
+  BOM,
+  CSV_SEP,
+  escapeCsvCell,
+  buildScanBaseFilename,
+  downloadBlob,
+} from "./exportCore";
 
-const CSV_SEP = ";";
-const BOM = "\uFEFF";
-
-function escapeCsvCell(value: string): string {
-  if (value.includes(CSV_SEP) || value.includes('"') || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
-
-/**
- * Génère un nom de fichier à partir de l'URL scannée.
- */
-function getBaseFilename(url: string): string {
-  try {
-    const host = new URL(url).hostname.replace(/\./g, "-");
-    const date = new Date().toISOString().slice(0, 10);
-    return `scan-${host}-${date}`;
-  } catch {
-    return `scan-${Date.now()}`;
-  }
-}
-
-/**
- * Déclenche le téléchargement d'un fichier.
- */
-function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+export { BOM, CSV_SEP, escapeCsvCell, buildScanBaseFilename, downloadBlob };
 
 /**
  * Exporte les résultats en CSV (une ligne par finding).
@@ -74,7 +45,7 @@ export function exportToCsv(result: ScanResult): void {
     BOM + rows.map((row) => row.map(escapeCsvCell).join(CSV_SEP)).join("\n");
 
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
-  downloadBlob(blob, `${getBaseFilename(result.url)}.csv`);
+  downloadBlob(blob, `${buildScanBaseFilename(result.url)}.csv`);
 }
 
 /**
@@ -105,7 +76,7 @@ export function exportToJson(result: ScanResult): void {
     2,
   );
   const blob = new Blob([json], { type: "application/json" });
-  downloadBlob(blob, `${getBaseFilename(result.url)}.json`);
+  downloadBlob(blob, `${buildScanBaseFilename(result.url)}.json`);
 }
 
 /**
@@ -186,7 +157,7 @@ export function exportToXlsx(result: ScanResult): void {
   const blob = new Blob([xlsxBuffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
-  downloadBlob(blob, `${getBaseFilename(result.url)}.xlsx`);
+  downloadBlob(blob, `${buildScanBaseFilename(result.url)}.xlsx`);
 }
 
 export type ExportFormat = "csv" | "json" | "xlsx";

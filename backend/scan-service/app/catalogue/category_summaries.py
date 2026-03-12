@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
+from app.config._base import _load_settings_yml
+
 _CATEGORY_ORDER = (
     "tls",
     "headers",
@@ -76,6 +78,21 @@ def _load_category_summaries() -> dict[str, dict]:
         return json.load(f)
 
 
+@lru_cache(maxsize=1)
+def _load_category_labels_from_settings() -> dict[str, dict[str, str]]:
+    """Charge les labels de catégories depuis settings.yml."""
+    data = _load_settings_yml()
+    labels = data.get("category_labels") or {}
+    result: dict[str, dict[str, str]] = {}
+    for category, value in labels.items():
+        if not isinstance(value, dict):
+            continue
+        fr = str(value.get("fr", "")).strip()
+        en = str(value.get("en", "")).strip()
+        result[category] = {"fr": fr, "en": en}
+    return result
+
+
 def get_category_description(cat: str, lang: str) -> str:
     """Retourne la description d'une catégorie (depuis le catalogue).
 
@@ -135,6 +152,7 @@ def build_category_summaries(
             by_category[cat] = by_category.get(cat, 0) + 1
 
     catalogue = _load_category_summaries()
+    labels_from_settings = _load_category_labels_from_settings()
     result: list[dict] = []
 
     for cat in _CATEGORY_ORDER:
@@ -147,8 +165,8 @@ def build_category_summaries(
         checks_count = max(len(checks_fr), len(checks_en)) if checks_fr or checks_en else 0
         d = CategorySummaryEntry(
             category=cat,
-            label_fr=str(entry.get("label_fr", cat)),
-            label_en=str(entry.get("label_en", cat)),
+            label_fr=labels_from_settings.get(cat, {}).get("fr") or str(entry.get("label_fr", cat)),
+            label_en=labels_from_settings.get(cat, {}).get("en") or str(entry.get("label_en", cat)),
             description_fr=str(entry.get("description_fr", "")),
             description_en=str(entry.get("description_en", "")),
             checks_fr=checks_fr,

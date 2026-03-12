@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scheduled_scan import ScheduledScan
+from app.utils.query_utils import apply_scan_type_filter, apply_url_filter
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,10 @@ async def create_scheduled_scan(
     session: AsyncSession,
     user_id: uuid.UUID,
     url: str,
+    scan_type: str,
     frequency: str,
+    result_mode: str = "single",
+    urls: Optional[List[str]] = None,
     schedule_hour: int = 2,
     schedule_minute: int = 0,
     schedule_day_of_week: Optional[int] = None,
@@ -31,6 +35,8 @@ async def create_scheduled_scan(
         session: Session de base de données.
         user_id: UUID de l'utilisateur.
         url: URL à scanner.
+        result_mode: Mode de résultat (single ou multi).
+        urls: Liste d'URLs pour un scan multi-pages.
         frequency: daily, weekly ou monthly.
         schedule_hour: Heure d'exécution (dans le fuseau utilisateur).
         schedule_minute: Minute d'exécution.
@@ -54,6 +60,9 @@ async def create_scheduled_scan(
     scan = ScheduledScan(
         user_id=user_id,
         url=url,
+        scan_type=scan_type,
+        result_mode=result_mode,
+        urls_json=urls,
         frequency=frequency,
         schedule_hour=schedule_hour,
         schedule_minute=schedule_minute,
@@ -62,6 +71,7 @@ async def create_scheduled_scan(
         timezone=timezone_name,
         next_run_at=next_run_at,
         enabled=True,
+        scan_alerts_enabled=scan_alerts_enabled,
     )
     session.add(scan)
     await session.commit()
@@ -89,17 +99,26 @@ async def get_scheduled_scan_by_id(
     return result.scalar_one_or_none()
 
 
-async def count_scheduled_scans_by_user(session: AsyncSession, user_id: uuid.UUID) -> int:
+async def count_scheduled_scans_by_user(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    url: Optional[str] = None,
+    scan_type: Optional[str] = None,
+) -> int:
     """Compte le nombre total de scans planifiés d'un utilisateur.
 
     Args:
         session: Session de base de données.
         user_id: UUID de l'utilisateur.
+        url: Filtre optionnel par URL exacte.
 
     Returns:
         Nombre total de scans planifiés.
     """
-    result = await session.execute(select(func.count(ScheduledScan.id)).where(ScheduledScan.user_id == user_id))
+    stmt = select(func.count(ScheduledScan.id)).where(ScheduledScan.user_id == user_id)
+    stmt = apply_url_filter(stmt, ScheduledScan.url, url)
+    stmt = apply_scan_type_filter(stmt, ScheduledScan.scan_type, scan_type)
+    result = await session.execute(stmt)
     return result.scalar() or 0
 
 
@@ -108,6 +127,8 @@ async def list_scheduled_scans_by_user(
     user_id: uuid.UUID,
     limit: int = 20,
     offset: int = 0,
+    url: Optional[str] = None,
+    scan_type: Optional[str] = None,
 ) -> List[ScheduledScan]:
     """Liste les scans planifiés d'un utilisateur (pagination).
 
@@ -116,13 +137,17 @@ async def list_scheduled_scans_by_user(
         user_id: UUID de l'utilisateur.
         limit: Nombre max d'éléments.
         offset: Décalage pour pagination.
+        url: Filtre optionnel par URL exacte.
+        scan_type: Filtre optionnel (frontend, backend, custom).
 
     Returns:
         Liste des scans planifiés.
     """
-    result = await session.execute(
-        select(ScheduledScan).where(ScheduledScan.user_id == user_id).order_by(ScheduledScan.next_run_at).limit(limit).offset(offset),
-    )
+    stmt = select(ScheduledScan).where(ScheduledScan.user_id == user_id)
+    stmt = apply_url_filter(stmt, ScheduledScan.url, url)
+    stmt = apply_scan_type_filter(stmt, ScheduledScan.scan_type, scan_type)
+    stmt = stmt.order_by(ScheduledScan.next_run_at).limit(limit).offset(offset)
+    result = await session.execute(stmt)
     return list(result.scalars().all())
 
 

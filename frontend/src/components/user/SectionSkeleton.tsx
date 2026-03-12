@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import Card from "../cards/Card";
+import Card from "../ui/cards/Card";
 
 interface SectionSkeletonProps {
   id: string;

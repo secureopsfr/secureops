@@ -1,5 +1,5 @@
-import Skeleton from "../../../components/skeletons/Skeleton";
-import AccountPageSkeleton from "../../../components/skeletons/AccountPageSkeleton";
+import Skeleton from "../../../components/ui/skeletons/Skeleton";
+import AccountPageSkeleton from "../../../components/ui/skeletons/AccountPageSkeleton";
 
 /**
  * Skeleton de chargement pour la page Mon Compte.

@@ -1,18 +1,32 @@
-"""Route de scan (posture sécurité) — pipeline en streaming SSE et export PDF."""
+"""Route scan: export PDF, endpoint interne, et mode async."""
 
 import logging
 import os
-from urllib.parse import urljoin
+import uuid
 
-import httpx
+from common.async_jobs import generate_job_token, hash_job_token
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import SQLAlchemyError
 
-from app.schemas.scan import ScanRequest
-from app.services.pdf_report import generate_pdf
+from app.config_loader import get_async_jobs_settings, get_external_services_settings
+from app.db import get_async_session
+from app.schemas.async_job import ScanAsyncCreateRequest, ScanAsyncCreateResponse, ScanAsyncMultiCreateRequest, ScanAsyncStatusResponse
+from app.services.async_job_repository import create_job, get_job_by_id
+from app.services.multi_scan_orchestrator import run_multi_scan
+from app.services.pdf_export_service import PdfExportError, export_scan_pdf_bytes
 from app.services.scan_runner import ScanRunError, run_scan_to_result
-from app.services.scan_stream import scan_stream_generator
+from app.use_cases.async_job_access import (
+    JobAccessDeniedError,
+    JobNotFoundError,
+    JobResultNotReadyError,
+    NonFrontendAuthRequiredError,
+    require_completed_job,
+    require_existing_job,
+    require_job_access,
+    require_user_for_non_frontend,
+)
 from app.utils.url_validator import URLValidationError
 
 # Clé API pour les appels service-to-service (endpoint interne).
@@ -36,24 +50,22 @@ async def _verify_internal_api_key(
 
 
 _VERIFY_INTERNAL_API_KEY = Depends(_verify_internal_api_key)
-
-
-class ScanForPdfSchema(BaseModel):
-    """Schéma attendu pour la génération PDF (réponse user-service)."""
-
-    url: str
-    score: int | None = None
-    timestamp: str = ""
-    duration: float = 0.0
-    findings: list[dict] = Field(default_factory=list)
+_X_AUTHENTICATED_USER_ID = Header(default=None, alias="X-Authenticated-User-Id")
+_X_JOB_TOKEN = Header(default=None, alias="X-Job-Token")
 
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["scan"])
 
-GATEWAY_URL = os.getenv("GATEWAY_URL", "http://localhost:8000")
-FETCH_SCAN_TIMEOUT = 10.0
+PDF_SERVICE_INTERNAL_API_KEY = os.getenv("PDF_SERVICE_INTERNAL_API_KEY")
+_EXTERNAL = get_external_services_settings()
+GATEWAY_URL = os.getenv("GATEWAY_URL", _EXTERNAL.gateway_url)
+PDF_SERVICE_URL = os.getenv("PDF_SERVICE_URL", _EXTERNAL.pdf_service_url)
+FETCH_SCAN_TIMEOUT = _EXTERNAL.fetch_scan_timeout
+PDF_REQUEST_TIMEOUT = _EXTERNAL.pdf_request_timeout
+ASYNC_JOB_TOKEN_SECRET = os.getenv("ASYNC_JOB_TOKEN_SECRET", "dev-async-job-secret")
+ASYNC_MAX_ATTEMPTS = get_async_jobs_settings().max_attempts
 
 
 @router.get(
@@ -68,42 +80,20 @@ async def export_scan_pdf(
     lang: str = "fr",
 ) -> Response:
     """Récupère le scan depuis user-service et génère le PDF."""
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        return Response(status_code=401, content="Authentification requise")
-
-    url = urljoin(f"{GATEWAY_URL.rstrip('/')}/", f"user/api/scans/history/{scan_id}")
-    headers = {"Authorization": authorization}
-
-    async with httpx.AsyncClient(timeout=FETCH_SCAN_TIMEOUT) as client:
-        resp = await client.get(url, headers=headers)
-        if resp.status_code == 404:
-            return Response(status_code=404, content="Scan non trouvé")
-        if resp.status_code == 401:
-            return Response(status_code=401, content="Authentification requise")
-        if resp.status_code >= 400:
-            logger.warning("Erreur récupération scan pour PDF: %s %s", resp.status_code, resp.text[:200])
-            return Response(status_code=502, content="Impossible de récupérer le scan")
-
-    data = resp.json()
     try:
-        scan_data = ScanForPdfSchema.model_validate(data)
-    except Exception as e:
-        logger.warning("Schéma scan invalide pour PDF: %s", e)
-        return Response(status_code=502, content="Données du scan invalides")
-
-    pdf_bytes = generate_pdf(
-        url=scan_data.url,
-        score=scan_data.score,
-        timestamp=scan_data.timestamp,
-        duration=scan_data.duration,
-        findings=scan_data.findings,
-        include_matrices=include_matrices,
-        lang=lang if lang in ("fr", "en") else "fr",
-    )
-
-    host = scan_data.url.replace("https://", "").replace("http://", "").split("/")[0][:30]
-    filename = f"scan-{host}-{scan_data.timestamp[:10]}.pdf".replace(":", "-")
+        pdf_bytes, filename = await export_scan_pdf_bytes(
+            authorization=request.headers.get("Authorization"),
+            scan_id=scan_id,
+            include_matrices=include_matrices,
+            lang=lang,
+            gateway_url=GATEWAY_URL,
+            pdf_service_url=PDF_SERVICE_URL,
+            fetch_scan_timeout=FETCH_SCAN_TIMEOUT,
+            pdf_request_timeout=PDF_REQUEST_TIMEOUT,
+            pdf_service_internal_api_key=PDF_SERVICE_INTERNAL_API_KEY,
+        )
+    except PdfExportError as exc:
+        return Response(status_code=exc.status_code, content=exc.message)
 
     return Response(
         content=pdf_bytes,
@@ -118,6 +108,12 @@ class InternalScanRequest(BaseModel):
     """Requête pour l'endpoint interne (scheduler)."""
 
     url: str = Field(..., description="URL à scanner")
+
+
+class InternalMultiScanRequest(BaseModel):
+    """Requête pour l'endpoint interne multi (scheduler)."""
+
+    urls: list[str] = Field(..., min_length=2, description="Liste d'URLs d'un même domaine")
 
 
 @router.post(
@@ -142,19 +138,174 @@ async def internal_run_scan(
 
 
 @router.post(
-    "/scan",
-    summary="Lancer un scan",
-    description="Pipeline en streaming : renvoie les étapes au fur et à mesure (SSE).",
+    "/internal/scan/run-multi",
+    summary="[Interne] Exécuter un scan multi et retourner le résultat JSON",
+    description="Utilisé par le scheduler user-service pour les scans multi-pages.",
 )
-async def post_scan(body: ScanRequest, request: Request) -> StreamingResponse:
-    """Scan en streaming : un événement SSE à chaque étape (validation, SSRF, scan).
+async def internal_run_multi_scan(
+    body: InternalMultiScanRequest,
+    _: None = _VERIFY_INTERNAL_API_KEY,
+) -> dict:
+    """Exécute un scan multi et retourne le résultat agrégé en JSON."""
+    try:
+        result = await run_multi_scan(body.urls)
+        return result.to_dict()
+    except URLValidationError as e:
+        return {"status": "error", "message": str(e), "status_code": 400}
+    except ValueError as e:
+        return {"status": "error", "message": str(e), "status_code": 400}
+    except Exception as e:
+        logger.exception("Erreur inattendue lors du scan multi interne: %s", e)
+        return {"status": "error", "message": str(e), "status_code": 500}
 
-    Événements : step (validation_url_check/done, ssrf_check/done, fetch_https_check/done, tls_check/done, …),
-    puis result ou error. Si Authorization présent et scan réussi, sauvegarde dans l'historique.
-    """
-    authorization = request.headers.get("Authorization")
-    return StreamingResponse(
-        scan_stream_generator(body.url, authorization=authorization),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+
+@router.post("/scan/async", response_model=ScanAsyncCreateResponse, status_code=202)
+async def create_scan_async_job(
+    body: ScanAsyncCreateRequest,
+    authenticated_user_id: str | None = _X_AUTHENTICATED_USER_ID,
+) -> ScanAsyncCreateResponse:
+    """Crée un job async scan et retourne immédiatement un job_id."""
+    try:
+        require_user_for_non_frontend(body.scan_type, authenticated_user_id)
+    except NonFrontendAuthRequiredError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    raw_job_token: str | None = None
+    token_hash: str | None = None
+    if not authenticated_user_id:
+        raw_job_token = generate_job_token()
+        token_hash = hash_job_token(raw_job_token, ASYNC_JOB_TOKEN_SECRET)
+    try:
+        async with get_async_session() as session:
+            job = await create_job(
+                session,
+                url=body.url,
+                scan_type=body.scan_type,
+                input_json=body.input,
+                user_id=authenticated_user_id,
+                job_token_hash=token_hash,
+                max_attempts=ASYNC_MAX_ATTEMPTS,
+            )
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="Base de données indisponible")
+    except SQLAlchemyError as exc:
+        logger.exception("Erreur création job async scan: %s", exc)
+        raise HTTPException(status_code=500, detail="Impossible de créer le job")
+    return ScanAsyncCreateResponse(
+        job_id=str(job.id),
+        status="pending",
+        scan_type=body.scan_type,
+        job_token=raw_job_token,
     )
+
+
+@router.post("/scan/multi-async", response_model=ScanAsyncCreateResponse, status_code=202)
+async def create_multi_scan_async_job(
+    body: ScanAsyncMultiCreateRequest,
+    authenticated_user_id: str | None = _X_AUTHENTICATED_USER_ID,
+) -> ScanAsyncCreateResponse:
+    """Crée un job de scan multi-URL (même domaine) et retourne immédiatement un job_id.
+
+    Nécessite une authentification. Les URLs doivent appartenir au même domaine.
+    Le résultat (résultat_mode: "multi") est récupérable via GET /scan/async/{job_id}/result.
+    """
+    if not authenticated_user_id:
+        raise HTTPException(status_code=401, detail="Authentification requise pour le scan multi-URL")
+
+    try:
+        async with get_async_session() as session:
+            job = await create_job(
+                session,
+                url=body.urls[0],
+                scan_type=body.scan_type,
+                input_json={"urls": body.urls, **body.input},
+                user_id=authenticated_user_id,
+                job_token_hash=None,
+                max_attempts=ASYNC_MAX_ATTEMPTS,
+                result_mode="multi",
+            )
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="Base de données indisponible")
+    except SQLAlchemyError as exc:
+        logger.exception("Erreur création job async multi-scan: %s", exc)
+        raise HTTPException(status_code=500, detail="Impossible de créer le job")
+
+    return ScanAsyncCreateResponse(
+        job_id=str(job.id),
+        status="pending",
+        scan_type=body.scan_type,
+        job_token=None,
+    )
+
+
+@router.get("/scan/async/{job_id}", response_model=ScanAsyncStatusResponse)
+async def get_scan_async_job_status(
+    job_id: str,
+    authenticated_user_id: str | None = _X_AUTHENTICATED_USER_ID,
+    job_token: str | None = _X_JOB_TOKEN,
+) -> ScanAsyncStatusResponse:
+    """Retourne le statut d'un job async scan."""
+    try:
+        job_uuid = uuid.UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="job_id invalide")
+    try:
+        async with get_async_session() as session:
+            job = require_existing_job(await get_job_by_id(session, job_uuid))
+            require_job_access(
+                job,
+                authenticated_user_id=authenticated_user_id,
+                job_token=job_token,
+                token_secret=ASYNC_JOB_TOKEN_SECRET,
+            )
+            return ScanAsyncStatusResponse(
+                job_id=str(job.id),
+                scan_type=job.scan_type,  # type: ignore[arg-type]
+                status=job.status,  # type: ignore[arg-type]
+                result_mode=getattr(job, "result_mode", "single") or "single",
+                attempt_count=int(job.attempt_count or 0),
+                created_at=job.created_at,
+                started_at=job.started_at,
+                completed_at=job.completed_at,
+                last_step=job.last_step,
+                last_message=job.last_message,
+                progress_log=list(job.progress_log_json or []),
+                error=job.error_json,
+            )
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except JobAccessDeniedError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="Base de données indisponible")
+
+
+@router.get("/scan/async/{job_id}/result")
+async def get_scan_async_job_result(
+    job_id: str,
+    authenticated_user_id: str | None = _X_AUTHENTICATED_USER_ID,
+    job_token: str | None = _X_JOB_TOKEN,
+) -> dict:
+    """Retourne le résultat d'un job async scan."""
+    try:
+        job_uuid = uuid.UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="job_id invalide")
+    try:
+        async with get_async_session() as session:
+            job = require_existing_job(await get_job_by_id(session, job_uuid))
+            require_job_access(
+                job,
+                authenticated_user_id=authenticated_user_id,
+                job_token=job_token,
+                token_secret=ASYNC_JOB_TOKEN_SECRET,
+            )
+            require_completed_job(job)
+            return dict(job.result_json or {})
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except JobAccessDeniedError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    except JobResultNotReadyError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    except RuntimeError:
+        raise HTTPException(status_code=503, detail="Base de données indisponible")

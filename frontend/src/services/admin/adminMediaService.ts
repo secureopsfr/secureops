@@ -3,10 +3,9 @@
  */
 
 import { fetchAuthSession } from "aws-amplify/auth";
-import { getApiBaseUrl } from "../../utils/apiClient";
+import { fetchJsonWithAuth, getApiBaseUrl } from "../../utils/apiClient";
 import { error as logError } from "../../utils/logger";
 import { showErrorToast, getToastT } from "../../utils/toastNotifications";
-import { fetchWithAuth } from "../../utils/apiClient";
 
 export interface ImageRecord {
   filename: string;
@@ -101,16 +100,11 @@ export async function getImages({
     url.searchParams.set("sort_by", sortBy);
     url.searchParams.set("sort_order", sortOrder);
 
-    const response = await fetchWithAuth(url.toString(), { method: "GET" });
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la récupération des images",
-      );
-    }
-    return await response.json();
+    return await fetchJsonWithAuth<ImageGalleryResponse>(
+      url.toString(),
+      { method: "GET" },
+      "Erreur lors de la récupération des images",
+    );
   } catch (err: unknown) {
     logError("[AdminMediaService] Erreur récupération images:", err);
     showErrorToast(getToastT()("admin.toast.loadImages"));
@@ -120,19 +114,11 @@ export async function getImages({
 
 export async function getImageStats(): Promise<ImageGalleryStats> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<ImageGalleryStats>(
       `${getApiBaseUrl()}/admin/api/images/stats`,
       { method: "GET" },
+      "Erreur récupération statistiques images",
     );
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur récupération statistiques images",
-      );
-    }
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminMediaService] Erreur stats images:", err);
     showErrorToast(getToastT()("admin.toast.loadImageStats"));
@@ -144,19 +130,11 @@ export async function deleteImage(
   filename: string,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/images/${encodeURIComponent(filename)}`,
       { method: "DELETE" },
+      "Erreur lors de la suppression de l'image",
     );
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la suppression de l'image",
-      );
-    }
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminMediaService] Erreur suppression image:", err);
     showErrorToast(getToastT()("admin.toast.deleteImage"));
@@ -168,19 +146,11 @@ export async function deleteImage(
 
 export async function getTemplates(): Promise<TemplateListResponse> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<TemplateListResponse>(
       `${getApiBaseUrl()}/admin/api/templates`,
       { method: "GET" },
+      "Erreur lors de la récupération des templates",
     );
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la récupération des templates",
-      );
-    }
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminMediaService] Erreur récupération templates:", err);
     showErrorToast(getToastT()("admin.toast.loadTemplates"));
@@ -192,19 +162,11 @@ export async function getTemplateContent(
   filename: string,
 ): Promise<TemplateContent> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<TemplateContent>(
       `${getApiBaseUrl()}/admin/api/templates/${encodeURIComponent(filename)}`,
       { method: "GET" },
+      "Erreur lors de la récupération du template",
     );
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la récupération du template",
-      );
-    }
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminMediaService] Erreur récupération template:", err);
     showErrorToast(getToastT()("admin.toast.loadTemplate"));
@@ -217,23 +179,15 @@ export async function updateTemplate(
   content: string,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/templates/${encodeURIComponent(filename)}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
       },
+      "Erreur lors de la mise à jour du template",
     );
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la mise à jour du template",
-      );
-    }
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminMediaService] Erreur mise à jour template:", err);
     showErrorToast(getToastT()("admin.toast.updateTemplate"));
@@ -246,23 +200,15 @@ export async function createTemplate(
   content: string = "",
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/templates`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filename, content }),
       },
+      "Erreur lors de la création du template",
     );
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la création du template",
-      );
-    }
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminMediaService] Erreur création template:", err);
     showErrorToast(getToastT()("admin.toast.createTemplate"));
@@ -274,19 +220,11 @@ export async function deleteTemplate(
   filename: string,
 ): Promise<Record<string, unknown>> {
   try {
-    const response = await fetchWithAuth(
+    return await fetchJsonWithAuth<Record<string, unknown>>(
       `${getApiBaseUrl()}/admin/api/templates/${encodeURIComponent(filename)}`,
       { method: "DELETE" },
+      "Erreur lors de la suppression du template",
     );
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ detail: "Erreur inconnue" }));
-      throw new Error(
-        errorData.detail || "Erreur lors de la suppression du template",
-      );
-    }
-    return await response.json();
   } catch (err: unknown) {
     logError("[AdminMediaService] Erreur suppression template:", err);
     showErrorToast(getToastT()("admin.toast.deleteTemplate"));
