@@ -17,6 +17,7 @@ from app.db import get_async_session
 from app.schemas.async_job import ScanAsyncCreateRequest, ScanAsyncCreateResponse, ScanAsyncMultiCreateRequest, ScanAsyncStatusResponse
 from app.schemas.scan import ScanForPdfSchema
 from app.services.async_job_repository import create_job, get_job_by_id
+from app.services.multi_scan_orchestrator import run_multi_scan
 from app.services.scan_runner import ScanRunError, run_scan_to_result
 from app.use_cases.async_job_access import (
     JobAccessDeniedError,
@@ -143,6 +144,12 @@ class InternalScanRequest(BaseModel):
     url: str = Field(..., description="URL à scanner")
 
 
+class InternalMultiScanRequest(BaseModel):
+    """Requête pour l'endpoint interne multi (scheduler)."""
+
+    urls: list[str] = Field(..., min_length=2, description="Liste d'URLs d'un même domaine")
+
+
 @router.post(
     "/internal/scan/run",
     summary="[Interne] Exécuter un scan et retourner le résultat en JSON",
@@ -161,6 +168,28 @@ async def internal_run_scan(
         return {"status": "error", "message": e.message, "status_code": e.status_code}
     except Exception as e:
         logger.exception("Erreur inattendue lors du scan interne: %s", e)
+        return {"status": "error", "message": str(e), "status_code": 500}
+
+
+@router.post(
+    "/internal/scan/run-multi",
+    summary="[Interne] Exécuter un scan multi et retourner le résultat JSON",
+    description="Utilisé par le scheduler user-service pour les scans multi-pages.",
+)
+async def internal_run_multi_scan(
+    body: InternalMultiScanRequest,
+    _: None = _VERIFY_INTERNAL_API_KEY,
+) -> dict:
+    """Exécute un scan multi et retourne le résultat agrégé en JSON."""
+    try:
+        result = await run_multi_scan(body.urls)
+        return result.to_dict()
+    except URLValidationError as e:
+        return {"status": "error", "message": str(e), "status_code": 400}
+    except ValueError as e:
+        return {"status": "error", "message": str(e), "status_code": 400}
+    except Exception as e:
+        logger.exception("Erreur inattendue lors du scan multi interne: %s", e)
         return {"status": "error", "message": str(e), "status_code": 500}
 
 

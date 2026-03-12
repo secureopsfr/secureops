@@ -47,8 +47,14 @@ interface CrawlValidationStepProps {
   allowManualAdd?: boolean;
   /** Autorise l'action de lancement du scan depuis cette étape. */
   allowLaunchScan?: boolean;
+  /** Clé i18n du libellé du bouton d'action principal. */
+  launchButtonLabelKey?: string;
   /** Autorise la suppression d'URLs depuis la liste. */
   allowUrlRemoval?: boolean;
+  /** Affiche l'action flottante "Nouveau crawl". */
+  showFloatingBackAction?: boolean;
+  /** Active une version plus compacte (utile en popup). */
+  compact?: boolean;
   onUrlsChange: (urls: CrawlUrlEntry[]) => void;
   onLaunchScan: () => void;
   onBack: () => void;
@@ -169,7 +175,10 @@ export default function CrawlValidationStep({
   disallowPaths = [],
   allowManualAdd = true,
   allowLaunchScan = true,
+  launchButtonLabelKey = "scanner.launchScanFromList",
   allowUrlRemoval = true,
+  showFloatingBackAction = true,
+  compact = false,
   onUrlsChange,
   onLaunchScan,
   onBack,
@@ -203,6 +212,7 @@ export default function CrawlValidationStep({
     ) || t("scanner.addUrlPlaceholder");
   const isOverUrlLimit = urls.length > MAX_VALIDATION_URLS;
   const displayIdentifiedCount = identifiedCount ?? urls.length;
+  const bodyScrollClass = compact ? "min-h-0 flex-1 overflow-y-auto pr-1" : "";
 
   const handleRemove = (index: number) => {
     onUrlsChange(urls.filter((_, i) => i !== index));
@@ -246,7 +256,10 @@ export default function CrawlValidationStep({
   }, [urls.length, shouldScrollToBottom]);
 
   return (
-    <Card disableHover className="mx-auto max-w-5xl p-6 md:p-7">
+    <Card
+      disableHover
+      className={`mx-auto max-w-5xl ${compact ? "flex h-[78vh] flex-col p-4 md:p-5" : "p-6 md:p-7"}`}
+    >
       <div className="mb-5 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)]/40 p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
@@ -268,172 +281,179 @@ export default function CrawlValidationStep({
         </div>
       </div>
 
-      {hasWarnings && (
-        <div className="mb-5 space-y-2">
-          {timeoutReached && (
-            <div className="flex items-start gap-2 rounded-lg border border-[rgb(var(--warning))]/35 bg-[rgb(var(--warning))]/10 px-3 py-2.5">
-              <Timer className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--warning))]" />
-              <p className="text-sm text-[var(--text)]">
-                {t("scanner.crawlValidationTimeoutDesc", {
-                  crawlers:
-                    timeoutCrawlers || t("scanner.crawlEngineUnknownLabel"),
-                })}
-              </p>
-            </div>
-          )}
-          {antiBotSignatureDetected && (
-            <div className="flex items-start gap-2 rounded-lg border border-[rgb(var(--warning))]/35 bg-[rgb(var(--warning))]/10 px-3 py-2.5">
-              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--warning))]" />
-              <p className="text-sm text-[var(--text)]">
-                {t("scanner.crawlValidationAntiBotDesc")}
-              </p>
-            </div>
-          )}
-          {antiBotLowUrlSuspected && (
-            <div className="flex items-start gap-2 rounded-lg border border-[rgb(var(--warning))]/35 bg-[rgb(var(--warning))]/10 px-3 py-2.5">
-              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--warning))]" />
-              <p className="text-sm text-[var(--text)]">
-                {t("scanner.crawlValidationAntiBotLowUrlsDesc", {
-                  count: displayIdentifiedCount,
-                })}
-              </p>
-            </div>
-          )}
-          {requestsBlocked && (
-            <div className="flex items-start gap-2 rounded-lg border border-[rgb(var(--warning))]/35 bg-[rgb(var(--warning))]/10 px-3 py-2.5">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--warning))]" />
-              <p className="text-sm text-[var(--text)]">
-                {t("scanner.crawlValidationRequestsBlockedDesc", {
-                  count: maxConsecutive403 || 5,
-                  crawlers:
-                    blockedCrawlers || t("scanner.crawlEngineUnknownLabel"),
-                })}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {isOverUrlLimit && (
-        <div className="mb-5 rounded-lg border border-[rgb(var(--danger))]/40 bg-[rgb(var(--danger))]/10 px-3 py-2.5">
-          <p className="text-sm text-[rgb(var(--danger))]">
-            {t("scanner.crawlValidationMaxUrlsExceeded", {
-              count: MAX_VALIDATION_URLS,
-            })}
-          </p>
-        </div>
-      )}
-
-      {disallowPaths.length > 0 && (
-        <section className="mb-5 rounded-xl border border-[var(--border)] p-4">
-          <p className="mb-2 text-sm font-medium text-[var(--text)]">
-            {t("scanner.crawlValidationDisallowTitle")}
-          </p>
-          <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto pr-1">
-            {disallowPaths.map((path, i) => (
-              <code
-                key={`${path}-${i}`}
-                className="rounded-full border border-[var(--border)] bg-[var(--surface-secondary)]/40 px-2.5 py-1 text-xs text-[var(--muted)]"
-              >
-                {path || "/"}
-              </code>
-            ))}
+      <div className={bodyScrollClass}>
+        {hasWarnings && (
+          <div className="mb-5 space-y-2">
+            {timeoutReached && (
+              <div className="flex items-start gap-2 rounded-lg border border-[rgb(var(--warning))]/35 bg-[rgb(var(--warning))]/10 px-3 py-2.5">
+                <Timer className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--warning))]" />
+                <p className="text-sm text-[var(--text)]">
+                  {t("scanner.crawlValidationTimeoutDesc", {
+                    crawlers:
+                      timeoutCrawlers || t("scanner.crawlEngineUnknownLabel"),
+                  })}
+                </p>
+              </div>
+            )}
+            {antiBotSignatureDetected && (
+              <div className="flex items-start gap-2 rounded-lg border border-[rgb(var(--warning))]/35 bg-[rgb(var(--warning))]/10 px-3 py-2.5">
+                <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--warning))]" />
+                <p className="text-sm text-[var(--text)]">
+                  {t("scanner.crawlValidationAntiBotDesc")}
+                </p>
+              </div>
+            )}
+            {antiBotLowUrlSuspected && (
+              <div className="flex items-start gap-2 rounded-lg border border-[rgb(var(--warning))]/35 bg-[rgb(var(--warning))]/10 px-3 py-2.5">
+                <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--warning))]" />
+                <p className="text-sm text-[var(--text)]">
+                  {t("scanner.crawlValidationAntiBotLowUrlsDesc", {
+                    count: displayIdentifiedCount,
+                  })}
+                </p>
+              </div>
+            )}
+            {requestsBlocked && (
+              <div className="flex items-start gap-2 rounded-lg border border-[rgb(var(--warning))]/35 bg-[rgb(var(--warning))]/10 px-3 py-2.5">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--warning))]" />
+                <p className="text-sm text-[var(--text)]">
+                  {t("scanner.crawlValidationRequestsBlockedDesc", {
+                    count: maxConsecutive403 || 5,
+                    crawlers:
+                      blockedCrawlers || t("scanner.crawlEngineUnknownLabel"),
+                  })}
+                </p>
+              </div>
+            )}
           </div>
-        </section>
-      )}
+        )}
 
-      <section
-        className={`mb-5 rounded-xl border ${
-          isOverUrlLimit
-            ? "border-[rgb(var(--danger))] ring-1 ring-[rgba(var(--danger),0.35)]"
-            : "border-[var(--border)]"
-        }`}
-      >
-        <div className="border-b border-[var(--border)] px-4 py-2.5">
-          <p className="text-sm font-medium text-[var(--text)]">
-            {`URLs (${urls.length})`}
-          </p>
-        </div>
-        <ul ref={urlsListRef} className="max-h-72 overflow-y-auto">
-          {urls.map((entry, i) => (
-            <li
-              key={`${entry.url}-${i}`}
-              className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5 last:border-b-0"
+        {isOverUrlLimit && (
+          <div className="mb-5 rounded-lg border border-[rgb(var(--danger))]/40 bg-[rgb(var(--danger))]/10 px-3 py-2.5">
+            <p className="text-sm text-[rgb(var(--danger))]">
+              {t("scanner.crawlValidationMaxUrlsExceeded", {
+                count: MAX_VALIDATION_URLS,
+              })}
+            </p>
+          </div>
+        )}
+
+        {disallowPaths.length > 0 && (
+          <section className="mb-5 rounded-xl border border-[var(--border)] p-4">
+            <p className="mb-2 text-sm font-medium text-[var(--text)]">
+              {t("scanner.crawlValidationDisallowTitle")}
+            </p>
+            <div
+              className={`flex flex-wrap gap-2 overflow-y-auto pr-1 ${compact ? "max-h-24" : "max-h-32"}`}
             >
-              <span
-                className="min-w-0 flex-1 truncate text-sm"
-                title={entry.url}
-              >
-                {entry.url}
-              </span>
-              {allowUrlRemoval && (
-                <button
-                  type="button"
-                  onClick={() => handleRemove(i)}
-                  className="shrink-0 rounded-md p-1.5 text-[var(--muted)] hover:bg-[var(--color-surface-hover)] hover:text-red-500 transition-colors"
-                  aria-label={t("scanner.removeUrl")}
+              {disallowPaths.map((path, i) => (
+                <code
+                  key={`${path}-${i}`}
+                  className="rounded-full border border-[var(--border)] bg-[var(--surface-secondary)]/40 px-2.5 py-1 text-xs text-[var(--muted)]"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+                  {path || "/"}
+                </code>
+              ))}
+            </div>
+          </section>
+        )}
 
-      {allowManualAdd && (
-        <div className="mb-5 rounded-xl border border-[var(--border)] p-4">
-          <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <label className="block text-sm font-medium text-[var(--text)]">
-              {t("scanner.addSpecificUrl")}
-            </label>
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-secondary)]/40 px-3 py-2">
-              <p className="mb-1 text-xs font-medium text-[var(--text)]">
-                {t("scanner.addUrlRulesTitle")}
-              </p>
-              <p className="text-xs text-[var(--muted)]">
-                {t("scanner.addUrlRuleDomainOnly")}
-              </p>
-              <p className="text-xs text-[var(--muted)]">
-                {t("scanner.addUrlRuleHttpsOnly")}
-              </p>
+        <section
+          className={`mb-5 rounded-xl border ${
+            isOverUrlLimit
+              ? "border-[rgb(var(--danger))] ring-1 ring-[rgba(var(--danger),0.35)]"
+              : "border-[var(--border)]"
+          }`}
+        >
+          <div className="border-b border-[var(--border)] px-4 py-2.5">
+            <p className="text-sm font-medium text-[var(--text)]">
+              {`URLs (${urls.length})`}
+            </p>
+          </div>
+          <ul
+            ref={urlsListRef}
+            className={`${compact ? "max-h-56" : "max-h-72"} overflow-y-auto`}
+          >
+            {urls.map((entry, i) => (
+              <li
+                key={`${entry.url}-${i}`}
+                className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5 last:border-b-0"
+              >
+                <span
+                  className="min-w-0 flex-1 truncate text-sm"
+                  title={entry.url}
+                >
+                  {entry.url}
+                </span>
+                {allowUrlRemoval && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(i)}
+                    className="shrink-0 rounded-md p-1.5 text-[var(--muted)] hover:bg-[var(--color-surface-hover)] hover:text-red-500 transition-colors"
+                    aria-label={t("scanner.removeUrl")}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {allowManualAdd && (
+          <div className="mb-5 rounded-xl border border-[var(--border)] p-4">
+            <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <label className="block text-sm font-medium text-[var(--text)]">
+                {t("scanner.addSpecificUrl")}
+              </label>
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-secondary)]/40 px-3 py-2">
+                <p className="mb-1 text-xs font-medium text-[var(--text)]">
+                  {t("scanner.addUrlRulesTitle")}
+                </p>
+                <p className="text-xs text-[var(--muted)]">
+                  {t("scanner.addUrlRuleDomainOnly")}
+                </p>
+                <p className="text-xs text-[var(--muted)]">
+                  {t("scanner.addUrlRuleHttpsOnly")}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                inputMode="url"
+                value={newUrl}
+                onChange={(e) => {
+                  setNewUrl(e.target.value);
+                  if (inputHasError) setInputHasError(false);
+                }}
+                placeholder={domainBasedPlaceholder}
+                className={`auth-input flex-1 ${
+                  inputHasError || isOverUrlLimit
+                    ? "border-[rgb(var(--danger))] ring-2 ring-[rgba(var(--danger),0.35)]"
+                    : ""
+                }`}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && (e.preventDefault(), handleAdd())
+                }
+              />
+              <GenericButton
+                type="button"
+                label={t("scanner.addUrl")}
+                icon={<Plus className="h-4 w-4" />}
+                variant="secondary"
+                onClick={handleAdd}
+              />
             </div>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              type="text"
-              inputMode="url"
-              value={newUrl}
-              onChange={(e) => {
-                setNewUrl(e.target.value);
-                if (inputHasError) setInputHasError(false);
-              }}
-              placeholder={domainBasedPlaceholder}
-              className={`auth-input flex-1 ${
-                inputHasError || isOverUrlLimit
-                  ? "border-[rgb(var(--danger))] ring-2 ring-[rgba(var(--danger),0.35)]"
-                  : ""
-              }`}
-              onKeyDown={(e) =>
-                e.key === "Enter" && (e.preventDefault(), handleAdd())
-              }
-            />
-            <GenericButton
-              type="button"
-              label={t("scanner.addUrl")}
-              icon={<Plus className="h-4 w-4" />}
-              variant="secondary"
-              onClick={handleAdd}
-            />
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="flex flex-wrap justify-end gap-2">
         {allowLaunchScan && (
           <GenericButton
             type="button"
-            label={t("scanner.launchScanFromList")}
+            label={t(launchButtonLabelKey)}
             variant="primary"
             onClick={onLaunchScan}
             disabled={isOverUrlLimit}
@@ -441,17 +461,19 @@ export default function CrawlValidationStep({
         )}
       </div>
 
-      <FloatingActionDock
-        ariaLabel={t("scanner.newCrawl")}
-        actions={[
-          {
-            key: "new-crawl",
-            label: t("scanner.newCrawl"),
-            variant: "outline",
-            onClick: onBack,
-          },
-        ]}
-      />
+      {showFloatingBackAction && (
+        <FloatingActionDock
+          ariaLabel={t("scanner.newCrawl")}
+          actions={[
+            {
+              key: "new-crawl",
+              label: t("scanner.newCrawl"),
+              variant: "outline",
+              onClick: onBack,
+            },
+          ]}
+        />
+      )}
     </Card>
   );
 }

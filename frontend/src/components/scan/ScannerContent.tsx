@@ -473,6 +473,68 @@ export default function ScannerContent() {
     }
   }, [url, crawledUrls, runScanOnUrl, runMultiScanOnUrls]);
 
+  const handleScheduleFromValidation = useCallback(async () => {
+    if (!isAuthenticated || authLoading) return;
+    const urlStrings = crawledUrls.map((u) => u.url).filter(Boolean);
+    if (urlStrings.length === 0) {
+      showErrorToast(t("scheduledScans.urlRequired"));
+      return;
+    }
+
+    const { hour, minute } = parseTimeToHourMinute(formTime);
+    setSaving(true);
+    try {
+      const normalizedBaseUrl = normalizeScanUrl(url.trim() || urlStrings[0]);
+      await createScheduledScan({
+        url: normalizedBaseUrl,
+        scan_type: "frontend",
+        result_mode: urlStrings.length > 1 ? "multi" : "single",
+        urls: urlStrings.length > 1 ? urlStrings : undefined,
+        frequency: formFrequency,
+        schedule_hour: hour,
+        schedule_minute: minute,
+        schedule_day_of_week:
+          formFrequency === "weekly" ? formDayOfWeek : undefined,
+        schedule_day_of_month:
+          formFrequency === "monthly" ? formDayOfMonth : undefined,
+        timezone: getUserTimezone(),
+        scan_alerts_enabled: formScanAlertsEnabled,
+      });
+      showSuccessToast(t("scheduledScans.createSuccess"));
+      setState("idle");
+      setCrawledUrls([]);
+      setCrawlIdentifiedCount(0);
+      setCrawlTimeoutReached(false);
+      setCrawlTimeoutHtml(false);
+      setCrawlTimeoutPlaywright(false);
+      setCrawlAntiBotSignatureDetected(false);
+      setCrawlAntiBotLowUrlSuspected(false);
+      setCrawlRequestsBlocked(false);
+      setCrawlRequestsBlockedHtml(false);
+      setCrawlRequestsBlockedPlaywright(false);
+      setCrawlMaxConsecutive403(0);
+      setCrawlDisallowPaths([]);
+      setCrawlSteps([]);
+    } catch (err) {
+      showErrorToast(
+        err instanceof Error ? err.message : t("scheduledScans.createError"),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    authLoading,
+    crawledUrls,
+    formDayOfMonth,
+    formDayOfWeek,
+    formFrequency,
+    formScanAlertsEnabled,
+    formTime,
+    isAuthenticated,
+    t,
+    url,
+  ]);
+
   const handleBackFromValidation = useCallback(() => {
     setState("idle");
     setCrawledUrls([]);
@@ -564,10 +626,13 @@ export default function ScannerContent() {
   ]);
 
   const showHeader = state === "idle" || state === "error";
+  const showScheduleValidationPopup = state === "validation" && scheduleEnabled;
+  const showScannerForm =
+    state === "idle" || state === "error" || showScheduleValidationPopup;
 
   return (
     <div className="space-y-4 w-full">
-      {showHeader && (
+      {(showHeader || showScheduleValidationPopup) && (
         <AnimateInView
           initialOnly
           delay={80}
@@ -601,7 +666,7 @@ export default function ScannerContent() {
         aria-label="Scanner content"
       >
         <div className="scanner-content">
-          {(state === "idle" || state === "error") && (
+          {showScannerForm && (
             <>
               <div className="w-full">
                 <Card disableHover>
@@ -745,13 +810,26 @@ export default function ScannerContent() {
                         </>
                       )}
                       <div className="flex gap-2 flex-wrap">
-                        {scheduleEnabled && isAuthenticated && !authLoading ? (
+                        {scheduleEnabled &&
+                        isAuthenticated &&
+                        !authLoading &&
+                        scanOnlyThisPage ? (
                           <GenericButton
                             type="button"
                             label={t("scheduledScans.scheduleBtn")}
                             variant="primary"
                             onClick={handleAddScheduledScan}
                             loading={saving}
+                            disabled={!url.trim()}
+                          />
+                        ) : scheduleEnabled &&
+                          isAuthenticated &&
+                          !authLoading &&
+                          !scanOnlyThisPage ? (
+                          <GenericButton
+                            type="submit"
+                            label={t("scanner.cta")}
+                            variant="primary"
                             disabled={!url.trim()}
                           />
                         ) : (
@@ -789,7 +867,7 @@ export default function ScannerContent() {
                 )
               : null)}
 
-          {state === "validation" && (
+          {state === "validation" && !scheduleEnabled && (
             <CrawlValidationStep
               urls={crawledUrls}
               identifiedCount={crawlIdentifiedCount}
@@ -805,10 +883,64 @@ export default function ScannerContent() {
               maxConsecutive403={crawlMaxConsecutive403}
               disallowPaths={crawlDisallowPaths}
               onUrlsChange={setCrawledUrls}
-              onLaunchScan={handleLaunchScanFromValidation}
+              onLaunchScan={
+                scheduleEnabled
+                  ? handleScheduleFromValidation
+                  : handleLaunchScanFromValidation
+              }
+              launchButtonLabelKey={
+                scheduleEnabled
+                  ? "scheduledScans.scheduleBtn"
+                  : "scanner.launchScanFromList"
+              }
               onBack={handleBackFromValidation}
             />
           )}
+
+          {showScheduleValidationPopup &&
+            (typeof document !== "undefined"
+              ? createPortal(
+                  <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                    style={{
+                      backgroundColor: "var(--color-overlay)",
+                      backdropFilter: "blur(4px)",
+                      WebkitBackdropFilter: "blur(4px)",
+                    }}
+                    onClick={handleBackFromValidation}
+                  >
+                    <div
+                      className="w-full max-w-4xl"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <CrawlValidationStep
+                        urls={crawledUrls}
+                        identifiedCount={crawlIdentifiedCount}
+                        startUrl={url.trim()}
+                        timeoutReached={crawlTimeoutReached}
+                        timeoutHtml={crawlTimeoutHtml}
+                        timeoutPlaywright={crawlTimeoutPlaywright}
+                        antiBotSignatureDetected={crawlAntiBotSignatureDetected}
+                        antiBotLowUrlSuspected={crawlAntiBotLowUrlSuspected}
+                        requestsBlocked={crawlRequestsBlocked}
+                        requestsBlockedHtml={crawlRequestsBlockedHtml}
+                        requestsBlockedPlaywright={
+                          crawlRequestsBlockedPlaywright
+                        }
+                        maxConsecutive403={crawlMaxConsecutive403}
+                        disallowPaths={crawlDisallowPaths}
+                        onUrlsChange={setCrawledUrls}
+                        onLaunchScan={handleScheduleFromValidation}
+                        launchButtonLabelKey="scheduledScans.scheduleBtn"
+                        showFloatingBackAction={false}
+                        compact
+                        onBack={handleBackFromValidation}
+                      />
+                    </div>
+                  </div>,
+                  document.body,
+                )
+              : null)}
 
           {state === "loading" &&
             (typeof document !== "undefined"
