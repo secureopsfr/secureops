@@ -292,62 +292,13 @@ Quotas, rate limiting et réponse 429 sont reportés à plus tard. Voir [A-PENSE
 
 ## 2) Tests d’intégration pour la pipeline de scan
 
-Objectif : **valider de bout en bout** la pipeline de scan (validation URL → protections SSRF → fetch HTTP/TLS → exécution des checks → scoring → sauvegarde historique et PDF) via des tests d’intégration automatisés, avec de vrais serveurs de test et une exécution dans la CI.
-
-### 2.1 Environnements et serveurs de test
-
-- [ ] Définir un environnement de test dédié au scan (Docker Compose minimal : scan-service + Postgres si nécessaire).
-- [ ] Ajouter un ou plusieurs **serveurs cibles de démo** :
-  - [ ] Serveur HTTP simple (cache/headers/cookies) — ex. `bad_cache_server.py`.
-  - [ ] Serveur simulant des headers de sécurité variés (bonnes pratiques / mauvaises pratiques).
-  - [ ] Serveur avec fichiers exposés / directory listing / robots.txt / sitemap de test.
-  - [ ] **Serveur avec pages liées (même domaine)** pour les tests crawler : plusieurs pages HTML avec liens internes, pour valider le scénario crawl → liste → scan sur N URLs (voir 2.2).
-  - [ ] (Optionnel) Serveur d’API de démo (Swagger/GraphQL/Content-Type).
-
-### 2.2 Scénarios de tests d’intégration
-
-- [ ] Scénario « happy path » : URL valide → scan complet → score cohérent → findings attendus.
-- [ ] Scénarios d’erreur : DNS KO, timeout, TLS cassé, redirections excessives.
-- [ ] Scénarios SSRF : URLs internes / localhost / IP privées bloquées en mode prod (`IS_PROD=true`).
-- [ ] Scénarios de ports : ports non autorisés rejetés en prod, autorisés en dev (`IS_PROD=false` via `launch_dev.sh`).
-- [ ] **Scénario crawler → liste → scan sur N URLs** : serveur de test avec pages liées (même domaine) ; lancer le crawler depuis une URL de départ, récupérer la liste d’URLs (via l’API crawler retenue en 7.3), lancer le scan sur un sous-ensemble (ex. 2–3 URLs) ; vérifier que les résultats agrègent les findings par URL ou produisent un rapport cohérent (historique, PDF si applicable).
-- [ ] Vérification des catégories de checks : TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, info disclosure, etc.
-- [ ] Vérification de l’écriture en historique (user-service) et de la génération PDF.
-
-### 2.3 Intégration dans la CI
-
-- [ ] Ajouter un job **tests d’intégration scan-service** dans la pipeline (GitHub Actions).
-- [ ] Démarrer les services nécessaires (scan-service + serveurs de test) via Docker Compose dans le job.
-- [ ] Lancer la suite de tests d’intégration (`pytest -m integration` ou répertoire dédié).
-- [ ] Marquer le job comme requis pour les PR affectant le scan-service / gateway.
-
-### 2.4 Observabilité et maintenance des tests
-
-- [ ] Logs clairs pour chaque scénario (URL cible, findings principaux).
-- [ ] Documentation rapide dans `docs/` pour expliquer comment lancer les tests d’intégration en local.
-- [ ] Stratégie de maintenance : limiter le nombre de scénarios mais couvrir les cas critiques (TLS, SSRF, cache, exposition fichiers, CORS, crawler + scan multi-URLs).
+> **Reporté en v0.4.0 :** toute la partie non faite de cette section (environnement de test, scénarios d’intégration, CI, observabilité/maintenance) a été déplacée dans `ROADMAP-MVP-0.4.0.md` pour centraliser le backlog tests.
 
 ---
 
 ## 3) Intégration CI/CD (GitHub Action SecureOps)
 
-Objectif : proposer aux utilisateurs une **GitHub Action** officielle pour intégrer SecureOps dans leurs propres pipelines CI/CD.
-
-### 3.1 Action GitHub
-
-- [ ] Créer la répo `secureops/actions` ou une action dans le monorepo.
-- [ ] Définir les inputs : `url`, `api_key` (secret), `fail_on_score_below` (optionnel).
-
-### 3.2 Comportement
-
-- [ ] Appeler `POST /scan/api/scan` avec `X-API-Key` (API publique SecureOps).
-- [ ] Parser le résultat (score, findings).
-- [ ] Faire échouer le job si `score < fail_on_score_below` ou si finding `critical`.
-
-### 3.3 Documentation
-
-- [ ] Rédiger un README avec un exemple d’utilisation dans un workflow GitHub Actions.
-- [ ] (Optionnel) Fournir un badge « Scan SecureOps » pour le README des projets utilisateurs.
+> **Reporté en v0.4.0 :** toute la partie non faite de cette section (création de l’action, comportement de scan, documentation README/badge) a été déplacée dans `ROADMAP-MVP-0.4.0.md`.
 
 ---
 
@@ -418,8 +369,8 @@ Quotas, rate limiting et limites crawler sont reportés. Voir [A-PENSER-PLUS-TAR
 
 - [x] Documenter dans `docs/verifications/crawler.md` : objectif, limites, respect robots.txt, impact sur le scan, choix techniques.
 - [x] Documenter le **contrat API crawler** (option A synchrone, payload, format de la liste, codes erreur) dans la doc.
-- [ ] Tests unitaires : parsing HTML → liste d’URLs attendue ; respect Disallow ; limites (profondeur, max URLs).
-- [ ] Test d’intégration : crawl d’une page de test (ex. `bad_crawl_server` ou fixture HTML) → vérifier la sortie et l’absence de fuite hors domaine.
+- [ ] Tests unitaires : parsing HTML → liste d’URLs attendue ; respect Disallow ; limites (profondeur, max URLs). *(reporté en v0.4.0)*
+- [ ] Test d’intégration : crawl d’une page de test (ex. `bad_crawl_server` ou fixture HTML) → vérifier la sortie et l’absence de fuite hors domaine. *(reporté en v0.4.0)*
 
 ### 7.6 Gestion des URLs, limites et prévention des abus
 
@@ -428,9 +379,7 @@ Quotas, rate limiting et limites crawler sont reportés. Voir [A-PENSER-PLUS-TAR
 
 - [x] **URLs interdites / SSRF** :
   - [x] Bloquer localhost, IP privées (RFC 1918), IP de bouclage pour l'**URL de départ** (`check_ssrf`) et les **URLs découvertes** (`is_hostname_blocked`). Réutilisation de la logique SSRF du scan-service.
-  - [ ] Liste noire configurable (ex. dans `settings.yml`) : à implémenter ultérieurement.
-- [ ] **Modération** (optionnel) : possibilité d’ajouter a posteriori des domaines bloqués et de logger les tentatives (audit). À documenter comme évolution si non implémenté.
-- [ ] **Quotas crawler, rate limiting, 429** : reportés → [A-PENSER-PLUS-TARD.md](../A-PENSER-PLUS-TARD.md).
+  - Le reste (liste noire configurable, modération et quotas/rate limiting/429) est **reporté en v0.4.0**.
 
 ---
 
@@ -471,15 +420,13 @@ Quotas, rate limiting et limites crawler sont reportés. Voir [A-PENSER-PLUS-TAR
   > **Fait :** Section « Vue d'ensemble », card « Suivi des scans » → `/scanner/vue-d-ensemble` ; card « Clés API » → `/scanner/cles-api` (placeholder).
   - [x] **Historique des scans** : liste des scans passés, filtres, détail, suppression.
   - [x] **Évolution des failles** : tendances (évolution du score dans le temps, nombre de findings par sévérité). Graphique avec **données réelles** : barres = nombre de scans par jour, courbe = score ou anomalies (toggle). Données agrégées via endpoint `GET /user/api/scans/history/overview`, filtres (URL, type de scan, période) appliqués.
-  - [ ] **Rapports et exports** : accès aux PDF, exports CSV/JSON si implémentés.
   - [x] **Scans planifiés** : création, modification, pause des scans récurrents.
   - [x] **Lien vers la gestion des clés API** : accès à la page « Clés API » (création, révocation, doc). Card dédiée sur le hub.
   - [x] **KPIs tableau de bord** : Total scans, Score moyen, Anomalies critiques, Planifiés actifs, Dernier scan. **Données réelles** via l’endpoint overview, mises à jour lors des changements de filtres (URL, type, période).
-  - [ ] Alertes configurées, préférences de notification.
+  - Le reste (rapports/exports, alertes et préférences) est **reporté en v0.4.0**.
 - [x] **Card « Documentation »** : section sur la home du hub Scanner qui renvoie vers la documentation (scanners, API, etc.).
   > **Fait :** Card → `/scanner/docs` (page placeholder). Cards additionnelles : Crawlers, Scan backend (placeholders).
-  - [ ] Liens vers une **page ou section doc** regroupant : doc du **scan de posture** (vérifications, crawling, interprétation des résultats), doc des **autres scanners** si présents, doc de l’**API publique** (endpoints, clés API, exemples curl, intégration CI/CD). Page doc à compléter.
-  - [ ] **Doc accessible depuis la page concernée** : la documentation d’un scanner en particulier (ex. scan de posture) doit aussi être disponible depuis la page de ce scanner (lien « Aide » ou « Documentation » sur la page `/scanner/analyses/posture`). De même, la doc de l’API doit être accessible depuis la page de gestion des clés API (lien « Documentation API »). Ainsi, l’utilisateur trouve la doc soit depuis le hub (section Documentation), soit depuis la page du sujet (scanner ou API).
+  - Le reste (page doc consolidée et doc contextuelle par page scanner/API) est **reporté en v0.4.0**.
 
 #### Structure des routes (plusieurs pages)
 
@@ -503,8 +450,7 @@ Quotas, rate limiting et limites crawler sont reportés. Voir [A-PENSER-PLUS-TAR
 **Objectif :** Lors du chargement ou de l’affichage des résultats du scan, ne pas utiliser le vert pour les points qui correspondent à une **anomalie détectée** ; indiquer clairement qu’**on a trouvé quelque chose** (alerte / attention), pour que l’utilisateur distingue immédiatement « vérification OK » vs « problème détecté ».
 
 - [x] **Réservoir le vert aux vérifications OK** : afficher en vert uniquement les points pour lesquels **aucune anomalie** n’a été trouvée (vérification passée).
-- [ ] **Anomalies = « on a trouvé quelque chose »**
-  > **En cours :** Couleurs dédiées (error, warning) pour les sévérités. Libellé « anomalie(s) » présent. Manque : icône dédiée dans le résumé/table ; libellé explicite « Anomalie détectée »/« Trouvé ».
+- **Anomalies = « on a trouvé quelque chose »** : finalisation (icône dédiée + libellé explicite « Anomalie détectée »/« Trouvé ») **reportée en v0.4.0**.
 - [x] **S’appliquer à toutes les anomalies sauf « info »** : ce comportement vaut pour tous les niveaux de sévérité d’anomalie (critique, haute, moyenne, basse). Le niveau **info** peut rester avec un traitement distinct (neutre ou informatif), sans être affiché comme « validé » en vert.
 - [x] Cohérence sur l’écran de chargement / progression et sur la page de résultats : même logique (vert = OK, pas d’anomalie ; autre traitement = quelque chose a été trouvé, pour toutes les anomalies hors info).
 
