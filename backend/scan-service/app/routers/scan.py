@@ -3,9 +3,7 @@
 import logging
 import os
 import uuid
-from urllib.parse import urljoin
 
-import httpx
 from common.async_jobs import generate_job_token, hash_job_token
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import Response
@@ -15,9 +13,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.config_loader import get_async_jobs_settings, get_external_services_settings
 from app.db import get_async_session
 from app.schemas.async_job import ScanAsyncCreateRequest, ScanAsyncCreateResponse, ScanAsyncMultiCreateRequest, ScanAsyncStatusResponse
-from app.schemas.scan import ScanForPdfSchema
 from app.services.async_job_repository import create_job, get_job_by_id
 from app.services.multi_scan_orchestrator import run_multi_scan
+from app.services.pdf_export_service import PdfExportError, export_scan_pdf_bytes
 from app.services.scan_runner import ScanRunError, run_scan_to_result
 from app.use_cases.async_job_access import (
     JobAccessDeniedError,
@@ -70,134 +68,6 @@ ASYNC_JOB_TOKEN_SECRET = os.getenv("ASYNC_JOB_TOKEN_SECRET", "dev-async-job-secr
 ASYNC_MAX_ATTEMPTS = get_async_jobs_settings().max_attempts
 
 
-def _normalize_lang(lang: str) -> str:
-    """Normalise la langue pour les libellés d'export."""
-    return "en" if lang == "en" else "fr"
-
-
-def _build_pages_evidence(page_urls: list[str], lang: str) -> str:
-    """Construit la preuve textuelle avec les pages concernées."""
-    shown_urls = page_urls[:20]
-    extra = len(page_urls) - len(shown_urls)
-    pages_list = ", ".join(shown_urls)
-    if extra > 0:
-        pages_list = f"{pages_list}, +{extra}"
-
-    if lang == "en":
-        return f"Detected on {len(page_urls)} page(s): {pages_list}"
-    return f"Repéré sur {len(page_urls)} page(s): {pages_list}"
-
-
-def _finding_group_key(finding: dict) -> tuple[str, str, str, str, str]:
-    """Construit la clé de regroupement d'un finding."""
-    return (
-        str(finding.get("id", "") or ""),
-        str(finding.get("category", "") or ""),
-        str(finding.get("severity", "") or ""),
-        str(finding.get("title", "") or ""),
-        str(finding.get("recommendation", "") or ""),
-    )
-
-
-def _merge_references(existing: dict, incoming: dict) -> None:
-    """Fusionne les références d'un finding dans la version agrégée."""
-    refs = existing.get("references")
-    if not isinstance(refs, list):
-        refs = []
-    new_refs = incoming.get("references")
-    if isinstance(new_refs, list):
-        refs = list(dict.fromkeys([*refs, *new_refs]))
-    existing["references"] = refs
-
-
-def _accumulate_page_findings(
-    page: dict,
-    grouped: dict[tuple[str, str, str, str, str], dict],
-    page_urls_by_group: dict[tuple[str, str, str, str, str], set[str]],
-) -> None:
-    """Agrège les findings d'une page dans les structures de regroupement."""
-    page_url = str(page.get("url", "")).strip()
-    page_findings = page.get("findings") if isinstance(page.get("findings"), list) else []
-    for finding in page_findings:
-        if not isinstance(finding, dict):
-            continue
-
-        key = _finding_group_key(finding)
-        if key not in grouped:
-            grouped[key] = dict(finding)
-            page_urls_by_group[key] = set()
-        if page_url:
-            page_urls_by_group[key].add(page_url)
-
-        _merge_references(grouped[key], finding)
-
-
-def _aggregate_multi_page_findings(page_results: list[dict], lang: str) -> list[dict]:
-    """Fusionne les findings identiques détectées sur plusieurs pages.
-
-    Les findings sont regroupées par (id, category, severity, title, recommendation).
-    Les URLs de pages touchées sont listées dans la preuve pour réduire la répétition
-    dans le sommaire et les sections PDF.
-    """
-    grouped: dict[tuple[str, str, str, str, str], dict] = {}
-    page_urls_by_group: dict[tuple[str, str, str, str, str], set[str]] = {}
-
-    for page in page_results:
-        if not isinstance(page, dict):
-            continue
-        _accumulate_page_findings(page, grouped, page_urls_by_group)
-
-    merged_findings: list[dict] = []
-    for key, finding in grouped.items():
-        page_urls = sorted(page_urls_by_group.get(key, set()))
-        if page_urls:
-            original_evidence = str(finding.get("evidence", "") or "").strip()
-            page_evidence = _build_pages_evidence(page_urls, lang)
-            finding["evidence"] = f"{page_evidence}\n{original_evidence}" if original_evidence else page_evidence
-        merged_findings.append(finding)
-
-    return merged_findings
-
-
-def _build_pdf_payload_from_history_scan(
-    data: dict,
-    lang: str = "fr",
-) -> tuple[dict | None, str | None]:
-    """Construit le payload PDF depuis un scan d'historique (single ou multi)."""
-    result_mode = data.get("result_mode", "single")
-    if result_mode != "multi":
-        return (
-            {
-                "url": data.get("url"),
-                "score": data.get("score"),
-                "timestamp": data.get("timestamp", ""),
-                "duration": data.get("duration", 0.0),
-                "findings": data.get("findings", []),
-            },
-            None,
-        )
-
-    page_results = data.get("page_results")
-    urls = data.get("urls")
-    if not isinstance(page_results, list) or not isinstance(urls, list) or len(page_results) == 0 or len(urls) == 0:
-        return None, "Export PDF indisponible: données multi-pages incomplètes dans l'historique."
-
-    findings = _aggregate_multi_page_findings(page_results, _normalize_lang(lang))
-
-    return (
-        {
-            "url": data.get("url"),
-            "score": data.get("score"),
-            "timestamp": data.get("timestamp", ""),
-            "duration": data.get("duration", 0.0),
-            "findings": findings,
-            "result_mode": "multi",
-            "page_results": page_results,
-        },
-        None,
-    )
-
-
 @router.get(
     "/scan/export/pdf",
     summary="Exporter un scan en PDF",
@@ -210,61 +80,20 @@ async def export_scan_pdf(
     lang: str = "fr",
 ) -> Response:
     """Récupère le scan depuis user-service et génère le PDF."""
-    authorization = request.headers.get("Authorization")
-    if not authorization:
-        return Response(status_code=401, content="Authentification requise")
-
-    url = urljoin(f"{GATEWAY_URL.rstrip('/')}/", f"user/api/scans/history/{scan_id}")
-    headers = {"Authorization": authorization}
-
-    async with httpx.AsyncClient(timeout=FETCH_SCAN_TIMEOUT) as client:
-        resp = await client.get(url, headers=headers)
-        if resp.status_code == 404:
-            return Response(status_code=404, content="Scan non trouvé")
-        if resp.status_code == 401:
-            return Response(status_code=401, content="Authentification requise")
-        if resp.status_code >= 400:
-            logger.warning("Erreur récupération scan pour PDF: %s %s", resp.status_code, resp.text[:200])
-            return Response(status_code=502, content="Impossible de récupérer le scan")
-
-    data = resp.json()
-    payload_data, payload_error = _build_pdf_payload_from_history_scan(
-        data,
-        lang=_normalize_lang(lang),
-    )
-    if payload_error:
-        return Response(status_code=409, content=payload_error)
-
     try:
-        scan_data = ScanForPdfSchema.model_validate(payload_data)
-    except Exception as e:
-        logger.warning("Schéma scan invalide pour PDF: %s", e)
-        return Response(status_code=502, content="Données du scan invalides")
-
-    pdf_endpoint = urljoin(f"{PDF_SERVICE_URL.rstrip('/')}/", "api/report/pdf")
-    payload = {
-        "url": scan_data.url,
-        "score": scan_data.score,
-        "timestamp": scan_data.timestamp,
-        "duration": scan_data.duration,
-        "findings": scan_data.findings,
-        "result_mode": payload_data.get("result_mode"),
-        "page_results": payload_data.get("page_results"),
-    }
-    params = {"lang": lang if lang in ("fr", "en") else "fr", "include_matrices": include_matrices}
-    pdf_headers = {}
-    if PDF_SERVICE_INTERNAL_API_KEY:
-        pdf_headers["X-Internal-Api-Key"] = PDF_SERVICE_INTERNAL_API_KEY
-
-    async with httpx.AsyncClient(timeout=PDF_REQUEST_TIMEOUT) as client:
-        pdf_resp = await client.post(pdf_endpoint, json=payload, params=params, headers=pdf_headers)
-        if pdf_resp.status_code >= 400:
-            logger.warning("Erreur pdf-service pour export PDF: %s %s", pdf_resp.status_code, pdf_resp.text[:200])
-            return Response(status_code=502, content="Impossible de générer le PDF")
-
-    pdf_bytes = pdf_resp.content
-    host = scan_data.url.replace("https://", "").replace("http://", "").split("/")[0][:30]
-    filename = f"scan-{host}-{scan_data.timestamp[:10]}.pdf".replace(":", "-")
+        pdf_bytes, filename = await export_scan_pdf_bytes(
+            authorization=request.headers.get("Authorization"),
+            scan_id=scan_id,
+            include_matrices=include_matrices,
+            lang=lang,
+            gateway_url=GATEWAY_URL,
+            pdf_service_url=PDF_SERVICE_URL,
+            fetch_scan_timeout=FETCH_SCAN_TIMEOUT,
+            pdf_request_timeout=PDF_REQUEST_TIMEOUT,
+            pdf_service_internal_api_key=PDF_SERVICE_INTERNAL_API_KEY,
+        )
+    except PdfExportError as exc:
+        return Response(status_code=exc.status_code, content=exc.message)
 
     return Response(
         content=pdf_bytes,

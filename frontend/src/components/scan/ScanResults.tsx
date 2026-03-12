@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Download,
   FileSpreadsheet,
@@ -10,51 +10,21 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import AnimateInView from "../AnimateInView";
-import Modal from "../ui/Modal";
 import ScanResultHeroCard from "./ScanResultHeroCard";
 import ScanSummarySection from "./ScanSummarySection";
 import FloatingActionDock from "./FloatingActionDock";
+import ExportModal from "./ExportModal";
 import type { ScanResult } from "../../services/scanService";
 import { severitySort } from "./scanConstants";
 import { exportScanResult, type ExportFormat } from "../../utils/exportScan";
 import { downloadScanPdf } from "../../services/scanHistoryService";
 import { showErrorToast } from "../../utils/toastNotifications";
-import { LoadingSpinner } from "../LoadingScreen";
 
 interface ScanResultsProps {
   result: ScanResult;
   scanId: string | null;
   onNewScan: () => void;
 }
-
-const EXPORT_FORMATS: {
-  value: ExportFormat | "pdf";
-  labelKey: string;
-  icon: React.ReactNode;
-  requiresScanId?: boolean;
-}[] = [
-  {
-    value: "csv",
-    labelKey: "scanner.exportCsv",
-    icon: <FileText className="w-5 h-5" />,
-  },
-  {
-    value: "json",
-    labelKey: "scanner.exportJson",
-    icon: <FileJson className="w-5 h-5" />,
-  },
-  {
-    value: "xlsx",
-    labelKey: "scanner.exportXlsx",
-    icon: <FileSpreadsheet className="w-5 h-5" />,
-  },
-  {
-    value: "pdf",
-    labelKey: "scanner.exportPdf",
-    icon: <FileOutput className="w-5 h-5" />,
-    requiresScanId: true,
-  },
-];
 
 export default function ScanResults({
   result,
@@ -67,7 +37,7 @@ export default function ScanResults({
   const sortedFindings = [...result.findings].sort(severitySort);
 
   const handleExport = useCallback(
-    async (format: ExportFormat | "pdf") => {
+    async (format: string) => {
       if (format === "pdf") {
         if (!scanId) return;
         setPdfLoading(true);
@@ -80,11 +50,41 @@ export default function ScanResults({
           setPdfLoading(false);
         }
       } else {
-        exportScanResult(result, format);
+        exportScanResult(result, format as ExportFormat);
         setExportModalOpen(false);
       }
     },
     [result, scanId, language, t],
+  );
+
+  const exportFormats = useMemo(
+    () => [
+      {
+        value: "csv",
+        labelKey: "scanner.exportCsv",
+        icon: <FileText className="w-5 h-5" />,
+      },
+      {
+        value: "json",
+        labelKey: "scanner.exportJson",
+        icon: <FileJson className="w-5 h-5" />,
+      },
+      {
+        value: "xlsx",
+        labelKey: "scanner.exportXlsx",
+        icon: <FileSpreadsheet className="w-5 h-5" />,
+      },
+      {
+        value: "pdf",
+        labelKey: "scanner.exportPdf",
+        icon: <FileOutput className="w-5 h-5" />,
+        disabled: !scanId || pdfLoading,
+        disabledHintKey: "scanner.exportPdfUnavailable" as const,
+        isLoading: pdfLoading,
+        loadingLabelKey: "scanner.exportPdfGenerating" as const,
+      },
+    ],
+    [scanId, pdfLoading],
   );
 
   return (
@@ -127,44 +127,13 @@ export default function ScanResults({
         ]}
       />
 
-      <Modal
+      <ExportModal
         isOpen={exportModalOpen}
         onClose={() => setExportModalOpen(false)}
-        title={t("scanner.export")}
-        maxWidth="420px"
-      >
-        <p className="text-sm text-muted-theme mb-4">
-          {t("scanner.exportDesc")}
-        </p>
-        <div className="flex flex-col gap-2">
-          {EXPORT_FORMATS.map(({ value, labelKey, icon }) => {
-            const isPdf = value === "pdf";
-            const disabled = (isPdf && !scanId) || (isPdf && pdfLoading);
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => !disabled && handleExport(value)}
-                disabled={disabled}
-                title={disabled ? t("scanner.exportPdfUnavailable") : undefined}
-                className="flex items-center gap-3 w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[var(--color-surface-hover)] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[var(--color-surface-input)]"
-              >
-                {isPdf && pdfLoading ? <LoadingSpinner size="sm" /> : icon}
-                <span className="font-medium">
-                  {isPdf && pdfLoading
-                    ? t("scanner.exportPdfGenerating")
-                    : t(labelKey)}
-                </span>
-                {disabled && !pdfLoading && (
-                  <span className="text-xs text-muted-theme ml-auto">
-                    {t("scanner.exportPdfUnavailable")}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </Modal>
+        formats={exportFormats}
+        onExport={handleExport}
+        t={t}
+      />
     </div>
   );
 }

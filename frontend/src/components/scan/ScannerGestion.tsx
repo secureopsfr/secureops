@@ -20,15 +20,45 @@ import type { KpiItem } from "../admin/KpiGrid";
 import type { MultiScanResult, ScanResult } from "../../services/scanService";
 import Drawer from "../ui/Drawer";
 import { GenericButton } from "../buttons";
-import { getScanHistory } from "../../services/scanHistoryService";
 import type { ScanHistorySelection } from "../../services/scanHistoryService";
-import userService from "../../services/userService";
 import { formatUrlDisplay } from "../../utils/urlFormat";
 import { getDateRangeFromDays } from "../../utils/apiQueryParams";
 import { useScanOverview } from "../../hooks/swr/useScanOverview";
+import { useScannerGestionData } from "../../hooks/swr/useScannerGestionData";
 import { getTimeAgo } from "../../utils/dateFormat";
 import type { ScanOverviewResponse } from "../../services/scanHistoryService";
 import AnimateInView from "../AnimateInView";
+
+interface FilterOptionProps {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  title?: string;
+  truncate?: boolean;
+}
+
+function FilterOption({
+  label,
+  active,
+  onClick,
+  title,
+  truncate,
+}: FilterOptionProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`w-full text-left px-4 py-3 rounded-lg transition-colors${truncate ? " truncate" : ""} ${
+        active
+          ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
+          : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
 
 function buildKpiItems(
   t: (key: string, params?: Record<string, string | number>) => string,
@@ -61,14 +91,14 @@ function buildKpiItems(
     {
       label: t("scanner.gestion.kpiTotalScans"),
       value: String(totalScans),
-      icon: <Activity className="w-4 h-4 text-[rgb(249,115,22)]" />,
-      bgColor: "rgba(249,115,22,0.15)",
+      icon: <Activity className="w-4 h-4 text-[rgb(var(--warning))]" />,
+      bgColor: "rgba(var(--warning),0.15)",
     },
     {
       label: t("scanner.gestion.kpiAverageScore"),
       value: avgScore,
-      icon: <Gauge className="w-4 h-4 text-[rgb(52,211,153)]" />,
-      bgColor: "rgba(52,211,153,0.15)",
+      icon: <Gauge className="w-4 h-4 text-[rgb(var(--success))]" />,
+      bgColor: "rgba(var(--success),0.15)",
     },
     {
       label: t("scanner.gestion.kpiCriticalAnomalies"),
@@ -85,8 +115,8 @@ function buildKpiItems(
     {
       label: t("scanner.gestion.kpiLastScan"),
       value: lastScanValue,
-      icon: <Clock className="w-4 h-4 text-[rgb(168,85,247)]" />,
-      bgColor: "rgba(168,85,247,0.15)",
+      icon: <Clock className="w-4 h-4 text-[rgb(var(--primary))]" />,
+      bgColor: "rgba(var(--primary),0.15)",
     },
   ];
 }
@@ -102,12 +132,10 @@ export default function ScannerGestion() {
   const [filterUrl, setFilterUrl] = useState<string | null>(null);
   const [filterScanType, setFilterScanType] = useState<string | null>(null);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-  const [urlOptions, setUrlOptions] = useState<string[]>([]);
   const [urlListExpanded, setUrlListExpanded] = useState(false);
   const [filterDateRange, setFilterDateRange] = useState<number | null>(null);
-  const [historyRetentionDays, setHistoryRetentionDays] = useState<
-    number | null
-  >(null);
+
+  const { urlOptions, historyRetentionDays } = useScannerGestionData();
 
   const URL_DISPLAY_LIMIT = 5;
   const displayedUrls = urlListExpanded
@@ -117,25 +145,10 @@ export default function ScannerGestion() {
   const hiddenCount = urlOptions.length - URL_DISPLAY_LIMIT;
 
   useEffect(() => {
-    getScanHistory(1, 100)
-      .then((res) => {
-        const urls = [...new Set(res.items.map((i) => i.url))];
-        setUrlOptions(urls);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    userService.getSubscription().then((res) => {
-      const raw = res.subscription?.history_retention;
-      const retention = typeof raw === "string" ? raw : "30";
-      const days = retention === "none" ? null : parseInt(retention, 10);
-      setHistoryRetentionDays(Number.isNaN(days) ? null : days);
-      setFilterDateRange((prev) =>
-        prev === null && days != null ? days : prev,
-      );
-    });
-  }, []);
+    if (historyRetentionDays != null && filterDateRange === null) {
+      setFilterDateRange(historyRetentionDays);
+    }
+  }, [historyRetentionDays, filterDateRange]);
 
   const timeWindowOptions =
     historyRetentionDays == null
@@ -263,31 +276,20 @@ export default function ScannerGestion() {
               {t("scanner.gestion.filterByUrl")}
             </h3>
             <div className="space-y-2">
-              <button
-                type="button"
+              <FilterOption
+                label={t("scanner.gestion.filterAllScans")}
+                active={filterUrl === null}
                 onClick={() => handleSelectFilter(null, filterScanType)}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  filterUrl === null
-                    ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
-                    : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
-                }`}
-              >
-                {t("scanner.gestion.filterAllScans")}
-              </button>
+              />
               {displayedUrls.map((u) => (
-                <button
+                <FilterOption
                   key={u}
-                  type="button"
+                  label={formatUrlDisplay(u)}
+                  active={filterUrl === u}
                   onClick={() => handleSelectFilter(u, filterScanType)}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors truncate ${
-                    filterUrl === u
-                      ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
-                      : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
-                  }`}
                   title={u}
-                >
-                  {formatUrlDisplay(u)}
-                </button>
+                  truncate
+                />
               ))}
               {hasMoreUrls && (
                 <button
@@ -309,50 +311,24 @@ export default function ScannerGestion() {
               {t("scanner.gestion.filterByScanType")}
             </h3>
             <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => handleSelectFilter(filterUrl, null)}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  filterScanType === null
-                    ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
-                    : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
-                }`}
-              >
-                {t("scanner.gestion.filterScanTypeAll")}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelectFilter(filterUrl, "frontend")}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  filterScanType === "frontend"
-                    ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
-                    : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
-                }`}
-              >
-                {t("scanner.scanTypeFrontend")}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelectFilter(filterUrl, "backend")}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  filterScanType === "backend"
-                    ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
-                    : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
-                }`}
-              >
-                {t("scanner.scanTypeBackend")}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelectFilter(filterUrl, "custom")}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  filterScanType === "custom"
-                    ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
-                    : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
-                }`}
-              >
-                {t("scanner.scanTypeCustom")}
-              </button>
+              {(
+                [
+                  {
+                    value: null,
+                    labelKey: "scanner.gestion.filterScanTypeAll",
+                  },
+                  { value: "frontend", labelKey: "scanner.scanTypeFrontend" },
+                  { value: "backend", labelKey: "scanner.scanTypeBackend" },
+                  { value: "custom", labelKey: "scanner.scanTypeCustom" },
+                ] as const
+              ).map(({ value, labelKey }) => (
+                <FilterOption
+                  key={String(value)}
+                  label={t(labelKey)}
+                  active={filterScanType === value}
+                  onClick={() => handleSelectFilter(filterUrl, value)}
+                />
+              ))}
             </div>
           </div>
           <div>
@@ -363,30 +339,18 @@ export default function ScannerGestion() {
               {t("scanner.gestion.filterTimeWindowAlertExclude")}
             </p>
             <div className="space-y-2">
-              <button
-                type="button"
+              <FilterOption
+                label={t("scanner.gestion.filterTimeWindowAll")}
+                active={filterDateRange === null}
                 onClick={() => handleSelectDateRange(null)}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  filterDateRange === null
-                    ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
-                    : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
-                }`}
-              >
-                {t("scanner.gestion.filterTimeWindowAll")}
-              </button>
+              />
               {timeWindowOptions.map((days) => (
-                <button
+                <FilterOption
                   key={days}
-                  type="button"
+                  label={t("scanner.gestion.filterTimeWindowDays", { days })}
+                  active={filterDateRange === days}
                   onClick={() => handleSelectDateRange(days)}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                    filterDateRange === days
-                      ? "bg-[rgba(var(--primary),0.15)] text-[rgb(var(--primary))] font-medium"
-                      : "hover:bg-[var(--color-surface-hover)] text-[var(--text)]"
-                  }`}
-                >
-                  {t("scanner.gestion.filterTimeWindowDays", { days })}
-                </button>
+                />
               ))}
             </div>
           </div>

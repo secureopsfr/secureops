@@ -3,6 +3,7 @@
  */
 
 import { getApiBaseUrl } from "../utils/apiClient";
+import { pollAsyncJob } from "../utils/pollAsyncJob";
 import logger from "../utils/logger";
 import type { ScanStep } from "./scanService";
 
@@ -47,31 +48,14 @@ export type CrawlEventHandler =
       data: { message: string; status_code: number; i18nKey?: string };
     };
 
-type AsyncJobStatus = "pending" | "running" | "completed" | "failed";
+export type CrawlMode = "html" | "playwright" | "both";
 
 interface AsyncCrawlCreateResponse {
   job_id: string;
-  status: AsyncJobStatus;
-  scan_type: "frontend" | "backend" | "custom";
+  status: string;
+  scan_type: string;
   job_token?: string | null;
 }
-
-interface AsyncCrawlStatusResponse {
-  job_id: string;
-  status: AsyncJobStatus;
-  progress_log?: Array<ScanStep & { at: string }>;
-  error?: {
-    message?: string;
-    status_code?: number;
-    error_type?: string;
-  };
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export type CrawlMode = "html" | "playwright" | "both";
 
 /**
  * Lance un crawl asynchrone (queue) et récupère progression + résultat par polling.
@@ -88,183 +72,77 @@ export async function runCrawl(
   mode: CrawlMode = "html",
 ): Promise<void> {
   const logPrefix = "[crawl-polling]";
-  const baseUrl = getApiBaseUrl();
-  const endpoint = `${baseUrl.replace(/\/$/, "")}/crawl/api/crawl/async`;
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  const createEndpoint = `${base}/crawl/api/crawl/async`;
 
-  let createResponse: Response;
-  try {
-    logger.info(`${logPrefix} create job request`, {
-      endpoint,
-      url,
-      max_urls: maxUrls,
-      mode,
-    });
-    createResponse = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
+  await pollAsyncJob<CrawlResponse>({
+    logPrefix,
+    streamErrorKey: "scanner.crawlStreamError",
+    createJob: async () => {
+      logger.info(`${logPrefix} create job request`, {
+        endpoint: createEndpoint,
         url,
-        scan_type: "frontend",
-        input: { max_urls: maxUrls, mode },
-      }),
-    });
-  } catch (err) {
-    onEvent({
-      type: "error",
-      data: {
-        message: err instanceof Error ? err.message : "Erreur réseau",
-        status_code: 0,
-      },
-    });
-    return;
-  }
-
-  if (!createResponse.ok) {
-    logger.error(`${logPrefix} create job failed`, {
-      status: createResponse.status,
-    });
-    onEvent({
-      type: "error",
-      data: {
-        message: `Erreur HTTP ${createResponse.status}`,
-        status_code: createResponse.status,
-      },
-    });
-    return;
-  }
-  let createData: AsyncCrawlCreateResponse;
-  try {
-    createData = (await createResponse.json()) as AsyncCrawlCreateResponse;
-    logger.info(`${logPrefix} create job success`, {
-      job_id: createData.job_id,
-      status: createData.status,
-      scan_type: createData.scan_type,
-      anonymous: Boolean(createData.job_token),
-    });
-  } catch {
-    onEvent({
-      type: "error",
-      data: { message: "Réponse de création invalide", status_code: 500 },
-    });
-    return;
-  }
-  const jobId = createData.job_id;
-  const jobToken = createData.job_token ?? undefined;
-  const statusEndpoint = `${baseUrl.replace(/\/$/, "")}/crawl/api/crawl/async/${jobId}`;
-  const resultEndpoint = `${statusEndpoint}/result`;
-  let seenProgress = 0;
-  let pollIntervalMs = 500;
-
-  try {
-    while (true) {
-      const pollHeaders: Record<string, string> = {
-        Accept: "application/json",
-      };
-      if (jobToken) pollHeaders["X-Job-Token"] = jobToken;
-      const statusRes = await fetch(statusEndpoint, {
-        method: "GET",
-        headers: pollHeaders,
+        max_urls: maxUrls,
+        mode,
       });
-      logger.debug(`${logPrefix} status poll`, {
-        job_id: jobId,
-        http_status: statusRes.status,
-        poll_interval_ms: pollIntervalMs,
+      const res = await fetch(createEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          url,
+          scan_type: "frontend",
+          input: { max_urls: maxUrls, mode },
+        }),
       });
-      if (!statusRes.ok) {
+      if (!res.ok) {
+        logger.error(`${logPrefix} create job failed`, { status: res.status });
         onEvent({
           type: "error",
           data: {
-            message: `Erreur statut HTTP ${statusRes.status}`,
-            status_code: statusRes.status,
+            message: `Erreur HTTP ${res.status}`,
+            status_code: res.status,
           },
         });
-        return;
+        throw new Error(`create job failed: ${res.status}`);
       }
-      const statusData = (await statusRes.json()) as AsyncCrawlStatusResponse;
-      logger.info(`${logPrefix} status update`, {
-        job_id: statusData.job_id,
-        status: statusData.status,
-        progress_count: statusData.progress_log?.length ?? 0,
-        last_step:
-          statusData.progress_log && statusData.progress_log.length > 0
-            ? statusData.progress_log[statusData.progress_log.length - 1].step
-            : undefined,
+      const data = (await res.json()) as AsyncCrawlCreateResponse;
+      logger.info(`${logPrefix} create job success`, {
+        job_id: data.job_id,
+        anonymous: Boolean(data.job_token),
       });
-      const progress = statusData.progress_log ?? [];
-      const hasNewProgress = progress.length > seenProgress;
-      for (let i = seenProgress; i < progress.length; i += 1) {
-        const { at, ...stepData } = progress[i];
-        void at;
-        onEvent({ type: "step", data: stepData });
-      }
-      seenProgress = progress.length;
-      pollIntervalMs = hasNewProgress
-        ? 500
-        : Math.min(5000, pollIntervalMs + 250);
-
-      if (statusData.status === "failed") {
-        logger.error(`${logPrefix} job failed`, {
-          job_id: statusData.job_id,
-          error: statusData.error,
-        });
-        onEvent({
-          type: "error",
-          data: {
-            message: statusData.error?.message ?? "Erreur lors du crawl",
-            status_code: statusData.error?.status_code ?? 500,
-          },
-        });
-        return;
-      }
-      if (statusData.status === "completed") {
-        logger.info(`${logPrefix} fetching result`, {
-          job_id: statusData.job_id,
-        });
-        const resultRes = await fetch(resultEndpoint, {
-          method: "GET",
-          headers: pollHeaders,
-        });
-        if (!resultRes.ok) {
-          logger.error(`${logPrefix} result fetch failed`, {
-            job_id: statusData.job_id,
-            status: resultRes.status,
-          });
-          onEvent({
-            type: "error",
-            data: {
-              message: `Erreur résultat HTTP ${resultRes.status}`,
-              status_code: resultRes.status,
-            },
-          });
-          return;
-        }
-        const resultData = (await resultRes.json()) as CrawlResponse;
+      return { job_id: data.job_id, job_token: data.job_token };
+    },
+    pollUrl: (jobId) => `${base}/crawl/api/crawl/async/${jobId}`,
+    resultUrl: (jobId) => `${base}/crawl/api/crawl/async/${jobId}/result`,
+    buildPollHeaders: (jobToken) => {
+      const h: Record<string, string> = { Accept: "application/json" };
+      if (jobToken) h["X-Job-Token"] = jobToken;
+      return h;
+    },
+    onEvent: (ev) => {
+      if (ev.type === "step") {
+        onEvent({ type: "step", data: ev.data });
+      } else if (ev.type === "result") {
+        const data = ev.data as CrawlResponse;
         logger.info(`${logPrefix} result received`, {
-          job_id: statusData.job_id,
-          urls_count: resultData.urls?.length ?? 0,
-          timeout_reached: resultData.timeout_reached ?? false,
+          urls_count: data.urls?.length ?? 0,
+          timeout_reached: data.timeout_reached ?? false,
         });
-        onEvent({ type: "result", data: resultData });
-        return;
+        onEvent({ type: "result", data });
+      } else if (ev.type === "error") {
+        onEvent({
+          type: "error",
+          data: {
+            message: ev.data.message,
+            status_code: ev.data.status_code,
+            i18nKey: ev.data.i18nKey,
+          },
+        });
       }
-      await delay(pollIntervalMs);
-    }
-  } catch (err) {
-    const rawMessage =
-      err instanceof Error ? err.message : "Erreur lors de la lecture du flux";
-    // Message plus explicite pour timeout/connexion coupée (ex. "Error in input stream")
-    const isStreamError =
-      /input stream|transfer closed|timeout|aborted|network/i.test(rawMessage);
-    onEvent({
-      type: "error",
-      data: {
-        message: rawMessage,
-        status_code: 500,
-        i18nKey: isStreamError ? "scanner.crawlStreamError" : undefined,
-      },
-    });
-  }
+    },
+    backoff: { initialMs: 500, maxMs: 5000, stepMs: 250 },
+  });
 }
