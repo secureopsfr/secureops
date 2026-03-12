@@ -65,10 +65,13 @@ function PageDetail({ page }: { page: PageScanResult }) {
 function CompareTable({
   pageResults,
   lang,
+  onSelectPage,
 }: {
   pageResults: PageScanResult[];
   lang: "fr" | "en";
+  onSelectPage: (index: number) => void;
 }) {
+  const { t } = useLanguage();
   const allCategories = CHECKED_CATEGORIES_ORDER;
   const summaryMaps = pageResults.map((p) =>
     Object.fromEntries(
@@ -84,21 +87,36 @@ function CompareTable({
             <th className="sticky left-0 bg-[var(--surface)] px-3 py-2 text-left font-medium text-[var(--muted)] border-b border-[var(--border)]">
               Catégorie
             </th>
-            {pageResults.map((p) => (
+            {pageResults.map((p, index) => (
               <th
                 key={p.url}
                 className="px-2 py-2 text-center font-medium text-[var(--muted)] border-b border-[var(--border)] max-w-[100px]"
-                title={p.url}
               >
-                <span className="block truncate max-w-[90px]">
-                  {formatUrlDisplay(p.url)}
-                </span>
-                <ScoreChip score={p.score} />
+                <button
+                  type="button"
+                  onClick={() => onSelectPage(index)}
+                  title={p.url}
+                  className="mx-auto flex max-w-[90px] flex-col items-center gap-1 rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--muted)]/10"
+                >
+                  <span className="block truncate max-w-[90px]">
+                    {formatUrlDisplay(p.url)}
+                  </span>
+                </button>
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
+          <tr className="border-b border-[var(--border)]">
+            <td className="sticky left-0 bg-[var(--surface)] px-3 py-2 font-medium text-[var(--text)]">
+              {t("scanner.score")}
+            </td>
+            {pageResults.map((p) => (
+              <td key={`${p.url}-score`} className="px-2 py-2 text-center">
+                <ScoreChip score={p.score} />
+              </td>
+            ))}
+          </tr>
           {allCategories.map((cat) => {
             const hasData = summaryMaps.some((m) => m[cat]);
             if (!hasData) return null;
@@ -323,7 +341,11 @@ export default function MultiScanResults({
           <h3 className="section-title !text-left mb-4">
             {t("scanner.multiTabCompare")}
           </h3>
-          <CompareTable pageResults={result.page_results} lang={lang} />
+          <CompareTable
+            pageResults={result.page_results}
+            lang={lang}
+            onSelectPage={setActiveTab}
+          />
         </Card>
       )}
 
