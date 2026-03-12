@@ -38,13 +38,13 @@ from app.utils.url_validator import validate_and_normalize_url
 
 logger = logging.getLogger(__name__)
 
-OnProgress = Callable[[str, str], Awaitable[None]] | None
+OnProgress = Callable[..., Awaitable[None]] | None
 
 
-async def _emit_progress(on_progress: OnProgress, step: str, message: str) -> None:
+async def _emit_progress(on_progress: OnProgress, step: str, message: str = "", **extra: Any) -> None:
     """Émet un événement de progression si callback fourni."""
     if on_progress:
-        await on_progress(step, message)
+        await on_progress(step, message, **extra)
 
 
 async def run_multi_scan(
@@ -106,8 +106,7 @@ async def run_multi_scan(
     timestamp = datetime.now(timezone.utc).isoformat()
     score_global = _compute_global_score(page_results)
 
-    if on_progress:
-        await on_progress("multi_scan_done", f"Scan multi-URL terminé. Score global : {score_global}/100.")
+    await _emit_progress(on_progress, "multi_scan_done", score=score_global)
 
     return MultiScanResult(
         base_url=base_url,
@@ -163,7 +162,7 @@ async def _run_domain_phase(
         ),
     )
 
-    await _emit_progress(on_progress, "domain_checks_done", "Checks domaine terminés.")
+    await _emit_progress(on_progress, "domain_checks_done")
 
 
 async def _run_domain_robots_then_sitemap(
@@ -172,10 +171,10 @@ async def _run_domain_robots_then_sitemap(
     domain_results: dict[str, Any],
     on_progress: OnProgress,
 ) -> None:
-    await _emit_progress(on_progress, "domain_robots_check", "Vérification robots.txt…")
+    await _emit_progress(on_progress, "domain_robots_check")
     with http_request_category("robots_txt"):
         domain_results["robots_txt"] = await run_robots_txt_checks(base_url, client=client)
-    await _emit_progress(on_progress, "domain_sitemap_check", "Vérification sitemap…")
+    await _emit_progress(on_progress, "domain_sitemap_check")
     with http_request_category("sitemap"):
         domain_results["sitemap"] = await run_sitemap_checks(
             base_url,
@@ -190,7 +189,7 @@ async def _run_domain_tls(
     domain_results: dict[str, Any],
     on_progress: OnProgress,
 ) -> None:
-    await _emit_progress(on_progress, "domain_tls_check", "Vérification TLS/HTTPS…")
+    await _emit_progress(on_progress, "domain_tls_check")
     normalized = validate_and_normalize_url(base_url)
     with http_request_category("tls"):
         fetch_result = await get_with_client_or_error(client, base_url, follow_redirects=True)
@@ -208,11 +207,7 @@ async def _run_domain_exposed_files(
     domain_results: dict[str, Any],
     on_progress: OnProgress,
 ) -> None:
-    await _emit_progress(
-        on_progress,
-        "domain_exposed_files_check",
-        "Vérification fichiers exposés…",
-    )
+    await _emit_progress(on_progress, "domain_exposed_files_check")
     with http_request_category("exposed_files"):
         domain_results["exposed_files"] = await run_exposed_files_checks(base_url, client=client)
 
@@ -223,11 +218,7 @@ async def _run_domain_directory_listing(
     domain_results: dict[str, Any],
     on_progress: OnProgress,
 ) -> None:
-    await _emit_progress(
-        on_progress,
-        "domain_directory_listing_check",
-        "Vérification directory listing…",
-    )
+    await _emit_progress(on_progress, "domain_directory_listing_check")
     with http_request_category("directory_listing"):
         domain_results["directory_listing"] = await run_directory_listing_checks(base_url, client=client)
 
@@ -238,7 +229,7 @@ async def _run_domain_cors(
     domain_results: dict[str, Any],
     on_progress: OnProgress,
 ) -> None:
-    await _emit_progress(on_progress, "domain_cors_check", "Vérification CORS (domaine)…")
+    await _emit_progress(on_progress, "domain_cors_check")
     with http_request_category("cors_cross_origin"):
         domain_results["cors_domain"] = await run_cors_domain_checks(base_url, client=client)
 
@@ -285,11 +276,13 @@ async def _run_page(
     Une page inaccessible retourne un résultat partiel (findings domaine conservés,
     score 0, champ error renseigné) sans faire échouer le scan global.
     """
-    if on_progress:
-        await on_progress(
-            "page_scan_started",
-            f"Analyse de {url} ({page_index + 1}/{total_pages})…",
-        )
+    await _emit_progress(
+        on_progress,
+        "page_scan_started",
+        url=url,
+        page_index=page_index + 1,
+        total_pages=total_pages,
+    )
 
     try:
         with http_request_category("initial_fetch"):
@@ -299,8 +292,7 @@ async def _run_page(
             )
     except Exception as exc:
         logger.warning("multi_scan: page inaccessible url=%s err=%s", url, exc)
-        if on_progress:
-            await on_progress("page_scan_error", f"Page inaccessible : {url}")
+        await _emit_progress(on_progress, "page_scan_error", url=url)
         return _build_error_page_result(url, str(exc), domain_results)
 
     tls_result = domain_results.get("tls")
@@ -321,8 +313,7 @@ async def _run_page(
 
     bundle: FindingsBundle = build_findings_bundle(merged)
 
-    if on_progress:
-        await on_progress("page_scan_done", f"Page analysée : {url}")
+    await _emit_progress(on_progress, "page_scan_done", url=url)
 
     return PageScanResult(
         url=url,

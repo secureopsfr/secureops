@@ -41,15 +41,6 @@ def _extract_anomaly_count(result: object) -> int:
     return 0
 
 
-def _format_done_message(msg_done: str, anomaly_count: int) -> str:
-    """Construit le message final de step_done avec singular/plural."""
-    if anomaly_count <= 0:
-        return msg_done
-    if anomaly_count == 1:
-        return f"{msg_done} 1 anomalie detectee."
-    return f"{msg_done} {anomaly_count} anomalies detectees."
-
-
 def _log_scan_complete(
     duration_seconds: float,
     nb_findings: int,
@@ -74,35 +65,31 @@ def _log_scan_complete(
     )
 
 
-async def _emit_step_and_run(step_name: str, msg_check: str, msg_done: str, step_fn: Callable, ctx: ScanContext) -> tuple[list[str], object]:
-    """Émet step_check, exécute la vérification, émet step_done. Retourne (chunks, result).
+async def _run_step(step_name: str, step_fn: Callable, ctx: ScanContext) -> AsyncGenerator[str, None]:
+    """Générateur : yield step_check AVANT l'exécution, puis step_done après.
+
+    Permet au frontend (via polling) de voir l'état loading (_check en DB)
+    pendant que le step s'exécute, avant que _done ne soit stocké.
 
     Args:
         step_name: Nom de l'étape (ex. "tls", "headers").
-        msg_check: Message pour l'événement step_check.
-        msg_done: Message pour l'événement step_done.
         step_fn: Fonction sync ou async à appeler avec ctx.
-        ctx: Contexte de scan.
-
-    Returns:
-        tuple[list[str], object]: (messages SSE à yield, résultat de step_fn).
+        ctx: Contexte de scan (ctx.results[step_name] est peuplé après l'exécution).
     """
-    chunks = [sse_message("step", {"step": f"{step_name}_check", "message": msg_check})]
+    yield sse_message("step", {"step": f"{step_name}_check", "message": ""})
     result = step_fn(ctx)
     if asyncio.iscoroutine(result):
         result = await result
+    ctx.results[step_name] = result
     anomaly_count = _extract_anomaly_count(result)
-    chunks.append(
-        sse_message(
-            "step",
-            {
-                "step": f"{step_name}_done",
-                "message": _format_done_message(msg_done, anomaly_count),
-                "anomaly_count": anomaly_count,
-            },
-        )
+    yield sse_message(
+        "step",
+        {
+            "step": f"{step_name}_done",
+            "message": "",
+            "anomaly_count": anomaly_count,
+        },
     )
-    return chunks, result
 
 
 def _timeout_error_message() -> str:
@@ -110,81 +97,21 @@ def _timeout_error_message() -> str:
     return sse_message("error", build_timeout_global_error_payload())
 
 
-# Étapes SSE: (step_name, msg_check, msg_done, step_fn)
+# Étapes SSE: (step_name, step_fn)
 _SCAN_STEP_FN_MAP = dict(SCAN_STEPS)
-_SCAN_SSE_STEPS: list[tuple[str, str, str, Callable]] = [
-    (
-        "tls",
-        "Vérification TLS/HTTPS…",
-        "TLS/HTTPS vérifié.",
-        _SCAN_STEP_FN_MAP["tls"],
-    ),
-    (
-        "headers",
-        "Vérification Security Headers…",
-        "Security Headers vérifiés.",
-        _SCAN_STEP_FN_MAP["headers"],
-    ),
-    (
-        "cache",
-        "Vérification Cache et performances…",
-        "Cache et performances vérifiés.",
-        _SCAN_STEP_FN_MAP["cache"],
-    ),
-    (
-        "cookies",
-        "Vérification Cookies…",
-        "Cookies vérifiés.",
-        _SCAN_STEP_FN_MAP["cookies"],
-    ),
-    (
-        "exposed_files",
-        "Vérification fichiers sensibles exposés…",
-        "Fichiers sensibles vérifiés.",
-        _SCAN_STEP_FN_MAP["exposed_files"],
-    ),
-    (
-        "directory_listing",
-        "Vérification directory listing…",
-        "Directory listing vérifié.",
-        _SCAN_STEP_FN_MAP["directory_listing"],
-    ),
-    (
-        "robots_txt",
-        "Vérification robots.txt…",
-        "robots.txt vérifié.",
-        _SCAN_STEP_FN_MAP["robots_txt"],
-    ),
-    (
-        "sitemap",
-        "Vérification sitemap…",
-        "Sitemap vérifié.",
-        _SCAN_STEP_FN_MAP["sitemap"],
-    ),
-    (
-        "tech_fingerprinting",
-        "Fingerprinting technologique…",
-        "Tech fingerprinting vérifié.",
-        _SCAN_STEP_FN_MAP["tech_fingerprinting"],
-    ),
-    (
-        "information_disclosure",
-        "Vérification fuites d'information…",
-        "Fuites d'information vérifiées.",
-        _SCAN_STEP_FN_MAP["information_disclosure"],
-    ),
-    (
-        "integrity",
-        "Vérification intégrité et sous-ressources…",
-        "Intégrité et sous-ressources vérifiées.",
-        _SCAN_STEP_FN_MAP["integrity"],
-    ),
-    (
-        "cors_cross_origin",
-        "Vérification CORS et cross-origin…",
-        "CORS et cross-origin vérifiés.",
-        _SCAN_STEP_FN_MAP["cors_cross_origin"],
-    ),
+_SCAN_SSE_STEPS: list[tuple[str, Callable]] = [
+    ("tls", _SCAN_STEP_FN_MAP["tls"]),
+    ("headers", _SCAN_STEP_FN_MAP["headers"]),
+    ("cache", _SCAN_STEP_FN_MAP["cache"]),
+    ("cookies", _SCAN_STEP_FN_MAP["cookies"]),
+    ("exposed_files", _SCAN_STEP_FN_MAP["exposed_files"]),
+    ("directory_listing", _SCAN_STEP_FN_MAP["directory_listing"]),
+    ("robots_txt", _SCAN_STEP_FN_MAP["robots_txt"]),
+    ("sitemap", _SCAN_STEP_FN_MAP["sitemap"]),
+    ("tech_fingerprinting", _SCAN_STEP_FN_MAP["tech_fingerprinting"]),
+    ("information_disclosure", _SCAN_STEP_FN_MAP["information_disclosure"]),
+    ("integrity", _SCAN_STEP_FN_MAP["integrity"]),
+    ("cors_cross_origin", _SCAN_STEP_FN_MAP["cors_cross_origin"]),
 ]
 
 
@@ -208,7 +135,7 @@ async def _run_checks_with_client(
             yield sse_message("error", build_sse_error_payload(fetch_result))
             return
 
-        yield sse_message("step", {"step": "fetch_https_done", "message": "Page HTTPS récupérée."})
+        yield sse_message("step", {"step": "fetch_https_done", "message": ""})
 
         https_response = fetch_result.response
         ctx = ScanContext(
@@ -218,12 +145,10 @@ async def _run_checks_with_client(
             https_response=https_response,
         )
 
-        for step_name, msg_check, msg_done, step_fn in _SCAN_SSE_STEPS:
+        for step_name, step_fn in _SCAN_SSE_STEPS:
             with http_request_category(step_name):
-                chunks, result = await _emit_step_and_run(step_name, msg_check, msg_done, step_fn, ctx)
-            ctx.results[step_name] = result
-            for c in chunks:
-                yield c
+                async for chunk in _run_step(step_name, step_fn, ctx):
+                    yield chunk
             if over_global():
                 duration = time.monotonic() - start_time
                 _log_scan_complete(duration, 0, "error_408")
@@ -257,23 +182,23 @@ async def _run_pipeline_steps(url: str, authorization: str | None = None) -> Asy
     def _over_global() -> bool:
         return (time.monotonic() - start) > scan_global
 
-    yield sse_message("step", {"step": "validation_url_check", "message": "Validation de l'URL…"})
+    yield sse_message("step", {"step": "validation_url_check", "message": ""})
     normalized_url = validate_and_normalize_url(url)
-    yield sse_message("step", {"step": "validation_url_done", "message": "URL validée et normalisée."})
+    yield sse_message("step", {"step": "validation_url_done", "message": ""})
 
     if _over_global():
         _log_scan_complete(time.monotonic() - start, 0, "error_408")
         yield _timeout_error_message()
         return
-    yield sse_message("step", {"step": "ssrf_check", "message": "Vérification SSRF (résolution DNS)…"})
+    yield sse_message("step", {"step": "ssrf_check", "message": ""})
     await check_ssrf(normalized_url, timeout=get_ssrf_settings().dns_timeout)
-    yield sse_message("step", {"step": "ssrf_done", "message": "Vérification SSRF OK."})
+    yield sse_message("step", {"step": "ssrf_done", "message": ""})
 
     if _over_global():
         _log_scan_complete(time.monotonic() - start, 0, "error_408")
         yield _timeout_error_message()
         return
-    yield sse_message("step", {"step": "fetch_https_check", "message": "Récupération de la page HTTPS…"})
+    yield sse_message("step", {"step": "fetch_https_check", "message": ""})
 
     async with scan_client() as client:
         async for chunk in _run_checks_with_client(normalized_url, client, _over_global, start, authorization=authorization):

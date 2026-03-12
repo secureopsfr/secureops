@@ -225,10 +225,10 @@ async def fetch_robots_and_sitemap(
     allow_paths: list[str] = []
     sitemap_urls_from_robots: list[str] = []
     if settings.respect_robots_txt:
-        progress("robots_check", "Lecture de robots.txt…")
+        progress("robots_check", "")
         disallow_paths, allow_paths, sitemap_urls_from_robots = await fetch_robots_disallow(base_origin.rstrip("/") + "/", client)
-        progress("robots_done", "robots.txt analysé.")
-    progress("sitemap_check", "Récupération du sitemap…")
+        progress("robots_done", "")
+    progress("sitemap_check", "")
     sitemap_page_urls = await fetch_all_sitemap_page_urls(
         base_origin,
         base_host,
@@ -240,7 +240,7 @@ async def fetch_robots_and_sitemap(
         start_time,
         crawl_timeout,
     )
-    progress("sitemap_done", "Sitemap récupéré.")
+    progress("sitemap_done", "")
     return disallow_paths, allow_paths, sitemap_page_urls
 
 
@@ -374,9 +374,8 @@ def _make_fetch_page_html(client, headers: dict):
     return lambda url: _fetch_page_html_impl(url, client, headers)
 
 
-def noop_progress(step: str, message: str) -> None:
+def noop_progress(step: str, message: str = "", **extra) -> None:
     """Callback vide par défaut pour on_progress."""
-    pass
 
 
 async def prepare_crawl_context(
@@ -532,8 +531,7 @@ async def run_bfs(  # noqa: C901
 
         nb = len(result_entries)
         if nb % 10 == 0 or nb <= 3:
-            urls_label = "1 URL" if nb == 1 else f"{nb} URLs"
-            progress("crawl_progress", f"Exploration des pages ({urls_label})")
+            progress("crawl_progress", "", url_count=nb)
 
         if depth >= settings.max_depth:
             continue

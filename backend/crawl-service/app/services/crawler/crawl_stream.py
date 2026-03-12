@@ -24,10 +24,10 @@ class QueueProgressCallback:
         """Initialise le callback avec la queue SSE."""
         self._queue = queue
 
-    def __call__(self, step: str, message: str) -> None:
-        """Émet (step, message) dans la queue (ignore QueueFull)."""
+    def __call__(self, step: str, message: str = "", **extra) -> None:
+        """Émet (step, message, extra) dans la queue (ignore QueueFull)."""
         with contextlib.suppress(asyncio.QueueFull):
-            self._queue.put_nowait((step, message))
+            self._queue.put_nowait((step, message, extra) if extra else (step, message))
 
 
 async def _run_crawl_task(
@@ -92,13 +92,13 @@ async def crawl_stream_generator(
     run_playwright = make_run_crawler(url, max_urls, on_progress, True)
 
     try:
-        yield sse_message("step", {"step": "validation_url_check", "message": "Validation de l'URL…"})
+        yield sse_message("step", {"step": "validation_url_check", "message": ""})
         validated = validate_and_normalize_url(url)
-        yield sse_message("step", {"step": "validation_url_done", "message": "URL validée."})
+        yield sse_message("step", {"step": "validation_url_done", "message": ""})
 
-        yield sse_message("step", {"step": "ssrf_check", "message": "Vérification SSRF (résolution DNS)…"})
+        yield sse_message("step", {"step": "ssrf_check", "message": ""})
         await check_ssrf(validated, timeout=get_ssrf_settings().dns_timeout)
-        yield sse_message("step", {"step": "ssrf_done", "message": "Vérification SSRF OK."})
+        yield sse_message("step", {"step": "ssrf_done", "message": ""})
 
         crawl_task = asyncio.create_task(_run_crawl_task(queue, mode, url, max_urls, on_progress, run_html, run_playwright))
         stream_timeout = get_crawler_settings().stream_timeout_seconds

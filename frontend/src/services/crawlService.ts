@@ -4,6 +4,7 @@
 
 import { getApiBaseUrl } from "../utils/apiClient";
 import logger from "../utils/logger";
+import type { ScanStep } from "./scanService";
 
 export interface CrawlUrlEntry {
   url: string;
@@ -39,7 +40,7 @@ export interface CrawlResponse {
 export type CrawlEventType = "step" | "result" | "error";
 
 export type CrawlEventHandler =
-  | { type: "step"; data: { step: string; message: string } }
+  | { type: "step"; data: ScanStep }
   | { type: "result"; data: CrawlResponse }
   | {
       type: "error";
@@ -58,7 +59,7 @@ interface AsyncCrawlCreateResponse {
 interface AsyncCrawlStatusResponse {
   job_id: string;
   status: AsyncJobStatus;
-  progress_log?: Array<{ step: string; message: string; at: string }>;
+  progress_log?: Array<ScanStep & { at: string }>;
   error?: {
     message?: string;
     status_code?: number;
@@ -195,11 +196,9 @@ export async function runCrawl(
       const progress = statusData.progress_log ?? [];
       const hasNewProgress = progress.length > seenProgress;
       for (let i = seenProgress; i < progress.length; i += 1) {
-        const entry = progress[i];
-        onEvent({
-          type: "step",
-          data: { step: entry.step, message: entry.message },
-        });
+        const { at, ...stepData } = progress[i];
+        void at;
+        onEvent({ type: "step", data: stepData });
       }
       seenProgress = progress.length;
       pollIntervalMs = hasNewProgress

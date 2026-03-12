@@ -7,8 +7,17 @@ import logger from "../utils/logger";
 
 export interface ScanStep {
   step: string;
+  /** Vide depuis le backend ; conservé pour compatibilité et fallback. */
   message: string;
   anomaly_count?: number;
+  /** Données structurées pour les steps multi-scan (page_scan_*). */
+  url?: string;
+  page_index?: number;
+  total_pages?: number;
+  /** Score global pour multi_scan_done. */
+  score?: number;
+  /** Nombre d'URLs explorées pour crawl_progress / crawl_done. */
+  url_count?: number;
 }
 
 /** Étape affichée dans le loader (done dérivé de step.endsWith("_done")). */
@@ -118,12 +127,7 @@ interface AsyncScanCreateResponse {
 interface AsyncScanStatusResponse {
   job_id: string;
   status: AsyncJobStatus;
-  progress_log?: Array<{
-    step: string;
-    message: string;
-    at: string;
-    anomaly_count?: number;
-  }>;
+  progress_log?: Array<ScanStep & { at: string }>;
   error?: {
     message?: string;
     status_code?: number;
@@ -286,18 +290,9 @@ export async function runAsyncScan(
       const progress = statusData.progress_log ?? [];
       const hasNewProgress = progress.length > seenProgress;
       for (let i = seenProgress; i < progress.length; i += 1) {
-        const entry = progress[i];
-        onEvent({
-          type: "step",
-          data: {
-            step: entry.step,
-            message: entry.message,
-            anomaly_count:
-              typeof entry.anomaly_count === "number"
-                ? entry.anomaly_count
-                : undefined,
-          },
-        });
+        const { at, ...stepData } = progress[i];
+        void at;
+        onEvent({ type: "step", data: stepData });
       }
       seenProgress = progress.length;
       pollIntervalMs = hasNewProgress
@@ -488,12 +483,7 @@ export async function runMultiScan(
         job_id: string;
         status: string;
         result_mode?: string;
-        progress_log?: Array<{
-          step: string;
-          message: string;
-          at: string;
-          anomaly_count?: number;
-        }>;
+        progress_log?: Array<ScanStep & { at: string }>;
         error?: { message?: string; status_code?: number; error_type?: string };
       }
 
@@ -501,15 +491,9 @@ export async function runMultiScan(
       const progress = statusData.progress_log ?? [];
       const hasNewProgress = progress.length > seenProgress;
       for (let i = seenProgress; i < progress.length; i++) {
-        const entry = progress[i];
-        onEvent({
-          type: "step",
-          data: {
-            step: entry.step,
-            message: entry.message,
-            anomaly_count: entry.anomaly_count,
-          },
-        });
+        const { at, ...stepData } = progress[i];
+        void at;
+        onEvent({ type: "step", data: stepData });
       }
       seenProgress = progress.length;
       pollIntervalMs = hasNewProgress

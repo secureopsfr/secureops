@@ -15,9 +15,13 @@ def _empty_crawl_result() -> tuple[list[crawl_core.CrawlUrlEntry], bool, bool, b
     return [], False, False, False, False, False, 0, []
 
 
-def _make_progress_callback(prefix: str, on_progress: Callable[[str, str], None]) -> Callable[[str, str], None]:
+def _make_progress_callback(prefix: str, on_progress: Callable) -> Callable:
     """Fabrique un callback de progression préfixé."""
-    return lambda step, msg: on_progress(f"{prefix}_{step}", msg)
+
+    def _callback(step: str, msg: str = "", **extra) -> None:
+        on_progress(f"{prefix}_{step}", msg, **extra)
+
+    return _callback
 
 
 def _reached_url_limit(entries: list[crawl_core.CrawlUrlEntry], max_urls: int) -> bool:
@@ -325,9 +329,9 @@ async def run_mode_both(
                 disallow_html,
             ) = _empty_crawl_result()
 
-        on_progress(f"crawl_{first_label}_done", f"Crawl {first_label} terminé. Arrêt de l'autre…")
+        on_progress(f"crawl_{first_label}_done", "")
         stop_ev.set()
-        on_progress("crawl_stopping_other", "Arrêt du crawler restant…")
+        on_progress("crawl_stopping_other", "")
         await asyncio.gather(*pending)
 
         for pending_task in pending:
@@ -354,7 +358,7 @@ async def run_mode_both(
                     disallow_pw,
                 ) = pending_task.result()
 
-        on_progress("crawl_merging", "Fusion des résultats…")
+        on_progress("crawl_merging", "")
         payload = merge_entries(entries_html, entries_pw, max_urls)
         timeout_reached = to_html or to_pw
         anti_bot_signature_detected = anti_sig_html and anti_sig_pw
@@ -445,11 +449,11 @@ async def run_mode_both(
 
     stop_other = _reached_url_limit(first_entries, max_urls)
     if stop_other:
-        on_progress(f"crawl_{first_label}_done", f"Crawl {first_label} terminé (limite atteinte). Arrêt de l'autre…")
+        on_progress(f"crawl_{first_label}_done", "")
         stop_ev.set()
-        on_progress("crawl_stopping_other", "Arrêt du crawler restant…")
+        on_progress("crawl_stopping_other", "")
     else:
-        on_progress(f"crawl_{first_label}_done", f"Crawl {first_label} terminé. L'autre continue…")
+        on_progress(f"crawl_{first_label}_done", "")
     await asyncio.gather(*pending)
 
     for pending_task in pending:
@@ -476,7 +480,7 @@ async def run_mode_both(
                 disallow_pw,
             ) = pending_task.result()
 
-    on_progress("crawl_merging", "Fusion des résultats…")
+    on_progress("crawl_merging", "")
     payload = merge_entries(entries_html, entries_pw, max_urls)
     timeout_reached = to_html or to_pw
     anti_bot_signature_detected = anti_sig_html and anti_sig_pw

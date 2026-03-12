@@ -15,7 +15,7 @@ async def execute_crawl_job(
     url: str,
     scan_type: str,
     input_json: dict[str, Any] | None = None,
-    on_progress: Callable[[str, str], Awaitable[None]] | None = None,
+    on_progress: Callable[..., Awaitable[None]] | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Exécute un job crawl et retourne (result, error)."""
     params = input_json or {}
@@ -53,10 +53,10 @@ async def execute_crawl_job(
         event, data = parsed
         if event == "step" and isinstance(data, dict):
             if on_progress:
-                await on_progress(
-                    str(data.get("step", "step")),
-                    str(data.get("message", "")),
-                )
+                step = str(data.get("step", "step"))
+                message = str(data.get("message", ""))
+                extra = {k: v for k, v in data.items() if k not in ("step", "message")}
+                await on_progress(step, message, **extra)
         elif event == "result" and isinstance(data, dict):
             result_payload = data
         elif event == "error" and isinstance(data, dict):

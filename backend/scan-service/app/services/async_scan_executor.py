@@ -20,8 +20,15 @@ async def execute_scan_job(
     scan_type: str,
     input_json: dict[str, Any] | None = None,
     on_progress: Callable[..., Awaitable[None]] | None = None,
+    flush_fn: Callable[[], Awaitable[None]] | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    """Exécute un job de scan single-URL et retourne (result, error)."""
+    """Exécute un job de scan single-URL et retourne (result, error).
+
+    Args:
+        flush_fn: Optionnel — appelé après chaque événement _check pour forcer
+                  l'écriture en DB avant l'exécution du step. Permet au frontend
+                  de voir l'état loading pendant que le step tourne.
+    """
     if scan_type in {"backend", "custom"}:
         fake_result = {
             "url": url,
@@ -47,13 +54,13 @@ async def execute_scan_job(
         if event == "step" and isinstance(data, dict):
             step = str(data.get("step", "step"))
             message = str(data.get("message", ""))
-            anomaly_count_raw = data.get("anomaly_count")
-            anomaly_count = int(anomaly_count_raw) if isinstance(anomaly_count_raw, int) else None
+            extra = {k: v for k, v in data.items() if k not in ("step", "message")}
             if on_progress:
-                if anomaly_count is None:
-                    await on_progress(step, message)
-                else:
-                    await on_progress(step, message, anomaly_count=anomaly_count)
+                await on_progress(step, message, **extra)
+            # Flush immédiat après _check : le step va s'exécuter, le frontend
+            # doit voir l'état loading en DB avant que _done n'arrive.
+            if step.endswith("_check") and flush_fn:
+                await flush_fn()
         elif event == "result" and isinstance(data, dict):
             result_payload = data
         elif event == "error" and isinstance(data, dict):
@@ -86,10 +93,10 @@ async def execute_multi_scan_job(
     # lock, concurrent commits on the same SQLAlchemy session raise InvalidRequestError.
     _progress_lock = asyncio.Lock()
 
-    async def _progress(step: str, message: str, **_kwargs: Any) -> None:
+    async def _progress(step: str, message: str, **kwargs: Any) -> None:
         if on_progress:
             async with _progress_lock:
-                await on_progress(step, message)
+                await on_progress(step, message, **kwargs)
 
     try:
         validated_urls = await validate_multi_scan_urls(urls)

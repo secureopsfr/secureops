@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { useStepQueue } from "../../hooks/useStepQueue";
 import { createPortal } from "react-dom";
-import { fetchAuthSession } from "aws-amplify/auth";
 import Link from "next/link";
 import { FileText } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
@@ -13,12 +13,9 @@ import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
 import ScanLaunchBubble from "./ScanLaunchBubble";
 import type { ScanHistorySelection } from "../../services/scanHistoryService";
-import {
-  runAsyncScan,
-  type ScanResult,
-  type ScanStepDisplay,
-} from "../../services/scanService";
+import { runAsyncScan, type ScanResult } from "../../services/scanService";
 import { normalizeScanUrl } from "../../utils/scanUrl";
+import { useAuthToken } from "../../hooks/useAuthToken";
 
 interface ScanTypePageContentProps {
   /** Clé i18n pour le titre (ex. scanner.backend.title). */
@@ -38,10 +35,11 @@ export default function ScanTypePageContent({
   filterScanType,
 }: ScanTypePageContentProps) {
   const { t, lp } = useLanguage();
+  const getToken = useAuthToken(true);
   const [url, setUrl] = useState("");
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
-  const [steps, setSteps] = useState<ScanStepDisplay[]>([]);
+  const { steps, enqueueStep, resetSteps } = useStepQueue();
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -54,7 +52,7 @@ export default function ScanTypePageContent({
   const handleNewScan = () => {
     setSelectedResult(null);
     setSelectedScanId(null);
-    setSteps([]);
+    resetSteps();
     setFormError(null);
     setIsLoading(false);
   };
@@ -64,38 +62,16 @@ export default function ScanTypePageContent({
     if (!url.trim() || isLoading) return;
 
     setFormError(null);
-    setSteps([]);
+    resetSteps();
     setIsLoading(true);
     const urlToScan = normalizeScanUrl(url.trim());
-
-    const getToken = async () => {
-      try {
-        const session = await fetchAuthSession();
-        return session.tokens?.accessToken?.toString() ?? null;
-      } catch {
-        return null;
-      }
-    };
 
     try {
       await runAsyncScan(
         urlToScan,
         (ev) => {
           if (ev.type === "step") {
-            const done = ev.data.step.endsWith("_done");
-            setSteps((prev) => {
-              if (done && prev.length > 0) {
-                const updated = [...prev];
-                updated[updated.length - 1] = {
-                  step: ev.data.step,
-                  message: ev.data.message,
-                  done: true,
-                  anomaly_count: ev.data.anomaly_count,
-                };
-                return updated;
-              }
-              return [...prev, { ...ev.data, done: false }];
-            });
+            enqueueStep(ev.data);
             return;
           }
 

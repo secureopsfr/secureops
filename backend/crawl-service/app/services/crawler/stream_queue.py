@@ -75,9 +75,8 @@ def handle_queue_item(item: tuple, sse_message_fn: Callable) -> tuple[list[str],
             disallow_paths,
         ) = item
         nb = len(payload)
-        urls_label = "1 URL" if nb == 1 else f"{nb} URLs"
         messages = [
-            sse_message_fn("step", {"step": "crawl_done", "message": f"Exploration terminée ({urls_label})."}),
+            sse_message_fn("step", {"step": "crawl_done", "message": "", "url_count": nb}),
             sse_message_fn(
                 "result",
                 {
@@ -103,7 +102,10 @@ def handle_queue_item(item: tuple, sse_message_fn: Callable) -> tuple[list[str],
         return [sse_message_fn("error", {"message": item[1], "status_code": 503})], True
     if tag == "error_500":
         return [sse_message_fn("error", {"message": item[1], "status_code": 500})], True
-    return [sse_message_fn("step", {"step": item[0], "message": item[1]})], False
+    step_data: dict = {"step": item[0], "message": item[1] if len(item) > 1 else ""}
+    if len(item) > 2 and isinstance(item[2], dict):
+        step_data.update(item[2])
+    return [sse_message_fn("step", step_data)], False
 
 
 def put_error_from_exception(exc: BaseException, url: str, queue: asyncio.Queue) -> tuple[str, int]:

@@ -103,6 +103,7 @@ async def _execute_claimed_job(session: Any, job: Any) -> None:
                 scan_type=job.scan_type,
                 input_json=job.input_json or {},
                 on_progress=progress.on_progress,
+                flush_fn=lambda: progress.flush(force=True),
             )
         await progress.flush(force=True)
         await _finalize_job(
