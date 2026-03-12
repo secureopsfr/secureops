@@ -74,8 +74,15 @@ export default function ScannerHub() {
 
   const renderCard = (card: (typeof sectionGestion)[0]) => {
     const Icon = card.icon;
+    const isDocsLink = card.href.includes("/scanner/docs");
     return (
-      <Link key={card.id} href={card.href} className="block h-full">
+      <Link
+        key={card.id}
+        href={card.href}
+        target={isDocsLink ? "_blank" : undefined}
+        rel={isDocsLink ? "noopener noreferrer" : undefined}
+        className="block h-full"
+      >
         <Card
           disableHover
           className="h-full flex flex-col pt-6 transition-all hover:border-[rgb(var(--primary))] hover:shadow-lg cursor-pointer"

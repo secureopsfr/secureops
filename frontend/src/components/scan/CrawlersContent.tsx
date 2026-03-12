@@ -405,6 +405,8 @@ export default function CrawlersContent() {
               </p>
               <Link
                 href={lp("/scanner/docs/crawler")}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
               >
                 <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
