@@ -18,9 +18,13 @@ Index de la documentation du projet.
 
 ## Roadmaps et versions
 
-- [**ROADMAP-MVP-0.1.0.md**](roadmaps/ROADMAP-MVP-0.1.0.md) — Roadmap MVP 0.1.0 : scanner de posture sécurité (TLS, headers, cookies, exposition fichiers, etc.).
+- [**ROADMAP-MVP-0.1.0.md**](roadmaps/versions/ROADMAP-MVP-0.1.0.md) — Roadmap MVP 0.1.0 : scanner de posture sécurité (TLS, headers, cookies, exposition fichiers, etc.).
 
-- [**ROADMAP-MVP-0.2.0.md**](roadmaps/ROADMAP-MVP-0.2.0.md) — Roadmap MVP 0.2.0 : auth, historique, export PDF, API publique, monitoring.
+- [**ROADMAP-MVP-0.2.0.md**](roadmaps/versions/ROADMAP-MVP-0.2.0.md) — Roadmap MVP 0.2.0 : auth, historique, export PDF, API publique, monitoring.
+
+- [**ROADMAP-MVP-0.3.0.md**](roadmaps/versions/ROADMAP-MVP-0.3.0.md) — Roadmap MVP 0.3.0 : refactoring plateforme, crawler indépendant, mode async scan/crawl, hub scanner.
+
+- [**ROADMAP-MVP-0.4.0.md**](roadmaps/versions/ROADMAP-MVP-0.4.0.md) — Roadmap MVP 0.4.0 : finalisation tests passifs restants, premiers tests actifs, analytics et backlog reporté.
 
 - [**CHANGELOG.md**](../CHANGELOG.md) — Historique des modifications (format Keep a Changelog). Version courante dans [VERSION](../VERSION).
 

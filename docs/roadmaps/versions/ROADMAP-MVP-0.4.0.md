@@ -85,6 +85,80 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 
 ---
 
+### 1.5 Backlog tests reporté depuis la roadmap 0.3.0
+
+Objectif : finaliser la couverture de tests d’intégration de la pipeline scan/crawl, reportée depuis la section 2 de la roadmap v0.3.0.
+
+#### 1.5.1 Environnements et serveurs de test
+
+- [ ] Définir un environnement de test dédié au scan (Docker Compose minimal : scan-service + Postgres si nécessaire).
+- [ ] Ajouter un ou plusieurs **serveurs cibles de démo** :
+  - [ ] Serveur HTTP simple (cache/headers/cookies) — ex. `bad_cache_server.py`.
+  - [ ] Serveur simulant des headers de sécurité variés (bonnes pratiques / mauvaises pratiques).
+  - [ ] Serveur avec fichiers exposés / directory listing / robots.txt / sitemap de test.
+  - [ ] **Serveur avec pages liées (même domaine)** pour les tests crawler : plusieurs pages HTML avec liens internes, pour valider le scénario crawl → liste → scan sur N URLs (voir 1.5.2).
+  - [ ] (Optionnel) Serveur d’API de démo (Swagger/GraphQL/Content-Type).
+
+#### 1.5.2 Scénarios de tests d’intégration
+
+- [ ] Scénario « happy path » : URL valide → scan complet → score cohérent → findings attendus.
+- [ ] Scénarios d’erreur : DNS KO, timeout, TLS cassé, redirections excessives.
+- [ ] Scénarios SSRF : URLs internes / localhost / IP privées bloquées en mode prod (`IS_PROD=true`).
+- [ ] Scénarios de ports : ports non autorisés rejetés en prod, autorisés en dev (`IS_PROD=false` via `launch_dev.sh`).
+- [ ] **Scénario crawler → liste → scan sur N URLs** : serveur de test avec pages liées (même domaine) ; lancer le crawler depuis une URL de départ, récupérer la liste d’URLs (via l’API crawler retenue en 7.3 de la v0.3.0), lancer le scan sur un sous-ensemble (ex. 2–3 URLs) ; vérifier que les résultats agrègent les findings par URL ou produisent un rapport cohérent (historique, PDF si applicable).
+- [ ] Vérification des catégories de checks : TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, info disclosure, etc.
+- [ ] Vérification de l’écriture en historique (user-service) et de la génération PDF.
+- [ ] Crawler — tests unitaires : parsing HTML → liste d’URLs attendue ; respect Disallow ; limites (profondeur, max URLs).
+- [ ] Crawler — test d’intégration : crawl d’une page de test (ex. `bad_crawl_server` ou fixture HTML) → vérifier la sortie et l’absence de fuite hors domaine.
+
+#### 1.5.3 Intégration dans la CI
+
+- [ ] Ajouter un job **tests d’intégration scan-service** dans la pipeline (GitHub Actions).
+- [ ] Démarrer les services nécessaires (scan-service + serveurs de test) via Docker Compose dans le job.
+- [ ] Lancer la suite de tests d’intégration (`pytest -m integration` ou répertoire dédié).
+- [ ] Marquer le job comme requis pour les PR affectant le scan-service / gateway.
+
+#### 1.5.4 Observabilité et maintenance des tests
+
+- [ ] Logs clairs pour chaque scénario (URL cible, findings principaux).
+- [ ] Documentation rapide dans `docs/` pour expliquer comment lancer les tests d’intégration en local.
+- [ ] Stratégie de maintenance : limiter le nombre de scénarios mais couvrir les cas critiques (TLS, SSRF, cache, exposition fichiers, CORS, crawler + scan multi-URLs).
+
+---
+
+### 1.6 Backlog reporté depuis la roadmap 0.3.0 (hors section tests)
+
+Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 liés à l’intégration CI/CD, au crawler, à la doc/UX scanner et au rendu d’anomalies.
+
+#### 1.6.1 GitHub Action SecureOps (ex-section 3 de la v0.3.0)
+
+- [ ] Créer la répo `secureops/actions` ou une action dans le monorepo.
+- [ ] Définir les inputs : `url`, `api_key` (secret), `fail_on_score_below` (optionnel).
+- [ ] Appeler `POST /scan/api/scan` avec `X-API-Key` (API publique SecureOps).
+- [ ] Parser le résultat (score, findings).
+- [ ] Faire échouer le job si `score < fail_on_score_below` ou si finding `critical`.
+- [ ] Rédiger un README avec un exemple d’utilisation dans un workflow GitHub Actions.
+- [ ] (Optionnel) Fournir un badge « Scan SecureOps » pour le README des projets utilisateurs.
+
+#### 1.6.2 Gouvernance crawler (ex-section 7.6 de la v0.3.0)
+
+- [ ] Liste noire configurable (ex. dans `settings.yml`) pour bloquer des domaines/cibles.
+- [ ] Modération (optionnel) : ajouter a posteriori des domaines bloqués et logger les tentatives (audit).
+- [ ] Quotas crawler, rate limiting, réponses 429 (aligné avec `A-PENSER-PLUS-TARD.md`).
+
+#### 1.6.3 Scanner hub: docs/UX (ex-section 8.2 de la v0.3.0)
+
+- [ ] Rapports et exports : accès aux PDF, exports CSV/JSON si implémentés.
+- [ ] Alertes configurées, préférences de notification.
+- [ ] Page/section doc regroupant : scan de posture (vérifications, crawling, interprétation), autres scanners, API publique (endpoints, clés API, exemples curl, CI/CD).
+- [ ] Documentation contextuelle : lien doc depuis chaque page concernée (`/scanner/analyses/...`, `/scanner/cles-api`, etc.).
+
+#### 1.6.4 Affichage anomalies (ex-section 8.4 de la v0.3.0)
+
+- [ ] Finaliser le rendu “anomalie détectée” : icône dédiée dans résumé/table + libellé explicite “Anomalie détectée” / “Trouvé”.
+
+---
+
 ## 2) Vérification d’autorisation (uniquement en production)
 
 > **Document dédié :** voir [VERIFICATION-AUTORISATION.md](VERIFICATION-AUTORISATION.md) pour la spécification complète.
