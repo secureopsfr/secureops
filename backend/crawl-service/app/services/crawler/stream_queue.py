@@ -36,7 +36,22 @@ def handle_queue_item(item: tuple, sse_message_fn: Callable) -> tuple[list[str],
     """Traite un item de la queue. Retourne (messages_sse, is_terminal).
 
     Args:
-        item: Tuple (tag, ...) ou (tag, payload, timeout, anti_bot, blocked, disallow).
+        item: Tuple (tag, ...) ou
+            (
+                tag,
+                payload,
+                timeout,
+                anti_bot,
+                anti_bot_signature_detected,
+                anti_bot_low_url_suspected,
+                timeout_html,
+                timeout_playwright,
+                blocked,
+                requests_blocked_html,
+                requests_blocked_playwright,
+                max_consecutive_403,
+                disallow,
+            ).
         sse_message_fn: Fonction pour formater un message SSE.
 
     Returns:
@@ -44,7 +59,21 @@ def handle_queue_item(item: tuple, sse_message_fn: Callable) -> tuple[list[str],
     """
     tag = item[0]
     if tag == "result":
-        _, payload, timeout_reached, anti_bot_suspected, requests_blocked, disallow_paths = item
+        (
+            _,
+            payload,
+            timeout_reached,
+            anti_bot_suspected,
+            anti_bot_signature_detected,
+            anti_bot_low_url_suspected,
+            timeout_html,
+            timeout_playwright,
+            requests_blocked,
+            requests_blocked_html,
+            requests_blocked_playwright,
+            max_consecutive_403,
+            disallow_paths,
+        ) = item
         nb = len(payload)
         urls_label = "1 URL" if nb == 1 else f"{nb} URLs"
         messages = [
@@ -55,7 +84,14 @@ def handle_queue_item(item: tuple, sse_message_fn: Callable) -> tuple[list[str],
                     "urls": payload,
                     "timeout_reached": timeout_reached,
                     "anti_bot_suspected": anti_bot_suspected,
+                    "anti_bot_signature_detected": anti_bot_signature_detected,
+                    "anti_bot_low_url_suspected": anti_bot_low_url_suspected,
+                    "timeout_html": timeout_html,
+                    "timeout_playwright": timeout_playwright,
                     "requests_blocked": requests_blocked,
+                    "requests_blocked_html": requests_blocked_html,
+                    "requests_blocked_playwright": requests_blocked_playwright,
+                    "max_consecutive_403": max_consecutive_403,
                     "disallow_paths": disallow_paths,
                 },
             ),

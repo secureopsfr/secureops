@@ -23,6 +23,12 @@ interface ScanLoaderProps {
 }
 
 const STEP_I18N_KEYS: Record<string, string> = {
+  scan_init: "scanner.scanInit",
+  scan_score_compute: "scanner.scanScoreCompute",
+  crawl_init: "scanner.crawlInit",
+  crawl_score_compute: "scanner.crawlScoreCompute",
+  multi_scan_init: "scanner.multiScanInit",
+  multi_scan_results_compute: "scanner.multiScanResultsCompute",
   crawl_html_done: "scanner.crawlHtmlDone",
   crawl_playwright_done: "scanner.crawlPlaywrightDone",
   crawl_stopping_other: "scanner.crawlStoppingOther",
@@ -887,12 +893,63 @@ interface TimelineStep extends ScanStepDisplay {
 
 function buildTimelineSteps(rawSteps: ScanStepDisplay[]): TimelineStep[] {
   const isMulti = rawSteps.some((s) => isMultiScanStep(s.step));
-  if (!isMulti) return rawSteps;
+  if (!isMulti) {
+    if (rawSteps.length === 0) return rawSteps;
+
+    const hasCrawlSteps = rawSteps.some(
+      (s) =>
+        s.step === "crawl_done" ||
+        s.step.startsWith("crawl_") ||
+        s.step.startsWith("html_") ||
+        s.step.startsWith("playwright_"),
+    );
+
+    if (hasCrawlSteps) {
+      const timeline: TimelineStep[] = [
+        {
+          step: "crawl_init",
+          message: "",
+          done: true,
+        },
+        ...rawSteps,
+      ];
+      if (rawSteps.some((s) => s.step === "crawl_done")) {
+        timeline.push({
+          step: "crawl_score_compute",
+          message: "",
+          done: true,
+        });
+      }
+      return timeline;
+    }
+
+    const timeline: TimelineStep[] = [
+      {
+        step: "scan_init",
+        message: "",
+        done: true,
+      },
+      ...rawSteps,
+    ];
+    if (
+      rawSteps.some(
+        (s) =>
+          s.step === "cors_cross_origin_done" || s.step === "fake_scan_done",
+      )
+    ) {
+      timeline.push({
+        step: "scan_score_compute",
+        message: "",
+        done: true,
+      });
+    }
+    return timeline;
+  }
 
   const timeline: TimelineStep[] = [
     {
       step: "multi_scan_init",
-      message: "Initialisation du scan...",
+      message: "",
       done: true,
     },
   ];
@@ -1039,7 +1096,7 @@ function buildTimelineSteps(rawSteps: ScanStepDisplay[]): TimelineStep[] {
   if (hasMultiScanDone) {
     timeline.push({
       step: "multi_scan_results_compute",
-      message: "Calcul des résultats...",
+      message: "",
       done: true,
     });
   }

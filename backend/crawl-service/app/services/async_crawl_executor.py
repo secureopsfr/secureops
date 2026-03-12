@@ -22,10 +22,17 @@ async def execute_crawl_job(
 
     if scan_type in {"backend", "custom"}:
         fake_result = {
-            "urls": [{"url": url, "type": "page", "depth": 0}],
+            "urls": [{"url": url, "depth": 0}],
             "timeout_reached": False,
             "anti_bot_suspected": False,
+            "anti_bot_signature_detected": False,
+            "anti_bot_low_url_suspected": False,
+            "timeout_html": False,
+            "timeout_playwright": False,
             "requests_blocked": False,
+            "requests_blocked_html": False,
+            "requests_blocked_playwright": False,
+            "max_consecutive_403": 0,
             "disallow_paths": [],
             "message": f"Fake {scan_type} crawl result (V1).",
             "generated_at": utc_now().isoformat(),

@@ -7,8 +7,7 @@ import logger from "../utils/logger";
 
 export interface CrawlUrlEntry {
   url: string;
-  type: string;
-  depth: number;
+  depth?: number;
 }
 
 export interface CrawlResponse {
@@ -17,8 +16,22 @@ export interface CrawlResponse {
   timeout_reached?: boolean;
   /** True si une protection anti-bot a été détectée (mode Playwright). */
   anti_bot_suspected?: boolean;
+  /** True si une signature anti-bot a été détectée dans le HTML. */
+  anti_bot_signature_detected?: boolean;
+  /** True si très peu d'URLs ont été trouvées en mode avancé (suspicion anti-bot). */
+  anti_bot_low_url_suspected?: boolean;
+  /** True si timeout sur le crawler HTML. */
+  timeout_html?: boolean;
+  /** True si timeout sur le crawler avancé. */
+  timeout_playwright?: boolean;
   /** True si trop de requêtes 403 (protection anti-bot, WAF) ; crawl arrêté, résultats partiels. */
   requests_blocked?: boolean;
+  /** True si le crawler HTML a été bloqué par 403 consécutifs. */
+  requests_blocked_html?: boolean;
+  /** True si le crawler avancé a été bloqué par 403 consécutifs. */
+  requests_blocked_playwright?: boolean;
+  /** Maximum de réponses 403 consécutives observées pendant le crawl. */
+  max_consecutive_403?: number;
   /** Chemins Disallow extraits de robots.txt (non crawlés). */
   disallow_paths?: string[];
 }

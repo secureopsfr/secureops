@@ -41,10 +41,37 @@ async def _run_crawl_task(
 ) -> None:
     """Exécute le crawl selon le mode et envoie les résultats dans la queue."""
     try:
-        payload, timeout_reached, anti_bot_suspected, requests_blocked, disallow_paths = await execute_crawl_by_mode(
-            mode, url, max_urls, on_progress, run_html, run_playwright
+        (
+            payload,
+            timeout_reached,
+            anti_bot_suspected,
+            anti_bot_signature_detected,
+            anti_bot_low_url_suspected,
+            timeout_html,
+            timeout_playwright,
+            requests_blocked,
+            requests_blocked_html,
+            requests_blocked_playwright,
+            max_consecutive_403,
+            disallow_paths,
+        ) = await execute_crawl_by_mode(mode, url, max_urls, on_progress, run_html, run_playwright)
+        queue.put_nowait(
+            (
+                "result",
+                payload,
+                timeout_reached,
+                anti_bot_suspected,
+                anti_bot_signature_detected,
+                anti_bot_low_url_suspected,
+                timeout_html,
+                timeout_playwright,
+                requests_blocked,
+                requests_blocked_html,
+                requests_blocked_playwright,
+                max_consecutive_403,
+                disallow_paths,
+            )
         )
-        queue.put_nowait(("result", payload, timeout_reached, anti_bot_suspected, requests_blocked, disallow_paths))
     except (URLValidationError, Exception) as e:
         put_error_from_exception(e, url, queue)
 
@@ -59,7 +86,7 @@ async def crawl_stream_generator(
     Étapes : validation_url, ssrf, robots (si activé), crawl, puis result ou error.
     Mode both : exécution parallèle des deux crawlers, fusion et déduplication.
     """
-    queue: asyncio.Queue[tuple[str, str] | tuple[str, list[dict], bool, bool, bool, list[str]]] = asyncio.Queue()
+    queue: asyncio.Queue[tuple[str, str] | tuple[str, list[dict], bool, bool, bool, bool, bool, bool, bool, bool, int, list[str]]] = asyncio.Queue()
     on_progress = QueueProgressCallback(queue)
     run_html = make_run_crawler(url, max_urls, on_progress, False)
     run_playwright = make_run_crawler(url, max_urls, on_progress, True)

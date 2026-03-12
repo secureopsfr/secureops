@@ -100,9 +100,20 @@ export default function ScannerContent() {
   );
   const [crawlMaxUrls, setCrawlMaxUrls] = useState(50);
   const [crawledUrls, setCrawledUrls] = useState<CrawlUrlEntry[]>([]);
+  const [crawlIdentifiedCount, setCrawlIdentifiedCount] = useState(0);
   const [crawlTimeoutReached, setCrawlTimeoutReached] = useState(false);
-  const [crawlAntiBotSuspected, setCrawlAntiBotSuspected] = useState(false);
+  const [crawlTimeoutHtml, setCrawlTimeoutHtml] = useState(false);
+  const [crawlTimeoutPlaywright, setCrawlTimeoutPlaywright] = useState(false);
+  const [crawlAntiBotSignatureDetected, setCrawlAntiBotSignatureDetected] =
+    useState(false);
+  const [crawlAntiBotLowUrlSuspected, setCrawlAntiBotLowUrlSuspected] =
+    useState(false);
   const [crawlRequestsBlocked, setCrawlRequestsBlocked] = useState(false);
+  const [crawlRequestsBlockedHtml, setCrawlRequestsBlockedHtml] =
+    useState(false);
+  const [crawlRequestsBlockedPlaywright, setCrawlRequestsBlockedPlaywright] =
+    useState(false);
+  const [crawlMaxConsecutive403, setCrawlMaxConsecutive403] = useState(0);
   const [crawlDisallowPaths, setCrawlDisallowPaths] = useState<string[]>([]);
   const [crawlSteps, setCrawlSteps] = useState<ScanStepDisplay[]>([]);
 
@@ -323,11 +334,37 @@ export default function ScannerContent() {
             const urls =
               ev.data.urls.length > 0
                 ? ev.data.urls
-                : [{ url: urlToScan, type: "page", depth: 0 }];
+                : [{ url: urlToScan, depth: 0 }];
             setCrawledUrls(urls);
+            setCrawlIdentifiedCount(urls.length);
             setCrawlTimeoutReached(ev.data.timeout_reached ?? false);
-            setCrawlAntiBotSuspected(ev.data.anti_bot_suspected ?? false);
+            setCrawlTimeoutHtml(
+              ev.data.timeout_html ??
+                ((ev.data.timeout_reached ?? false) && crawlMode === "html"),
+            );
+            setCrawlTimeoutPlaywright(
+              ev.data.timeout_playwright ??
+                ((ev.data.timeout_reached ?? false) &&
+                  crawlMode === "playwright"),
+            );
+            const signatureDetected =
+              ev.data.anti_bot_signature_detected ?? false;
+            const lowUrlSuspected =
+              ev.data.anti_bot_low_url_suspected ??
+              ((ev.data.anti_bot_suspected ?? false) && !signatureDetected);
+            setCrawlAntiBotSignatureDetected(signatureDetected);
+            setCrawlAntiBotLowUrlSuspected(lowUrlSuspected);
             setCrawlRequestsBlocked(ev.data.requests_blocked ?? false);
+            setCrawlRequestsBlockedHtml(
+              ev.data.requests_blocked_html ??
+                ((ev.data.requests_blocked ?? false) && crawlMode === "html"),
+            );
+            setCrawlRequestsBlockedPlaywright(
+              ev.data.requests_blocked_playwright ??
+                ((ev.data.requests_blocked ?? false) &&
+                  crawlMode === "playwright"),
+            );
+            setCrawlMaxConsecutive403(ev.data.max_consecutive_403 ?? 0);
             setCrawlDisallowPaths(ev.data.disallow_paths ?? []);
             // Rester en crawling : ScanLoader appelle onAnimationComplete à la fin
           } else if (ev.type === "error") {
@@ -428,9 +465,16 @@ export default function ScannerContent() {
   const handleBackFromValidation = useCallback(() => {
     setState("idle");
     setCrawledUrls([]);
+    setCrawlIdentifiedCount(0);
     setCrawlTimeoutReached(false);
-    setCrawlAntiBotSuspected(false);
+    setCrawlTimeoutHtml(false);
+    setCrawlTimeoutPlaywright(false);
+    setCrawlAntiBotSignatureDetected(false);
+    setCrawlAntiBotLowUrlSuspected(false);
     setCrawlRequestsBlocked(false);
+    setCrawlRequestsBlockedHtml(false);
+    setCrawlRequestsBlockedPlaywright(false);
+    setCrawlMaxConsecutive403(0);
     setCrawlDisallowPaths([]);
     setCrawlSteps([]);
   }, []);
@@ -449,9 +493,16 @@ export default function ScannerContent() {
     setScanId(null);
     setError(null);
     setCrawledUrls([]);
+    setCrawlIdentifiedCount(0);
     setCrawlTimeoutReached(false);
-    setCrawlAntiBotSuspected(false);
+    setCrawlTimeoutHtml(false);
+    setCrawlTimeoutPlaywright(false);
+    setCrawlAntiBotSignatureDetected(false);
+    setCrawlAntiBotLowUrlSuspected(false);
     setCrawlRequestsBlocked(false);
+    setCrawlRequestsBlockedHtml(false);
+    setCrawlRequestsBlockedPlaywright(false);
+    setCrawlMaxConsecutive403(0);
     setCrawlDisallowPaths([]);
   }, []);
 
@@ -495,8 +546,7 @@ export default function ScannerContent() {
     t,
   ]);
 
-  const showHeader =
-    state === "idle" || state === "error" || state === "validation";
+  const showHeader = state === "idle" || state === "error";
 
   return (
     <div className="space-y-4 w-full">
@@ -723,10 +773,17 @@ export default function ScannerContent() {
           {state === "validation" && (
             <CrawlValidationStep
               urls={crawledUrls}
+              identifiedCount={crawlIdentifiedCount}
               startUrl={url.trim()}
               timeoutReached={crawlTimeoutReached}
-              antiBotSuspected={crawlAntiBotSuspected}
+              timeoutHtml={crawlTimeoutHtml}
+              timeoutPlaywright={crawlTimeoutPlaywright}
+              antiBotSignatureDetected={crawlAntiBotSignatureDetected}
+              antiBotLowUrlSuspected={crawlAntiBotLowUrlSuspected}
               requestsBlocked={crawlRequestsBlocked}
+              requestsBlockedHtml={crawlRequestsBlockedHtml}
+              requestsBlockedPlaywright={crawlRequestsBlockedPlaywright}
+              maxConsecutive403={crawlMaxConsecutive403}
               disallowPaths={crawlDisallowPaths}
               onUrlsChange={setCrawledUrls}
               onLaunchScan={handleLaunchScanFromValidation}
