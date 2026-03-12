@@ -1,11 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { AlertTriangle, Globe, LayoutGrid } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  AlertTriangle,
+  Download,
+  FileJson,
+  FileOutput,
+  FileSpreadsheet,
+  FileText,
+  Globe,
+  LayoutGrid,
+} from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
-import { GenericButton } from "../buttons";
 import AnimateInView from "../AnimateInView";
 import Card from "../ui/cards/Card";
+import FloatingActionDock from "./FloatingActionDock";
+import Modal from "../ui/Modal";
+import ScanResultHeroCard from "./ScanResultHeroCard";
 import ScanSummarySection from "./ScanSummarySection";
 import { getScoreBadge, CHECKED_CATEGORIES_ORDER } from "./scanConstants";
 import type {
@@ -13,6 +24,7 @@ import type {
   PageScanResult,
 } from "../../services/scanService";
 import { formatUrlDisplay } from "../../utils/urlFormat";
+import { showSuccessToast } from "../../utils/toastNotifications";
 
 interface MultiScanResultsProps {
   result: MultiScanResult;
@@ -39,17 +51,24 @@ function PageDetail({ page }: { page: PageScanResult }) {
 
   if (page.error) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-[rgb(var(--danger))]/30 bg-[rgb(var(--danger))]/5 px-4 py-3 text-sm text-[rgb(var(--danger))]">
-        <AlertTriangle className="h-4 w-4 shrink-0" />
-        <span>
-          {t("scanner.multiPageError")} : {page.error}
-        </span>
-      </div>
+      <Card disableHover>
+        <div className="flex items-center gap-2 rounded-lg border border-[rgb(var(--danger))]/30 bg-[rgb(var(--danger))]/5 px-4 py-3 text-sm text-[rgb(var(--danger))]">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            {t("scanner.multiPageError")} : {page.error}
+          </span>
+        </div>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-4">
+      <ScanResultHeroCard
+        url={page.url}
+        score={page.score}
+        findings={page.findings ?? []}
+      />
       <ScanSummarySection
         findings={page.findings ?? []}
         category_summaries={page.category_summaries}
@@ -166,6 +185,32 @@ function CompareTable({
 }
 
 type TabId = "overview" | "compare" | number;
+const EXPORT_FORMATS: {
+  value: "csv" | "json" | "xlsx" | "pdf";
+  labelKey: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    value: "csv",
+    labelKey: "scanner.exportCsv",
+    icon: <FileText className="w-5 h-5" />,
+  },
+  {
+    value: "json",
+    labelKey: "scanner.exportJson",
+    icon: <FileJson className="w-5 h-5" />,
+  },
+  {
+    value: "xlsx",
+    labelKey: "scanner.exportXlsx",
+    icon: <FileSpreadsheet className="w-5 h-5" />,
+  },
+  {
+    value: "pdf",
+    labelKey: "scanner.exportPdf",
+    icon: <FileOutput className="w-5 h-5" />,
+  },
+];
 
 export default function MultiScanResults({
   result,
@@ -174,17 +219,22 @@ export default function MultiScanResults({
   const { t, locale } = useLanguage();
   const lang = (locale === "fr" ? "fr" : "en") as "fr" | "en";
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
   const { ringColor: globalRingColor } = getScoreBadge(result.score_global);
   const errorCount = result.page_results.filter((p) => p.error).length;
-  const duration = result.duration.toFixed(1);
+
+  const handleFakeExport = (labelKey: string) => {
+    showSuccessToast(t("scanner.exportFakeNotice", { format: t(labelKey) }));
+    setExportModalOpen(false);
+  };
 
   return (
     <AnimateInView className="space-y-4 w-full" initialOnly>
       {/* Header global */}
       <Card disableHover>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
             <Globe className="h-6 w-6 text-[rgb(var(--primary))]" />
             <div>
               <h2 className="section-title !mb-0 !text-left">
@@ -201,21 +251,22 @@ export default function MultiScanResults({
           </div>
           <div className="flex items-center gap-3">
             <div className="text-center">
-              <div
-                className="text-4xl font-black"
-                style={{ color: globalRingColor }}
-              >
-                {result.score_global}
+              <div className="flex items-end justify-center gap-1 leading-none">
+                <span
+                  className="text-4xl font-black"
+                  style={{ color: globalRingColor }}
+                >
+                  {result.score_global}
+                </span>
+                <span className="text-xs font-medium text-[var(--muted)] pb-1">
+                  /100
+                </span>
               </div>
               <div className="text-xs text-[var(--muted)]">
-                {t("scanner.score")}
+                {t("scanner.averageScore")}
               </div>
             </div>
             <div className="text-xs text-[var(--muted)] space-y-0.5">
-              <div>
-                {result.urls.length} {t("scanner.multiPages")}
-              </div>
-              <div>{duration}s</div>
               {errorCount > 0 && (
                 <div className="text-[rgb(var(--warning))]">
                   {errorCount} {t("scanner.multiPagesError")}
@@ -223,15 +274,6 @@ export default function MultiScanResults({
               )}
             </div>
           </div>
-        </div>
-
-        <div className="mt-4">
-          <GenericButton
-            type="button"
-            label={t("scanner.newScan")}
-            variant="secondary"
-            onClick={onNewScan}
-          />
         </div>
       </Card>
 
@@ -295,7 +337,7 @@ export default function MultiScanResults({
       {activeTab === "overview" && (
         <Card disableHover>
           <h3 className="section-title !text-left mb-4">
-            {t("scanner.multiTabOverview")}
+            {t("scanner.multiPagesBrowseTitle")}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {result.page_results.map((page) => (
@@ -350,21 +392,52 @@ export default function MultiScanResults({
       )}
 
       {typeof activeTab === "number" && result.page_results[activeTab] && (
-        <Card disableHover>
-          <div className="flex items-center justify-between mb-4 gap-2">
-            <h3
-              className="section-title !text-left !mb-0 truncate"
-              title={result.page_results[activeTab].url}
-            >
-              {formatUrlDisplay(result.page_results[activeTab].url)}
-            </h3>
-            {!result.page_results[activeTab].error && (
-              <ScoreChip score={result.page_results[activeTab].score} />
-            )}
-          </div>
-          <PageDetail page={result.page_results[activeTab]} />
-        </Card>
+        <PageDetail page={result.page_results[activeTab]} />
       )}
+
+      <FloatingActionDock
+        ariaLabel={t("scanner.export")}
+        actions={[
+          {
+            key: "new-scan",
+            label: t("scanner.newScan"),
+            variant: "outline",
+            onClick: onNewScan,
+          },
+          {
+            key: "export",
+            label: t("scanner.export"),
+            variant: "primary",
+            icon: <Download className="w-4 h-4" />,
+            iconPosition: "left",
+            onClick: () => setExportModalOpen(true),
+          },
+        ]}
+      />
+
+      <Modal
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        title={t("scanner.export")}
+        maxWidth="420px"
+      >
+        <p className="text-sm text-muted-theme mb-4">
+          {t("scanner.exportDesc")}
+        </p>
+        <div className="flex flex-col gap-2">
+          {EXPORT_FORMATS.map(({ value, labelKey, icon }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => handleFakeExport(labelKey)}
+              className="flex items-center gap-3 w-full p-3 rounded-lg border border-[var(--border)] bg-[var(--color-surface-input)] hover:bg-[var(--color-surface-hover)] transition-colors text-left"
+            >
+              {icon}
+              <span className="font-medium">{t(labelKey)}</span>
+            </button>
+          ))}
+        </div>
+      </Modal>
     </AnimateInView>
   );
 }

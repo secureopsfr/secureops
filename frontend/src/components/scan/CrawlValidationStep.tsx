@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   Plus,
@@ -13,12 +12,11 @@ import {
 import { useLanguage } from "../LanguageProvider";
 import { GenericButton } from "../buttons";
 import Card from "../ui/cards/Card";
+import FloatingActionDock from "./FloatingActionDock";
 import type { CrawlUrlEntry } from "../../services/crawlService";
 import { showErrorToast } from "../../utils/toastNotifications";
 
 const MAX_VALIDATION_URLS = 200;
-const FLOATING_BUTTON_BOTTOM_DEFAULT = 20;
-const FLOATING_BUTTON_BOTTOM_ABOVE_FOOTER = 220;
 
 interface CrawlValidationStepProps {
   urls: CrawlUrlEntry[];
@@ -181,9 +179,6 @@ export default function CrawlValidationStep({
   const [inputHasError, setInputHasError] = useState(false);
   const urlsListRef = useRef<HTMLUListElement | null>(null);
   const [shouldScrollToBottom, setShouldScrollToBottom] = useState(false);
-  const [floatingButtonBottom, setFloatingButtonBottom] = useState(
-    FLOATING_BUTTON_BOTTOM_DEFAULT,
-  );
   const hasWarnings =
     timeoutReached ||
     antiBotSignatureDetected ||
@@ -249,36 +244,6 @@ export default function CrawlValidationStep({
     if (el) el.scrollTop = el.scrollHeight;
     setShouldScrollToBottom(false);
   }, [urls.length, shouldScrollToBottom]);
-
-  useEffect(() => {
-    const footer = document.getElementById("site-footer");
-    if (!footer) return;
-    const updateBottom = (): void => {
-      const rect = footer.getBoundingClientRect();
-      const footerVisible = rect.top < window.innerHeight;
-      setFloatingButtonBottom(
-        footerVisible
-          ? FLOATING_BUTTON_BOTTOM_ABOVE_FOOTER
-          : FLOATING_BUTTON_BOTTOM_DEFAULT,
-      );
-    };
-    const observer = new IntersectionObserver(updateBottom, {
-      threshold: 0,
-      rootMargin: "0px",
-    });
-    observer.observe(footer);
-    const throttledUpdate = (): void => {
-      requestAnimationFrame(updateBottom);
-    };
-    window.addEventListener("scroll", throttledUpdate, { passive: true });
-    window.addEventListener("resize", throttledUpdate);
-    updateBottom();
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("scroll", throttledUpdate);
-      window.removeEventListener("resize", throttledUpdate);
-    };
-  }, []);
 
   return (
     <Card disableHover className="mx-auto max-w-5xl p-6 md:p-7">
@@ -476,21 +441,17 @@ export default function CrawlValidationStep({
         )}
       </div>
 
-      {typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="fixed right-6 z-[9998] shadow-lg transition-all duration-200"
-            style={{ position: "fixed", bottom: floatingButtonBottom }}
-            aria-label={t("scanner.newCrawl")}
-          >
-            <GenericButton
-              label={t("scanner.newCrawl")}
-              variant="outline"
-              onClick={onBack}
-            />
-          </div>,
-          document.body,
-        )}
+      <FloatingActionDock
+        ariaLabel={t("scanner.newCrawl")}
+        actions={[
+          {
+            key: "new-crawl",
+            label: t("scanner.newCrawl"),
+            variant: "outline",
+            onClick: onBack,
+          },
+        ]}
+      />
     </Card>
   );
 }
