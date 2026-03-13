@@ -68,6 +68,16 @@ export default function ScanSummarySection({
   }, {});
 
   const summaries = category_summaries ?? buildFallbackSummaries(byCategory);
+  const summariesByCategory = summaries.reduce<Record<string, CategorySummary>>(
+    (acc, entry) => {
+      acc[entry.category] = entry;
+      return acc;
+    },
+    {},
+  );
+  const displayCategories = category_summaries
+    ? summaries.map((entry) => entry.category)
+    : CHECKED_CATEGORIES_ORDER;
 
   const checksCountByCategory = summaries.reduce<Record<string, number>>(
     (acc, entry) => {
@@ -83,7 +93,7 @@ export default function ScanSummarySection({
 
   const totalTestsCount =
     total_tests_count ??
-    CHECKED_CATEGORIES_ORDER.reduce(
+    displayCategories.reduce(
       (sum, cat) => sum + (checksCountByCategory[cat] ?? 0),
       0,
     );
@@ -122,18 +132,21 @@ export default function ScanSummarySection({
               </tr>
             </thead>
             <tbody>
-              {CHECKED_CATEGORIES_ORDER.map((cat) => {
+              {displayCategories.map((cat) => {
                 const count = byCategory[cat] ?? 0;
                 const nbChecks = checksCountByCategory[cat] ?? 0;
                 const anchorId = `${anchorPrefix}anomalies-${cat}`;
+                const summaryEntry = summariesByCategory[cat];
+                const label =
+                  (language === "en"
+                    ? summaryEntry?.label_en
+                    : summaryEntry?.label_fr) || t(getCategoryKey(cat));
                 return (
                   <tr
                     key={cat}
                     className="border-b border-[var(--color-border)] last:border-b-0"
                   >
-                    <td className="py-3 px-4 text-[var(--text)]">
-                      {t(getCategoryKey(cat))}
-                    </td>
+                    <td className="py-3 px-4 text-[var(--text)]">{label}</td>
                     <td className="py-3 px-4 text-center text-[var(--muted)]">
                       {nbChecks}
                     </td>
