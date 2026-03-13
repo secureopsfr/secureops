@@ -107,3 +107,71 @@ def test_get_async_scan_status_anonymous_requires_valid_job_token(client):
         ko = client.get("/api/scan/async/00000000-0000-0000-0000-000000000001")
     assert ok.status_code == 200
     assert ko.status_code == 403
+
+
+def test_internal_run_scan_forwards_scan_type_and_mode(client):
+    """Internal single scan endpoint forwards scan_type/scan_mode to executor."""
+    with patch(
+        "app.routers.scan.execute_scan_job",
+        new=AsyncMock(return_value=({"status": "success", "score": 99}, None)),
+    ) as mocked_execute:
+        resp = client.post(
+            "/api/internal/scan/run",
+            json={
+                "url": "https://example.com",
+                "scan_type": "backend",
+                "scan_mode": "intrusive",
+            },
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["score"] == 99
+    mocked_execute.assert_awaited_once_with(
+        url="https://example.com",
+        scan_type="backend",
+        scan_mode="intrusive",
+    )
+
+
+def test_internal_run_scan_uses_default_scan_type_and_mode(client):
+    """Internal single scan endpoint applies frontend/passive defaults."""
+    with patch(
+        "app.routers.scan.execute_scan_job",
+        new=AsyncMock(return_value=({"status": "success", "score": 100}, None)),
+    ) as mocked_execute:
+        resp = client.post(
+            "/api/internal/scan/run",
+            json={"url": "https://example.com"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["score"] == 100
+    mocked_execute.assert_awaited_once_with(
+        url="https://example.com",
+        scan_type="frontend",
+        scan_mode="passive",
+    )
+
+
+def test_internal_run_multi_scan_forwards_scan_type_and_mode(client):
+    """Internal multi scan endpoint forwards scan_type/scan_mode to executor."""
+    with patch(
+        "app.routers.scan.execute_multi_scan_job",
+        new=AsyncMock(return_value=({"status": "success", "score_global": 88}, None)),
+    ) as mocked_execute:
+        resp = client.post(
+            "/api/internal/scan/run-multi",
+            json={
+                "urls": ["https://example.com/a", "https://example.com/b"],
+                "scan_type": "both",
+                "scan_mode": "destructive",
+            },
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["score_global"] == 88
+    mocked_execute.assert_awaited_once_with(
+        urls=["https://example.com/a", "https://example.com/b"],
+        scan_type="both",
+        scan_mode="destructive",
+    )
