@@ -14,20 +14,20 @@ from app.config_loader import get_async_jobs_settings, get_external_services_set
 from app.db import get_async_session
 from app.schemas.async_job import ScanAsyncCreateRequest, ScanAsyncCreateResponse, ScanAsyncMultiCreateRequest, ScanAsyncStatusResponse
 from app.services.async_job_repository import create_job, get_job_by_id
-from app.services.multi_scan_orchestrator import run_multi_scan
+from app.services.async_scan_executor import execute_multi_scan_job, execute_scan_job
 from app.services.pdf_export_service import PdfExportError, export_scan_pdf_bytes
-from app.services.scan_runner import ScanRunError, run_scan_to_result
 from app.use_cases.async_job_access import (
+    AnonymousPassiveFrontendOnlyError,
     JobAccessDeniedError,
     JobNotFoundError,
     JobResultNotReadyError,
     NonFrontendAuthRequiredError,
+    require_anonymous_passive_frontend_only,
     require_completed_job,
     require_existing_job,
     require_job_access,
     require_user_for_non_frontend,
 )
-from app.utils.url_validator import URLValidationError
 
 # Clé API pour les appels service-to-service (endpoint interne).
 # Si définie, le header X-Internal-Api-Key doit correspondre.
@@ -108,12 +108,16 @@ class InternalScanRequest(BaseModel):
     """Requête pour l'endpoint interne (scheduler)."""
 
     url: str = Field(..., description="URL à scanner")
+    scan_type: str = Field("frontend", description="Type de scan: frontend, backend, both")
+    scan_mode: str = Field("passive", description="Mode de scan: passive, intrusive, destructive, custom")
 
 
 class InternalMultiScanRequest(BaseModel):
     """Requête pour l'endpoint interne multi (scheduler)."""
 
     urls: list[str] = Field(..., min_length=2, description="Liste d'URLs d'un même domaine")
+    scan_type: str = Field("frontend", description="Type de scan: frontend, backend, both")
+    scan_mode: str = Field("passive", description="Mode de scan: passive, intrusive, destructive, custom")
 
 
 @router.post(
@@ -127,11 +131,21 @@ async def internal_run_scan(
 ) -> dict:
     """Exécute le scan et retourne le résultat en JSON (pas de SSE)."""
     try:
-        return await run_scan_to_result(body.url)
-    except URLValidationError as e:
-        return {"status": "error", "message": str(e), "status_code": 400}
-    except ScanRunError as e:
-        return {"status": "error", "message": e.message, "status_code": e.status_code}
+        result_payload, error_payload = await execute_scan_job(
+            url=body.url,
+            scan_type=body.scan_type,
+            scan_mode=body.scan_mode,
+        )
+        if error_payload:
+            return {
+                "status": "error",
+                "message": error_payload.get("message", "Erreur de scan interne"),
+                "status_code": int(error_payload.get("status_code", 500)),
+                "error_type": error_payload.get("error_type", "unexpected_error"),
+            }
+        if result_payload is None:
+            return {"status": "error", "message": "Résultat de scan introuvable.", "status_code": 500}
+        return result_payload
     except Exception as e:
         logger.exception("Erreur inattendue lors du scan interne: %s", e)
         return {"status": "error", "message": str(e), "status_code": 500}
@@ -148,12 +162,21 @@ async def internal_run_multi_scan(
 ) -> dict:
     """Exécute un scan multi et retourne le résultat agrégé en JSON."""
     try:
-        result = await run_multi_scan(body.urls)
-        return result.to_dict()
-    except URLValidationError as e:
-        return {"status": "error", "message": str(e), "status_code": 400}
-    except ValueError as e:
-        return {"status": "error", "message": str(e), "status_code": 400}
+        result_payload, error_payload = await execute_multi_scan_job(
+            urls=body.urls,
+            scan_type=body.scan_type,
+            scan_mode=body.scan_mode,
+        )
+        if error_payload:
+            return {
+                "status": "error",
+                "message": error_payload.get("message", "Erreur de scan multi interne"),
+                "status_code": int(error_payload.get("status_code", 500)),
+                "error_type": error_payload.get("error_type", "unexpected_error"),
+            }
+        if result_payload is None:
+            return {"status": "error", "message": "Résultat de scan multi introuvable.", "status_code": 500}
+        return result_payload
     except Exception as e:
         logger.exception("Erreur inattendue lors du scan multi interne: %s", e)
         return {"status": "error", "message": str(e), "status_code": 500}
@@ -167,20 +190,28 @@ async def create_scan_async_job(
     """Crée un job async scan et retourne immédiatement un job_id."""
     try:
         require_user_for_non_frontend(body.scan_type, authenticated_user_id)
+        require_anonymous_passive_frontend_only(
+            scan_type=body.scan_type,
+            scan_mode=body.scan_mode,
+            authenticated_user_id=authenticated_user_id,
+        )
     except NonFrontendAuthRequiredError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    except AnonymousPassiveFrontendOnlyError as exc:
         raise HTTPException(status_code=401, detail=str(exc))
     raw_job_token: str | None = None
     token_hash: str | None = None
     if not authenticated_user_id:
         raw_job_token = generate_job_token()
         token_hash = hash_job_token(raw_job_token, ASYNC_JOB_TOKEN_SECRET)
+    job_input = {"scan_mode": body.scan_mode, **(body.input or {})}
     try:
         async with get_async_session() as session:
             job = await create_job(
                 session,
                 url=body.url,
                 scan_type=body.scan_type,
-                input_json=body.input,
+                input_json=job_input,
                 user_id=authenticated_user_id,
                 job_token_hash=token_hash,
                 max_attempts=ASYNC_MAX_ATTEMPTS,
@@ -194,6 +225,7 @@ async def create_scan_async_job(
         job_id=str(job.id),
         status="pending",
         scan_type=body.scan_type,
+        scan_mode=body.scan_mode,
         job_token=raw_job_token,
     )
 
@@ -212,12 +244,13 @@ async def create_multi_scan_async_job(
         raise HTTPException(status_code=401, detail="Authentification requise pour le scan multi-URL")
 
     try:
+        job_input = {"scan_mode": body.scan_mode, "urls": body.urls, **(body.input or {})}
         async with get_async_session() as session:
             job = await create_job(
                 session,
                 url=body.urls[0],
                 scan_type=body.scan_type,
-                input_json={"urls": body.urls, **body.input},
+                input_json=job_input,
                 user_id=authenticated_user_id,
                 job_token_hash=None,
                 max_attempts=ASYNC_MAX_ATTEMPTS,
@@ -233,6 +266,7 @@ async def create_multi_scan_async_job(
         job_id=str(job.id),
         status="pending",
         scan_type=body.scan_type,
+        scan_mode=body.scan_mode,
         job_token=None,
     )
 
@@ -260,6 +294,7 @@ async def get_scan_async_job_status(
             return ScanAsyncStatusResponse(
                 job_id=str(job.id),
                 scan_type=job.scan_type,  # type: ignore[arg-type]
+                scan_mode=((getattr(job, "input_json", None) or {}).get("scan_mode") or "passive"),  # type: ignore[arg-type]
                 status=job.status,  # type: ignore[arg-type]
                 result_mode=getattr(job, "result_mode", "single") or "single",
                 attempt_count=int(job.attempt_count or 0),

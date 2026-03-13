@@ -1,5 +1,3 @@
-"""Services métier du scan-service."""
+"""Services package for scan pipelines."""
 
-from app.services.tls import run_tls_checks
-
-__all__ = ["run_tls_checks"]
+__all__: list[str] = []

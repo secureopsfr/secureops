@@ -1,8 +1,8 @@
-"""Tests unitaires pour les vérifications Cookies (app.services.cookies.checks)."""
+"""Tests unitaires pour les vérifications Cookies (passive)."""
 
 from unittest.mock import MagicMock
 
-from app.services.cookies import check_cookies_from_response
+from app.services.passive.cookies import check_cookies_from_response
 
 
 def test_check_cookies_response_none() -> None:

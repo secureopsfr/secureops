@@ -101,7 +101,6 @@ async def _execute_claimed_job(session: Any, job: Any) -> None:
     try:
         result, error = await execute_crawl_job(
             url=job.url,
-            scan_type=job.scan_type,
             input_json=job.input_json or {},
             on_progress=progress.on_progress,
         )
@@ -125,7 +124,7 @@ async def _run_once() -> bool:
         job = await claim_next_job(session)
         if not job:
             return False
-        logger.info("crawl-worker: job claimed id=%s type=%s attempt=%s", job.id, job.scan_type, job.attempt_count)
+        logger.info("crawl-worker: job claimed id=%s attempt=%s", job.id, job.attempt_count)
         await _execute_claimed_job(session, job)
         return True
 

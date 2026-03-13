@@ -8,7 +8,8 @@
  * @param options.page - Numéro de page
  * @param options.limit - Nombre d'éléments par page
  * @param options.url - Filtre optionnel par URL
- * @param options.scan_type - Filtre optionnel par type (frontend, backend, custom)
+ * @param options.scan_type - Filtre optionnel par type (frontend, backend, both)
+ * @param options.scan_mode - Filtre optionnel par mode (passive, intrusive, destructive, custom)
  * @param options.date_from - Filtre optionnel date de début (ISO string)
  * @param options.date_to - Filtre optionnel date de fin (ISO string)
  */
@@ -17,6 +18,7 @@ export function buildPaginatedQuery(params: {
   limit: number;
   url?: string | null;
   scan_type?: string | null;
+  scan_mode?: string | null;
   date_from?: string | null;
   date_to?: string | null;
 }): string {
@@ -29,9 +31,15 @@ export function buildPaginatedQuery(params: {
   }
   if (
     params.scan_type &&
-    ["frontend", "backend", "custom"].includes(params.scan_type)
+    ["frontend", "backend", "both", "custom"].includes(params.scan_type)
   ) {
     search.set("scan_type", params.scan_type);
+  }
+  if (
+    params.scan_mode &&
+    ["passive", "intrusive", "destructive", "custom"].includes(params.scan_mode)
+  ) {
+    search.set("scan_mode", params.scan_mode);
   }
   if (params.date_from?.trim()) {
     search.set("date_from", params.date_from.trim());

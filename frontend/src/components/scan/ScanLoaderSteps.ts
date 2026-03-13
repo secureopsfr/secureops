@@ -52,6 +52,22 @@ export const STEP_I18N_KEYS: Record<string, string> = {
   integrity_done: "scanner.integrityDone",
   cors_cross_origin_check: "scanner.corsCheck",
   cors_cross_origin_done: "scanner.corsDone",
+  // Intrusive fake probe steps
+  intrusive_reflected_xss_check: "scanner.intrusiveReflectedXssCheck",
+  intrusive_reflected_xss_done: "scanner.intrusiveReflectedXssDone",
+  intrusive_sql_injection_check: "scanner.intrusiveSqlInjectionCheck",
+  intrusive_sql_injection_done: "scanner.intrusiveSqlInjectionDone",
+  intrusive_authz_bypass_check: "scanner.intrusiveAuthzBypassCheck",
+  intrusive_authz_bypass_done: "scanner.intrusiveAuthzBypassDone",
+  // Custom/destructive fake plan steps
+  custom_plan_check: "scanner.customPlanCheck",
+  custom_plan_done: "scanner.customPlanDone",
+  custom_multi_plan_check: "scanner.customMultiPlanCheck",
+  custom_multi_plan_done: "scanner.customMultiPlanDone",
+  destructive_plan_check: "scanner.destructivePlanCheck",
+  destructive_plan_done: "scanner.destructivePlanDone",
+  destructive_multi_plan_check: "scanner.destructiveMultiPlanCheck",
+  destructive_multi_plan_done: "scanner.destructiveMultiPlanDone",
   // Crawl single-mode steps
   robots_check: "scanner.robotsCheck",
   robots_done: "scanner.robotsDone",
@@ -182,7 +198,11 @@ export function buildTimelineSteps(
     if (
       rawSteps.some(
         (s) =>
-          s.step === "cors_cross_origin_done" || s.step === "fake_scan_done",
+          s.step === "cors_cross_origin_done" ||
+          s.step === "intrusive_authz_bypass_done" ||
+          s.step === "custom_plan_done" ||
+          s.step === "destructive_plan_done" ||
+          s.step === "fake_scan_done",
       )
     ) {
       timeline.push({ step: "scan_score_compute", message: "", done: true });

@@ -9,7 +9,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scan_alert_event import ScanAlertEvent
-from app.utils.query_utils import apply_date_filter, apply_scan_type_filter, apply_url_filter
+from app.utils.query_utils import apply_date_filter, apply_scan_mode_filter, apply_scan_type_filter, apply_url_filter
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ async def create_scan_alert_event(
     alert_type: str,
     email_sent: bool,
     scheduled_scan_id: uuid.UUID | None = None,
+    scan_mode: str = "passive",
 ) -> ScanAlertEvent:
     """Enregistre un événement d'alerte déclenché.
 
@@ -41,6 +42,7 @@ async def create_scan_alert_event(
         scheduled_scan_id=scheduled_scan_id,
         url=url,
         scan_type=scan_type,
+        scan_mode=scan_mode,
         alert_type=alert_type,
         email_sent=email_sent,
     )
@@ -55,6 +57,7 @@ async def count_scan_alert_events_by_user(
     user_id: uuid.UUID,
     url: Optional[str] = None,
     scan_type: Optional[str] = None,
+    scan_mode: Optional[str] = None,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
 ) -> int:
@@ -64,7 +67,7 @@ async def count_scan_alert_events_by_user(
         session: Session de base de données.
         user_id: UUID de l'utilisateur.
         url: Filtre optionnel par URL exacte.
-        scan_type: Filtre optionnel (frontend, backend, custom).
+        scan_type: Filtre optionnel (frontend, backend, both).
         date_from: Filtre optionnel date de début (triggered_at).
         date_to: Filtre optionnel date de fin (triggered_at).
 
@@ -74,6 +77,7 @@ async def count_scan_alert_events_by_user(
     stmt = select(func.count(ScanAlertEvent.id)).where(ScanAlertEvent.user_id == user_id)
     stmt = apply_url_filter(stmt, ScanAlertEvent.url, url)
     stmt = apply_scan_type_filter(stmt, ScanAlertEvent.scan_type, scan_type)
+    stmt = apply_scan_mode_filter(stmt, ScanAlertEvent.scan_mode, scan_mode)
     stmt = apply_date_filter(stmt, ScanAlertEvent.triggered_at, date_from, date_to)
     result = await session.execute(stmt)
     return result.scalar() or 0
@@ -86,6 +90,7 @@ async def list_scan_alert_events_by_user(
     offset: int = 0,
     url: Optional[str] = None,
     scan_type: Optional[str] = None,
+    scan_mode: Optional[str] = None,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
 ) -> List[ScanAlertEvent]:
@@ -97,7 +102,7 @@ async def list_scan_alert_events_by_user(
         limit: Nombre max d'éléments.
         offset: Décalage pour pagination.
         url: Filtre optionnel par URL exacte.
-        scan_type: Filtre optionnel (frontend, backend, custom).
+        scan_type: Filtre optionnel (frontend, backend, both).
         date_from: Filtre optionnel date de début (triggered_at).
         date_to: Filtre optionnel date de fin (triggered_at).
 
@@ -107,6 +112,7 @@ async def list_scan_alert_events_by_user(
     stmt = select(ScanAlertEvent).where(ScanAlertEvent.user_id == user_id)
     stmt = apply_url_filter(stmt, ScanAlertEvent.url, url)
     stmt = apply_scan_type_filter(stmt, ScanAlertEvent.scan_type, scan_type)
+    stmt = apply_scan_mode_filter(stmt, ScanAlertEvent.scan_mode, scan_mode)
     stmt = apply_date_filter(stmt, ScanAlertEvent.triggered_at, date_from, date_to)
     stmt = stmt.order_by(ScanAlertEvent.triggered_at.desc()).limit(limit).offset(offset)
     result = await session.execute(stmt)

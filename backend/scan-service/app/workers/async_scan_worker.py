@@ -92,16 +92,20 @@ async def _execute_claimed_job(session: Any, job: Any) -> None:
         if result_mode == "multi":
             input_data = job.input_json or {}
             urls = input_data.get("urls") or [job.url]
+            scan_mode = str(input_data.get("scan_mode") or "passive")
             result, error = await execute_multi_scan_job(
                 urls=urls,
                 scan_type=job.scan_type,
+                scan_mode=scan_mode,
                 on_progress=progress.on_progress,
             )
         else:
+            input_data = job.input_json or {}
             result, error = await execute_scan_job(
                 url=job.url,
                 scan_type=job.scan_type,
-                input_json=job.input_json or {},
+                scan_mode=str(input_data.get("scan_mode") or "passive"),
+                input_json=input_data,
                 on_progress=progress.on_progress,
                 flush_fn=lambda: progress.flush(force=True),
             )
