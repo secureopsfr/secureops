@@ -1,7 +1,7 @@
 """Tests unitaires pour la normalisation des résultats (passive)."""
 
 from app.services.passive.cookies.checks import CookieCheckResult, CookieInfo
-from app.services.passive.cors_cross_origin.checks import CorsCrossOriginCheckResult
+from app.services.passive.cors_cross_origin.checks import CorsCrossOriginCheckResult, CorsIssue
 from app.services.passive.normalization import normalize_results
 from app.services.passive.path_checks.core import PathCheckResult, PathFinding
 from app.services.passive.robots_txt.checks import RobotsTxtCheckResult, SensitiveRoute
@@ -290,7 +290,7 @@ def test_normalize_cookies_no_secure() -> None:
 def test_normalize_cookies_session_incomplete() -> None:
     """Cookie de session sans triple protection produit cookies-session-incomplete."""
     result = CookieCheckResult(
-        cookies=(),
+        cookies=(CookieInfo(name="session_id", secure=False, httponly=False, samesite=None),),
         findings=("Cookie de session 'session_id' sans HttpOnly + Secure + SameSite=Strict : risque élevé.",),
         fetch_ok=True,
     )
@@ -301,42 +301,42 @@ def test_normalize_cookies_session_incomplete() -> None:
 
 
 def test_normalize_cookies_no_host_secure_prefix() -> None:
-    """Cookie sensible sans préfixe produit cookies-no-host-secure-prefix."""
+    """Cookie sensible sans préfixe __Host-/__Secure- produit cookies-no-host-secure-prefix."""
+    # session_id a la triple protection mais pas les préfixes __Host-/__Secure-
     result = CookieCheckResult(
-        cookies=(),
+        cookies=(CookieInfo(name="session_id", secure=True, httponly=True, samesite="Strict"),),
         findings=("Cookie sensible 'session_id' sans préfixe __Host- ou __Secure- : bonne pratique recommandée.",),
         fetch_ok=True,
     )
     findings = normalize_results({"cookies": result})
-    assert len(findings) == 1
-    assert findings[0].id == "cookies-no-host-secure-prefix"
-    assert findings[0].severity == "info"
+    assert any(f.id == "cookies-no-host-secure-prefix" for f in findings)
+    assert next(f for f in findings if f.id == "cookies-no-host-secure-prefix").severity == "info"
 
 
 def test_normalize_cookies_no_partitioned() -> None:
     """Cookie tiers sans Partitioned produit cookies-no-partitioned."""
+    # _ga est third-party-like (analytics), secure+httponly+samesite OK, partitioned=False
     result = CookieCheckResult(
-        cookies=(),
+        cookies=(CookieInfo(name="_ga", secure=True, httponly=True, samesite="Lax", partitioned=False),),
         findings=("Cookie '_ga' (analytics/tiers probable) sans Partitioned : recommandation CHIPS.",),
         fetch_ok=True,
     )
     findings = normalize_results({"cookies": result})
-    assert len(findings) == 1
-    assert findings[0].id == "cookies-no-partitioned"
-    assert findings[0].severity == "low"
+    assert any(f.id == "cookies-no-partitioned" for f in findings)
+    assert next(f for f in findings if f.id == "cookies-no-partitioned").severity == "low"
 
 
 def test_normalize_cookies_session_expires_long() -> None:
-    """Cookie session avec Expires long produit cookies-session-expires-long."""
+    """Cookie session avec Max-Age > 24h produit cookies-session-expires-long."""
+    # session_id avec triple protection mais Max-Age = 48h (172800s > 86400s)
     result = CookieCheckResult(
-        cookies=(),
+        cookies=(CookieInfo(name="session_id", secure=True, httponly=True, samesite="Strict", max_age_seconds=172800),),
         findings=("Cookie de session 'session_id' avec Expires/Max-Age > 24h : session persistante non recommandée.",),
         fetch_ok=True,
     )
     findings = normalize_results({"cookies": result})
-    assert len(findings) == 1
-    assert findings[0].id == "cookies-session-expires-long"
-    assert findings[0].severity == "low"
+    assert any(f.id == "cookies-session-expires-long" for f in findings)
+    assert next(f for f in findings if f.id == "cookies-session-expires-long").severity == "low"
 
 
 def test_normalize_exposed_files_upgrade_critical() -> None:
@@ -571,6 +571,7 @@ def test_normalize_cors_cross_origin_mixed_content() -> None:
     result = CorsCrossOriginCheckResult(
         findings=("Mixed content : ressource chargée en HTTP sur page HTTPS : http://evil.com/lib.js.",),
         fetch_ok=True,
+        issues=(CorsIssue(kind="mixed_content", message="Mixed content : ressource chargée en HTTP sur page HTTPS : http://evil.com/lib.js."),),
     )
     findings = normalize_results({"cors_cross_origin": result})
     assert len(findings) == 1
@@ -584,6 +585,7 @@ def test_normalize_cors_cross_origin_acao_star_sensitive() -> None:
     result = CorsCrossOriginCheckResult(
         findings=("Access-Control-Allow-Origin: * sur endpoint sensible : https://example.com/api/.",),
         fetch_ok=True,
+        issues=(CorsIssue(kind="acao_star_sensitive", message="Access-Control-Allow-Origin: * sur endpoint sensible : https://example.com/api/."),),
     )
     findings = normalize_results({"cors_cross_origin": result})
     assert len(findings) == 1

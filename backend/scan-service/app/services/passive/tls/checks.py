@@ -72,37 +72,27 @@ class TlsCheckResult:
 
 
 def _format_https_connection_error(exc: BaseException) -> str:
-    """Formate une erreur de connexion HTTPS via le module centralisé.
-
-    Délègue à classify_fetch_exception pour cohérence avec le flux principal.
-
-    Args:
-        exc: Exception capturée.
-
-    Returns:
-        str: Message utilisateur pour le finding.
-    """
+    """Formate une erreur de connexion HTTPS via le module centralisé."""
     return classify_fetch_exception(exc).message
 
 
-async def _check_tls_versions(host: str, port: int, timeouts: ScanTimeoutsSettings, findings: list[str]) -> tuple[str, ...]:
-    """Vérification 4 : détecte TLS 1.0/1.1. Retourne la liste des versions obsolètes."""
+async def _check_tls_versions(host: str, port: int, timeouts: ScanTimeoutsSettings) -> tuple[tuple[str, ...], list[str]]:
+    """Vérification 4 : détecte TLS 1.0/1.1. Retourne (versions_obsolètes, findings)."""
     try:
         obsolete, tls_findings = await asyncio.to_thread(check_tls_versions_obsolete, host, port, timeouts.connection)
-        findings.extend(tls_findings)
-        return tuple(obsolete)
+        return tuple(obsolete), tls_findings
     except Exception:
-        return ()
+        return (), []
 
 
-async def _check_certificate(host: str, port: int, timeouts: ScanTimeoutsSettings, findings: list[str]) -> tuple[str | None, bool]:
+async def _check_certificate(host: str, port: int, timeouts: ScanTimeoutsSettings) -> tuple[str | None, bool, list[str]]:
     """Vérification 3 : récupère et analyse le certificat et la chaîne.
 
     Returns:
-        tuple[str | None, bool]: (certificate_status, chain_incomplete).
+        tuple[str | None, bool, list[str]]: (certificate_status, chain_incomplete, findings).
     """
+    findings: list[str] = []
     try:
-        # Tenter d'abord la chaîne complète (openssl) pour vérifier les intermédiaires
         chain = await asyncio.to_thread(fetch_certificate_chain, host, port, timeouts.connection)
         cert_der = chain[0] if chain else await asyncio.to_thread(fetch_certificate_der, host, port, timeouts.connection)
         status, cert_findings = analyze_certificate(cert_der, host)
@@ -114,10 +104,10 @@ async def _check_certificate(host: str, port: int, timeouts: ScanTimeoutsSetting
             findings.extend(chain_findings)
             chain_incomplete = not chain_ok
 
-        return status, chain_incomplete
+        return status, chain_incomplete, findings
     except Exception as e:
         findings.append(f"Impossible d'analyser le certificat : {e!s}")
-        return None, False
+        return None, False, findings
 
 
 async def _fetch_https_when_unset(https_url: str, timeouts: ScanTimeoutsSettings, findings: list[str]) -> httpx.Response | None:
@@ -140,11 +130,11 @@ async def _fetch_https_when_unset(https_url: str, timeouts: ScanTimeoutsSettings
 async def _check_http_redirect(
     http_url: str,
     timeouts: ScanTimeoutsSettings,
-    findings: list[str],
     *,
     client: "AsyncClient | None" = None,
-) -> bool | None:
-    """Vérification 2 : redirection HTTP→HTTPS. Retourne True/False/None."""
+) -> tuple[bool | None, list[str]]:
+    """Vérification 2 : redirection HTTP→HTTPS. Retourne (True/False/None, findings)."""
+    findings: list[str] = []
     if client is not None:
         response = await get_with_client(client, http_url, follow_redirects=False)
     else:
@@ -156,20 +146,20 @@ async def _check_http_redirect(
             ) as ac:
                 response = await ac.get(http_url)
         except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout, httpx.WriteTimeout):
-            return None
+            return None, findings
         except Exception:
-            return None
+            return None, findings
 
     if response is None:
-        return None
+        return None, findings
     if response.status_code in (301, 302, 307, 308):
         location = response.headers.get("location")
         ok = location_redirects_to_https(location)
         if not ok:
             findings.append("Pas de redirection HTTP→HTTPS : la redirection ne pointe pas vers https://.")
-        return ok
+        return ok, findings
     findings.append("Pas de redirection HTTP→HTTPS (réponse 200 ou autre sans redirection). Le trafic peut rester en clair.")
-    return False
+    return False, findings
 
 
 async def run_tls_checks(
@@ -223,20 +213,25 @@ async def run_tls_checks(
                 fetch_ok=False,
             )
 
-    # On a une réponse HTTPS (fournie ou venant de notre GET)
-    # Vérification 2 : Redirection HTTP→HTTPS (uniquement si HTTPS activé)
-    http_redirects_to_https = await _check_http_redirect(http_url, timeouts, findings, client=client)
-
-    # Vérification 3 et 4 : certificat et versions TLS (utiliser le port de l'URL)
+    # On a une réponse HTTPS — lancer les 4 vérifications indépendantes en parallèle.
     host = get_host_from_url(url)
     port = get_https_port_from_url(url)
-    certificate_status, chain_incomplete = await _check_certificate(host, port, timeouts, findings)
 
-    # Vérification 4 : Versions TLS obsolètes (1.0, 1.1)
-    tls_versions_obsolete = await _check_tls_versions(host, port, timeouts, findings)
+    (
+        (http_redirects_to_https, redirect_findings),
+        (certificate_status, chain_incomplete, cert_findings),
+        (tls_versions_obsolete, version_findings),
+        tls_version,
+    ) = await asyncio.gather(
+        _check_http_redirect(http_url, timeouts, client=client),
+        _check_certificate(host, port, timeouts),
+        _check_tls_versions(host, port, timeouts),
+        asyncio.to_thread(get_negotiated_tls_version, host, port, timeouts.connection),
+    )
 
-    # Version TLS négociée (ex. TLS 1.2, TLS 1.3) pour affichage dans le résumé
-    tls_version = await asyncio.to_thread(get_negotiated_tls_version, host, port, timeouts.connection)
+    findings.extend(redirect_findings)
+    findings.extend(cert_findings)
+    findings.extend(version_findings)
 
     return TlsCheckResult(
         https_enabled=True,

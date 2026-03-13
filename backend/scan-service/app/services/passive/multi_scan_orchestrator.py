@@ -31,9 +31,12 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
     """Passive implementation using the reusable multi-scan template."""
 
     def __init__(self, *, on_progress: OnProgress = None) -> None:
-        """Initialize passive orchestration and shared per-run asset cache."""
+        """Initialize passive orchestration and shared per-run caches."""
         super().__init__(on_progress=on_progress)
         self._assets_cache: dict[str, str | None] = {}
+        # Cache du bundle domaine : évite de re-normaliser/re-scorer N fois
+        # pour les pages en erreur (toutes partagent le même résultat domaine).
+        self._domain_bundle_cache: FindingsBundle | None = None
 
     def resolve_base_url(self, urls: list[str]) -> str:
         """Resolve canonical base URL from the first validated target URL."""
@@ -67,15 +70,21 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
         base_url: str,
         client: httpx.AsyncClient,
     ) -> dict[str, Any]:
-        """Run domain-level passive checks once and share results across pages."""
-        domain_results: dict[str, Any] = {}
-        await asyncio.gather(
-            self._run_domain_tls(base_url, client, domain_results),
-            self._run_domain_robots_then_sitemap(base_url, client, domain_results),
-            self._run_domain_exposed_files(base_url, client, domain_results),
-            self._run_domain_directory_listing(base_url, client, domain_results),
-            self._run_domain_cors(base_url, client, domain_results),
+        """Run domain-level passive checks once and share results across pages.
+
+        Chaque coroutine retourne un dict partiel qui est fusionné après gather,
+        ce qui élimine la mutation concurrente d'un dict partagé.
+        """
+        partial_results = await asyncio.gather(
+            self._run_domain_tls(base_url, client),
+            self._run_domain_robots_then_sitemap(base_url, client),
+            self._run_domain_exposed_files(base_url, client),
+            self._run_domain_directory_listing(base_url, client),
+            self._run_domain_cors(base_url, client),
         )
+        domain_results: dict[str, Any] = {}
+        for partial in partial_results:
+            domain_results.update(partial)
         await self.emit_progress("domain_checks_done")
         return domain_results
 
@@ -83,65 +92,72 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
         self,
         base_url: str,
         client: httpx.AsyncClient,
-        domain_results: dict[str, Any],
-    ) -> None:
+    ) -> dict[str, Any]:
         await self.emit_progress("domain_robots_check")
         with http_request_category("robots_txt"):
-            domain_results["robots_txt"] = await run_robots_txt_checks(base_url, client=client)
+            robots_result = await run_robots_txt_checks(base_url, client=client)
         await self.emit_progress("domain_sitemap_check")
         with http_request_category("sitemap"):
-            domain_results["sitemap"] = await run_sitemap_checks(
+            sitemap_result = await run_sitemap_checks(
                 base_url,
-                robots_txt_result=domain_results["robots_txt"],
+                robots_txt_result=robots_result,
                 client=client,
             )
+        return {"robots_txt": robots_result, "sitemap": sitemap_result}
 
     async def _run_domain_tls(
         self,
         base_url: str,
         client: httpx.AsyncClient,
-        domain_results: dict[str, Any],
-    ) -> None:
+    ) -> dict[str, Any]:
         await self.emit_progress("domain_tls_check")
         normalized = validate_and_normalize_url(base_url)
         with http_request_category("tls"):
             fetch_result = await get_with_client_or_error(client, base_url, follow_redirects=True)
             https_response = fetch_result.response if fetch_result.success else None
-            domain_results["tls"] = await run_tls_checks(
+            tls_result = await run_tls_checks(
                 normalized,
                 https_response=https_response,
                 client=client,
             )
+        return {"tls": tls_result}
 
     async def _run_domain_exposed_files(
         self,
         base_url: str,
         client: httpx.AsyncClient,
-        domain_results: dict[str, Any],
-    ) -> None:
+    ) -> dict[str, Any]:
         await self.emit_progress("domain_exposed_files_check")
         with http_request_category("exposed_files"):
-            domain_results["exposed_files"] = await run_exposed_files_checks(base_url, client=client)
+            result = await run_exposed_files_checks(base_url, client=client)
+        return {"exposed_files": result}
 
     async def _run_domain_directory_listing(
         self,
         base_url: str,
         client: httpx.AsyncClient,
-        domain_results: dict[str, Any],
-    ) -> None:
+    ) -> dict[str, Any]:
         await self.emit_progress("domain_directory_listing_check")
         with http_request_category("directory_listing"):
-            domain_results["directory_listing"] = await run_directory_listing_checks(base_url, client=client)
+            result = await run_directory_listing_checks(base_url, client=client)
+        return {"directory_listing": result}
 
     async def _run_domain_cors(
         self,
         base_url: str,
         client: httpx.AsyncClient,
-        domain_results: dict[str, Any],
-    ) -> None:
+    ) -> dict[str, Any]:
         await self.emit_progress("domain_cors_check")
         with http_request_category("cors_cross_origin"):
-            domain_results["cors_domain"] = await run_cors_domain_checks(base_url, client=client)
+            result = await run_cors_domain_checks(base_url, client=client)
+        return {"cors_domain": result}
+
+    def _get_domain_bundle(self, domain_results: dict[str, Any]) -> FindingsBundle:
+        """Retourne le bundle domaine, calculé une seule fois par run."""
+        if self._domain_bundle_cache is None:
+            domain_only = {k: v for k, v in domain_results.items() if k != "cors_domain"}
+            self._domain_bundle_cache = build_findings_bundle(domain_only)
+        return self._domain_bundle_cache
 
     async def run_single_page(
         self,
@@ -201,8 +217,8 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
         error_message: str,
         domain_results: dict[str, Any],
     ) -> PageScanResult:
-        domain_only: dict[str, Any] = {k: v for k, v in domain_results.items() if k != "cors_domain"}
-        bundle: FindingsBundle = build_findings_bundle(domain_only)
+        """Construit un résultat de page en erreur en réutilisant le bundle domaine mis en cache."""
+        bundle = self._get_domain_bundle(domain_results)
         return PageScanResult(
             url=url,
             score=bundle.score,

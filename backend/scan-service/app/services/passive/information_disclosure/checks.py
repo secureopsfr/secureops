@@ -15,7 +15,7 @@ réponse HTTPS principale (headers + body tronqué) est analysée.
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import httpx
 
@@ -25,18 +25,37 @@ from app.utils.headers import get_header_insensitive
 
 
 @dataclass(frozen=True)
+class InfoDiscIssue:
+    """Issue d'information disclosure typée pour une normalisation sans correspondance de chaînes.
+
+    Attributes:
+        kind: Discriminant sémantique du problème.
+            Valeurs possibles : "stack_trace", "debug_mode", "secret",
+            "debug_headers", "server_version", "runtime_version",
+            "aspnet_version", "custom_header", "connection_failed".
+        message: Message lisible pour l'affichage SSE et le rapport.
+    """
+
+    kind: str
+    message: str
+
+
+@dataclass(frozen=True)
 class InformationDisclosureCheckResult:
     """Résultat des vérifications de fuites d'information.
 
     Attributes:
-        findings (tuple[str, ...]): Messages bruts décrivant les fuites détectées
-            (stack traces, secrets, headers de debug, etc.).
+        findings (tuple[str, ...]): Messages bruts pour la sérialisation SSE
+            (compat ascendante). Dérivés des ``issues``.
         fetch_ok (bool): Indique si la réponse HTTPS a pu être analysée. False
             si la réponse est absente ou illisible.
+        issues (tuple[InfoDiscIssue, ...]): Issues typées consommées par le normalizer
+            sans correspondance de chaînes.
     """
 
     findings: tuple[str, ...]
     fetch_ok: bool
+    issues: tuple[InfoDiscIssue, ...] = field(default=())
 
 
 _STACK_TRACE_MARKERS: tuple[str, ...] = (
@@ -79,16 +98,7 @@ _PLACEHOLDER_MARKERS: tuple[str, ...] = ("example", "demo", "test", "dummy")
 
 
 def _extract_snippet(body: str, index: int, window: int = 200) -> str:
-    """Extrait un extrait court autour d'un index dans le corps.
-
-    Args:
-        body: Contenu textuel de la réponse.
-        index: Position du motif détecté dans le texte.
-        window: Taille maximale de la fenêtre (caractères).
-
-    Returns:
-        str: Extrait nettoyé (saut de ligne aplatis).
-    """
+    """Extrait un extrait court autour d'un index dans le corps."""
     if index < 0 or not body:
         return ""
     half = max(window // 2, 1)
@@ -98,61 +108,36 @@ def _extract_snippet(body: str, index: int, window: int = 200) -> str:
     return snippet.strip()
 
 
-def _detect_stack_traces(body: str) -> list[str]:
-    """Détecte des stack traces typiques dans le corps de la réponse.
-
-    Args:
-        body: Contenu textuel de la réponse HTTP.
-
-    Returns:
-        list[str]: Messages de findings pour les stack traces détectées.
-    """
-    findings: list[str] = []
+def _detect_stack_traces(body: str) -> list[InfoDiscIssue]:
+    """Détecte des stack traces typiques dans le corps de la réponse."""
     if not body:
-        return findings
+        return []
     lowered = body.lower()
     for marker in _STACK_TRACE_MARKERS:
         idx = lowered.find(marker)
         if idx != -1:
             snippet = _extract_snippet(body, idx)
-            findings.append(f"Stack trace détectée dans la réponse (extrait : {snippet}).")
-            break
-    return findings
+            msg = f"Stack trace détectée dans la réponse (extrait : {snippet})."
+            return [InfoDiscIssue(kind="stack_trace", message=msg)]
+    return []
 
 
-def _detect_debug_body_markers(body: str) -> list[str]:
-    """Détecte des messages d'erreur ou bannières de mode debug dans le body.
-
-    Args:
-        body: Contenu textuel de la réponse HTTP.
-
-    Returns:
-        list[str]: Messages de findings pour le mode debug exposé.
-    """
-    findings: list[str] = []
+def _detect_debug_body_markers(body: str) -> list[InfoDiscIssue]:
+    """Détecte des messages d'erreur ou bannières de mode debug dans le body."""
     if not body:
-        return findings
+        return []
     lowered = body.lower()
     for marker in _DEBUG_BODY_MARKERS:
         idx = lowered.find(marker)
         if idx != -1:
             snippet = _extract_snippet(body, idx)
-            findings.append(
-                f"Message d'erreur debug ou mode développement détecté dans le corps (extrait : {snippet}).",
-            )
-            break
-    return findings
+            msg = f"Message d'erreur debug ou mode développement détecté dans le corps (extrait : {snippet})."
+            return [InfoDiscIssue(kind="debug_mode", message=msg)]
+    return []
 
 
 def _is_placeholder_secret(value: str) -> bool:
-    """Indique si une valeur ressemble à un placeholder de secret.
-
-    Args:
-        value: Valeur candidate (clé API, token, etc.).
-
-    Returns:
-        bool: True si la valeur ressemble à un exemple ou un placeholder.
-    """
+    """Indique si une valeur ressemble à un placeholder de secret."""
     lowered = value.lower()
     if not value or all(ch == "x" for ch in lowered):
         return True
@@ -160,14 +145,7 @@ def _is_placeholder_secret(value: str) -> bool:
 
 
 def _mask_secret(value: str) -> str:
-    """Masque une valeur de secret en conservant quelques caractères.
-
-    Args:
-        value: Valeur d'origine.
-
-    Returns:
-        str: Valeur partiellement masquée (aucun secret complet n'est logué).
-    """
+    """Masque une valeur de secret en conservant quelques caractères."""
     if len(value) <= 4:
         return "*" * len(value)
     if len(value) <= 8:
@@ -178,43 +156,26 @@ def _mask_secret(value: str) -> str:
     return f"{prefix}{masked_mid}{suffix}"
 
 
-def _detect_secrets(body: str) -> list[str]:
-    """Recherche des patterns sensibles (secrets) dans le body.
-
-    Args:
-        body: Contenu textuel de la réponse HTTP.
-
-    Returns:
-        list[str]: Messages de findings pour les secrets potentiels détectés.
-    """
-    findings: list[str] = []
+def _detect_secrets(body: str) -> list[InfoDiscIssue]:
+    """Recherche des patterns sensibles (secrets) dans le body."""
     if not body:
-        return findings
-
+        return []
+    issues: list[InfoDiscIssue] = []
     for kind, pattern in _SECRET_PATTERNS:
         for match in pattern.finditer(body):
             raw = match.group(1).strip()
             if _is_placeholder_secret(raw):
                 continue
             masked = _mask_secret(raw)
-            findings.append(
-                f"Secret potentiel détecté dans la réponse ({kind}), valeur masquée : {masked}.",
-            )
-            if len(findings) >= 3:
-                return findings
-
-    return findings
+            msg = f"Secret potentiel détecté dans la réponse ({kind}), valeur masquée : {masked}."
+            issues.append(InfoDiscIssue(kind="secret", message=msg))
+            if len(issues) >= 3:
+                return issues
+    return issues
 
 
-def _detect_debug_headers(response: httpx.Response) -> list[str]:
-    """Détecte les en-têtes de débogage (X-Debug, X-Debug-Token, X-Runtime).
-
-    Args:
-        response: Réponse HTTP analysée.
-
-    Returns:
-        list[str]: Messages de findings si des en-têtes de debug sont présents.
-    """
+def _detect_debug_headers(response: httpx.Response) -> list[InfoDiscIssue]:
+    """Détecte les en-têtes de débogage (X-Debug, X-Debug-Token, X-Runtime)."""
     debug_headers: list[str] = []
     for name in ("X-Debug", "X-Debug-Token", "X-Runtime"):
         value = get_header_insensitive(response, name)
@@ -223,60 +184,41 @@ def _detect_debug_headers(response: httpx.Response) -> list[str]:
     if not debug_headers:
         return []
     joined = ", ".join(debug_headers)
-    return [f"Header de debug détecté dans la réponse ({joined})."]
+    msg = f"Header de debug détecté dans la réponse ({joined})."
+    return [InfoDiscIssue(kind="debug_headers", message=msg)]
 
 
-def _detect_server_and_runtime_versions(response: httpx.Response) -> list[str]:
-    """Détecte les versions détaillées dans Server, X-Powered-By, X-AspNet-Version.
-
-    Args:
-        response: Réponse HTTP analysée.
-
-    Returns:
-        list[str]: Messages de findings pour les versions exposées.
-    """
-    findings: list[str] = []
+def _detect_server_and_runtime_versions(response: httpx.Response) -> list[InfoDiscIssue]:
+    """Détecte les versions détaillées dans Server, X-Powered-By, X-AspNet-Version."""
+    issues: list[InfoDiscIssue] = []
 
     server = get_header_insensitive(response, "Server")
-    if server:
-        server_version = _parse_version(server)
-        if server_version:
-            findings.append(
-                f"Version serveur exposée dans l'en-tête Server : {server}.",
-            )
+    if server and _parse_version(server):
+        msg = f"Version serveur exposée dans l'en-tête Server : {server}."
+        issues.append(InfoDiscIssue(kind="server_version", message=msg))
 
     x_powered_by = get_header_insensitive(response, "X-Powered-By")
-    if x_powered_by:
-        runtime_version = _parse_version(x_powered_by)
-        if runtime_version:
-            findings.append(
-                f"Version runtime exposée dans l'en-tête X-Powered-By : {x_powered_by}.",
-            )
+    if x_powered_by and _parse_version(x_powered_by):
+        msg = f"Version runtime exposée dans l'en-tête X-Powered-By : {x_powered_by}."
+        issues.append(InfoDiscIssue(kind="runtime_version", message=msg))
 
     x_aspnet = get_header_insensitive(response, "X-AspNet-Version")
     if x_aspnet:
-        findings.append(
-            f"Version ASP.NET exposée dans l'en-tête X-AspNet-Version : {x_aspnet}.",
-        )
+        msg = f"Version ASP.NET exposée dans l'en-tête X-AspNet-Version : {x_aspnet}."
+        issues.append(InfoDiscIssue(kind="aspnet_version", message=msg))
 
-    return findings
+    return issues
 
 
-def _detect_custom_stack_headers(response: httpx.Response) -> list[str]:
-    """Détecte des en-têtes custom révélant la stack applicative.
-
-    Args:
-        response: Réponse HTTP analysée.
-
-    Returns:
-        list[str]: Messages de findings pour les en-têtes révélateurs.
-    """
-    findings: list[str] = []
+def _detect_custom_stack_headers(response: httpx.Response) -> list[InfoDiscIssue]:
+    """Détecte des en-têtes custom révélant la stack applicative."""
+    issues: list[InfoDiscIssue] = []
     for name in ("X-Generator", "X-Version", "X-Drupal-Cache"):
         value = get_header_insensitive(response, name)
         if value:
-            findings.append(f"En-tête custom révélant la stack : {name}: {value}.")
-    return findings
+            msg = f"En-tête custom révélant la stack : {name}: {value}."
+            issues.append(InfoDiscIssue(kind="custom_header", message=msg))
+    return issues
 
 
 def check_information_disclosure_from_response(
@@ -294,11 +236,10 @@ def check_information_disclosure_from_response(
     Returns:
         InformationDisclosureCheckResult: Résultat agrégé des vérifications.
     """
-    findings: list[str] = []
-
     if response is None:
-        findings.append("Réponse HTTPS indisponible pour analyser les fuites d'information.")
-        return InformationDisclosureCheckResult(findings=tuple(findings), fetch_ok=False)
+        msg = "Réponse HTTPS indisponible pour analyser les fuites d'information."
+        issue = InfoDiscIssue(kind="connection_failed", message=msg)
+        return InformationDisclosureCheckResult(findings=(msg,), fetch_ok=False, issues=(issue,))
 
     max_body = get_information_disclosure_max_body()
     try:
@@ -313,11 +254,13 @@ def check_information_disclosure_from_response(
 
     body_text = body_bytes.decode(encoding, errors="replace")
 
-    findings.extend(_detect_stack_traces(body_text))
-    findings.extend(_detect_debug_body_markers(body_text))
-    findings.extend(_detect_secrets(body_text))
-    findings.extend(_detect_debug_headers(response))
-    findings.extend(_detect_server_and_runtime_versions(response))
-    findings.extend(_detect_custom_stack_headers(response))
+    issues: list[InfoDiscIssue] = []
+    issues.extend(_detect_stack_traces(body_text))
+    issues.extend(_detect_debug_body_markers(body_text))
+    issues.extend(_detect_secrets(body_text))
+    issues.extend(_detect_debug_headers(response))
+    issues.extend(_detect_server_and_runtime_versions(response))
+    issues.extend(_detect_custom_stack_headers(response))
 
-    return InformationDisclosureCheckResult(findings=tuple(findings), fetch_ok=True)
+    findings = tuple(issue.message for issue in issues)
+    return InformationDisclosureCheckResult(findings=findings, fetch_ok=True, issues=tuple(issues))
