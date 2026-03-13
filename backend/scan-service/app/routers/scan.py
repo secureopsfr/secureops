@@ -14,8 +14,7 @@ from app.config_loader import get_async_jobs_settings, get_external_services_set
 from app.db import get_async_session
 from app.schemas.async_job import ScanAsyncCreateRequest, ScanAsyncCreateResponse, ScanAsyncMultiCreateRequest, ScanAsyncStatusResponse
 from app.services.async_job_repository import create_job, get_job_by_id
-from app.services.passive.multi_scan_orchestrator import run_multi_scan
-from app.services.passive.scan_runner import ScanRunError, run_scan_to_result
+from app.services.async_scan_executor import execute_multi_scan_job, execute_scan_job
 from app.services.pdf_export_service import PdfExportError, export_scan_pdf_bytes
 from app.use_cases.async_job_access import (
     AnonymousPassiveFrontendOnlyError,
@@ -29,7 +28,6 @@ from app.use_cases.async_job_access import (
     require_job_access,
     require_user_for_non_frontend,
 )
-from app.utils.url_validator import URLValidationError
 
 # Clé API pour les appels service-to-service (endpoint interne).
 # Si définie, le header X-Internal-Api-Key doit correspondre.
@@ -110,12 +108,16 @@ class InternalScanRequest(BaseModel):
     """Requête pour l'endpoint interne (scheduler)."""
 
     url: str = Field(..., description="URL à scanner")
+    scan_type: str = Field("frontend", description="Type de scan: frontend, backend, both")
+    scan_mode: str = Field("passive", description="Mode de scan: passive, intrusive, destructive, custom")
 
 
 class InternalMultiScanRequest(BaseModel):
     """Requête pour l'endpoint interne multi (scheduler)."""
 
     urls: list[str] = Field(..., min_length=2, description="Liste d'URLs d'un même domaine")
+    scan_type: str = Field("frontend", description="Type de scan: frontend, backend, both")
+    scan_mode: str = Field("passive", description="Mode de scan: passive, intrusive, destructive, custom")
 
 
 @router.post(
@@ -129,11 +131,21 @@ async def internal_run_scan(
 ) -> dict:
     """Exécute le scan et retourne le résultat en JSON (pas de SSE)."""
     try:
-        return await run_scan_to_result(body.url)
-    except URLValidationError as e:
-        return {"status": "error", "message": str(e), "status_code": 400}
-    except ScanRunError as e:
-        return {"status": "error", "message": e.message, "status_code": e.status_code}
+        result_payload, error_payload = await execute_scan_job(
+            url=body.url,
+            scan_type=body.scan_type,
+            scan_mode=body.scan_mode,
+        )
+        if error_payload:
+            return {
+                "status": "error",
+                "message": error_payload.get("message", "Erreur de scan interne"),
+                "status_code": int(error_payload.get("status_code", 500)),
+                "error_type": error_payload.get("error_type", "unexpected_error"),
+            }
+        if result_payload is None:
+            return {"status": "error", "message": "Résultat de scan introuvable.", "status_code": 500}
+        return result_payload
     except Exception as e:
         logger.exception("Erreur inattendue lors du scan interne: %s", e)
         return {"status": "error", "message": str(e), "status_code": 500}
@@ -150,12 +162,21 @@ async def internal_run_multi_scan(
 ) -> dict:
     """Exécute un scan multi et retourne le résultat agrégé en JSON."""
     try:
-        result = await run_multi_scan(body.urls)
-        return result.to_dict()
-    except URLValidationError as e:
-        return {"status": "error", "message": str(e), "status_code": 400}
-    except ValueError as e:
-        return {"status": "error", "message": str(e), "status_code": 400}
+        result_payload, error_payload = await execute_multi_scan_job(
+            urls=body.urls,
+            scan_type=body.scan_type,
+            scan_mode=body.scan_mode,
+        )
+        if error_payload:
+            return {
+                "status": "error",
+                "message": error_payload.get("message", "Erreur de scan multi interne"),
+                "status_code": int(error_payload.get("status_code", 500)),
+                "error_type": error_payload.get("error_type", "unexpected_error"),
+            }
+        if result_payload is None:
+            return {"status": "error", "message": "Résultat de scan multi introuvable.", "status_code": 500}
+        return result_payload
     except Exception as e:
         logger.exception("Erreur inattendue lors du scan multi interne: %s", e)
         return {"status": "error", "message": str(e), "status_code": 500}
