@@ -37,11 +37,13 @@ def _build_internal_headers() -> dict:
     return headers
 
 
-async def _call_scan_service_single(url: str) -> dict:
+async def _call_scan_service_single(url: str, scan_type: str, scan_mode: str) -> dict:
     """Appelle le scan-service (single) et retourne la réponse JSON.
 
     Args:
         url: URL à scanner.
+        scan_type: Cible de scan (frontend, backend, both).
+        scan_mode: Mode de scan (passive, intrusive, destructive, custom).
 
     Returns:
         dict: Réponse JSON du scan-service (ou dict vide si non-JSON).
@@ -50,7 +52,11 @@ async def _call_scan_service_single(url: str) -> dict:
     async with httpx.AsyncClient(timeout=SCAN_TIMEOUT) as client:
         resp = await client.post(
             f"{SCAN_SERVICE_URL.rstrip('/')}/api/internal/scan/run",
-            json={"url": url},
+            json={
+                "url": url,
+                "scan_type": scan_type,
+                "scan_mode": scan_mode,
+            },
             headers=headers,
         )
     if resp.headers.get("content-type", "").startswith("application/json"):
@@ -58,13 +64,17 @@ async def _call_scan_service_single(url: str) -> dict:
     return {}
 
 
-async def _call_scan_service_multi(urls: list[str]) -> dict:
+async def _call_scan_service_multi(urls: list[str], scan_type: str, scan_mode: str) -> dict:
     """Appelle le scan-service (multi) et retourne la réponse JSON."""
     headers = _build_internal_headers()
     async with httpx.AsyncClient(timeout=SCAN_TIMEOUT) as client:
         resp = await client.post(
             f"{SCAN_SERVICE_URL.rstrip('/')}/api/internal/scan/run-multi",
-            json={"urls": urls},
+            json={
+                "urls": urls,
+                "scan_type": scan_type,
+                "scan_mode": scan_mode,
+            },
             headers=headers,
         )
     if resp.headers.get("content-type", "").startswith("application/json"):
@@ -157,7 +167,11 @@ async def _execute_multi_due_scan(scan) -> tuple[dict | None, str]:
         logger.warning("Scan multi planifié ignoré (moins de 2 URLs valides): id=%s", scan.id)
         return None, ""
 
-    data = await _call_scan_service_multi(normalized_urls)
+    data = await _call_scan_service_multi(
+        normalized_urls,
+        scan_type=str(getattr(scan, "scan_type", "frontend")),
+        scan_mode=str(getattr(scan, "scan_mode", "passive")),
+    )
     try:
         url_to_scan = normalize_scan_url(scan.url)
     except URLValidationError as e:
@@ -184,7 +198,11 @@ async def _execute_single_due_scan(scan) -> tuple[dict | None, str]:
         )
         return None, ""
 
-    data = await _call_scan_service_single(url_to_scan)
+    data = await _call_scan_service_single(
+        url_to_scan,
+        scan_type=str(getattr(scan, "scan_type", "frontend")),
+        scan_mode=str(getattr(scan, "scan_mode", "passive")),
+    )
     return data, url_to_scan
 
 
