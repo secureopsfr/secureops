@@ -1,4 +1,4 @@
-"""Tests unitaires pour les vérifications TLS/HTTPS (app.services.tls.checks)."""
+"""Tests unitaires pour les vérifications TLS/HTTPS (passive)."""
 
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, patch
@@ -10,8 +10,8 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-from app.services.tls import run_tls_checks
-from app.services.tls.checks import TlsCheckResult
+from app.services.passive.tls import run_tls_checks
+from app.services.passive.tls.checks import TlsCheckResult
 from app.utils.url_helpers import build_http_url, build_https_url, get_https_port_from_url, location_redirects_to_https
 
 
@@ -143,10 +143,10 @@ async def test_run_tls_checks_https_ok_et_redirect_ok() -> None:
     valid_cert = _make_valid_cert_der()
 
     with (
-        patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
-        patch("app.services.tls.checks.fetch_certificate_chain", return_value=[]),
-        patch("app.services.tls.checks.fetch_certificate_der", return_value=valid_cert),
-        patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.passive.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.passive.tls.checks.fetch_certificate_chain", return_value=[]),
+        patch("app.services.passive.tls.checks.fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.passive.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -168,7 +168,7 @@ async def test_run_tls_checks_https_non_actif_connect_error() -> None:
     mock_client_instance = AsyncMock()
     mock_client_instance.get = AsyncMock(side_effect=httpx.ConnectError("Connection refused"))
 
-    with patch("app.services.tls.checks.httpx.AsyncClient") as mock_client:
+    with patch("app.services.passive.tls.checks.httpx.AsyncClient") as mock_client:
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_context.__aexit__ = AsyncMock(return_value=None)
@@ -190,7 +190,7 @@ async def test_run_tls_checks_https_non_actif_timeout() -> None:
     mock_client_instance = AsyncMock()
     mock_client_instance.get = AsyncMock(side_effect=httpx.ConnectTimeout("Timeout"))
 
-    with patch("app.services.tls.checks.httpx.AsyncClient") as mock_client:
+    with patch("app.services.passive.tls.checks.httpx.AsyncClient") as mock_client:
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_context.__aexit__ = AsyncMock(return_value=None)
@@ -221,10 +221,10 @@ async def test_run_tls_checks_pas_redirection_http() -> None:
     valid_cert = _make_valid_cert_der()
 
     with (
-        patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
-        patch("app.services.tls.checks.fetch_certificate_chain", return_value=[]),
-        patch("app.services.tls.checks.fetch_certificate_der", return_value=valid_cert),
-        patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.passive.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.passive.tls.checks.fetch_certificate_chain", return_value=[]),
+        patch("app.services.passive.tls.checks.fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.passive.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -256,10 +256,10 @@ async def test_run_tls_checks_certificat_expire() -> None:
     expired_cert = _make_expired_cert_der()
 
     with (
-        patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
-        patch("app.services.tls.checks.fetch_certificate_chain", return_value=[]),
-        patch("app.services.tls.checks.fetch_certificate_der", return_value=expired_cert),
-        patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.passive.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.passive.tls.checks.fetch_certificate_chain", return_value=[]),
+        patch("app.services.passive.tls.checks.fetch_certificate_der", return_value=expired_cert),
+        patch("app.services.passive.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -289,10 +289,10 @@ async def test_run_tls_checks_certificat_auto_signe() -> None:
     self_signed_cert = _make_self_signed_cert_der()
 
     with (
-        patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
-        patch("app.services.tls.checks.fetch_certificate_chain", return_value=[]),
-        patch("app.services.tls.checks.fetch_certificate_der", return_value=self_signed_cert),
-        patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.passive.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.passive.tls.checks.fetch_certificate_chain", return_value=[]),
+        patch("app.services.passive.tls.checks.fetch_certificate_der", return_value=self_signed_cert),
+        patch("app.services.passive.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -323,10 +323,10 @@ async def test_run_tls_checks_avec_https_response_pre_fetchee() -> None:
     valid_cert = _make_valid_cert_der()
 
     with (
-        patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
-        patch("app.services.tls.checks.fetch_certificate_chain", return_value=[]),
-        patch("app.services.tls.checks.fetch_certificate_der", return_value=valid_cert),
-        patch("app.services.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
+        patch("app.services.passive.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.passive.tls.checks.fetch_certificate_chain", return_value=[]),
+        patch("app.services.passive.tls.checks.fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.passive.tls.checks.check_tls_versions_obsolete", return_value=([], [])),
     ):
         mock_context = AsyncMock()
         mock_context.__aenter__ = AsyncMock(return_value=mock_client_instance)
@@ -345,7 +345,7 @@ async def test_run_tls_checks_avec_https_response_pre_fetchee() -> None:
 @pytest.mark.asyncio()
 async def test_run_tls_checks_https_response_none_fetch_echoue() -> None:
     """run_tls_checks avec https_response=None retourne immédiatement sans fetch."""
-    with patch("app.services.tls.checks.httpx.AsyncClient") as mock_client:
+    with patch("app.services.passive.tls.checks.httpx.AsyncClient") as mock_client:
         result = await run_tls_checks("https://example.com", https_response=None)
 
     assert result.https_enabled is False
@@ -373,11 +373,11 @@ async def test_run_tls_checks_tls_versions_obsoletes() -> None:
     valid_cert = _make_valid_cert_der()
 
     with (
-        patch("app.services.tls.checks.httpx.AsyncClient") as mock_client,
-        patch("app.services.tls.checks.fetch_certificate_chain", return_value=[]),
-        patch("app.services.tls.checks.fetch_certificate_der", return_value=valid_cert),
+        patch("app.services.passive.tls.checks.httpx.AsyncClient") as mock_client,
+        patch("app.services.passive.tls.checks.fetch_certificate_chain", return_value=[]),
+        patch("app.services.passive.tls.checks.fetch_certificate_der", return_value=valid_cert),
         patch(
-            "app.services.tls.checks.check_tls_versions_obsolete",
+            "app.services.passive.tls.checks.check_tls_versions_obsolete",
             return_value=(["1.0", "1.1"], ["TLS 1.0 et 1.1 encore accepté(s). Versions obsolètes à désactiver."]),
         ),
     ):

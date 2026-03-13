@@ -14,9 +14,9 @@ from app.config_loader import get_async_jobs_settings, get_external_services_set
 from app.db import get_async_session
 from app.schemas.async_job import ScanAsyncCreateRequest, ScanAsyncCreateResponse, ScanAsyncMultiCreateRequest, ScanAsyncStatusResponse
 from app.services.async_job_repository import create_job, get_job_by_id
-from app.services.multi_scan_orchestrator import run_multi_scan
+from app.services.passive.multi_scan_orchestrator import run_multi_scan
+from app.services.passive.scan_runner import ScanRunError, run_scan_to_result
 from app.services.pdf_export_service import PdfExportError, export_scan_pdf_bytes
-from app.services.scan_runner import ScanRunError, run_scan_to_result
 from app.use_cases.async_job_access import (
     AnonymousPassiveFrontendOnlyError,
     JobAccessDeniedError,

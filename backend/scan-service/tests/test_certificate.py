@@ -1,4 +1,4 @@
-"""Tests unitaires pour l'analyse des certificats TLS (app.services.tls.certificate)."""
+"""Tests unitaires pour l'analyse des certificats TLS (passive)."""
 
 from datetime import datetime, timedelta, timezone
 
@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.x509.oid import NameOID
 
-from app.services.tls.certificate import CertificateStatus, analyze_certificate, verify_certificate_chain
+from app.services.passive.tls.certificate import CertificateStatus, analyze_certificate, verify_certificate_chain
 
 
 def _make_cert_der(

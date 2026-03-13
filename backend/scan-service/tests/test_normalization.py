@@ -1,13 +1,13 @@
-"""Tests unitaires pour la normalisation des résultats (app.services.normalization)."""
+"""Tests unitaires pour la normalisation des résultats (passive)."""
 
-from app.services.cookies.checks import CookieCheckResult, CookieInfo
-from app.services.cors_cross_origin.checks import CorsCrossOriginCheckResult
-from app.services.normalization import normalize_results
-from app.services.path_checks.core import PathCheckResult, PathFinding
-from app.services.robots_txt.checks import RobotsTxtCheckResult, SensitiveRoute
-from app.services.security_headers.checks import SecurityHeadersCheckResult
-from app.services.tech_fingerprinting.checks import TechFingerprintingCheckResult
-from app.services.tls.checks import TlsCheckResult
+from app.services.passive.cookies.checks import CookieCheckResult, CookieInfo
+from app.services.passive.cors_cross_origin.checks import CorsCrossOriginCheckResult
+from app.services.passive.normalization import normalize_results
+from app.services.passive.path_checks.core import PathCheckResult, PathFinding
+from app.services.passive.robots_txt.checks import RobotsTxtCheckResult, SensitiveRoute
+from app.services.passive.security_headers.checks import SecurityHeadersCheckResult
+from app.services.passive.tech_fingerprinting.checks import TechFingerprintingCheckResult
+from app.services.passive.tls.checks import TlsCheckResult
 
 
 def test_normalize_results_empty_dict() -> None:
@@ -441,7 +441,7 @@ def test_normalize_robots_txt_crawl_delay() -> None:
 
 def test_normalize_sitemap_not_found() -> None:
     """Sitemap avec sitemap_found=False produit sitemap-not-found (info)."""
-    from app.services.sitemap.checks import SitemapCheckResult
+    from app.services.passive.sitemap.checks import SitemapCheckResult
 
     result = SitemapCheckResult(
         sitemap_found=False,
@@ -457,7 +457,7 @@ def test_normalize_sitemap_not_found() -> None:
 
 def test_normalize_sitemap_sensitive_url() -> None:
     """Sitemap avec URL sensible produit sitemap-sensitive-url."""
-    from app.services.sitemap.checks import SensitiveSitemapUrl, SitemapCheckResult
+    from app.services.passive.sitemap.checks import SensitiveSitemapUrl, SitemapCheckResult
 
     result = SitemapCheckResult(
         sitemap_found=True,
@@ -513,7 +513,7 @@ def test_normalize_tech_fingerprinting_server_detected() -> None:
 
 def test_normalize_tech_fingerprinting_vulnerable_version() -> None:
     """tech_fingerprinting avec version vulnérable produit tech_fingerprinting-vulnerable-version."""
-    from app.services.tech_fingerprinting.checks import VulnerableVersion
+    from app.services.passive.tech_fingerprinting.checks import VulnerableVersion
 
     result = TechFingerprintingCheckResult(
         server="nginx/1.18.0",

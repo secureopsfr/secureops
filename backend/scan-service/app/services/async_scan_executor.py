@@ -7,25 +7,12 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from common.async_jobs import parse_sse_chunk, utc_now
+from common.async_jobs import parse_sse_chunk
 
-from app.services.scan_stream import scan_stream_generator
+from app.services.intrusive.scan_stream import scan_stream_generator as intrusive_scan_stream_generator
+from app.services.passive.scan_stream import scan_stream_generator as passive_scan_stream_generator
 
 logger = logging.getLogger(__name__)
-
-
-def _build_fake_scan_result(url: str, scan_type: str, scan_mode: str) -> dict[str, Any]:
-    return {
-        "url": url,
-        "timestamp": utc_now().isoformat(),
-        "duration": 0.1,
-        "score": 100,
-        "findings": [],
-        "status": "success",
-        "scan_type": scan_type,
-        "scan_mode": scan_mode,
-        "message": f"Fake {scan_mode} scan result (V1).",
-    }
 
 
 async def _handle_step_event(
@@ -60,15 +47,34 @@ async def execute_scan_job(
                   l'écriture en DB avant l'exécution du step. Permet au frontend
                   de voir l'état loading pendant que le step tourne.
     """
-    if scan_mode in {"destructive", "custom"}:
-        fake_result = _build_fake_scan_result(url, scan_type, scan_mode)
-        if on_progress:
-            await on_progress("fake_scan_done", f"Fake {scan_mode} scan généré.")
-        return fake_result, None
+    if scan_mode == "destructive":
+        from app.services.destructive.scan_runner import run_scan_to_result as run_destructive_scan_to_result
 
+        return (
+            await run_destructive_scan_to_result(
+                url=url,
+                scan_type=scan_type,
+                on_progress=on_progress,
+            ),
+            None,
+        )
+
+    if scan_mode == "custom":
+        from app.services.custom.scan_runner import run_scan_to_result as run_custom_scan_to_result
+
+        return (
+            await run_custom_scan_to_result(
+                url=url,
+                scan_type=scan_type,
+                on_progress=on_progress,
+            ),
+            None,
+        )
+
+    stream_factory = intrusive_scan_stream_generator if scan_mode == "intrusive" else passive_scan_stream_generator
     result_payload: dict[str, Any] | None = None
     error_payload: dict[str, Any] | None = None
-    async for chunk in scan_stream_generator(url, authorization=None):
+    async for chunk in stream_factory(url, authorization=None):
         parsed = parse_sse_chunk(chunk)
         if not parsed:
             continue
@@ -104,7 +110,34 @@ async def execute_multi_scan_job(
     Returns:
         tuple[dict | None, dict | None]: (result_payload, error_payload).
     """
-    from app.services.multi_scan_orchestrator import run_multi_scan, validate_multi_scan_urls
+    if scan_mode == "destructive":
+        from app.services.destructive.multi_scan_orchestrator import run_multi_scan as run_destructive_multi_scan
+
+        return (
+            await run_destructive_multi_scan(
+                urls=urls,
+                scan_type=scan_type,
+                on_progress=on_progress,
+            ),
+            None,
+        )
+
+    if scan_mode == "custom":
+        from app.services.custom.multi_scan_orchestrator import run_multi_scan as run_custom_multi_scan
+
+        return (
+            await run_custom_multi_scan(
+                urls=urls,
+                scan_type=scan_type,
+                on_progress=on_progress,
+            ),
+            None,
+        )
+
+    if scan_mode == "intrusive":
+        from app.services.intrusive.multi_scan_orchestrator import run_multi_scan, validate_multi_scan_urls
+    else:
+        from app.services.passive.multi_scan_orchestrator import run_multi_scan, validate_multi_scan_urls
     from app.utils.url_validator import URLValidationError
 
     # Serialize all progress callbacks with a lock: asyncio.gather runs page scans

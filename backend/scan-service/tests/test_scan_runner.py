@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.errors.fetch_errors import FetchResult
-from app.services.scan_runner import ScanRunError, run_scan_to_result
-from app.services.tls.checks import TlsCheckResult
+from app.services.passive.scan_runner import ScanRunError, run_scan_to_result
+from app.services.passive.tls.checks import TlsCheckResult
 
 
 @pytest.mark.asyncio()
@@ -41,44 +41,49 @@ async def test_run_scan_to_result_success() -> None:
         yield MagicMock()
 
     with (
-        patch("app.services.scan_runner.scan_client", _fake_scan_client),
-        patch("app.services.scan_runner.get_with_client_or_error", new_callable=AsyncMock, return_value=fetch_result_ok),
-        patch("app.services.scan_runner.check_ssrf", new_callable=AsyncMock),
-        patch("app.services._scan_core.run_tls_checks", new_callable=AsyncMock, return_value=tls_result),
-        patch("app.services._scan_core.check_security_headers_from_response", return_value=MagicMock(findings=(), headers_missing=(), fetch_ok=True)),
+        patch("app.services.passive.scan_runner.scan_client", _fake_scan_client),
+        patch("app.services.passive.scan_runner.get_with_client_or_error", new_callable=AsyncMock, return_value=fetch_result_ok),
+        patch("app.services.passive.scan_runner.check_ssrf", new_callable=AsyncMock),
+        patch("app.services.passive._scan_core.run_tls_checks", new_callable=AsyncMock, return_value=tls_result),
         patch(
-            "app.services._scan_core.cache_checks.check_cache_from_response",
+            "app.services.passive._scan_core.check_security_headers_from_response",
+            return_value=MagicMock(findings=(), headers_missing=(), fetch_ok=True),
+        ),
+        patch(
+            "app.services.passive._scan_core.cache_checks.check_cache_from_response",
             new_callable=AsyncMock,
             return_value=MagicMock(findings=(), fetch_ok=True),
         ),
-        patch("app.services._scan_core.check_cookies_from_response", return_value=MagicMock(findings=(), cookies=(), fetch_ok=True)),
+        patch("app.services.passive._scan_core.check_cookies_from_response", return_value=MagicMock(findings=(), cookies=(), fetch_ok=True)),
         patch(
-            "app.services._scan_core.run_exposed_files_checks",
+            "app.services.passive._scan_core.run_exposed_files_checks",
             new_callable=AsyncMock,
             return_value=MagicMock(exposed=(), findings=(), fetch_ok=True, exposed_403=()),
         ),
         patch(
-            "app.services._scan_core.run_directory_listing_checks",
+            "app.services.passive._scan_core.run_directory_listing_checks",
             new_callable=AsyncMock,
             return_value=MagicMock(exposed=(), findings=(), fetch_ok=True, exposed_403=()),
         ),
         patch(
-            "app.services._scan_core.run_robots_txt_checks",
+            "app.services.passive._scan_core.run_robots_txt_checks",
             new_callable=AsyncMock,
             return_value=MagicMock(fetch_ok=True, sensitive_routes=(), findings=(), crawl_delay=None),
         ),
         patch(
-            "app.services._scan_core.run_sitemap_checks",
+            "app.services.passive._scan_core.run_sitemap_checks",
             new_callable=AsyncMock,
             return_value=MagicMock(sitemap_found=False, sitemap_undeclared=False, sensitive_urls=(), fetch_ok=True),
         ),
         patch(
-            "app.services._scan_core.check_tech_fingerprinting_from_response",
+            "app.services.passive._scan_core.check_tech_fingerprinting_from_response",
             return_value=MagicMock(server=None, runtime=None, framework_cms=None, vulnerable_versions=(), findings=(), fetch_ok=True),
         ),
-        patch("app.services._scan_core.check_information_disclosure_from_response", return_value=MagicMock(findings=(), fetch_ok=True)),
-        patch("app.services._scan_core.check_integrity_from_response", return_value=MagicMock(findings=(), fetch_ok=True)),
-        patch("app.services._scan_core.run_cors_cross_origin_checks", new_callable=AsyncMock, return_value=MagicMock(findings=(), fetch_ok=True)),
+        patch("app.services.passive._scan_core.check_information_disclosure_from_response", return_value=MagicMock(findings=(), fetch_ok=True)),
+        patch("app.services.passive._scan_core.check_integrity_from_response", return_value=MagicMock(findings=(), fetch_ok=True)),
+        patch(
+            "app.services.passive._scan_core.run_cors_cross_origin_checks", new_callable=AsyncMock, return_value=MagicMock(findings=(), fetch_ok=True)
+        ),
     ):
         result = await run_scan_to_result("https://example.com")
 
@@ -105,9 +110,9 @@ async def test_run_scan_to_result_fetch_error_raises_scan_run_error() -> None:
         yield MagicMock()
 
     with (
-        patch("app.services.scan_runner.scan_client", _fake_scan_client),
-        patch("app.services.scan_runner.get_with_client_or_error", new_callable=AsyncMock, return_value=fetch_result_fail),
-        patch("app.services.scan_runner.check_ssrf", new_callable=AsyncMock),
+        patch("app.services.passive.scan_runner.scan_client", _fake_scan_client),
+        patch("app.services.passive.scan_runner.get_with_client_or_error", new_callable=AsyncMock, return_value=fetch_result_fail),
+        patch("app.services.passive.scan_runner.check_ssrf", new_callable=AsyncMock),
         pytest.raises(ScanRunError) as exc,
     ):
         await run_scan_to_result("https://example.com")
