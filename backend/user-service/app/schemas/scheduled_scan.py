@@ -9,7 +9,8 @@ from pydantic import BaseModel, Field, field_validator
 from app.utils.url_utils import URLValidationError, normalize_scan_url
 
 FrequencyType = Literal["daily", "weekly", "monthly"]
-ScanType = Literal["frontend", "backend", "custom"]
+ScanType = Literal["frontend", "backend", "both"]
+ScanMode = Literal["passive", "intrusive", "destructive", "custom"]
 ResultMode = Literal["single", "multi"]
 
 
@@ -17,7 +18,8 @@ class ScheduledScanCreateRequest(BaseModel):
     """Schéma pour la création d'un scan planifié."""
 
     url: str = Field(..., description="URL à scanner (http ou https, ex. https://example.com)")
-    scan_type: ScanType = Field(..., description="Type de scan : frontend, backend, custom")
+    scan_type: ScanType = Field(..., description="Type de scan : frontend, backend, both")
+    scan_mode: ScanMode = Field("passive", description="Mode de scan : passive, intrusive, destructive, custom")
     result_mode: ResultMode = Field("single", description="Mode de résultat : single ou multi")
     urls: Optional[List[str]] = Field(
         None,
@@ -102,7 +104,8 @@ class ScheduledScanResponse(BaseModel):
 
     id: str = Field(..., description="UUID du scan planifié")
     url: str = Field(..., description="URL à scanner")
-    scan_type: str = Field(..., description="Type de scan : frontend, backend, custom")
+    scan_type: str = Field(..., description="Type de scan : frontend, backend, both")
+    scan_mode: str = Field(..., description="Mode de scan : passive, intrusive, destructive, custom")
     result_mode: ResultMode = Field("single", description="Mode de résultat : single ou multi")
     urls: Optional[List[str]] = Field(None, description="Liste d'URLs en mode multi-pages")
     frequency: str = Field(..., description="Fréquence")
@@ -122,7 +125,8 @@ class ScanAlertEventResponse(BaseModel):
 
     id: str = Field(..., description="UUID de l'événement")
     url: str = Field(..., description="URL scannée")
-    scan_type: str = Field(..., description="Type de scan : frontend, backend, custom")
+    scan_type: str = Field(..., description="Type de scan : frontend, backend, both")
+    scan_mode: str = Field(..., description="Mode de scan : passive, intrusive, destructive, custom")
     alert_type: str = Field(..., description="Type : regression ou critical_finding")
     email_sent: bool = Field(..., description="True si l'email a été envoyé avec succès")
     triggered_at: datetime = Field(..., description="Date/heure du déclenchement")

@@ -91,6 +91,7 @@ async def _persist_result_and_schedule_next(scan, data: dict, now: datetime) -> 
                 user_id=scan.user_id,
                 url=persisted_url,
                 scan_type=getattr(scan, "scan_type", "frontend"),
+                scan_mode=getattr(scan, "scan_mode", "passive"),
                 status=data.get("status", "success"),
                 score=data.get("score_global") if is_multi else data.get("score"),
                 findings=data.get("findings", []),
@@ -229,6 +230,7 @@ async def _process_due_scan(scan, now: datetime) -> bool:
         last_scan=last_scan,
         scan_alerts_enabled=getattr(scan, "scan_alerts_enabled", True),
         scan_type=getattr(scan, "scan_type", "frontend"),
+        scan_mode=getattr(scan, "scan_mode", "passive"),
         scheduled_scan_id=scan.id,
     )
     await _persist_result_and_schedule_next(scan, data, now)

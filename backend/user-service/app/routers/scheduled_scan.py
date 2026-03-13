@@ -39,6 +39,7 @@ def _to_response(scan) -> ScheduledScanResponse:
         id=str(scan.id),
         url=scan.url,
         scan_type=getattr(scan, "scan_type", "frontend"),
+        scan_mode=getattr(scan, "scan_mode", "passive"),
         result_mode=getattr(scan, "result_mode", "single"),
         urls=getattr(scan, "urls_json", None),
         frequency=scan.frequency,
@@ -67,6 +68,7 @@ async def create_scheduled_scan_entry(
                 user_id=user_id,
                 url=body.url,
                 scan_type=body.scan_type,
+                scan_mode=body.scan_mode,
                 result_mode=body.result_mode,
                 urls=body.urls,
                 frequency=body.frequency,
@@ -100,13 +102,20 @@ async def list_scheduled_scans(
     limit: int = 10,
     url: str | None = None,
     scan_type: str | None = None,
+    scan_mode: str | None = None,
 ) -> ScheduledScanListResponse:
     """Liste les scans planifiés de l'utilisateur (pagination). Filtre optionnel par url."""
     try:
         limit = min(max(limit, 1), 100)
         offset = (page - 1) * limit
         async with get_async_session() as session:
-            total = await count_scheduled_scans_by_user(session, user_id, url=url, scan_type=scan_type)
+            total = await count_scheduled_scans_by_user(
+                session,
+                user_id,
+                url=url,
+                scan_type=scan_type,
+                scan_mode=scan_mode,
+            )
             scans = await list_scheduled_scans_by_user(
                 session,
                 user_id,
@@ -114,6 +123,7 @@ async def list_scheduled_scans(
                 offset=offset,
                 url=url,
                 scan_type=scan_type,
+                scan_mode=scan_mode,
             )
             total_pages = max((total + limit - 1) // limit, 1) if total > 0 else 0
             return ScheduledScanListResponse(
@@ -216,6 +226,7 @@ async def list_scan_alert_history(
     limit: int = 10,
     url: str | None = None,
     scan_type: str | None = None,
+    scan_mode: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
 ) -> ScanAlertHistoryListResponse:
@@ -231,6 +242,7 @@ async def list_scan_alert_history(
                 user_id,
                 url=url,
                 scan_type=scan_type,
+                scan_mode=scan_mode,
                 date_from=date_from_dt,
                 date_to=date_to_dt,
             )
@@ -241,6 +253,7 @@ async def list_scan_alert_history(
                 offset=offset,
                 url=url,
                 scan_type=scan_type,
+                scan_mode=scan_mode,
                 date_from=date_from_dt,
                 date_to=date_to_dt,
             )
@@ -251,6 +264,7 @@ async def list_scan_alert_history(
                         id=str(e.id),
                         url=e.url,
                         scan_type=getattr(e, "scan_type", "frontend"),
+                        scan_mode=getattr(e, "scan_mode", "passive"),
                         alert_type=e.alert_type,
                         email_sent=e.email_sent,
                         triggered_at=e.triggered_at,

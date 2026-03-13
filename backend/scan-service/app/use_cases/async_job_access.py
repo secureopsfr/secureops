@@ -15,6 +15,10 @@ class NonFrontendAuthRequiredError(AsyncJobAccessError):
     """Raised when non-frontend job is requested without user."""
 
 
+class AnonymousPassiveFrontendOnlyError(AsyncJobAccessError):
+    """Raised when anonymous job is not frontend/passive."""
+
+
 class JobNotFoundError(AsyncJobAccessError):
     """Raised when a requested async job does not exist."""
 
@@ -31,6 +35,19 @@ def require_user_for_non_frontend(scan_type: str, authenticated_user_id: str | N
     """Ensure non-frontend scans are only allowed for authenticated users."""
     if scan_type != "frontend" and not authenticated_user_id:
         raise NonFrontendAuthRequiredError("Authentification requise pour ce type de scan")
+
+
+def require_anonymous_passive_frontend_only(
+    *,
+    scan_type: str,
+    scan_mode: str,
+    authenticated_user_id: str | None,
+) -> None:
+    """Ensure anonymous create requests are strictly frontend + passive."""
+    if authenticated_user_id:
+        return
+    if scan_type != "frontend" or scan_mode != "passive":
+        raise AnonymousPassiveFrontendOnlyError("Sans authentification, seul le scan frontend en mode passif est autorise")
 
 
 def can_access_job(

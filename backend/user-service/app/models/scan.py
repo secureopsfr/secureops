@@ -43,7 +43,13 @@ class Scan(Base):
         String(20),
         nullable=False,
         default="frontend",
-        comment="Type de scan : frontend, backend, custom",
+        comment="Type de scan : frontend, backend, both",
+    )
+    scan_mode = Column(
+        String(20),
+        nullable=False,
+        default="passive",
+        comment="Mode de scan : passive, intrusive, destructive, custom",
     )
     result_mode = Column(
         String(10),

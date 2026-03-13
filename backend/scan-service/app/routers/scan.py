@@ -18,10 +18,12 @@ from app.services.multi_scan_orchestrator import run_multi_scan
 from app.services.pdf_export_service import PdfExportError, export_scan_pdf_bytes
 from app.services.scan_runner import ScanRunError, run_scan_to_result
 from app.use_cases.async_job_access import (
+    AnonymousPassiveFrontendOnlyError,
     JobAccessDeniedError,
     JobNotFoundError,
     JobResultNotReadyError,
     NonFrontendAuthRequiredError,
+    require_anonymous_passive_frontend_only,
     require_completed_job,
     require_existing_job,
     require_job_access,
@@ -167,20 +169,28 @@ async def create_scan_async_job(
     """Crée un job async scan et retourne immédiatement un job_id."""
     try:
         require_user_for_non_frontend(body.scan_type, authenticated_user_id)
+        require_anonymous_passive_frontend_only(
+            scan_type=body.scan_type,
+            scan_mode=body.scan_mode,
+            authenticated_user_id=authenticated_user_id,
+        )
     except NonFrontendAuthRequiredError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+    except AnonymousPassiveFrontendOnlyError as exc:
         raise HTTPException(status_code=401, detail=str(exc))
     raw_job_token: str | None = None
     token_hash: str | None = None
     if not authenticated_user_id:
         raw_job_token = generate_job_token()
         token_hash = hash_job_token(raw_job_token, ASYNC_JOB_TOKEN_SECRET)
+    job_input = {"scan_mode": body.scan_mode, **(body.input or {})}
     try:
         async with get_async_session() as session:
             job = await create_job(
                 session,
                 url=body.url,
                 scan_type=body.scan_type,
-                input_json=body.input,
+                input_json=job_input,
                 user_id=authenticated_user_id,
                 job_token_hash=token_hash,
                 max_attempts=ASYNC_MAX_ATTEMPTS,
@@ -194,6 +204,7 @@ async def create_scan_async_job(
         job_id=str(job.id),
         status="pending",
         scan_type=body.scan_type,
+        scan_mode=body.scan_mode,
         job_token=raw_job_token,
     )
 
@@ -212,12 +223,13 @@ async def create_multi_scan_async_job(
         raise HTTPException(status_code=401, detail="Authentification requise pour le scan multi-URL")
 
     try:
+        job_input = {"scan_mode": body.scan_mode, "urls": body.urls, **(body.input or {})}
         async with get_async_session() as session:
             job = await create_job(
                 session,
                 url=body.urls[0],
                 scan_type=body.scan_type,
-                input_json={"urls": body.urls, **body.input},
+                input_json=job_input,
                 user_id=authenticated_user_id,
                 job_token_hash=None,
                 max_attempts=ASYNC_MAX_ATTEMPTS,
@@ -233,6 +245,7 @@ async def create_multi_scan_async_job(
         job_id=str(job.id),
         status="pending",
         scan_type=body.scan_type,
+        scan_mode=body.scan_mode,
         job_token=None,
     )
 
@@ -260,6 +273,7 @@ async def get_scan_async_job_status(
             return ScanAsyncStatusResponse(
                 job_id=str(job.id),
                 scan_type=job.scan_type,  # type: ignore[arg-type]
+                scan_mode=((getattr(job, "input_json", None) or {}).get("scan_mode") or "passive"),  # type: ignore[arg-type]
                 status=job.status,  # type: ignore[arg-type]
                 result_mode=getattr(job, "result_mode", "single") or "single",
                 attempt_count=int(job.attempt_count or 0),

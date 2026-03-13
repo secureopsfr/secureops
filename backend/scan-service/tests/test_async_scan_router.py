@@ -54,6 +54,21 @@ def test_create_async_scan_returns_job_token_for_anonymous(client):
     assert data.get("job_token")
 
 
+def test_create_async_scan_anonymous_rejects_non_passive_mode(client):
+    """Anonymous create only allows frontend passive scans."""
+    resp = client.post(
+        "/api/scan/async",
+        json={
+            "url": "https://example.com",
+            "scan_type": "frontend",
+            "scan_mode": "intrusive",
+            "input": {},
+        },
+    )
+    assert resp.status_code == 401
+    assert "mode passif" in resp.json().get("detail", "")
+
+
 def test_get_async_scan_status_enforces_ownership(client):
     """Status endpoint denies access when authenticated user mismatches owner."""
     job = _fake_job(user_id="user-a")

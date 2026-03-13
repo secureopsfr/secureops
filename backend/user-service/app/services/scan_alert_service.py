@@ -105,6 +105,7 @@ async def check_and_send_scan_alerts(
     last_scan,
     scan_alerts_enabled: bool,
     scan_type: str = "frontend",
+    scan_mode: str = "passive",
     scheduled_scan_id: uuid.UUID | None = None,
 ) -> None:
     """Vérifie les conditions d'alerte, envoie les emails et persiste l'historique.
@@ -139,6 +140,7 @@ async def check_and_send_scan_alerts(
                 user_id=user_id,
                 url=url,
                 scan_type=scan_type,
+                scan_mode=scan_mode,
                 alert_type=alert["alert_type"],
                 email_sent=email_sent,
                 scheduled_scan_id=scheduled_scan_id,
