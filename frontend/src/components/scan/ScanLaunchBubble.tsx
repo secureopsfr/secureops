@@ -3,12 +3,15 @@
 import type { FormEvent } from "react";
 import { Globe } from "lucide-react";
 import Card from "../ui/cards/Card";
-import { GenericButton } from "../buttons";
+import { DropdownSelector, GenericButton } from "../buttons";
 import { useLanguage } from "../LanguageProvider";
 
 interface ScanLaunchBubbleProps {
   url: string;
   onUrlChange: (value: string) => void;
+  scanTarget: "frontend" | "backend" | "both";
+  onScanTargetChange: (value: "frontend" | "backend" | "both") => void;
+  showTargetSelector?: boolean;
   onSubmit: (e: FormEvent) => void;
   loading?: boolean;
 }
@@ -16,6 +19,9 @@ interface ScanLaunchBubbleProps {
 export default function ScanLaunchBubble({
   url,
   onUrlChange,
+  scanTarget,
+  onScanTargetChange,
+  showTargetSelector = true,
   onSubmit,
   loading = false,
 }: ScanLaunchBubbleProps) {
@@ -52,6 +58,33 @@ export default function ScanLaunchBubble({
             required
             className="auth-input w-full"
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-[var(--text)] mb-2">
+            {t("scanner.targetLabel")}
+          </label>
+          {showTargetSelector ? (
+            <DropdownSelector
+              selectedValue={scanTarget}
+              onChange={(value) =>
+                onScanTargetChange(value as "frontend" | "backend" | "both")
+              }
+              options={[
+                { value: "frontend", label: t("scanner.targetFrontend") },
+                { value: "backend", label: t("scanner.targetBackend") },
+                { value: "both", label: t("scanner.targetBoth") },
+              ]}
+              width="100%"
+            />
+          ) : (
+            <div className="auth-input w-full">
+              {scanTarget === "backend"
+                ? t("scanner.targetBackend")
+                : scanTarget === "both"
+                  ? t("scanner.targetBoth")
+                  : t("scanner.targetFrontend")}
+            </div>
+          )}
         </div>
 
         <GenericButton

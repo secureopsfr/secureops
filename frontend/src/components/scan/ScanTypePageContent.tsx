@@ -13,7 +13,11 @@ import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
 import ScanLaunchBubble from "./ScanLaunchBubble";
 import type { ScanHistorySelection } from "../../services/scanHistoryService";
-import { runAsyncScan, type ScanResult } from "../../services/scanService";
+import {
+  runAsyncScan,
+  type AsyncScanMode,
+  type ScanResult,
+} from "../../services/scanService";
 import { normalizeScanUrl } from "../../utils/scanUrl";
 import { useAuthToken } from "../../hooks/useAuthToken";
 
@@ -24,8 +28,8 @@ interface ScanTypePageContentProps {
   placeholderKey: string;
   /** Slug du document (ex. scan-backend, scans-personnalises). */
   docSlug: string;
-  /** Type de scan pour filtrer les blocs (backend ou custom). */
-  filterScanType: "backend" | "custom";
+  /** Type de scan pour filtrer les blocs (backend ou both). */
+  filterScanType: "backend" | "both";
 }
 
 export default function ScanTypePageContent({
@@ -37,6 +41,9 @@ export default function ScanTypePageContent({
   const { t, lp } = useLanguage();
   const getToken = useAuthToken(true);
   const [url, setUrl] = useState("");
+  const scanTarget = filterScanType;
+  const scanMode: AsyncScanMode =
+    filterScanType === "both" ? "custom" : "passive";
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   const { steps, enqueueStep, resetSteps } = useStepQueue();
@@ -87,9 +94,10 @@ export default function ScanTypePageContent({
           }
         },
         {
-          scanType: filterScanType,
+          scanType: scanTarget,
+          scanMode,
           input: {},
-          logPrefix: `[scan-${filterScanType}-polling]`,
+          logPrefix: `[scan-${scanTarget}-${scanMode}-polling]`,
         },
         getToken,
       );
@@ -143,6 +151,9 @@ export default function ScanTypePageContent({
         <ScanLaunchBubble
           url={url}
           onUrlChange={setUrl}
+          scanTarget={scanTarget}
+          onScanTargetChange={() => {}}
+          showTargetSelector={false}
           onSubmit={handleSubmit}
           loading={isLoading}
         />
@@ -156,6 +167,7 @@ export default function ScanTypePageContent({
       <ScannerHistoryAlertsSection
         onSelectScan={handleSelectScan}
         filterScanType={filterScanType}
+        filterScanMode={scanMode}
       />
 
       {isLoading &&

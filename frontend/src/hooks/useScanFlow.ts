@@ -7,8 +7,10 @@ import { useState, useCallback, useEffect } from "react";
 import { useStepQueue } from "./useStepQueue";
 import { useCrawlState } from "./useCrawlState";
 import {
-  runScan,
+  runAsyncScan,
   runMultiScan,
+  type AsyncScanMode,
+  type AsyncScanType,
   type ScanResult,
   type MultiScanResult,
   type ScanError,
@@ -48,6 +50,8 @@ export function useScanFlow({
   t,
 }: UseScanFlowProps) {
   const [url, setUrl] = useState("");
+  const [scanTarget, setScanTarget] = useState<AsyncScanType>("frontend");
+  const [scanMode, setScanMode] = useState<AsyncScanMode>("passive");
   const [scanOnlyThisPage, setScanOnlyThisPage] = useState(true);
   const [state, setState] = useState<ScanState>("idle");
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -72,22 +76,32 @@ export function useScanFlow({
   } = useCrawlState();
 
   useEffect(() => {
+    if (scanTarget === "backend" && !scanOnlyThisPage) {
+      setScanOnlyThisPage(true);
+    }
+  }, [scanTarget, scanOnlyThisPage]);
+
+  useEffect(() => {
     if (!authLoading && isAuthenticated) {
       const pending = consumePendingScanResult();
       if (pending) {
         setResult(pending);
         setState("success");
-        saveScan(pending)
+        saveScan(pending, (pending.scan_type as AsyncScanType) ?? scanTarget)
           .then((id) => {
             if (id) setScanId(id);
           })
           .catch(() => showErrorToast(t("scanner.saveFailed")));
       }
     }
-  }, [authLoading, isAuthenticated, t]);
+  }, [authLoading, isAuthenticated, t, scanTarget]);
 
   const runScanOnUrl = useCallback(
-    (urlToScan: string) => {
+    (
+      urlToScan: string,
+      target: AsyncScanType = scanTarget,
+      mode: AsyncScanMode = scanMode,
+    ) => {
       setState("loading");
       resetSteps();
       setResult(null);
@@ -95,7 +109,7 @@ export function useScanFlow({
       setError(null);
       setErrorModalOpen(false);
 
-      runScan(
+      runAsyncScan(
         urlToScan,
         (ev) => {
           if (ev.type === "step") {
@@ -103,7 +117,8 @@ export function useScanFlow({
           } else if (ev.type === "result") {
             if (isAuthenticated) {
               setResult(ev.data);
-              saveScan(ev.data)
+              const effectiveScanType = ev.data.scan_type ?? target;
+              saveScan(ev.data, effectiveScanType)
                 .then((id) => {
                   if (id) setScanId(id);
                 })
@@ -123,6 +138,12 @@ export function useScanFlow({
             showErrorToast(ev.data || t("scanner.saveFailed"));
           }
         },
+        {
+          scanType: target,
+          scanMode: mode,
+          input: {},
+          logPrefix: `[scan-${target}-${mode}-polling]`,
+        },
         getToken,
       ).catch((err) => {
         setError({
@@ -134,11 +155,23 @@ export function useScanFlow({
         setErrorModalOpen(true);
       });
     },
-    [t, isAuthenticated, getToken, resetSteps, enqueueStep],
+    [
+      t,
+      isAuthenticated,
+      getToken,
+      resetSteps,
+      enqueueStep,
+      scanTarget,
+      scanMode,
+    ],
   );
 
   const runMultiScanOnUrls = useCallback(
-    (urlsToScan: string[]) => {
+    (
+      urlsToScan: string[],
+      target: AsyncScanType = scanTarget,
+      mode: AsyncScanMode = scanMode,
+    ) => {
       setState("loading");
       resetSteps();
       setResult(null);
@@ -169,6 +202,10 @@ export function useScanFlow({
           }
         },
         getToken ?? (async () => null),
+        {
+          scanType: target,
+          scanMode: mode,
+        },
       ).catch((err) => {
         setError({
           message:
@@ -179,7 +216,15 @@ export function useScanFlow({
         setErrorModalOpen(true);
       });
     },
-    [isAuthenticated, t, getToken, resetSteps, enqueueStep],
+    [
+      isAuthenticated,
+      t,
+      getToken,
+      resetSteps,
+      enqueueStep,
+      scanTarget,
+      scanMode,
+    ],
   );
 
   const handleSubmit = useCallback(
@@ -192,7 +237,7 @@ export function useScanFlow({
       setErrorModalOpen(false);
 
       if (scanOnlyThisPage) {
-        runScanOnUrl(urlToScan);
+        runScanOnUrl(urlToScan, scanTarget, scanMode);
         return;
       }
 
@@ -233,6 +278,8 @@ export function useScanFlow({
     [
       url,
       scanOnlyThisPage,
+      scanTarget,
+      scanMode,
       runScanOnUrl,
       t,
       enqueueCrawlStep,
@@ -245,11 +292,11 @@ export function useScanFlow({
   const handleLaunchScanFromValidation = useCallback(() => {
     const urlStrings = crawl.urls.map((u) => u.url).filter(Boolean);
     if (urlStrings.length > 1) {
-      runMultiScanOnUrls(urlStrings);
+      runMultiScanOnUrls(urlStrings, scanTarget, scanMode);
     } else {
-      runScanOnUrl(normalizeScanUrl(url.trim()));
+      runScanOnUrl(normalizeScanUrl(url.trim()), scanTarget, scanMode);
     }
-  }, [url, crawl.urls, runScanOnUrl, runMultiScanOnUrls]);
+  }, [url, crawl.urls, runScanOnUrl, runMultiScanOnUrls, scanTarget, scanMode]);
 
   const handleBackFromValidation = useCallback(() => {
     setState("idle");
@@ -299,6 +346,10 @@ export function useScanFlow({
     setCrawlMaxUrls,
     setCrawlUrls,
     resetCrawlState,
+    scanTarget,
+    scanMode,
+    setScanTarget,
+    setScanMode,
     runScanOnUrl,
     runMultiScanOnUrls,
     handleSubmit,

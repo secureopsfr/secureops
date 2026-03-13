@@ -27,8 +27,10 @@ interface ScanHistoryBlockProps {
   onSelectScan: (selection: ScanHistorySelection) => void;
   /** Filtre optionnel par URL (historique limité à cette URL). */
   filterUrl?: string | null;
-  /** Filtre optionnel par type de scan (frontend, backend, custom). */
+  /** Filtre optionnel par type de scan (frontend, backend, both). */
   filterScanType?: string | null;
+  /** Filtre optionnel par mode de scan (passive, intrusive, destructive, custom). */
+  filterScanMode?: string | null;
   /** Filtre optionnel date de début (ISO string). */
   filterDateFrom?: string | null;
   /** Filtre optionnel date de fin (ISO string). */
@@ -39,6 +41,7 @@ export default function ScanHistoryBlock({
   onSelectScan,
   filterUrl,
   filterScanType,
+  filterScanMode,
   filterDateFrom,
   filterDateTo,
 }: ScanHistoryBlockProps) {
@@ -60,10 +63,11 @@ export default function ScanHistoryBlock({
           filterScanType ?? undefined,
           filterDateFrom ?? undefined,
           filterDateTo ?? undefined,
+          filterScanMode ?? undefined,
         ),
       perPage: 10,
       onError,
-      refreshTrigger: `${filterUrl ?? ""}_${filterScanType ?? ""}_${filterDateFrom ?? ""}_${filterDateTo ?? ""}`,
+      refreshTrigger: `${filterUrl ?? ""}_${filterScanType ?? ""}_${filterScanMode ?? ""}_${filterDateFrom ?? ""}_${filterDateTo ?? ""}`,
     });
 
   const handleDeleteConfirm = useCallback(
@@ -143,9 +147,17 @@ export default function ScanHistoryBlock({
                   const scanTypeKey =
                     item.scan_type === "backend"
                       ? "scanner.scanTypeBackend"
-                      : item.scan_type === "custom"
-                        ? "scanner.scanTypeCustom"
+                      : item.scan_type === "both"
+                        ? "scanner.scanTypeBoth"
                         : "scanner.scanTypeFrontend";
+                  const scanModeKey =
+                    item.scan_mode === "intrusive"
+                      ? "scanner.modeIntrusive"
+                      : item.scan_mode === "destructive"
+                        ? "scanner.modeDestructive"
+                        : item.scan_mode === "custom"
+                          ? "scanner.modeCustom"
+                          : "scanner.modePassive";
                   const isLoading = loadingDetailId === item.id;
                   const isPdfLoading = pdfLoadingId === item.id;
                   const modeKey =
@@ -171,6 +183,11 @@ export default function ScanHistoryBlock({
                           {formatUrlDisplay(item.url)}
                         </span>
                         <span className="text-xs text-[var(--muted)]">
+                          {!filterScanMode && (
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(16,185,129,0.18)] text-[rgb(16,185,129)] mr-1">
+                              {t(scanModeKey)}
+                            </span>
+                          )}
                           <span
                             className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium mr-1 ${modeBadgeClass}`}
                           >
@@ -236,6 +253,7 @@ function buildSelectionFromDetail(
         timestamp: detail.timestamp,
         duration: detail.duration,
         scan_type: detail.scan_type ?? "frontend",
+        scan_mode: detail.scan_mode ?? "passive",
         status: detail.status ?? "success",
       },
     };
@@ -249,6 +267,7 @@ function buildSelectionFromDetail(
       timestamp: detail.timestamp,
       duration: detail.duration,
       score: detail.score ?? 0,
+      scan_mode: detail.scan_mode ?? "passive",
       findings: detail.findings,
       category_summaries: detail.category_summaries,
       total_tests_count: detail.total_tests_count,

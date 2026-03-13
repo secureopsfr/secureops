@@ -57,6 +57,8 @@ export interface ScanResult {
   duration: number;
   score: number;
   findings: ScanFinding[];
+  scan_type?: AsyncScanType;
+  scan_mode?: AsyncScanMode;
   category_summaries?: CategorySummary[];
   /** Nombre total de tests effectués (calculé par le backend). */
   total_tests_count?: number;
@@ -83,6 +85,7 @@ export interface MultiScanResult {
   timestamp: string;
   duration: number;
   scan_type: string;
+  scan_mode?: AsyncScanMode;
   status: string;
 }
 
@@ -115,7 +118,8 @@ export type ScanEventHandler =
   | { type: "save_failed"; data: string }
   | { type: "save_done"; data: { scan_id: string } };
 
-export type AsyncScanType = "frontend" | "backend" | "custom";
+export type AsyncScanType = "frontend" | "backend" | "both";
+export type AsyncScanMode = "passive" | "intrusive" | "destructive" | "custom";
 
 interface AsyncScanCreateResponse {
   job_id: string;
@@ -142,6 +146,7 @@ export async function runScan(
     onEvent,
     {
       scanType: "frontend",
+      scanMode: "passive",
       input: {},
       logPrefix: "[scan-polling]",
     },
@@ -154,6 +159,7 @@ export async function runAsyncScan(
   onEvent: (ev: ScanEventHandler) => void,
   options: {
     scanType: AsyncScanType;
+    scanMode?: AsyncScanMode;
     input?: Record<string, unknown>;
     logPrefix?: string;
   },
@@ -187,6 +193,7 @@ export async function runAsyncScan(
         body: JSON.stringify({
           url,
           scan_type: options.scanType,
+          scan_mode: options.scanMode ?? "passive",
           input: options.input ?? {},
         }),
       });
@@ -246,6 +253,7 @@ export async function runMultiScan(
   urls: string[],
   onEvent: (ev: MultiScanEventHandler) => void,
   getToken: () => Promise<string | null>,
+  options?: { scanType?: AsyncScanType; scanMode?: AsyncScanMode },
 ): Promise<void> {
   const logPrefix = "[multi-scan-polling]";
   const base = getApiBaseUrl().replace(/\/$/, "");
@@ -279,7 +287,11 @@ export async function runMultiScan(
           Accept: "application/json",
           Authorization: authHeader,
         },
-        body: JSON.stringify({ urls, scan_type: "frontend" }),
+        body: JSON.stringify({
+          urls,
+          scan_type: options?.scanType ?? "frontend",
+          scan_mode: options?.scanMode ?? "passive",
+        }),
       });
       if (!res.ok) {
         let errorMsg = `Erreur HTTP ${res.status}`;

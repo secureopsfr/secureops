@@ -7,6 +7,7 @@ import type { CrawlState } from "../../hooks/useCrawlState";
 interface ScanTypeSelectorProps {
   scanOnlyThisPage: boolean;
   onScanOnlyThisPageChange: (checked: boolean) => void;
+  crawlAvailable: boolean;
   crawlMode: CrawlState["mode"];
   crawlMaxUrls: number;
   onCrawlModeChange: (mode: CrawlState["mode"]) => void;
@@ -21,20 +22,29 @@ interface ScanTypeSelectorProps {
 export default function ScanTypeSelector({
   scanOnlyThisPage,
   onScanOnlyThisPageChange,
+  crawlAvailable,
   crawlMode,
   crawlMaxUrls,
   onCrawlModeChange,
   onCrawlMaxUrlsChange,
   t,
 }: ScanTypeSelectorProps) {
+  const effectiveScanOnlyThisPage = crawlAvailable ? scanOnlyThisPage : true;
+
   return (
     <>
       <Checkbox
         label={t("scanner.scanOnlyThisPage")}
-        checked={scanOnlyThisPage}
+        checked={effectiveScanOnlyThisPage}
         onChange={onScanOnlyThisPageChange}
+        disabled={!crawlAvailable}
       />
-      {!scanOnlyThisPage && (
+      {!crawlAvailable && (
+        <p className="text-xs text-[var(--muted)]">
+          {t("scanner.crawlReservedFrontend")}
+        </p>
+      )}
+      {!effectiveScanOnlyThisPage && (
         <div>
           <label className="block text-sm font-medium text-[var(--text)] mb-2">
             {t("scanner.crawlModeLabel")}
@@ -54,7 +64,7 @@ export default function ScanTypeSelector({
           />
         </div>
       )}
-      {!scanOnlyThisPage && (
+      {!effectiveScanOnlyThisPage && (
         <div>
           <label
             htmlFor="crawl-max-urls"
