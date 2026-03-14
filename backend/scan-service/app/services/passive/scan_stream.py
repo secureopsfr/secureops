@@ -15,7 +15,7 @@ from collections.abc import AsyncGenerator, Callable
 
 from common.logging_config import correlation_id_ctx
 
-from app.config_loader import get_scan_timeouts, get_ssrf_settings
+from app.config_loader import get_scan_timeouts
 from app.errors.fetch_errors import (
     build_sse_error_payload,
     build_timeout_global_error_payload,
@@ -23,12 +23,12 @@ from app.errors.fetch_errors import (
     build_validation_error_payload,
 )
 from app.services.passive._scan_core import SCAN_STEPS, ScanContext, build_result_payload
+from app.services.scan_preflight_common import emit_events, has_error_event, run_single_preflight
 from app.services.scan_stream_common import emit_save_events
 from app.utils.http_fetch import get_with_client_or_error, http_request_category, log_http_metrics, scan_client
 from app.utils.sse import sse_message
-from app.utils.ssrf import check_ssrf
 from app.utils.url_helpers import get_scan_base_url
-from app.utils.url_validator import URLValidationError, validate_and_normalize_url
+from app.utils.url_validator import URLValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -181,23 +181,18 @@ async def _run_pipeline_steps(url: str, authorization: str | None = None) -> Asy
     def _over_global() -> bool:
         return (time.monotonic() - start) > scan_global
 
-    yield sse_message("step", {"step": "validation_url_check", "message": ""})
-    normalized_url = validate_and_normalize_url(url)
-    yield sse_message("step", {"step": "validation_url_done", "message": ""})
-
-    if _over_global():
+    normalized_url, preflight_events = await run_single_preflight(
+        url=url,
+        over_global=_over_global,
+        timeout_error_message_factory=_timeout_error_message,
+    )
+    async for chunk in emit_events(preflight_events):
+        yield chunk
+    if has_error_event(preflight_events):
         _log_scan_complete(time.monotonic() - start, 0, "error_408")
-        yield _timeout_error_message()
         return
-    yield sse_message("step", {"step": "ssrf_check", "message": ""})
-    await check_ssrf(normalized_url, timeout=get_ssrf_settings().dns_timeout)
-    yield sse_message("step", {"step": "ssrf_done", "message": ""})
-
-    if _over_global():
-        _log_scan_complete(time.monotonic() - start, 0, "error_408")
-        yield _timeout_error_message()
+    if normalized_url is None:
         return
-    yield sse_message("step", {"step": "fetch_https_check", "message": ""})
 
     async with scan_client() as client:
         async for chunk in _run_checks_with_client(normalized_url, client, _over_global, start, authorization=authorization):

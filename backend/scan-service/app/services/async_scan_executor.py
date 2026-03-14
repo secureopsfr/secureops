@@ -9,10 +9,19 @@ from typing import Any
 
 from common.async_jobs import parse_sse_chunk
 
+from app.services.custom.multi_scan_orchestrator import run_multi_scan as run_custom_multi_scan
+from app.services.custom.multi_scan_orchestrator import validate_multi_scan_urls as validate_custom_multi_scan_urls
 from app.services.custom.scan_stream import scan_stream_generator as custom_scan_stream_generator
+from app.services.destructive.multi_scan_orchestrator import run_multi_scan as run_destructive_multi_scan
+from app.services.destructive.multi_scan_orchestrator import validate_multi_scan_urls as validate_destructive_multi_scan_urls
 from app.services.destructive.scan_stream import scan_stream_generator as destructive_scan_stream_generator
+from app.services.intrusive.multi_scan_orchestrator import run_multi_scan as run_intrusive_multi_scan
+from app.services.intrusive.multi_scan_orchestrator import validate_multi_scan_urls as validate_intrusive_multi_scan_urls
 from app.services.intrusive.scan_stream import scan_stream_generator as intrusive_scan_stream_generator
+from app.services.passive.multi_scan_orchestrator import run_multi_scan as run_passive_multi_scan
+from app.services.passive.multi_scan_orchestrator import validate_multi_scan_urls as validate_passive_multi_scan_urls
 from app.services.passive.scan_stream import scan_stream_generator as passive_scan_stream_generator
+from app.utils.url_validator import URLValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -93,34 +102,17 @@ async def execute_multi_scan_job(
         tuple[dict | None, dict | None]: (result_payload, error_payload).
     """
     if scan_mode == "destructive":
-        from app.services.destructive.multi_scan_orchestrator import run_multi_scan as run_destructive_multi_scan
-
-        return (
-            await run_destructive_multi_scan(
-                urls=urls,
-                scan_type=scan_type,
-                on_progress=on_progress,
-            ),
-            None,
-        )
-
-    if scan_mode == "custom":
-        from app.services.custom.multi_scan_orchestrator import run_multi_scan as run_custom_multi_scan
-
-        return (
-            await run_custom_multi_scan(
-                urls=urls,
-                scan_type=scan_type,
-                on_progress=on_progress,
-            ),
-            None,
-        )
-
-    if scan_mode == "intrusive":
-        from app.services.intrusive.multi_scan_orchestrator import run_multi_scan, validate_multi_scan_urls
+        run_multi_scan = run_destructive_multi_scan
+        validate_multi_scan_urls = validate_destructive_multi_scan_urls
+    elif scan_mode == "custom":
+        run_multi_scan = run_custom_multi_scan
+        validate_multi_scan_urls = validate_custom_multi_scan_urls
+    elif scan_mode == "intrusive":
+        run_multi_scan = run_intrusive_multi_scan
+        validate_multi_scan_urls = validate_intrusive_multi_scan_urls
     else:
-        from app.services.passive.multi_scan_orchestrator import run_multi_scan, validate_multi_scan_urls
-    from app.utils.url_validator import URLValidationError
+        run_multi_scan = run_passive_multi_scan
+        validate_multi_scan_urls = validate_passive_multi_scan_urls
 
     # Serialize all progress callbacks with a lock: asyncio.gather runs page scans
     # concurrently, and each page calls on_progress → session.commit(). Without a

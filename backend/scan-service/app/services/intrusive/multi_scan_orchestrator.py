@@ -13,6 +13,7 @@ from app.models.multi_scan import MultiScanResult, PageScanResult
 from app.services.intrusive._fake_security_checks import INTRUSIVE_STEPS
 from app.services.mode_category_summaries import build_intrusive_category_summaries, count_total_tests
 from app.services.pipelines.multi_scan_base import BaseMultiScanOrchestrator, MultiScanExecutionSettings, OnProgress
+from app.services.scan_preflight_common import validate_multi_scan_urls_common
 from app.services.scoring import compute_score
 from app.utils.http_fetch import get_with_client_or_error, log_http_metrics, scan_client
 from app.utils.url_helpers import get_scan_base_url
@@ -134,7 +135,5 @@ async def run_multi_scan(
 
 
 async def validate_multi_scan_urls(urls: list[str]) -> list[str]:
-    """Reuse passive URL validation rules for intrusive multi-scan mode."""
-    from app.services.passive.multi_scan_orchestrator import validate_multi_scan_urls as validate_passive_urls
-
-    return await validate_passive_urls(urls)
+    """Validate intrusive multi-scan targets with shared preflight rules."""
+    return await validate_multi_scan_urls_common(urls)
