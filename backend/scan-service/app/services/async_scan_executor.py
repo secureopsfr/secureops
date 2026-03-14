@@ -9,6 +9,8 @@ from typing import Any
 
 from common.async_jobs import parse_sse_chunk
 
+from app.services.custom.scan_stream import scan_stream_generator as custom_scan_stream_generator
+from app.services.destructive.scan_stream import scan_stream_generator as destructive_scan_stream_generator
 from app.services.intrusive.scan_stream import scan_stream_generator as intrusive_scan_stream_generator
 from app.services.passive.scan_stream import scan_stream_generator as passive_scan_stream_generator
 
@@ -47,31 +49,11 @@ async def execute_scan_job(
                   l'écriture en DB avant l'exécution du step. Permet au frontend
                   de voir l'état loading pendant que le step tourne.
     """
-    if scan_mode == "destructive":
-        from app.services.destructive.scan_runner import run_scan_to_result as run_destructive_scan_to_result
-
-        return (
-            await run_destructive_scan_to_result(
-                url=url,
-                scan_type=scan_type,
-                on_progress=on_progress,
-            ),
-            None,
-        )
-
-    if scan_mode == "custom":
-        from app.services.custom.scan_runner import run_scan_to_result as run_custom_scan_to_result
-
-        return (
-            await run_custom_scan_to_result(
-                url=url,
-                scan_type=scan_type,
-                on_progress=on_progress,
-            ),
-            None,
-        )
-
-    stream_factory = intrusive_scan_stream_generator if scan_mode == "intrusive" else passive_scan_stream_generator
+    stream_factory = {
+        "intrusive": intrusive_scan_stream_generator,
+        "destructive": destructive_scan_stream_generator,
+        "custom": custom_scan_stream_generator,
+    }.get(scan_mode, passive_scan_stream_generator)
     result_payload: dict[str, Any] | None = None
     error_payload: dict[str, Any] | None = None
     async for chunk in stream_factory(url, authorization=None):

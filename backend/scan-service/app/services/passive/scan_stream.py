@@ -23,7 +23,7 @@ from app.errors.fetch_errors import (
     build_validation_error_payload,
 )
 from app.services.passive._scan_core import SCAN_STEPS, ScanContext, build_result_payload
-from app.services.scan_history_save import save_scan_to_history
+from app.services.scan_stream_common import emit_save_events
 from app.utils.http_fetch import get_with_client_or_error, http_request_category, log_http_metrics, scan_client
 from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
@@ -162,14 +162,13 @@ async def _run_checks_with_client(
         yield sse_message("result", payload)
 
         # Sauvegarde dans l'historique si utilisateur connecté (roadmap 0.2.0 §2)
-        if authorization:
-            try:
-                scan_id = await save_scan_to_history(payload, authorization)
-                if scan_id:
-                    yield sse_message("save_done", {"scan_id": scan_id})
-            except Exception as e:
-                logger.warning("Sauvegarde historique échouée: %s", e)
-                yield sse_message("save_failed", {"message": str(e)})
+        async for chunk in emit_save_events(
+            payload=payload,
+            authorization=authorization,
+            logger=logger,
+            mode_label="Passive",
+        ):
+            yield chunk
     finally:
         log_http_metrics(client, "scan-stream", url=https_url)
 

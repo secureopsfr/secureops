@@ -7,21 +7,16 @@ import time
 from collections.abc import AsyncGenerator, Callable
 
 from app.config_loader import get_scan_timeouts, get_ssrf_settings
-from app.errors.fetch_errors import (
-    build_sse_error_payload,
-    build_timeout_global_error_payload,
-    build_unexpected_error_payload,
-    build_validation_error_payload,
-)
+from app.errors.fetch_errors import build_sse_error_payload, build_timeout_global_error_payload
 from app.models.finding import Finding
 from app.services.intrusive._fake_security_checks import INTRUSIVE_STEPS
 from app.services.intrusive._scan_core import build_result_payload
-from app.services.scan_history_save import save_scan_to_history
+from app.services.scan_stream_common import emit_save_events, stream_with_standard_error_events
 from app.utils.http_fetch import get_with_client_or_error, log_http_metrics, scan_client
 from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
 from app.utils.url_helpers import get_scan_base_url
-from app.utils.url_validator import URLValidationError, validate_and_normalize_url
+from app.utils.url_validator import validate_and_normalize_url
 
 logger = logging.getLogger(__name__)
 
@@ -105,19 +100,6 @@ async def _perform_intrusive_checks(
     return findings, events, False
 
 
-async def _emit_save_events(payload: dict, authorization: str | None) -> AsyncGenerator[str, None]:
-    """Emit optional history save events for authenticated users."""
-    if not authorization:
-        return
-    try:
-        scan_id = await save_scan_to_history(payload, authorization)
-        if scan_id:
-            yield sse_message("save_done", {"scan_id": scan_id})
-    except Exception as exc:
-        logger.warning("Intrusive history save failed: %s", exc)
-        yield sse_message("save_failed", {"message": str(exc)})
-
-
 async def _run_pipeline_steps(url: str, authorization: str | None = None) -> AsyncGenerator[str, None]:
     """Execute intrusive scan flow and emit SSE chunks for each stage."""
     start = time.monotonic()
@@ -143,16 +125,18 @@ async def _run_pipeline_steps(url: str, authorization: str | None = None) -> Asy
 
     payload = build_result_payload(normalized_url, findings, start)
     yield sse_message("result", payload)
-    async for chunk in _emit_save_events(payload, authorization):
+    async for chunk in emit_save_events(
+        payload=payload,
+        authorization=authorization,
+        logger=logger,
+        mode_label="Intrusive",
+    ):
         yield chunk
 
 
 async def scan_stream_generator(url: str, authorization: str | None = None) -> AsyncGenerator[str, None]:
     """Stream intrusive scan progress and result through SSE chunks."""
-    try:
-        async for chunk in _run_pipeline_steps(url, authorization=authorization):
-            yield chunk
-    except URLValidationError as exc:
-        yield sse_message("error", build_validation_error_payload(str(exc)))
-    except Exception as exc:
-        yield sse_message("error", build_unexpected_error_payload(str(exc)))
+    async for chunk in stream_with_standard_error_events(
+        pipeline_factory=lambda: _run_pipeline_steps(url, authorization=authorization),
+    ):
+        yield chunk
