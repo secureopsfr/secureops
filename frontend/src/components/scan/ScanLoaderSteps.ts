@@ -59,7 +59,17 @@ export const STEP_I18N_KEYS: Record<string, string> = {
   intrusive_sql_injection_done: "scanner.intrusiveSqlInjectionDone",
   intrusive_authz_bypass_check: "scanner.intrusiveAuthzBypassCheck",
   intrusive_authz_bypass_done: "scanner.intrusiveAuthzBypassDone",
-  // Custom/destructive fake plan steps
+  // Custom fake probe steps
+  custom_strategy_check: "scanner.customStrategyCheck",
+  custom_strategy_done: "scanner.customStrategyDone",
+  custom_guardrails_check: "scanner.customGuardrailsCheck",
+  custom_guardrails_done: "scanner.customGuardrailsDone",
+  // Destructive fake probe steps
+  destructive_prechecks_check: "scanner.destructivePrechecksCheck",
+  destructive_prechecks_done: "scanner.destructivePrechecksDone",
+  destructive_safety_check: "scanner.destructiveSafetyCheck",
+  destructive_safety_done: "scanner.destructiveSafetyDone",
+  // Legacy custom/destructive fake plan steps
   custom_plan_check: "scanner.customPlanCheck",
   custom_plan_done: "scanner.customPlanDone",
   custom_multi_plan_check: "scanner.customMultiPlanCheck",
@@ -200,6 +210,8 @@ export function buildTimelineSteps(
         (s) =>
           s.step === "cors_cross_origin_done" ||
           s.step === "intrusive_authz_bypass_done" ||
+          s.step === "custom_guardrails_done" ||
+          s.step === "destructive_safety_done" ||
           s.step === "custom_plan_done" ||
           s.step === "destructive_plan_done" ||
           s.step === "fake_scan_done",

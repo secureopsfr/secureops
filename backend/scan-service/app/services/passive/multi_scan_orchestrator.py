@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from app.config_loader import get_multi_scan_settings, get_ssrf_settings
+from app.config_loader import get_multi_scan_settings
 from app.models.multi_scan import MultiScanResult, PageScanResult
 from app.services.passive._page_checks_runner import run_page_checks
 from app.services.passive._scan_core import FindingsBundle, build_findings_bundle
@@ -19,9 +19,9 @@ from app.services.passive.robots_txt import run_robots_txt_checks
 from app.services.passive.sitemap import run_sitemap_checks
 from app.services.passive.tls import run_tls_checks
 from app.services.pipelines.multi_scan_base import BaseMultiScanOrchestrator, MultiScanExecutionSettings, OnProgress
+from app.services.scan_preflight_common import validate_multi_scan_urls_common
 from app.utils.http_fetch import get_with_client_or_error, http_request_category, log_http_metrics, scan_client
-from app.utils.ssrf import check_ssrf
-from app.utils.url_helpers import get_scan_base_url, registered_domain
+from app.utils.url_helpers import get_scan_base_url
 from app.utils.url_validator import validate_and_normalize_url
 
 logger = logging.getLogger(__name__)
@@ -259,16 +259,4 @@ async def run_multi_scan(
 
 async def validate_multi_scan_urls(urls: list[str]) -> list[str]:
     """Validate/normalize URLs and enforce single registered-domain + SSRF check."""
-    from app.utils.url_validator import URLValidationError  # noqa: F401
-
-    normalized: list[str] = []
-    for url in urls:
-        normalized.append(validate_and_normalize_url(url))
-
-    reg_domains = {registered_domain(get_scan_base_url(u)) for u in normalized}
-    reg_domains.discard("")
-    if len(reg_domains) > 1:
-        raise ValueError(f"Toutes les URLs doivent appartenir au même domaine enregistré. " f"Domaines détectés : {', '.join(sorted(reg_domains))}")
-
-    await check_ssrf(normalized[0], timeout=get_ssrf_settings().dns_timeout)
-    return normalized
+    return await validate_multi_scan_urls_common(urls)

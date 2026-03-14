@@ -4,6 +4,53 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 
 **Prérequis :** MVP 0.2.0 livré (API publique, clés API, scan avancé partiel, CI/CD).
 
+## Sommaire
+
+**Ordre recommandé pour la lecture et l'implémentation :** 0 (architecture) -> 1 (passif restant) -> 2 (vérification d'autorisation) -> 3 (actif MVP + backlog intrusif) -> 4 (rapports/analytics) -> 5 (scan paramétrable) -> 6 (infra/qualité) -> 7 (release).
+
+- [0) Architecture : deux scanners](#0-architecture--deux-scanners)
+  - [0.1 Rappel : passif vs actif](#01-rappel--passif-vs-actif)
+- [1) Finaliser les tests passifs restants](#1-finaliser-les-tests-passifs-restants)
+  - [1.1 Méthodes HTTP et redirections](#11-méthodes-http-et-redirections-ex-roadmap-55-voir-a-penser-plus-tard)
+  - [1.2 Intégrité et sous-ressources](#12-intégrité-et-sous-ressources-56--restant-roadmap-020)
+  - [1.3 APIs et formats](#13-apis-et-formats-ex-roadmap-57-voir-a-penser-plus-tard)
+  - [1.4 Tests passifs complémentaires](#14-tests-passifs-complémentaires)
+  - [1.5 Backlog tests reporté depuis la roadmap 0.3.0](#15-backlog-tests-reporté-depuis-la-roadmap-030)
+  - [1.6 Backlog reporté depuis la roadmap 0.3.0 (hors section tests)](#16-backlog-reporté-depuis-la-roadmap-030-hors-section-tests)
+- [2) Vérification d'autorisation (uniquement en production)](#2-vérification-dautorisation-uniquement-en-production)
+  - [2.1 Méthode : vérification DNS](#21-méthode--vérification-dns)
+  - [2.2 Flux utilisateur (Scanner 2 uniquement)](#22-flux-utilisateur-scanner-2-uniquement)
+  - [2.3 Cas particuliers](#23-cas-particuliers)
+- [3) Introduire les tests actifs (Scanner 2)](#3-introduire-les-tests-actifs-scanner-2)
+  - [3.1 Cadre et sécurité](#31-cadre-et-sécurité)
+  - [3.2 Tests actifs — Redirections](#32-tests-actifs--redirections-déjà-partiellement-actif)
+  - [3.3 Tests actifs — Méthodes HTTP](#33-tests-actifs--méthodes-http)
+  - [3.4 Tests actifs — CORS](#34-tests-actifs--cors)
+  - [3.5 Tests actifs — Paramètres (premiers pas)](#35-tests-actifs--paramètres-premiers-pas)
+  - [3.6 Tests actifs — Path traversal (léger)](#36-tests-actifs--path-traversal-léger)
+  - [3.7 Tests actifs — Injection basique (erreurs révélatrices)](#37-tests-actifs--injection-basique-erreurs-révélatrices)
+  - [3.8 Tests actifs — DoS (single-source, pas DDoS)](#38-tests-actifs--dos-single-source-pas-ddos)
+  - [3.9 Documentation et scoring](#39-documentation-et-scoring)
+  - [3.10 Backlog intrusif exhaustif](#310-backlog-intrusif-exhaustif-au-dela-du-mvp-strict)
+  - [3.11 Garde-fous obligatoires](#311-garde-fous-obligatoires-toutes-phases)
+  - [3.12 P0 — Indispensable](#312-p0--indispensable-common-forte-valeur)
+  - [3.13 P1 — Très recommandé](#313-p1--tres-recommande)
+  - [3.14 P2 — Avancé](#314-p2--avance-moins-frequent-impact-eleve-potentiel)
+  - [3.15 P3 — Spécialisés](#315-p3--specialises)
+  - [3.16 P4 — Rare/recherche](#316-p4--rarerecherche-mode-expert-explicite)
+  - [3.17 Exigences techniques minimales](#317-exigences-techniques-minimales-moteur-intrusif)
+  - [3.18 Ordre de développement recommandé](#318-ordre-de-developpement-recommande)
+  - [3.19 Exhaustive checklist](#319-exhaustive-checklist-families-a-couvrir)
+  - [3.20 Désactivé par défaut](#320-desactive-par-defaut-mode-expert-uniquement)
+  - [3.21 Documentation cible](#321-documentation-cible)
+- [4) Rapports et analytics](#4-rapports-et-analytics)
+- [5) Scan paramétrable](#5-scan-paramétrable)
+- [6) Infra et qualité](#6-infra-et-qualité)
+- [7) Release MVP v0.4.0](#7-release-mvp-v040)
+- [Synthèse](#synthèse)
+- [Notes importantes (MVP 0.4.0)](#notes-importantes-mvp-040)
+- [Périmètre des tests : URL frontend vs backend](#périmètre-des-tests--url-frontend-vs-backend)
+
 ---
 
 ## 0) Architecture : deux scanners
@@ -275,6 +322,257 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 
 ---
 
+### 3.10 Backlog intrusif exhaustif (au-dela du MVP strict)
+
+> Cette section migre le catalogue des tests intrusifs complets dans la roadmap v0.4.0 afin de centraliser la trajectoire Scanner 2.
+> Les items ci-dessous sont priorises P0 -> P4 et complete la section 3 (premiers tests actifs).
+
+### 3.11 Garde-fous obligatoires (toutes phases)
+
+- [ ] Autorisation forte : preuve de controle du domaine (DNS TXT), audit trail, acceptation explicite
+- [ ] Kill switch global : arret immediat d'un scan actif en cours
+- [ ] Rate limit strict par hote, endpoint, categorie
+- [ ] Budget de requetes par test / endpoint / scan
+- [ ] Timeouts courts + retries limites + jitter
+- [ ] Methodes interdites par defaut : `PUT`, `PATCH`, `DELETE`, `POST` non idempotent (sauf opt-in explicite)
+- [ ] Payload safety : pas d'ecriture irreversible, pas d'exfiltration reelle
+- [ ] Journalisation complete : requete redigee, cible, timestamp, statut, evidence
+- [ ] Scopes explicites (frontend, backend optionnel, exclusions)
+- [ ] Protection SSRF non negociable cote scanner
+
+---
+
+### 3.12 P0 — Indispensable (common, forte valeur)
+
+#### Authentification et session
+
+- [ ] Bruteforce protection login (lockout, backoff, captcha, 429)
+- [ ] Enumeration utilisateur (messages differencies)
+- [ ] Session fixation (rotation post-login)
+- [ ] Invalidation session (logout effectif token/cookie)
+- [ ] JWT basique (alg, exp, nbf, aud, iss)
+
+#### Autorisation (IDOR / BOLA / BFLA)
+
+- [ ] Escalade horizontale (`/users/{id}` ou equivalent)
+- [ ] Escalade verticale (routes admin acces role non admin)
+- [ ] Controle objet/fonction manquant sur API
+
+#### Injections frequentes
+
+- [ ] SQLi error-based + time-based leger
+- [ ] NoSQLi basique (operateurs/injection de structure JSON)
+- [ ] XSS reflechi (detection de reflexion + contexte)
+- [ ] Path traversal (variantes encodees)
+- [ ] Command injection basique (erreurs/comportements anormaux)
+
+#### Web/API classiques
+
+- [ ] Open redirect actif
+- [ ] CORS actif (origin reflection + credentials)
+- [ ] Methodes HTTP (OPTIONS/TRACE/HEAD)
+- [ ] CSRF presence + enforcement
+- [ ] Rate limiting endpoint (burst court controle)
+
+---
+
+### 3.13 P1 — Tres recommande
+
+#### Upload et contenu utilisateur
+
+- [ ] Upload type non autorise (MIME spoof, double extension, malforme)
+- [ ] Execution de fichier upload (acces direct + execution serveur)
+- [ ] Traversal via nom de fichier
+
+#### APIs modernes
+
+- [ ] GraphQL actif (introspection, depth, alias, batching abuse)
+- [ ] Mass assignment (champs sensibles acceptes sans whitelist)
+- [ ] Validation schema (type confusion, champs inattendus, arrays excessifs)
+- [ ] Pagination abuse (`limit` excessif, bornes absentes)
+
+#### SSRF applicative
+
+- [ ] SSRF via parametres URL (parsing/schemas/redirections)
+- [ ] Metadata cloud probes en safe mode (sans exfiltration)
+
+#### XML/Template/Deserialize
+
+- [ ] XXE
+- [ ] SSTI
+- [ ] Insecure deserialization (selon techno)
+
+---
+
+### 3.14 P2 — Avance (moins frequent, impact eleve potentiel)
+
+#### HTTP/cache avances
+
+- [ ] HTTP request smuggling / desync (`CL`/`TE`)
+- [ ] Cache poisoning (en-tetes non normalises)
+- [ ] Web cache deception
+- [ ] Host header injection (reset password poisoning, liens absolus)
+
+#### Conditions de course
+
+- [ ] Double spend / double action
+- [ ] TOCTOU (check/use)
+
+#### Business logic abuse
+
+- [ ] Bypass workflow metier
+- [ ] Abuse coupons/credits
+- [ ] Actions hors fenetre metier
+
+---
+
+### 3.15 P3 — Specialises
+
+#### Temps reel et protocoles
+
+- [ ] WebSocket authz
+- [ ] GraphQL subscriptions abuse
+- [ ] gRPC abuse
+
+#### Infra/cloud ciblee
+
+- [ ] Object storage exposure test actif
+- [ ] Service mesh/internal API exposure
+
+#### Auth avancee
+
+- [ ] OAuth/OIDC misconfig (`redirect_uri`, `state`, PKCE)
+- [ ] SSO relay state abuse
+
+---
+
+### 3.16 P4 — Rare/recherche (mode expert explicite)
+
+- [ ] DoS applicatif controle (burst, slow request/headers, amplification)
+- [ ] HTTP/2 abuse patterns
+- [ ] Unicode normalization confusion sur authz
+- [ ] DNS rebinding applicatif
+- [ ] Parser differential attacks multi-proxy
+
+---
+
+### 3.17 Exigences techniques minimales (moteur intrusif)
+
+#### Moteur de requetes
+
+- [ ] Rejouer methodes, headers, query, body
+- [ ] Support encodages URL/double URL/unicode/JSON
+- [ ] Session stateful (cookies/tokens), isolation entre tests
+- [ ] Retry intelligent + jitter
+
+#### Moteur de payloads
+
+- [ ] Payloads parametrables par categorie
+- [ ] Mutations auto (case, encodings, wrappers)
+- [ ] Payload IDs uniques pour tracer la reflexion
+
+#### Detection
+
+- [ ] Signatures regex (SQL/template/parser/errors)
+- [ ] Diff baseline/probe
+- [ ] Detection temporelle robuste au bruit
+- [ ] Heuristiques anti faux positifs
+
+#### Reporting
+
+- [ ] Requete redigee, endpoint, parametre, payload_id
+- [ ] Observation brute + interpretation
+- [ ] Reproduction minimale
+- [ ] Recommandation concrete
+
+---
+
+### 3.18 Ordre de developpement recommande
+
+#### Phase A (MVP intrusif)
+
+- [ ] Open redirect
+- [ ] Methodes HTTP
+- [ ] CORS actif
+- [ ] Reflection params
+- [ ] SQL error-based basique
+- [ ] Path traversal basique
+- [ ] CSRF enforcement basique
+- [ ] IDOR simple
+
+#### Phase B
+
+- [ ] NoSQLi, SSTI, XXE
+- [ ] Upload abuse
+- [ ] Mass assignment
+- [ ] Rate limiting/auth abuse (lockout, enumeration)
+- [ ] Session tests (fixation/invalidation)
+
+#### Phase C
+
+- [ ] Request smuggling/desync
+- [ ] Cache poisoning/deception
+- [ ] Race conditions
+- [ ] WebSocket/gRPC/OAuth avances
+- [ ] DoS controle (toujours borne)
+
+---
+
+### 3.19 Exhaustive checklist (families a couvrir)
+
+- [ ] Auth brute force / lockout / enumeration
+- [ ] Session fixation / invalidation / token lifecycle
+- [ ] Horizontal + vertical authorization (IDOR/BOLA/BFLA)
+- [ ] CSRF enforcement
+- [ ] CORS actif (origin reflection, credentials)
+- [ ] Open redirect
+- [ ] Methodes HTTP (OPTIONS/TRACE/HEAD)
+- [ ] SQLi (error/time)
+- [ ] NoSQLi
+- [ ] XSS reflechi (detection)
+- [ ] Command injection basique
+- [ ] Path traversal
+- [ ] File inclusion (LFI/RFI selon techno)
+- [ ] XXE
+- [ ] SSTI
+- [ ] Insecure deserialization
+- [ ] Upload abuse (MIME, extension, execution)
+- [ ] Mass assignment
+- [ ] GraphQL abuse (introspection/depth/alias/batch)
+- [ ] GraphQL subscriptions abuse (sous-categorie GraphQL)
+- [ ] API schema validation abuse
+- [ ] Pagination abuse (limit excessif, bornes absentes — sous-categorie API schema)
+- [ ] SSRF applicative
+- [ ] Host header injection
+- [ ] Cache poisoning / web cache deception
+- [ ] HTTP request smuggling / desync
+- [ ] Race conditions
+- [ ] Business logic abuse
+- [ ] WebSocket authz
+- [ ] OAuth/OIDC misuse
+- [ ] DoS controle (borne) — P0 leger (rate limiting) ; P4 mode expert
+
+---
+
+### 3.20 Desactive par defaut (mode expert uniquement)
+
+- [ ] Tests potentiellement destructifs
+- [ ] Scenarios impliquant ecriture irreversible
+- [ ] Flood haute frequence longue duree
+- [ ] Exploitation complete (RCE, exfiltration)
+
+Activation uniquement en mode expert, avec opt-in explicite et limites strictes.
+
+---
+
+### 3.21 Documentation cible
+
+- [ ] Toutes les specs intrusives detaillees dans `docs/verifications/intrusive/`
+- [x] Catalogue complet intrusif versionne et maintenu dans `docs/verifications/intrusive/catalogue-complet-tests-intrusifs.md`
+- [x] Architecture et mutualisation : `docs/verifications/intrusive/architecture-mutualisation.md`
+
+---
+
 ## 4) Rapports et analytics
 
 ### 4.1 Tendances
@@ -345,8 +643,6 @@ Rendre le scan **simple à paramétrer** pour adapter la profondeur et le périm
 - [ ] Release notes : tests passifs complets + premiers tests actifs + rapports et analytics + scan paramétrable + explication du scoring
 - [ ] Mise à jour du disclaimer (tests actifs)
 - [ ] Documentation : liste des requêtes envoyées en mode actif
-
----
 
 # Synthèse
 

@@ -81,8 +81,9 @@ def build_intrusive_category_summaries(findings: list[Finding]) -> list[dict]:
     ]
 
 
-def build_custom_category_summaries() -> list[dict]:
+def build_custom_category_summaries(findings: list[Finding] | None = None) -> list[dict]:
     """Build summaries for custom fake mode."""
+    by_cat = _count_by_category(findings or [])
     return [
         _entry(
             category="custom_strategy",
@@ -90,9 +91,9 @@ def build_custom_category_summaries() -> list[dict]:
             label_en="Custom Strategy",
             description_fr="Ce mode est reserve aux scenarios sur mesure definis par l'equipe. En V1, aucun test actif n'est execute.",
             description_en="This mode is reserved for team-defined bespoke scenarios. In V1, no active test is executed.",
-            checks_fr=["Initialisation du plan custom"],
-            checks_en=["Custom plan initialization"],
-            anomaly_count=0,
+            checks_fr=["Simulation de strategie custom"],
+            checks_en=["Custom strategy simulation probe"],
+            anomaly_count=by_cat.get("custom_strategy", 0),
             checks_count=1,
         ),
         _entry(
@@ -101,16 +102,17 @@ def build_custom_category_summaries() -> list[dict]:
             label_en="Execution Guardrails",
             description_fr="Verification des garde-fous de securite avant lancement des scripts custom (mode simulation en V1).",
             description_en="Validation of safety guardrails before running custom scripts (simulation mode in V1).",
-            checks_fr=["Verification des preconditions de securite"],
-            checks_en=["Safety precondition checks"],
-            anomaly_count=0,
+            checks_fr=["Simulation des garde-fous custom"],
+            checks_en=["Custom guardrails simulation probe"],
+            anomaly_count=by_cat.get("custom_guardrails", 0),
             checks_count=1,
         ),
     ]
 
 
-def build_destructive_category_summaries() -> list[dict]:
+def build_destructive_category_summaries(findings: list[Finding] | None = None) -> list[dict]:
     """Build summaries for destructive fake mode."""
+    by_cat = _count_by_category(findings or [])
     return [
         _entry(
             category="destructive_prechecks",
@@ -122,9 +124,9 @@ def build_destructive_category_summaries() -> list[dict]:
             description_en=(
                 "Destructive mode validates prerequisites and execution windows " "before any sensitive action. In V1, execution is simulated."
             ),
-            checks_fr=["Validation du plan destructif"],
-            checks_en=["Destructive plan validation"],
-            anomaly_count=0,
+            checks_fr=["Simulation des pre-checks destructifs"],
+            checks_en=["Destructive prechecks simulation probe"],
+            anomaly_count=by_cat.get("destructive_prechecks", 0),
             checks_count=1,
         ),
         _entry(
@@ -133,9 +135,9 @@ def build_destructive_category_summaries() -> list[dict]:
             label_en="Safety Controls",
             description_fr="Verification des mecanismes d'arret d'urgence et des limites de blast radius (mode simulation en V1).",
             description_en="Verification of emergency stop and blast-radius limits (simulation mode in V1).",
-            checks_fr=["Verification des garde-fous de surete"],
-            checks_en=["Safety guardrails verification"],
-            anomaly_count=0,
+            checks_fr=["Simulation des controles de surete"],
+            checks_en=["Safety controls simulation probe"],
+            anomaly_count=by_cat.get("destructive_safety", 0),
             checks_count=1,
         ),
     ]
