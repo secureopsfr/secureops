@@ -18,8 +18,6 @@ from app.services.passive.both.information_disclosure.checks import InformationD
 from app.services.passive.both.information_disclosure.normalizer import normalize as normalize_info_disclosure
 from app.services.passive.both.path_checks.core import PathCheckResult
 from app.services.passive.both.path_checks.normalizer import normalize_directory_listing, normalize_exposed_files
-from app.services.passive.both.robots_txt.checks import RobotsTxtCheckResult
-from app.services.passive.both.robots_txt.normalizer import normalize as normalize_robots_txt
 from app.services.passive.both.security_headers.checks import SecurityHeadersCheckResult
 from app.services.passive.both.security_headers.normalizer import normalize as normalize_headers
 from app.services.passive.both.tech_fingerprinting.checks import TechFingerprintingCheckResult
@@ -28,6 +26,8 @@ from app.services.passive.both.tls.checks import TlsCheckResult
 from app.services.passive.both.tls.normalizer import normalize as normalize_tls
 from app.services.passive.frontend.integrity.checks import IntegrityCheckResult
 from app.services.passive.frontend.integrity.normalizer import normalize as normalize_integrity
+from app.services.passive.frontend.robots_txt.checks import RobotsTxtCheckResult
+from app.services.passive.frontend.robots_txt.normalizer import normalize as normalize_robots_txt
 from app.services.passive.frontend.sitemap.checks import SitemapCheckResult
 from app.services.passive.frontend.sitemap.normalizer import normalize as normalize_sitemap
 

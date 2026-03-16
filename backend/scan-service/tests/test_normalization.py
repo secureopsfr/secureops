@@ -3,10 +3,10 @@
 from app.services.passive.both.cookies.checks import CookieCheckResult, CookieInfo
 from app.services.passive.both.cors_cross_origin.checks import CorsCrossOriginCheckResult, CorsIssue
 from app.services.passive.both.path_checks.core import PathCheckResult, PathFinding
-from app.services.passive.both.robots_txt.checks import RobotsTxtCheckResult, SensitiveRoute
 from app.services.passive.both.security_headers.checks import SecurityHeadersCheckResult
 from app.services.passive.both.tech_fingerprinting.checks import TechFingerprintingCheckResult
 from app.services.passive.both.tls.checks import TlsCheckResult
+from app.services.passive.frontend.robots_txt.checks import RobotsTxtCheckResult, SensitiveRoute
 from app.services.passive.normalization import normalize_results
 
 

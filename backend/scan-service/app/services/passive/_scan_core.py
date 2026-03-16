@@ -13,12 +13,12 @@ from app.services.passive.both.cors_cross_origin import run_cors_cross_origin_ch
 from app.services.passive.both.directory_listing import run_directory_listing_checks
 from app.services.passive.both.exposed_files import run_exposed_files_checks
 from app.services.passive.both.information_disclosure import check_information_disclosure_from_response
-from app.services.passive.both.robots_txt import run_robots_txt_checks
 from app.services.passive.both.security_headers import check_security_headers_from_response
 from app.services.passive.both.tech_fingerprinting import check_tech_fingerprinting_from_response
 from app.services.passive.both.tls import run_tls_checks
 from app.services.passive.both.tls.posture import compute_tls_posture
 from app.services.passive.frontend.integrity import check_integrity_from_response
+from app.services.passive.frontend.robots_txt import run_robots_txt_checks
 from app.services.passive.frontend.sitemap import run_sitemap_checks
 from app.services.passive.normalization import normalize_results
 from app.services.scoring import compute_score
@@ -45,7 +45,14 @@ class FindingsBundle:
     total_tests_count: int
 
 
-def build_findings_bundle(results: dict[str, object]) -> FindingsBundle:
+_FRONTEND_ONLY_CATEGORIES: frozenset[str] = frozenset({"robots_txt", "sitemap", "integrity"})
+
+
+def build_findings_bundle(
+    results: dict[str, object],
+    *,
+    scan_type: str = "frontend",
+) -> FindingsBundle:
     """Calcule findings, score et résumés depuis un dict de résultats de checks.
 
     Source unique pour la logique normalize -> score -> tls_posture ->
@@ -55,6 +62,7 @@ def build_findings_bundle(results: dict[str, object]) -> FindingsBundle:
     Args:
         results: Dict {step_name: check_result} issu d'un scan (ex. "tls",
             "headers", "cache"...). Peut contenir un sous-ensemble de steps.
+        scan_type: "frontend" ou "backend" — exclut sitemap/integrity des résumés si backend.
 
     Returns:
         FindingsBundle prêt à être converti en payload ou PageScanResult.
@@ -70,6 +78,8 @@ def build_findings_bundle(results: dict[str, object]) -> FindingsBundle:
         tls_posture=tls_posture,
         tls_version=tls_version,
     )
+    if scan_type == "backend":
+        category_summaries = [s for s in category_summaries if s.get("category") not in _FRONTEND_ONLY_CATEGORIES]
     total_tests_count = sum(s.get("checks_count", 0) for s in category_summaries)
     return FindingsBundle(
         findings=findings_tuple,
@@ -149,7 +159,7 @@ def build_result_payload(
     scan_type: str = "frontend",
 ) -> dict:
     """Construit le payload normalisé final du scan single-URL."""
-    bundle = build_findings_bundle(results)
+    bundle = build_findings_bundle(results, scan_type=scan_type)
     duration = (time.monotonic() - start_time) if start_time is not None else 0.0
     timestamp = datetime.now(timezone.utc).isoformat()
     scan_result = ScanResult(

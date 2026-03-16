@@ -13,10 +13,10 @@ from app.services.passive.both.cors_cross_origin.checks import CorsCrossOriginCh
 from app.services.passive.both.directory_listing import DirectoryListingCheckResult
 from app.services.passive.both.exposed_files import ExposedFilesCheckResult
 from app.services.passive.both.information_disclosure.checks import InformationDisclosureCheckResult
-from app.services.passive.both.robots_txt import RobotsTxtCheckResult
 from app.services.passive.both.tech_fingerprinting.checks import TechFingerprintingCheckResult
 from app.services.passive.both.tls.checks import TlsCheckResult
 from app.services.passive.frontend.integrity import IntegrityCheckResult
+from app.services.passive.frontend.robots_txt import RobotsTxtCheckResult
 from app.services.passive.frontend.sitemap import SitemapCheckResult
 
 

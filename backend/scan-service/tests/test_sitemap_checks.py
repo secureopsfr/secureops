@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.passive.both.robots_txt.checks import RobotsTxtCheckResult
+from app.services.passive.frontend.robots_txt.checks import RobotsTxtCheckResult
 from app.services.passive.frontend.sitemap import SensitiveSitemapUrl, SitemapCheckResult, run_sitemap_checks
 
 

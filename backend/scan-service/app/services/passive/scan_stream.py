@@ -99,6 +99,8 @@ def _timeout_error_message() -> str:
 
 # Étapes SSE: (step_name, step_fn)
 _SCAN_STEP_FN_MAP = dict(SCAN_STEPS)
+# Étapes réservées au frontend (robots.txt, sitemap, intégrité HTML) — ignorées si scan_type == "backend"
+_FRONTEND_ONLY_STEPS: frozenset[str] = frozenset({"robots_txt", "sitemap", "integrity"})
 _SCAN_SSE_STEPS: list[tuple[str, Callable]] = [
     ("tls", _SCAN_STEP_FN_MAP["tls"]),
     ("headers", _SCAN_STEP_FN_MAP["headers"]),
@@ -148,6 +150,8 @@ async def _run_checks_with_client(
         )
 
         for step_name, step_fn in _SCAN_SSE_STEPS:
+            if scan_type == "backend" and step_name in _FRONTEND_ONLY_STEPS:
+                continue
             with http_request_category(step_name):
                 async for chunk in _run_step(step_name, step_fn, ctx):
                     yield chunk
@@ -157,7 +161,7 @@ async def _run_checks_with_client(
                 yield _timeout_error_message()
                 return
 
-        payload = build_result_payload(normalized_url, ctx.results, start_time)
+        payload = build_result_payload(normalized_url, ctx.results, start_time, scan_type=scan_type)
         nb_findings = len(payload["findings"])
         duration = payload["duration"]
         _log_scan_complete(duration, nb_findings, "success")

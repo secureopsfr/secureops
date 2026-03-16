@@ -2,7 +2,7 @@
 
 from app.catalogue.recommendations import get_recommendation, get_references
 from app.models.finding import Finding
-from app.services.passive.both.robots_txt.checks import RobotsTxtCheckResult
+from app.services.passive.frontend.robots_txt.checks import RobotsTxtCheckResult
 
 
 def _finding(slug: str, category: str, title: str, severity: str, evidence: str) -> Finding:

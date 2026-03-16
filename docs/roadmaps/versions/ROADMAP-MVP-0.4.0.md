@@ -235,24 +235,34 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 | **cache** | Analyse des headers de la page **+** analyse des sous-ressources (JS/CSS/images extraites du HTML) | Analyse des headers de la page uniquement ; **pas** d'analyse des sous-ressources |
 | **cors_cross_origin** | Vérifications CORS (ACAO, credentials, CORP) **+** contrôle mixed content (ressources HTTP sur page HTTPS) | Vérifications CORS uniquement ; **pas** de contrôle mixed content |
 | **tech_fingerprinting** | Analyse des headers (Server, X-Powered-By) **+** détection via HTML (meta generator, scripts) | Analyse des headers uniquement ; **pas** de `_detect_from_html` |
+| **sitemap** | Vérification Sitemap (robots.txt, sitemap.xml, URLs sensibles) | **Étape entière ignorée** (non pertinente pour une API) |
+| **integrity** | Intégrité HTML (SRI, scripts, formulaires, target="_blank", meta robots) | **Étape entière ignorée** (réponse JSON/XML, pas de HTML) |
+| **robots_txt** | Présence et contenu de robots.txt (Disallow, Sitemap) | **Étape entière ignorée** (non pertinent pour une API) |
 
 #### Implémentation technique
 
 - [x] **cache** (`both/cache/checks.py`) : `check_cache_from_response(..., scan_type="frontend")` ; si `scan_type == "backend"`, on n'appelle pas `_analyze_subresources`.
 - [x] **cors_cross_origin** (`both/cors_cross_origin/checks.py`) : `run_cors_cross_origin_checks(..., scan_type="frontend")` ; si `scan_type == "backend"`, on n'appelle pas `_check_mixed_content`.
 - [x] **tech_fingerprinting** (`both/tech_fingerprinting/checks.py`) : `check_tech_fingerprinting_from_response(..., scan_type="frontend")` ; si `scan_type == "backend"`, on n'appelle pas `_detect_from_html`.
-- [x] Les autres checks (TLS, headers, cookies, exposed_files, directory_listing, robots, sitemap, information_disclosure, integrity, path_checks, subresources) restent inchangés ; leur logique ne dépend pas du HTML ou est déjà conditionnée par le contenu de la réponse.
+- [x] **robots_txt**, **sitemap** et **integrity** : étapes entièrement ignorées quand `scan_type == "backend"` (voir `_FRONTEND_ONLY_STEPS` dans `scan_stream.py`). Ces catégories sont exclues des `category_summaries` et du `total_tests_count` pour les scans backend (voir `build_findings_bundle` avec `_FRONTEND_ONLY_CATEGORIES`).
+
+#### Restructuration frontend
+
+- [x] **robots_txt** déplacé de `both/` vers `frontend/` pour cohérence avec sitemap et integrity (ces trois checks sont frontend-only). Imports mis à jour dans `_scan_core`, `multi_scan_orchestrator`, `normalization` et les tests.
 
 #### Fichiers modifiés
 
 | Fichier | Modification |
 |---------|--------------|
-| `passive/_scan_core.py` | `ScanContext.scan_type` ; lambdas cache, cors, tech_fingerprinting passent `scan_type` |
-| `passive/scan_stream.py` | `scan_type` dans `_run_checks_with_client`, `_run_pipeline_steps`, `scan_stream_generator` |
+| `passive/_scan_core.py` | `ScanContext.scan_type` ; lambdas cache, cors, tech_fingerprinting ; `_FRONTEND_ONLY_CATEGORIES` ; `build_findings_bundle(..., scan_type)` ; import `frontend.robots_txt` |
+| `passive/scan_stream.py` | `scan_type` dans `_run_checks_with_client`, `_run_pipeline_steps`, `scan_stream_generator` ; `_FRONTEND_ONLY_STEPS` (robots_txt, sitemap, integrity) |
 | `async_scan_executor.py` | Appel `passive_scan_stream_generator(url, authorization=None, scan_type=scan_type)` |
 | `both/cache/checks.py` | Paramètre `scan_type` ; condition `if scan_type != "backend"` avant `_analyze_subresources` |
 | `both/cors_cross_origin/checks.py` | Paramètre `scan_type` ; condition `if scan_type != "backend"` avant `_check_mixed_content` |
 | `both/tech_fingerprinting/checks.py` | Paramètre `scan_type` ; condition `if scan_type != "backend"` avant `_detect_from_html` |
+| `passive/frontend/robots_txt/` | **Nouveau** — module déplacé depuis `both/` (checks, normalizer, __init__) |
+| `passive/normalization.py` | Import `frontend.robots_txt` |
+| `passive/multi_scan_orchestrator.py` | Import `frontend.robots_txt` |
 
 ---
 

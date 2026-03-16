@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.passive.both.robots_txt import RobotsTxtCheckResult, SensitiveRoute, run_robots_txt_checks
+from app.services.passive.frontend.robots_txt import RobotsTxtCheckResult, SensitiveRoute, run_robots_txt_checks
 
 
 @pytest.mark.asyncio()
@@ -14,7 +14,7 @@ async def test_run_robots_txt_checks_404() -> None:
     mock_resp.status_code = 404
     mock_resp.text = ""
 
-    with patch("app.services.passive.both.robots_txt.checks.get_with_client", new_callable=AsyncMock) as mock_get:
+    with patch("app.services.passive.frontend.robots_txt.checks.get_with_client", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = mock_resp
 
         result = await run_robots_txt_checks("https://example.com", client=MagicMock())
@@ -39,7 +39,7 @@ Disallow: /config/
 Disallow: /backup/
 """
 
-    with patch("app.services.passive.both.robots_txt.checks.get_with_client", new_callable=AsyncMock) as mock_get:
+    with patch("app.services.passive.frontend.robots_txt.checks.get_with_client", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = mock_resp
 
         result = await run_robots_txt_checks("https://example.com", client=MagicMock())
@@ -64,7 +64,7 @@ async def test_run_robots_txt_checks_api_public_exception() -> None:
 Disallow: /api/public/
 """
 
-    with patch("app.services.passive.both.robots_txt.checks.get_with_client", new_callable=AsyncMock) as mock_get:
+    with patch("app.services.passive.frontend.robots_txt.checks.get_with_client", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = mock_resp
 
         result = await run_robots_txt_checks("https://example.com", client=MagicMock())
@@ -85,7 +85,7 @@ Sitemap: https://example.com/sitemap.xml
 Disallow: /admin/
 """
 
-    with patch("app.services.passive.both.robots_txt.checks.get_with_client", new_callable=AsyncMock) as mock_get:
+    with patch("app.services.passive.frontend.robots_txt.checks.get_with_client", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = mock_resp
 
         result = await run_robots_txt_checks("https://example.com", client=MagicMock())
@@ -100,7 +100,7 @@ Disallow: /admin/
 @pytest.mark.asyncio()
 async def test_run_robots_txt_checks_fetch_fails() -> None:
     """get_with_client retourne None → fetch_ok False."""
-    with patch("app.services.passive.both.robots_txt.checks.get_with_client", new_callable=AsyncMock) as mock_get:
+    with patch("app.services.passive.frontend.robots_txt.checks.get_with_client", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = None
 
         result = await run_robots_txt_checks("https://example.com", client=MagicMock())
