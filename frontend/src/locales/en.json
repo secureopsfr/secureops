@@ -514,6 +514,7 @@
     "multiPageCount": "{{count}} page(s) scanned",
     "multiPages": "pages",
     "multiPagesError": "inaccessible page(s)",
+    "multiScanUnreachableWarning": "{{count}} of {{total}} URL(s) could not be analyzed (service unavailable, timeout, or network error). The results below are partial.",
     "multiPageError": "Inaccessible page",
     "noFindingsForPage": "No anomaly detected on this page.",
     "multiTabOverview": "Overview",

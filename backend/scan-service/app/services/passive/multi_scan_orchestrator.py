@@ -196,6 +196,12 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
             await self.emit_progress("page_scan_error", url=url)
             return self._build_error_page_result(url, str(exc), domain_results)
 
+        if response.status_code >= 500:
+            err_msg = f"HTTP {response.status_code} (service unavailable)"
+            logger.warning("multi_scan: page returned 5xx url=%s status=%s", url, response.status_code)
+            await self.emit_progress("page_scan_error", url=url)
+            return self._build_error_page_result(url, err_msg, domain_results)
+
         tls_result = domain_results.get("tls")
         is_https = getattr(tls_result, "https_enabled", True)
         page_check_results = await run_page_checks(
