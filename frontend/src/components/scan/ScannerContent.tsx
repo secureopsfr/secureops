@@ -222,11 +222,16 @@ export default function ScannerContent() {
                     <ScanTypeSelector
                       scanOnlyThisPage={scanOnlyThisPage}
                       onScanOnlyThisPageChange={setScanOnlyThisPage}
-                      crawlAvailable={scanTarget !== "backend"}
+                      scanTarget={scanTarget}
                       crawlMode={crawl.mode}
                       crawlMaxUrls={crawl.maxUrls}
                       onCrawlModeChange={setCrawlMode}
                       onCrawlMaxUrlsChange={setCrawlMaxUrls}
+                      baseUrl={url.trim()}
+                      onApiDocExtract={(urls) => {
+                        setCrawlUrls(urls);
+                        setState("validation");
+                      }}
                       t={t}
                     />
                     {isAuthenticated && !authLoading && (
@@ -258,7 +263,10 @@ export default function ScannerContent() {
                           type="submit"
                           label={t("scanner.cta")}
                           variant="primary"
-                          disabled={!url.trim()}
+                          disabled={
+                            !url.trim() ||
+                            (scanTarget === "backend" && !scanOnlyThisPage)
+                          }
                         />
                       )}
                     </div>
@@ -293,6 +301,7 @@ export default function ScannerContent() {
                 urls: crawl.urls,
                 identifiedCount: crawl.identifiedCount,
                 startUrl: url.trim(),
+                allowFullUrlAdd: scanTarget === "backend",
                 timeoutReached: crawl.timeoutReached,
                 timeoutHtml: crawl.timeoutHtml,
                 timeoutPlaywright: crawl.timeoutPlaywright,

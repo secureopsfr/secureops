@@ -35,6 +35,7 @@ async def run_page_checks(
     assets_cache: dict[str, str | None] | None = None,
     is_https: bool = True,
     domain_cors_result: object = None,
+    scan_type: str = "frontend",
 ) -> dict[str, Any]:
     """Exécute les 7 checks de niveau page et retourne leurs résultats.
 
@@ -61,14 +62,17 @@ async def run_page_checks(
     # -- Checks passifs (aucune requête HTTP) ---------------------------------
     results["headers"] = check_security_headers_from_response(response)
     results["cookies"] = check_cookies_from_response(response, is_https=is_https)
-    results["tech_fingerprinting"] = check_tech_fingerprinting_from_response(response)
+    results["tech_fingerprinting"] = check_tech_fingerprinting_from_response(response, scan_type=scan_type)
     results["information_disclosure"] = check_information_disclosure_from_response(response)
-    results["integrity"] = check_integrity_from_response(response, url)
+    if scan_type != "backend":
+        results["integrity"] = check_integrity_from_response(response, url)
+    else:
+        results["integrity"] = None
 
     # -- Checks actifs (requêtes HTTP taggées pour comptage) ------------------
     with http_request_category("cache"):
-        results["cache"] = await cache_checks.check_cache_from_response(response, url, client, assets_cache=assets_cache)
+        results["cache"] = await cache_checks.check_cache_from_response(response, url, client, assets_cache=assets_cache, scan_type=scan_type)
     with http_request_category("cors_cross_origin"):
-        results["cors_cross_origin"] = await run_cors_page_checks(response, url, client, domain_result=domain_cors_result)
+        results["cors_cross_origin"] = await run_cors_page_checks(response, url, client, domain_result=domain_cors_result, scan_type=scan_type)
 
     return results

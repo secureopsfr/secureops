@@ -45,6 +45,8 @@ interface CrawlValidationStepProps {
   disallowPaths?: string[];
   /** Autorise l'ajout manuel d'URL depuis cette étape. */
   allowManualAdd?: boolean;
+  /** Si true, autorise les URLs complètes avec path (utile pour endpoints API). */
+  allowFullUrlAdd?: boolean;
   /** Autorise l'action de lancement du scan depuis cette étape. */
   allowLaunchScan?: boolean;
   /** Clé i18n du libellé du bouton d'action principal. */
@@ -141,6 +143,60 @@ function normalizeManualDomainInput(
   }
 }
 
+function normalizeManualApiEndpointInput(
+  value: string,
+  startUrl: string,
+): { normalized: string | null; errorKey?: string } {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return { normalized: null, errorKey: "scanner.addUrlErrorRequired" };
+  }
+
+  const withScheme = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  try {
+    const u = new URL(withScheme);
+    if (u.protocol !== "https:" && u.protocol !== "http:") {
+      return {
+        normalized: null,
+        errorKey: "scanner.addUrlErrorSchemeNotAllowed",
+      };
+    }
+    if (u.username || u.password) {
+      return { normalized: null, errorKey: "scanner.addUrlErrorInvalidDomain" };
+    }
+
+    const startWithScheme = startUrl.includes("://")
+      ? startUrl
+      : `https://${startUrl}`;
+    let startHost = "";
+    try {
+      startHost = new URL(startWithScheme).hostname.toLowerCase();
+    } catch {
+      startHost = "";
+    }
+
+    const normalizeScopeHost = (h: string) =>
+      h.startsWith("www.") ? h.slice(4) : h;
+    const scopeHost = normalizeScopeHost(startHost);
+    const candidateHost = normalizeScopeHost(u.hostname.toLowerCase());
+
+    if (
+      scopeHost &&
+      candidateHost !== scopeHost &&
+      !candidateHost.endsWith(`.${scopeHost}`)
+    ) {
+      return { normalized: null, errorKey: "scanner.addUrlErrorOutOfScope" };
+    }
+
+    return { normalized: u.href };
+  } catch {
+    return { normalized: null, errorKey: "scanner.addUrlErrorInvalidDomain" };
+  }
+}
+
 function buildDomainBasedPlaceholder(
   startUrl: string,
   examplePath: string,
@@ -174,6 +230,7 @@ export default function CrawlValidationStep({
   maxConsecutive403 = 0,
   disallowPaths = [],
   allowManualAdd = true,
+  allowFullUrlAdd = false,
   allowLaunchScan = true,
   launchButtonLabelKey = "scanner.launchScanFromList",
   allowUrlRemoval = true,
@@ -205,11 +262,15 @@ export default function CrawlValidationStep({
   ]
     .filter(Boolean)
     .join(", ");
-  const domainBasedPlaceholder =
-    buildDomainBasedPlaceholder(
-      startUrl,
-      t("scanner.addUrlPlaceholderExamplePath"),
-    ) || t("scanner.addUrlPlaceholder");
+  const domainBasedPlaceholder = allowFullUrlAdd
+    ? buildDomainBasedPlaceholder(
+        startUrl,
+        t("scanner.addUrlPlaceholderExamplePath"),
+      ) || t("scanner.addUrlPlaceholderEndpoint")
+    : buildDomainBasedPlaceholder(
+        startUrl,
+        t("scanner.addUrlPlaceholderExamplePath"),
+      ) || t("scanner.addUrlPlaceholder");
   const isOverUrlLimit = urls.length > MAX_VALIDATION_URLS;
   const displayIdentifiedCount = identifiedCount ?? urls.length;
   const bodyScrollClass = compact ? "min-h-0 flex-1 overflow-y-auto pr-1" : "";
@@ -228,10 +289,10 @@ export default function CrawlValidationStep({
       );
       return;
     }
-    const { normalized, errorKey } = normalizeManualDomainInput(
-      newUrl,
-      startUrl,
-    );
+    const normalizeFn = allowFullUrlAdd
+      ? normalizeManualApiEndpointInput
+      : normalizeManualDomainInput;
+    const { normalized, errorKey } = normalizeFn(newUrl, startUrl);
     if (!normalized) {
       setInputHasError(true);
       showErrorToast(t(errorKey || "scanner.addUrlErrorInvalidDomain"));
@@ -410,9 +471,16 @@ export default function CrawlValidationStep({
                 <p className="mb-1 text-xs font-medium text-[var(--text)]">
                   {t("scanner.addUrlRulesTitle")}
                 </p>
-                <p className="text-xs text-[var(--muted)]">
-                  {t("scanner.addUrlRuleDomainOnly")}
-                </p>
+                {!allowFullUrlAdd && (
+                  <p className="text-xs text-[var(--muted)]">
+                    {t("scanner.addUrlRuleDomainOnly")}
+                  </p>
+                )}
+                {allowFullUrlAdd && (
+                  <p className="text-xs text-[var(--muted)]">
+                    {t("scanner.addUrlRuleFullUrlAllowed")}
+                  </p>
+                )}
                 <p className="text-xs text-[var(--muted)]">
                   {t("scanner.addUrlRuleHttpsOnly")}
                 </p>

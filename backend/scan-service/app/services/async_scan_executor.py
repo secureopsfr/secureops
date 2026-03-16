@@ -131,7 +131,7 @@ async def execute_multi_scan_job(
 
     try:
         validated_urls = await validate_multi_scan_urls(urls)
-        result = await run_multi_scan(validated_urls, on_progress=_progress)
+        result = await run_multi_scan(validated_urls, on_progress=_progress, scan_type=scan_type)
         payload = result.to_dict()
         payload["scan_type"] = scan_type
         payload["scan_mode"] = scan_mode

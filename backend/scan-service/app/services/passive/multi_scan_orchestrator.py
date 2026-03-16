@@ -30,9 +30,15 @@ logger = logging.getLogger(__name__)
 class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
     """Passive implementation using the reusable multi-scan template."""
 
-    def __init__(self, *, on_progress: OnProgress = None) -> None:
+    def __init__(
+        self,
+        *,
+        on_progress: OnProgress = None,
+        scan_type: str = "frontend",
+    ) -> None:
         """Initialize passive orchestration and shared per-run caches."""
         super().__init__(on_progress=on_progress)
+        self._scan_type = scan_type
         self._assets_cache: dict[str, str | None] = {}
         # Cache du bundle domaine : évite de re-normaliser/re-scorer N fois
         # pour les pages en erreur (toutes partagent le même résultat domaine).
@@ -74,14 +80,17 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
 
         Chaque coroutine retourne un dict partiel qui est fusionné après gather,
         ce qui élimine la mutation concurrente d'un dict partagé.
+        robots_txt et sitemap sont ignorés pour scan_type=backend.
         """
-        partial_results = await asyncio.gather(
+        tasks = [
             self._run_domain_tls(base_url, client),
-            self._run_domain_robots_then_sitemap(base_url, client),
             self._run_domain_exposed_files(base_url, client),
             self._run_domain_directory_listing(base_url, client),
             self._run_domain_cors(base_url, client),
-        )
+        ]
+        if self._scan_type != "backend":
+            tasks.insert(1, self._run_domain_robots_then_sitemap(base_url, client))
+        partial_results = await asyncio.gather(*tasks)
         domain_results: dict[str, Any] = {}
         for partial in partial_results:
             domain_results.update(partial)
@@ -156,7 +165,7 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
         """Retourne le bundle domaine, calculé une seule fois par run."""
         if self._domain_bundle_cache is None:
             domain_only = {k: v for k, v in domain_results.items() if k != "cors_domain"}
-            self._domain_bundle_cache = build_findings_bundle(domain_only)
+            self._domain_bundle_cache = build_findings_bundle(domain_only, scan_type=self._scan_type)
         return self._domain_bundle_cache
 
     async def run_single_page(
@@ -196,11 +205,12 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
             assets_cache=self._assets_cache,
             is_https=is_https,
             domain_cors_result=domain_results.get("cors_domain"),
+            scan_type=self._scan_type,
         )
 
         merged: dict[str, Any] = {k: v for k, v in domain_results.items() if k != "cors_domain"}
         merged.update(page_check_results)
-        bundle: FindingsBundle = build_findings_bundle(merged)
+        bundle: FindingsBundle = build_findings_bundle(merged, scan_type=self._scan_type)
 
         await self.emit_progress("page_scan_done", url=url)
         return PageScanResult(
@@ -251,9 +261,11 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
 async def run_multi_scan(
     urls: list[str],
     on_progress: OnProgress = None,
+    *,
+    scan_type: str = "frontend",
 ) -> MultiScanResult:
     """Public passive multi-scan entrypoint."""
-    orchestrator = PassiveMultiScanOrchestrator(on_progress=on_progress)
+    orchestrator = PassiveMultiScanOrchestrator(on_progress=on_progress, scan_type=scan_type)
     return await orchestrator.run(urls)
 
 

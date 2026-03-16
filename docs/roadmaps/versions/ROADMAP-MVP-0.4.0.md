@@ -302,48 +302,48 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 2.4 Option backend et import de documentation API
-*Périmètre : **les deux** (frontend : formulaire, case à cocher, upload ; backend : parsing spec, bruteforce chemins)*
+*Périmètre : **frontend** (formulaire, case à cocher, upload) ; **backend** (parsing spec)*
 
 > **Prérequis avant le développement des tests actifs backend.** À implémenter avant ou en parallèle des tests IDOR, mass assignment, GraphQL, etc.
 
-Lorsque l'utilisateur active l'option **« Inclure les tests backend »** (case à cocher dans l'interface de lancement de scan), le système requiert ou fortement recommande la **fourniture de la documentation API** pour découvrir les endpoints à tester.
+#### Contexte : crawler et scan frontend vs backend
 
-#### Comportement attendu
+- **Cible frontend** : le crawler agit comme actuellement. Checkbox « Scanner uniquement cette page » : si **coché** → pas de crawl, scan direct sur l'URL ; si **décoché** → crawler (découverte des pages du site) puis scan multi-URL.
+- **Cible backend** : pas de crawler (une API n'est pas parcourue comme un site HTML). La checkbox change de libellé et de sens :
+  - **Coché** : « Scanner uniquement cet endpoint » — scan direct sur l'URL API saisie.
+  - **Décoché** : « Scanner plusieurs endpoints » — affichage d'une zone d'**import de documentation API** (fichier ou URL de spec). Les endpoints sont extraits de la doc fournie par l'utilisateur ; **pas de recherche automatique** (bruteforce de chemins de doc exclu pour l'instant).
+- **Sans doc** (backend, multi-endpoints) : les tests se limitent à la liste fixe configurée dans `settings.yml` (`sensitive_paths`, `exposed_files`).
 
-- [ ] **Option « Inclure les tests backend »** : case à cocher dans le formulaire de lancement de scan (Scanner 2, ou mode actif).
-- [ ] **Quand cochée** : affichage d'une section dédiée demandant :
-  1. **URL backend** (si distincte du frontend) : ex. `https://api.example.com` ;
-  2. **Import de la documentation API** — requis ou fortement recommandé.
-- [ ] **Sans doc** : les tests backend se limitent à une liste fixe de chemins (cf. `sensitive_paths`, `exposed_files`).
-- [ ] **Avec doc** : couverture complète des endpoints (méthodes, paramètres) extraits de la spec.
+#### Comportement attendu (UI)
+
+- [ ] **Scan type backend** : le libellé de la checkbox devient « Scanner uniquement cet endpoint » (ou équivalent).
+- [ ] **Quand décoché (backend)** : affichage d'une section « Fournissez la documentation API pour scanner plusieurs endpoints » avec :
+  1. **Upload de fichier** : OpenAPI (`.json`, `.yaml`), GraphQL (export schéma), Postman Collection (`.json`).
+  2. **URL de spec** (optionnel) : saisie de l'URL de la doc (ex. `https://api.example.com/swagger.json`) — pas de découverte automatique si non fournie.
+- [ ] **Avec doc** : le scanner parse la spec et extrait la liste des endpoints (méthode, chemin, paramètres) pour le scan multi-URL.
+- [ ] **Sans doc** : scan sur la liste fixe de chemins uniquement.
 
 #### Formats acceptés pour l'import
 
 | Format | Support | Source |
 |--------|---------|--------|
-| **OpenAPI / Swagger** | URL ou fichier | `https://api.example.com/openapi.json`, ou upload fichier `.json` / `.yaml` |
-| **GraphQL schema** | URL ou fichier | Introspection depuis `/graphql`, ou export du schéma |
-| **Postman Collection** | Optionnel | Fichier `.json` (v2.1, v2.0) |
+| **OpenAPI / Swagger** | Fichier | Upload `.json` ou `.yaml` ; ou URL de spec saisie par l'utilisateur |
+| **GraphQL schema** | Fichier | Upload (export du schéma) |
+| **Postman Collection** | Fichier | Upload `.json` (v2.1, v2.0) |
 
-#### Flux utilisateur
+> **Hors périmètre pour l'instant** : bruteforce automatique des chemins de doc (`/swagger`, `/openapi.json`, etc.) sur l'URL backend. La liste d'endpoints provient uniquement de l'import utilisateur ou de la liste fixe.
 
-1. L'utilisateur coche « Inclure les tests backend ».
-2. Le système affiche : « Fournissez la documentation API pour une couverture optimale ».
-3. L'utilisateur choisit :
-   - **URL** : saisie de l'URL de la spec (ex. `https://api.example.com/swagger.json`) ;
-   - **Fichier** : upload d'un fichier OpenAPI/GraphQL/Postman.
-4. Si fourni : le scanner parse la spec et extrait la liste des endpoints (méthode, chemin, paramètres).
-5. Si non fourni : fallback sur la liste fixe de chemins + bruteforce des chemins de doc courants (`/swagger`, `/openapi.json`, `/api-docs`, `/graphql`).
+#### Décisions d'implémentation
 
-#### Fallback (sans import)
-
-- [ ] Bruteforce des chemins de doc : tester `/swagger`, `/swagger.json`, `/openapi.json`, `/api-docs`, `/graphql`, etc. sur l'URL backend.
-- [ ] Si une spec est découverte (200 + contenu valide) : la parser et l'utiliser comme source d'endpoints.
-- [ ] Sinon : appliquer les tests sur la liste fixe (`/api/`, `/admin/`, `/auth/`, etc.) configurée dans `settings.yml`.
+- [ ] **Flux** : identique au crawler — parse doc → affichage des endpoints → étape de validation (ajout/suppression) → bouton « Lancer le scan » → scan passif multi-URL.
+- [ ] **Parsing** : côté frontend (libs JS pour OpenAPI, GraphQL, Postman). Le frontend envoie une **liste d'URLs** au backend, pas le fichier.
+- [ ] **Fetch spec par URL** : côté frontend pour l'instant (CORS à surveiller ; migration backend possible plus tard).
+- [ ] **Limite endpoints** : 200 max (aligné sur la limite crawler).
+- [ ] **Formats** : OpenAPI/Swagger, GraphQL schema, Postman Collection dès le début.
 
 #### Tests concernés
 
-Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, injection sur API, etc.) s'appuient sur la liste d'endpoints issue de la doc ou du fallback.
+Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, injection sur API, etc.) s'appuient sur la liste d'endpoints issue de la doc importée ou de la liste fixe.
 
 ---
 

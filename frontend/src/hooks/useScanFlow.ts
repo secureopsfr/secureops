@@ -76,12 +76,6 @@ export function useScanFlow({
   } = useCrawlState();
 
   useEffect(() => {
-    if (scanTarget === "backend" && !scanOnlyThisPage) {
-      setScanOnlyThisPage(true);
-    }
-  }, [scanTarget, scanOnlyThisPage]);
-
-  useEffect(() => {
     if (!authLoading && isAuthenticated) {
       const pending = consumePendingScanResult();
       if (pending) {
@@ -238,6 +232,10 @@ export function useScanFlow({
 
       if (scanOnlyThisPage) {
         runScanOnUrl(urlToScan, scanTarget, scanMode);
+        return;
+      }
+
+      if (scanTarget === "backend") {
         return;
       }
 
