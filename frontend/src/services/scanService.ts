@@ -118,7 +118,7 @@ export type ScanEventHandler =
   | { type: "save_failed"; data: string }
   | { type: "save_done"; data: { scan_id: string } };
 
-export type AsyncScanType = "frontend" | "backend" | "both";
+export type AsyncScanType = "frontend" | "backend";
 export type AsyncScanMode = "passive" | "intrusive" | "destructive" | "custom";
 
 interface AsyncScanCreateResponse {

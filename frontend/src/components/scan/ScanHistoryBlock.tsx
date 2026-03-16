@@ -147,9 +147,7 @@ export default function ScanHistoryBlock({
                   const scanTypeKey =
                     item.scan_type === "backend"
                       ? "scanner.scanTypeBackend"
-                      : item.scan_type === "both"
-                        ? "scanner.scanTypeBoth"
-                        : "scanner.scanTypeFrontend";
+                      : "scanner.scanTypeFrontend";
                   const scanModeKey =
                     item.scan_mode === "intrusive"
                       ? "scanner.modeIntrusive"

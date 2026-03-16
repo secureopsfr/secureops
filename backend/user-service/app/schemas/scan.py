@@ -5,7 +5,7 @@ from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-ScanType = Literal["frontend", "backend", "both"]
+ScanType = Literal["frontend", "backend"]
 ScanMode = Literal["passive", "intrusive", "destructive", "custom"]
 ResultMode = Literal["single", "multi"]
 
@@ -14,7 +14,7 @@ class ScanCreateRequest(BaseModel):
     """Schéma pour la création d'un scan (appelé par scan-service)."""
 
     url: str = Field(..., description="URL scannée")
-    scan_type: ScanType = Field(..., description="Type de scan : frontend, backend, both")
+    scan_type: ScanType = Field(..., description="Type de scan : frontend ou backend")
     scan_mode: ScanMode = Field(default="passive", description="Mode de scan : passive, intrusive, destructive, custom")
     result_mode: ResultMode = Field(default="single", description="Mode du résultat : single ou multi")
     status: str = Field(default="success", description="Statut du scan")
@@ -41,7 +41,7 @@ class ScanListItem(BaseModel):
 
     id: str = Field(..., description="UUID du scan")
     url: str = Field(..., description="URL scannée")
-    scan_type: str = Field(..., description="Type de scan : frontend, backend, both")
+    scan_type: str = Field(..., description="Type de scan : frontend ou backend")
     scan_mode: str = Field(..., description="Mode de scan : passive, intrusive, destructive, custom")
     result_mode: ResultMode = Field(default="single", description="Mode du résultat : single ou multi")
     status: str = Field(..., description="Statut")
@@ -71,7 +71,7 @@ class ScanDetailResponse(BaseModel):
 
     id: str = Field(..., description="UUID du scan")
     url: str = Field(..., description="URL scannée")
-    scan_type: str = Field(..., description="Type de scan : frontend, backend, both")
+    scan_type: str = Field(..., description="Type de scan : frontend ou backend")
     scan_mode: str = Field(..., description="Mode de scan : passive, intrusive, destructive, custom")
     result_mode: ResultMode = Field(default="single", description="Mode du résultat : single ou multi")
     status: str = Field(..., description="Statut")

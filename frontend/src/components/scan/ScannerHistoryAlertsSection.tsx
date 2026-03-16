@@ -10,7 +10,7 @@ interface ScannerHistoryAlertsSectionProps {
   onSelectScan: (selection: ScanHistorySelection) => void;
   /** Filtre optionnel par URL (historique/alertes/suivis limités à cette URL). */
   filterUrl?: string | null;
-  /** Filtre optionnel par type de scan (frontend, backend, both). */
+  /** Filtre optionnel par type de scan (frontend, backend). */
   filterScanType?: string | null;
   /** Filtre optionnel par mode de scan (passive, intrusive, destructive, custom). */
   filterScanMode?: string | null;

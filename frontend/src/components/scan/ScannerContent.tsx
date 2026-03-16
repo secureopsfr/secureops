@@ -204,9 +204,7 @@ export default function ScannerContent() {
                       <DropdownSelector
                         selectedValue={scanTarget}
                         onChange={(value) =>
-                          setScanTarget(
-                            value as "frontend" | "backend" | "both",
-                          )
+                          setScanTarget(value as "frontend" | "backend")
                         }
                         options={[
                           {
@@ -217,7 +215,6 @@ export default function ScannerContent() {
                             value: "backend",
                             label: t("scanner.targetBackend"),
                           },
-                          { value: "both", label: t("scanner.targetBoth") },
                         ]}
                         width="100%"
                       />

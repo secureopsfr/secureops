@@ -9,8 +9,8 @@ import { useLanguage } from "../LanguageProvider";
 interface ScanLaunchBubbleProps {
   url: string;
   onUrlChange: (value: string) => void;
-  scanTarget: "frontend" | "backend" | "both";
-  onScanTargetChange: (value: "frontend" | "backend" | "both") => void;
+  scanTarget: "frontend" | "backend";
+  onScanTargetChange: (value: "frontend" | "backend") => void;
   showTargetSelector?: boolean;
   onSubmit: (e: FormEvent) => void;
   loading?: boolean;
@@ -67,12 +67,11 @@ export default function ScanLaunchBubble({
             <DropdownSelector
               selectedValue={scanTarget}
               onChange={(value) =>
-                onScanTargetChange(value as "frontend" | "backend" | "both")
+                onScanTargetChange(value as "frontend" | "backend")
               }
               options={[
                 { value: "frontend", label: t("scanner.targetFrontend") },
                 { value: "backend", label: t("scanner.targetBackend") },
-                { value: "both", label: t("scanner.targetBoth") },
               ]}
               width="100%"
             />
@@ -80,9 +79,7 @@ export default function ScanLaunchBubble({
             <div className="auth-input w-full">
               {scanTarget === "backend"
                 ? t("scanner.targetBackend")
-                : scanTarget === "both"
-                  ? t("scanner.targetBoth")
-                  : t("scanner.targetFrontend")}
+                : t("scanner.targetFrontend")}
             </div>
           )}
         </div>

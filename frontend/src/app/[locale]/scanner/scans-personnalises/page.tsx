@@ -43,7 +43,7 @@ export default async function ScannerScansPersonnalisesPage({
             titleKey="scanner.scansPersonnalises.title"
             placeholderKey="scanner.scansPersonnalises.placeholder"
             docSlug="scans-personnalises"
-            filterScanType="both"
+            filterScanType="backend"
           />
         </div>
       </main>

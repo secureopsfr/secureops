@@ -108,7 +108,7 @@ class InternalScanRequest(BaseModel):
     """Requête pour l'endpoint interne (scheduler)."""
 
     url: str = Field(..., description="URL à scanner")
-    scan_type: str = Field("frontend", description="Type de scan: frontend, backend, both")
+    scan_type: str = Field("frontend", description="Type de scan: frontend ou backend")
     scan_mode: str = Field("passive", description="Mode de scan: passive, intrusive, destructive, custom")
 
 
@@ -116,7 +116,7 @@ class InternalMultiScanRequest(BaseModel):
     """Requête pour l'endpoint interne multi (scheduler)."""
 
     urls: list[str] = Field(..., min_length=2, description="Liste d'URLs d'un même domaine")
-    scan_type: str = Field("frontend", description="Type de scan: frontend, backend, both")
+    scan_type: str = Field("frontend", description="Type de scan: frontend ou backend")
     scan_mode: str = Field("passive", description="Mode de scan: passive, intrusive, destructive, custom")
 
 

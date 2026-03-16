@@ -319,7 +319,6 @@ export default function ScannerGestion() {
                   },
                   { value: "frontend", labelKey: "scanner.scanTypeFrontend" },
                   { value: "backend", labelKey: "scanner.scanTypeBackend" },
-                  { value: "both", labelKey: "scanner.scanTypeBoth" },
                 ] as const
               ).map(({ value, labelKey }) => (
                 <FilterOption

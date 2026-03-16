@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, model_validator
 from app.config_loader import get_multi_scan_settings
 from app.utils.url_helpers import registered_domain
 
-ScanType = Literal["frontend", "backend", "both"]
+ScanType = Literal["frontend", "backend"]
 ScanMode = Literal["passive", "intrusive", "destructive", "custom"]
 JobStatus = Literal["pending", "running", "completed", "failed"]
 
