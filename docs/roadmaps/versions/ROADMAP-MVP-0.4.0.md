@@ -4,6 +4,8 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 
 **Prérequis :** MVP 0.2.0 livré (API publique, clés API, scan avancé partiel, CI/CD).
 
+**Périmètre des tests :** Pour chaque section, le périmètre est indiqué en *italique* sous le titre : **frontend** (UI, affichage, pages web cibles), **backend** (APIs, moteur scan, services), ou **les deux**.
+
 ## Sommaire
 
 **Ordre recommandé pour la lecture et l'implémentation :** 0 (architecture) -> 1 (passif restant) -> 2 (vérification d'autorisation + 2.4 backend/doc API) -> 3 (actif MVP + backlog intrusif) -> 4 (rapports/analytics) -> 5 (scan paramétrable) -> 6 (infra/qualité) -> 7 (release).
@@ -92,6 +94,7 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 > Les tests passifs des sections 5.1 à 5.4 et 5.8 de la roadmap 0.2.0 sont livrés (TLS, headers, cookies, exposition fichiers, directory listing, robots, sitemap, tech fingerprinting, information disclosure, cache, CORS et cross-origin). Il reste à implémenter pour le Scanner 1 (passif) :
 
 ### 1.1 Méthodes HTTP et redirections (ex-roadmap 5.5, voir A-PENSER-PLUS-TARD)
+*Périmètre : **les deux** (frontend et backend)*
 
 - [ ] Requête OPTIONS : méthodes autorisées
 - [ ] TRACE activé → finding (XST)
@@ -104,6 +107,7 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 ---
 
 ### 1.2 Intégrité et sous-ressources (5.6 — restant roadmap 0.2.0)
+*Périmètre : **frontend** (HTML, scripts, formulaires)*
 
 - [x] Scripts/CSS externes (CDN) sans attribut `integrity` → finding
 - [x] Balises `<script>` sans nonce ou integrity (contexte CSP), uniquement lorsque l'en-tête CSP est présent (sinon, un message informe que les tests avancés ne sont pas appliqués)
@@ -114,6 +118,7 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 ---
 
 ### 1.3 APIs et formats (ex-roadmap 5.7, voir A-PENSER-PLUS-TARD)
+*Périmètre : **backend** (APIs, endpoints)*
 
 - [ ] GraphQL : introspection activée sur `/graphql` ou similaire
 - [ ] Swagger/OpenAPI exposé sans auth
@@ -125,6 +130,7 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 ---
 
 ### 1.4 Tests passifs complémentaires
+*Périmètre : **frontend** (formulaires, meta) ; **les deux** (OWASP mapping, rapport conformité)*
 
 - [ ] Formulaires : détection de tokens CSRF (présence de champ csrf_token, _token, etc.)
 - [ ] Métadonnées : analyse des balises `<meta>` (robots, generator)
@@ -134,6 +140,7 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 ---
 
 ### 1.5 Backlog tests reporté depuis la roadmap 0.3.0
+*Périmètre : **backend** (environnements, CI, scénarios d'intégration scan/crawl)*
 
 Objectif : finaliser la couverture de tests d’intégration de la pipeline scan/crawl, reportée depuis la section 2 de la roadmap v0.3.0.
 
@@ -175,6 +182,7 @@ Objectif : finaliser la couverture de tests d’intégration de la pipeline scan
 ---
 
 ### 1.6 Backlog reporté depuis la roadmap 0.3.0 (hors section tests)
+*Périmètre : **backend** (GitHub Action, gouvernance crawler) ; **frontend** (docs/UX, affichage anomalies)*
 
 Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 liés à l’intégration CI/CD, au crawler, à la doc/UX scanner et au rendu d’anomalies.
 
@@ -208,6 +216,7 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 ---
 
 ## 2) Vérification d’autorisation (uniquement en production)
+*Périmètre : **backend** (vérification DNS, cache) ; **frontend** (flux utilisateur, affichage token)*
 
 > **Document dédié :** voir [VERIFICATION-AUTORISATION.md](VERIFICATION-AUTORISATION.md) pour la spécification complète.
 
@@ -242,6 +251,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 2.4 Option backend et import de documentation API
+*Périmètre : **les deux** (frontend : formulaire, case à cocher, upload ; backend : parsing spec, bruteforce chemins)*
 
 > **Prérequis avant le développement des tests actifs backend.** À implémenter avant ou en parallèle des tests IDOR, mass assignment, GraphQL, etc.
 
@@ -287,6 +297,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ## 3) Introduire les tests actifs (Scanner 2)
+*Périmètre des tests : selon le type — voir détail par sous-section*
 
 > **Principe :** Tests actifs **légers** au départ. Pas de fuzzing massif, pas de bruteforce. Requêtes ciblées pour détecter des vulnérabilités courantes.
 
@@ -303,6 +314,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.2 Tests actifs — Redirections (déjà partiellement actif)
+*Périmètre : **les deux** (pages frontend avec redirect ; endpoints backend avec redirect_uri)*
 
 - [ ] Open redirect : envoyer `?redirect=https://evil.com`, `?next=//evil.com`, `?url=...` et vérifier si redirection vers domaine externe
 - [ ] Paramètres à tester : `redirect`, `url`, `next`, `return`, `redirect_uri`, `returnUrl`, `continue`, `destination`
@@ -310,6 +322,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.3 Tests actifs — Méthodes HTTP
+*Périmètre : **les deux** (toute URL peut exposer OPTIONS, TRACE, HEAD)*
 
 - [ ] Requête OPTIONS : récupérer Allow
 - [ ] Requête TRACE : détecter XST (si 200 + écho de la requête)
@@ -318,6 +331,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.4 Tests actifs — CORS
+*Périmètre : **les deux** (frontend et API peuvent mal configurer CORS)*
 
 - [ ] Envoyer requête avec `Origin: https://evil.com` (ou domaine de test)
 - [ ] Vérifier si réponse contient `Access-Control-Allow-Origin: https://evil.com` + `Credentials: true` → réflexion non validée
@@ -325,6 +339,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.5 Tests actifs — Paramètres (premiers pas)
+*Périmètre : **les deux** (pages web avec paramètres réfléchis ; APIs avec paramètres dans les réponses)*
 
 - [ ] Détection de paramètres réfléchis : envoyer une chaîne unique (ex. `SecureOpsTest123`) dans les paramètres courants (`q`, `search`, `query`, `id`, `page`, etc.)
 - [ ] Si la chaîne apparaît dans la réponse HTML → paramètre réfléchi (info, vecteur potentiel XSS)
@@ -333,6 +348,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.6 Tests actifs — Path traversal (léger)
+*Périmètre : **backend** (paramètres file, path, document sur endpoints)*
 
 - [ ] Tester `../` dans des paramètres de fichier courants (`file`, `path`, `document`, `template`, `include`)
 - [ ] Exemple : `?file=../../../etc/passwd` — si erreur différente (500, message d’erreur) ou contenu suspect → finding
@@ -341,6 +357,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.7 Tests actifs — Injection basique (erreurs révélatrices)
+*Périmètre : **backend** (formulaires/APIs qui interrogent la BDD)*
 
 - [ ] SQL : envoyer `'` ou `"` dans paramètres (id, search, etc.) — détecter messages d’erreur SQL dans la réponse (MySQL, PostgreSQL, etc.)
 - [ ] Pas d’exploitation ; uniquement détection d’erreur non gérée révélant une injection possible
@@ -349,6 +366,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.8 Tests actifs — DoS (single-source, pas DDoS)
+*Périmètre : **les deux** (tout endpoint peut être ciblé)*
 
 > **Périmètre :** Tests depuis **une seule source** (le scanner) pour évaluer la résilience ou les indicateurs de vulnérabilité DoS. Pas de test DDoS (pas de volume distribué).
 
@@ -360,6 +378,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.9 Documentation et scoring
+*Périmètre : **backend** (matrice sévérité, pondération) ; **frontend** (section rapport PDF)*
 
 - [ ] Créer `docs/verifications/` pour chaque nouveau test actif
 - [ ] Matrice de sévérité par test
@@ -369,11 +388,13 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.10 Backlog intrusif exhaustif (au-dela du MVP strict)
+*Périmètre : **backend** (P0-P4) ; **frontend** (XSS réfléchi) ; **les deux** (open redirect, CORS, méthodes HTTP, rate limiting)*
 
 > Cette section migre le catalogue des tests intrusifs complets dans la roadmap v0.4.0 afin de centraliser la trajectoire Scanner 2.
 > Les items ci-dessous sont priorises P0 -> P4 et complete la section 3 (premiers tests actifs).
 
 ### 3.11 Garde-fous obligatoires (toutes phases)
+*Périmètre : **backend** (moteur scanner)*
 
 - [ ] Autorisation forte : preuve de controle du domaine (DNS TXT), audit trail, acceptation explicite
 - [ ] Kill switch global : arret immediat d'un scan actif en cours
@@ -389,6 +410,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.12 P0 — Indispensable (common, forte valeur)
+*Périmètre : **backend** (auth, session, IDOR, SQLi, path traversal, command injection, CSRF, rate limiting) ; **frontend** (XSS réfléchi) ; **les deux** (open redirect, CORS, méthodes HTTP)*
 
 #### Authentification et session
 
@@ -423,6 +445,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.13 P1 — Tres recommande
+*Périmètre : **backend** (upload, GraphQL, mass assignment, SSRF, XXE, SSTI, deserialization)*
 
 #### Upload et contenu utilisateur
 
@@ -451,6 +474,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.14 P2 — Avance (moins frequent, impact eleve potentiel)
+*Périmètre : **backend** (request smuggling, cache poisoning, host header, race conditions, business logic)*
 
 #### HTTP/cache avances
 
@@ -473,6 +497,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.15 P3 — Specialises
+*Périmètre : **backend** (WebSocket, GraphQL subscriptions, gRPC, OAuth/OIDC, SSO, object storage)*
 
 #### Temps reel et protocoles
 
@@ -493,6 +518,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.16 P4 — Rare/recherche (mode expert explicite)
+*Périmètre : **backend** (tous ces tests ciblent des endpoints)*
 
 - [ ] DoS applicatif controle (burst, slow request/headers, amplification)
 - [ ] HTTP/2 abuse patterns
@@ -503,6 +529,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.17 Exigences techniques minimales (moteur intrusif)
+*Périmètre : **backend** (moteur de scan)*
 
 #### Moteur de requetes
 
@@ -534,6 +561,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.18 Ordre de developpement recommande
+*Périmètre : mix **frontend** + **backend** selon la famille de test (voir 3.12-3.16)*
 
 #### Phase A (MVP intrusif)
 
@@ -565,6 +593,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.19 Exhaustive checklist (families a couvrir)
+*Périmètre : **backend** (majorité) ; **frontend** (XSS) ; **les deux** (CORS, open redirect, méthodes HTTP)*
 
 - [ ] Auth brute force / lockout / enumeration
 - [ ] Session fixation / invalidation / token lifecycle
@@ -601,6 +630,7 @@ Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, inject
 ---
 
 ### 3.20 Desactive par defaut (mode expert uniquement)
+*Périmètre : **backend** (exécution) ; **frontend** (opt-in UI)*
 
 - [ ] Tests potentiellement destructifs
 - [ ] Scenarios impliquant ecriture irreversible
@@ -612,6 +642,7 @@ Activation uniquement en mode expert, avec opt-in explicite et limites strictes.
 ---
 
 ### 3.21 Documentation cible
+*Périmètre : **backend** (docs techniques)*
 
 - [ ] Toutes les specs intrusives detaillees dans `docs/verifications/intrusive/`
 - [x] Catalogue complet intrusif versionne et maintenu dans `docs/verifications/intrusive/catalogue-complet-tests-intrusifs.md`
@@ -620,6 +651,7 @@ Activation uniquement en mode expert, avec opt-in explicite et limites strictes.
 ---
 
 ## 4) Rapports et analytics
+*Périmètre : **backend** (calcul, agrégation, export) ; **frontend** (affichage, graphiques, tableau de bord, explication scoring)*
 
 ### 4.1 Tendances
 
@@ -647,6 +679,7 @@ Activation uniquement en mode expert, avec opt-in explicite et limites strictes.
 ---
 
 ## 5) Scan paramétrable
+*Périmètre : **les deux** (frontend : UI sélecteur de mode ; backend : logique de filtrage par gravité/catégorie)*
 
 Rendre le scan **simple à paramétrer** pour adapter la profondeur et le périmètre selon les besoins.
 
@@ -666,6 +699,7 @@ Rendre le scan **simple à paramétrer** pour adapter la profondeur et le périm
 ---
 
 ## 6) Infra et qualité
+*Périmètre : **backend** (mode async, config, tests unitaires)*
 
 ### 6.1 Mode asynchrone (optionnel)
 
