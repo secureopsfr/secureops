@@ -88,6 +88,7 @@ class ScanContext:
     client: object
     https_response: object
     results: dict[str, object] = field(default_factory=dict)
+    scan_type: str = "frontend"
 
 
 # Étapes de scan partagées entre SSE et endpoint interne.
@@ -107,6 +108,7 @@ SCAN_STEPS: list[tuple[str, Callable]] = [
             ctx.https_response,
             ctx.https_url,
             ctx.client,
+            scan_type=ctx.scan_type,
         ),
     ),
     ("cookies", lambda ctx: check_cookies_from_response(ctx.https_response, is_https=ctx.results["tls"].https_enabled)),
@@ -121,7 +123,10 @@ SCAN_STEPS: list[tuple[str, Callable]] = [
             client=ctx.client,
         ),
     ),
-    ("tech_fingerprinting", lambda ctx: check_tech_fingerprinting_from_response(ctx.https_response)),
+    (
+        "tech_fingerprinting",
+        lambda ctx: check_tech_fingerprinting_from_response(ctx.https_response, scan_type=ctx.scan_type),
+    ),
     ("information_disclosure", lambda ctx: check_information_disclosure_from_response(ctx.https_response)),
     ("integrity", lambda ctx: check_integrity_from_response(ctx.https_response, ctx.https_url)),
     (
@@ -130,6 +135,7 @@ SCAN_STEPS: list[tuple[str, Callable]] = [
             ctx.https_response,
             ctx.https_url,
             ctx.client,
+            scan_type=ctx.scan_type,
         ),
     ),
 ]

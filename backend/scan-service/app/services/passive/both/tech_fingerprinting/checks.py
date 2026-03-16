@@ -266,7 +266,65 @@ def _merge_stack_entries(header_entries: list[StackEntry], html_entries: list[St
     return tuple(sorted(by_product.values(), key=lambda x: -x.confidence))
 
 
-def check_tech_fingerprinting_from_response(response: "httpx.Response | None") -> TechFingerprintingCheckResult:
+def _add_framework_cms_if_missing(
+    header_entries: list[StackEntry],
+    vulnerable: list[VulnerableVersion],
+    framework_cms: str,
+    framework_cms_version: str | None,
+) -> None:
+    """Ajoute framework_cms aux entries si pas déjà présent ; enregistre version vulnérable si applicable."""
+    if any(e.product.lower() == framework_cms.lower() for e in header_entries):
+        return
+    conf = _CONFIDENCE_HEADER_VERSION if framework_cms_version else _CONFIDENCE_HEADER_RAW
+    header_entries.append(
+        StackEntry(
+            product=framework_cms,
+            version=framework_cms_version,
+            confidence=conf,
+            source="header_x_generator",
+        )
+    )
+    if framework_cms_version:
+        min_safe = _check_vulnerable(framework_cms, framework_cms_version)
+        if min_safe:
+            vulnerable.append(
+                VulnerableVersion(
+                    product=framework_cms,
+                    version=framework_cms_version,
+                    min_safe_version=min_safe,
+                )
+            )
+
+
+def _build_findings(
+    server: str | None,
+    server_version: str | None,
+    x_powered_by: str | None,
+    runtime_version: str | None,
+    framework_cms: str | None,
+    framework_cms_version: str | None,
+    vulnerable: list[VulnerableVersion],
+) -> tuple[str, ...]:
+    """Construit la liste des findings à partir des données extraites."""
+    findings: list[str] = []
+    if server:
+        findings.append(f"Serveur détecté : {server}" + (f" (version {server_version})" if server_version else ""))
+    if x_powered_by:
+        findings.append(f"Runtime : {x_powered_by}" + (f" (version {runtime_version})" if runtime_version else ""))
+    if framework_cms:
+        findings.append(f"Framework/CMS probable : {framework_cms}" + (f" {framework_cms_version}" if framework_cms_version else ""))
+    for v in vulnerable:
+        findings.append(f"Version potentiellement vulnérable : {v.product} {v.version} (version minimale recommandée : {v.min_safe_version})")
+    if not findings:
+        findings.append("Stack : non identifiée (ou masquée)")
+    return tuple(findings)
+
+
+def check_tech_fingerprinting_from_response(
+    response: "httpx.Response | None",
+    *,
+    scan_type: str = "frontend",
+) -> TechFingerprintingCheckResult:
     """Analyse en-têtes et HTML pour un fingerprinting technologique complet.
 
     Extrait les versions, détecte via HTML, vérifie les versions vulnérables,
@@ -295,47 +353,17 @@ def check_tech_fingerprinting_from_response(response: "httpx.Response | None") -
     header_entries, vulnerable = _detect_from_headers(response)
     framework_cms, framework_cms_version = _detect_framework_cms_from_headers(response)
 
-    if framework_cms and not any(e.product.lower() == framework_cms.lower() for e in header_entries):
-        conf = _CONFIDENCE_HEADER_VERSION if framework_cms_version else _CONFIDENCE_HEADER_RAW
-        header_entries.append(
-            StackEntry(
-                product=framework_cms,
-                version=framework_cms_version,
-                confidence=conf,
-                source="header_x_generator",
-            )
-        )
-        if framework_cms_version:
-            min_safe = _check_vulnerable(framework_cms, framework_cms_version)
-            if min_safe:
-                vulnerable.append(
-                    VulnerableVersion(
-                        product=framework_cms,
-                        version=framework_cms_version,
-                        min_safe_version=min_safe,
-                    )
-                )
+    if framework_cms:
+        _add_framework_cms_if_missing(header_entries, vulnerable, framework_cms, framework_cms_version)
 
-    html = response.text if hasattr(response, "text") else ""
-    html_entries = _detect_from_html(html or "")
+    html_entries = _detect_from_html(response.text or "") if scan_type != "backend" and hasattr(response, "text") else []
     stack_entries = _merge_stack_entries(header_entries, html_entries)
 
     server = get_header_insensitive(response, "Server")
     x_powered_by = get_header_insensitive(response, "X-Powered-By")
     server_version = _parse_version(server) if server else None
     runtime_version = _parse_version(x_powered_by) if x_powered_by else None
-
-    findings: list[str] = []
-    if server:
-        findings.append(f"Serveur détecté : {server}" + (f" (version {server_version})" if server_version else ""))
-    if x_powered_by:
-        findings.append(f"Runtime : {x_powered_by}" + (f" (version {runtime_version})" if runtime_version else ""))
-    if framework_cms:
-        findings.append(f"Framework/CMS probable : {framework_cms}" + (f" {framework_cms_version}" if framework_cms_version else ""))
-    for v in vulnerable:
-        findings.append(f"Version potentiellement vulnérable : {v.product} {v.version} " f"(version minimale recommandée : {v.min_safe_version})")
-    if not findings:
-        findings.append("Stack : non identifiée (ou masquée)")
+    findings = _build_findings(server, server_version, x_powered_by, runtime_version, framework_cms, framework_cms_version, vulnerable)
 
     return TechFingerprintingCheckResult(
         server=server,

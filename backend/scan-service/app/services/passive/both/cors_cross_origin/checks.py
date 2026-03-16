@@ -322,6 +322,8 @@ async def run_cors_cross_origin_checks(
     response: httpx.Response | None,
     https_url: str,
     client: httpx.AsyncClient,
+    *,
+    scan_type: str = "frontend",
 ) -> CorsCrossOriginCheckResult:
     """Exécute les vérifications CORS et cross-origin.
 
@@ -369,7 +371,8 @@ async def run_cors_cross_origin_checks(
             msg = "Cross-Origin-Resource-Policy manquant sur la page principale."
             issues.append(CorsIssue(kind="corp_missing_main", message=msg))
 
-    await _check_mixed_content(response, page_url, settings.max_sub_resources, issues)
+    if scan_type != "backend":
+        await _check_mixed_content(response, page_url, settings.max_sub_resources, issues)
 
     findings = tuple(issue.message for issue in issues)
     return CorsCrossOriginCheckResult(findings=findings, fetch_ok=True, issues=tuple(issues))

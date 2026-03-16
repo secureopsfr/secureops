@@ -19,6 +19,7 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
   - [1.4 Tests passifs complémentaires](#14-tests-passifs-complémentaires)
   - [1.5 Backlog tests reporté depuis la roadmap 0.3.0](#15-backlog-tests-reporté-depuis-la-roadmap-030)
   - [1.6 Backlog reporté depuis la roadmap 0.3.0 (hors section tests)](#16-backlog-reporté-depuis-la-roadmap-030-hors-section-tests)
+  - [1.7 Adaptation des tests passifs pour scan_type backend](#17-adaptation-des-tests-passifs-pour-scan_type-backend)
 - [2) Vérification d'autorisation (uniquement en production)](#2-vérification-dautorisation-uniquement-en-production)
   - [2.1 Méthode : vérification DNS](#21-méthode--vérification-dns)
   - [2.2 Flux utilisateur (Scanner 2 uniquement)](#22-flux-utilisateur-scanner-2-uniquement)
@@ -212,6 +213,46 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 #### 1.6.4 Affichage anomalies (ex-section 8.4 de la v0.3.0)
 
 - [ ] Finaliser le rendu “anomalie détectée” : icône dédiée dans résumé/table + libellé explicite “Anomalie détectée” / “Trouvé”.
+
+---
+
+### 1.7 Adaptation des tests passifs pour scan_type backend
+*Périmètre : **backend** (moteur scan passif, pipeline)*
+
+> **Contexte :** Lorsqu'un utilisateur lance un scan en mode **backend** (cible API, endpoint JSON/XML plutôt que page HTML), certaines étapes des tests passifs dépendent du **HTML** pour fonctionner (extraction de sous-ressources, meta generator, mixed content). Ces étapes sont sans pertinence ou non applicables sur une réponse API. On **ne supprime pas** le code : on ne l'exécute simplement pas quand `scan_type == "backend"`.
+
+#### Propagation de scan_type dans la pipeline
+
+- [x] **ScanContext** (`_scan_core.py`) : ajout du champ `scan_type` (défaut `"frontend"`).
+- [x] **scan_stream_generator** (`scan_stream.py`) : paramètre keyword-only `scan_type` propagé à `_run_pipeline_steps` puis `_run_checks_with_client`.
+- [x] **async_scan_executor** : lorsqu'on utilise le flux passive, passage explicite de `scan_type` (issu du job) au générateur.
+- [x] Les lambdas des étapes SCAN_STEPS reçoivent `ctx.scan_type` et le transmettent aux fonctions de check concernées.
+
+#### Comportement par check (backend vs frontend)
+
+| Check | Comportement frontend | Comportement backend |
+|-------|------------------------|----------------------|
+| **cache** | Analyse des headers de la page **+** analyse des sous-ressources (JS/CSS/images extraites du HTML) | Analyse des headers de la page uniquement ; **pas** d'analyse des sous-ressources |
+| **cors_cross_origin** | Vérifications CORS (ACAO, credentials, CORP) **+** contrôle mixed content (ressources HTTP sur page HTTPS) | Vérifications CORS uniquement ; **pas** de contrôle mixed content |
+| **tech_fingerprinting** | Analyse des headers (Server, X-Powered-By) **+** détection via HTML (meta generator, scripts) | Analyse des headers uniquement ; **pas** de `_detect_from_html` |
+
+#### Implémentation technique
+
+- [x] **cache** (`both/cache/checks.py`) : `check_cache_from_response(..., scan_type="frontend")` ; si `scan_type == "backend"`, on n'appelle pas `_analyze_subresources`.
+- [x] **cors_cross_origin** (`both/cors_cross_origin/checks.py`) : `run_cors_cross_origin_checks(..., scan_type="frontend")` ; si `scan_type == "backend"`, on n'appelle pas `_check_mixed_content`.
+- [x] **tech_fingerprinting** (`both/tech_fingerprinting/checks.py`) : `check_tech_fingerprinting_from_response(..., scan_type="frontend")` ; si `scan_type == "backend"`, on n'appelle pas `_detect_from_html`.
+- [x] Les autres checks (TLS, headers, cookies, exposed_files, directory_listing, robots, sitemap, information_disclosure, integrity, path_checks, subresources) restent inchangés ; leur logique ne dépend pas du HTML ou est déjà conditionnée par le contenu de la réponse.
+
+#### Fichiers modifiés
+
+| Fichier | Modification |
+|---------|--------------|
+| `passive/_scan_core.py` | `ScanContext.scan_type` ; lambdas cache, cors, tech_fingerprinting passent `scan_type` |
+| `passive/scan_stream.py` | `scan_type` dans `_run_checks_with_client`, `_run_pipeline_steps`, `scan_stream_generator` |
+| `async_scan_executor.py` | Appel `passive_scan_stream_generator(url, authorization=None, scan_type=scan_type)` |
+| `both/cache/checks.py` | Paramètre `scan_type` ; condition `if scan_type != "backend"` avant `_analyze_subresources` |
+| `both/cors_cross_origin/checks.py` | Paramètre `scan_type` ; condition `if scan_type != "backend"` avant `_check_mixed_content` |
+| `both/tech_fingerprinting/checks.py` | Paramètre `scan_type` ; condition `if scan_type != "backend"` avant `_detect_from_html` |
 
 ---
 

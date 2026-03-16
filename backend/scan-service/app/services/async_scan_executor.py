@@ -65,7 +65,12 @@ async def execute_scan_job(
     }.get(scan_mode, passive_scan_stream_generator)
     result_payload: dict[str, Any] | None = None
     error_payload: dict[str, Any] | None = None
-    async for chunk in stream_factory(url, authorization=None):
+    stream = (
+        passive_scan_stream_generator(url, authorization=None, scan_type=scan_type)
+        if stream_factory is passive_scan_stream_generator
+        else stream_factory(url, authorization=None)
+    )
+    async for chunk in stream:
         parsed = parse_sse_chunk(chunk)
         if not parsed:
             continue

@@ -198,6 +198,8 @@ async def check_cache_from_response(
     https_url: str,
     client: httpx.AsyncClient,
     assets_cache: dict[str, str | None] | None = None,
+    *,
+    scan_type: str = "frontend",
 ) -> CacheCheckResult:
     """Vérifie la configuration de cache de la page principale et des sous-ressources.
 
@@ -246,14 +248,15 @@ async def check_cache_from_response(
 
     sub_checked = 0
     sub_issues = 0
-    with contextlib.suppress(Exception):
-        sub_checked, sub_issues = await _analyze_subresources(
-            response=response,
-            client=client,
-            cache_settings=cache_settings,
-            issues=issues,
-            assets_cache=assets_cache,
-        )
+    if scan_type != "backend":
+        with contextlib.suppress(Exception):
+            sub_checked, sub_issues = await _analyze_subresources(
+                response=response,
+                client=client,
+                cache_settings=cache_settings,
+                issues=issues,
+                assets_cache=assets_cache,
+            )
 
     findings = tuple(issue.message for issue in issues)
     return CacheCheckResult(

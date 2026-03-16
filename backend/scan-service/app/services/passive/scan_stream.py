@@ -121,6 +121,7 @@ async def _run_checks_with_client(
     over_global: Callable[[], bool],
     start_time: float,
     authorization: str | None = None,
+    scan_type: str = "frontend",
 ) -> AsyncGenerator[str, None]:
     """Exécute les étapes de vérification avec le client partagé."""
     https_url = get_scan_base_url(normalized_url)
@@ -143,6 +144,7 @@ async def _run_checks_with_client(
             https_url=https_url,
             client=client,
             https_response=https_response,
+            scan_type=scan_type,
         )
 
         for step_name, step_fn in _SCAN_SSE_STEPS:
@@ -173,7 +175,11 @@ async def _run_checks_with_client(
         log_http_metrics(client, "scan-stream", url=https_url)
 
 
-async def _run_pipeline_steps(url: str, authorization: str | None = None) -> AsyncGenerator[str, None]:
+async def _run_pipeline_steps(
+    url: str,
+    authorization: str | None = None,
+    scan_type: str = "frontend",
+) -> AsyncGenerator[str, None]:
     """Exécute les étapes de la pipeline (validation, SSRF, fetch, checks)."""
     start = time.monotonic()
     scan_global = get_scan_timeouts().scan_global
@@ -195,11 +201,23 @@ async def _run_pipeline_steps(url: str, authorization: str | None = None) -> Asy
         return
 
     async with scan_client() as client:
-        async for chunk in _run_checks_with_client(normalized_url, client, _over_global, start, authorization=authorization):
+        async for chunk in _run_checks_with_client(
+            normalized_url,
+            client,
+            _over_global,
+            start,
+            authorization=authorization,
+            scan_type=scan_type,
+        ):
             yield chunk
 
 
-async def scan_stream_generator(url: str, authorization: str | None = None) -> AsyncGenerator[str, None]:
+async def scan_stream_generator(
+    url: str,
+    authorization: str | None = None,
+    *,
+    scan_type: str = "frontend",
+) -> AsyncGenerator[str, None]:
     """Générateur SSE : émet un événement à chaque étape de la pipeline.
 
     Le timeout global (scan_global) est vérifié avant chaque étape longue ; si dépassé, un
@@ -218,7 +236,7 @@ async def scan_stream_generator(url: str, authorization: str | None = None) -> A
     """
     start = time.monotonic()
     try:
-        async for chunk in _run_pipeline_steps(url, authorization=authorization):
+        async for chunk in _run_pipeline_steps(url, authorization=authorization, scan_type=scan_type):
             yield chunk
     except URLValidationError as e:
         _log_scan_complete(time.monotonic() - start, 0, "error_400")
