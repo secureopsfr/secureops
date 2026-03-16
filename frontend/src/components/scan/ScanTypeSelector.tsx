@@ -15,7 +15,8 @@ interface ScanTypeSelectorProps {
   onCrawlModeChange: (mode: CrawlState["mode"]) => void;
   onCrawlMaxUrlsChange: (value: number) => void;
   baseUrl: string;
-  onApiDocExtract?: (urls: CrawlUrlEntry[]) => void;
+  apiDocUrls: CrawlUrlEntry[];
+  onApiDocUrlsChange: (urls: CrawlUrlEntry[]) => void;
   t: (key: string) => string;
 }
 
@@ -31,7 +32,8 @@ export default function ScanTypeSelector({
   onCrawlModeChange,
   onCrawlMaxUrlsChange,
   baseUrl,
-  onApiDocExtract,
+  apiDocUrls,
+  onApiDocUrlsChange,
   t,
 }: ScanTypeSelectorProps) {
   const isBackend = scanTarget === "backend";
@@ -49,8 +51,13 @@ export default function ScanTypeSelector({
         checked={scanOnlyThisPage}
         onChange={onScanOnlyThisPageChange}
       />
-      {showApiDocZone && onApiDocExtract && (
-        <ApiDocImportZone baseUrl={baseUrl} onExtract={onApiDocExtract} t={t} />
+      {showApiDocZone && (
+        <ApiDocImportZone
+          baseUrl={baseUrl}
+          urls={apiDocUrls}
+          onUrlsChange={onApiDocUrlsChange}
+          t={t}
+        />
       )}
       {showCrawlOptions && (
         <>

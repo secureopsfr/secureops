@@ -221,17 +221,18 @@ export default function ScannerContent() {
                     </div>
                     <ScanTypeSelector
                       scanOnlyThisPage={scanOnlyThisPage}
-                      onScanOnlyThisPageChange={setScanOnlyThisPage}
+                      onScanOnlyThisPageChange={(checked) => {
+                        setScanOnlyThisPage(checked);
+                        if (checked) resetCrawlState();
+                      }}
                       scanTarget={scanTarget}
                       crawlMode={crawl.mode}
                       crawlMaxUrls={crawl.maxUrls}
                       onCrawlModeChange={setCrawlMode}
                       onCrawlMaxUrlsChange={setCrawlMaxUrls}
                       baseUrl={url.trim()}
-                      onApiDocExtract={(urls) => {
-                        setCrawlUrls(urls);
-                        setState("validation");
-                      }}
+                      apiDocUrls={crawl.urls}
+                      onApiDocUrlsChange={setCrawlUrls}
                       t={t}
                     />
                     {isAuthenticated && !authLoading && (
@@ -257,6 +258,16 @@ export default function ScannerContent() {
                           onClick={handleAddScheduledScan}
                           loading={saving}
                           disabled={!url.trim()}
+                        />
+                      ) : scanTarget === "backend" &&
+                        !scanOnlyThisPage &&
+                        crawl.urls.length > 0 ? (
+                        <GenericButton
+                          type="button"
+                          label={t("scanner.cta")}
+                          variant="primary"
+                          onClick={handleLaunchScanFromValidation}
+                          disabled={crawl.urls.length > 200}
                         />
                       ) : (
                         <GenericButton

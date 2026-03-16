@@ -1,5 +1,5 @@
 /**
- * Parse API documentation specs (OpenAPI, GraphQL, Postman) to extract endpoint URLs.
+ * Parse API documentation specs (OpenAPI, Postman) to extract endpoint URLs.
  * Returns CrawlUrlEntry[] suitable for backend multi-scan.
  */
 
@@ -12,7 +12,7 @@ export type ParseApiDocResult =
   | {
       ok: true;
       urls: CrawlUrlEntry[];
-      format: "openapi" | "graphql" | "postman";
+      format: "openapi" | "postman";
     }
   | {
       ok: false;
@@ -72,20 +72,6 @@ function parseOpenApi(
   return Array.from(unique).map((url) => ({ url, depth: 0 }));
 }
 
-function parseGraphQL(
-  spec: Record<string, unknown>,
-  baseOverride?: string,
-): CrawlUrlEntry[] {
-  const url = (spec.url as string) || baseOverride;
-  if (!url || typeof url !== "string") return [];
-  try {
-    new URL(url);
-    return [{ url, depth: 0 }];
-  } catch {
-    return [];
-  }
-}
-
 function parsePostman(
   spec: Record<string, unknown>,
   baseOverride?: string,
@@ -108,31 +94,32 @@ function parsePostman(
     for (const i of items) {
       if (unique.size >= MAX_ENDPOINTS) return;
       const req = i?.request;
-      if (!req) continue;
-      let rawUrl: string | undefined;
-      if (typeof req.url === "string") {
-        rawUrl = req.url;
-      } else if (req.url && typeof req.url === "object") {
-        rawUrl = (req.url as { raw?: string }).raw;
-        if (
-          !rawUrl &&
-          Array.isArray((req.url as { host?: string[] }).host) &&
-          Array.isArray((req.url as { path?: string[] }).path)
-        ) {
-          const u = req.url as { host?: string[]; path?: string[] };
-          const host = u.host?.join(".") || "";
-          const path = (u.path || []).join("/");
-          if (host) rawUrl = `https://${host}/${path}`;
-        }
-      }
-      if (rawUrl) {
-        try {
-          const parsed = new URL(rawUrl);
-          if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-            unique.add(parsed.href);
+      if (req) {
+        let rawUrl: string | undefined;
+        if (typeof req.url === "string") {
+          rawUrl = req.url;
+        } else if (req.url && typeof req.url === "object") {
+          rawUrl = (req.url as { raw?: string }).raw;
+          if (
+            !rawUrl &&
+            Array.isArray((req.url as { host?: string[] }).host) &&
+            Array.isArray((req.url as { path?: string[] }).path)
+          ) {
+            const u = req.url as { host?: string[]; path?: string[] };
+            const host = u.host?.join(".") || "";
+            const path = (u.path || []).join("/");
+            if (host) rawUrl = `https://${host}/${path}`;
           }
-        } catch {
-          // skip
+        }
+        if (rawUrl) {
+          try {
+            const parsed = new URL(rawUrl);
+            if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+              unique.add(parsed.href);
+            }
+          } catch {
+            // skip
+          }
         }
       }
       if (i.item && Array.isArray(i.item)) {
@@ -177,18 +164,6 @@ export function parseApiDoc(
     return { ok: true, urls, format: "openapi" };
   }
 
-  // GraphQL introspection or schema (data.__schema or __schema)
-  const gqlSchema =
-    (spec as { data?: { __schema?: unknown }; __schema?: unknown }).data
-      ?.__schema ?? (spec as { __schema?: unknown }).__schema;
-  if (gqlSchema) {
-    const urls = parseGraphQL(spec, baseUrlOverride);
-    if (urls.length === 0) {
-      return { ok: false, error: "No URL found in GraphQL spec" };
-    }
-    return { ok: true, urls, format: "graphql" };
-  }
-
   // Postman collection
   if (spec.info && Array.isArray(spec.item)) {
     const urls = parsePostman(spec, baseUrlOverride);
@@ -198,5 +173,5 @@ export function parseApiDoc(
     return { ok: true, urls, format: "postman" };
   }
 
-  return { ok: false, error: "Unsupported format (OpenAPI, GraphQL, Postman)" };
+  return { ok: false, error: "Unsupported format (OpenAPI, Postman)" };
 }

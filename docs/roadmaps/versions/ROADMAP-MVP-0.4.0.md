@@ -311,15 +311,14 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 - **Cible frontend** : le crawler agit comme actuellement. Checkbox « Scanner uniquement cette page » : si **coché** → pas de crawl, scan direct sur l'URL ; si **décoché** → crawler (découverte des pages du site) puis scan multi-URL.
 - **Cible backend** : pas de crawler (une API n'est pas parcourue comme un site HTML). La checkbox change de libellé et de sens :
   - **Coché** : « Scanner uniquement cet endpoint » — scan direct sur l'URL API saisie.
-  - **Décoché** : « Scanner plusieurs endpoints » — affichage d'une zone d'**import de documentation API** (fichier ou URL de spec). Les endpoints sont extraits de la doc fournie par l'utilisateur ; **pas de recherche automatique** (bruteforce de chemins de doc exclu pour l'instant).
+  - **Décoché** : « Scanner plusieurs endpoints » — affichage d'une zone d'**import de documentation API** (drag-and-drop de fichier). Les endpoints sont extraits de la doc fournie par l'utilisateur ; **pas de recherche automatique** (bruteforce de chemins de doc exclu pour l'instant).
 - **Sans doc** (backend, multi-endpoints) : les tests se limitent à la liste fixe configurée dans `settings.yml` (`sensitive_paths`, `exposed_files`).
 
 #### Comportement attendu (UI)
 
 - [ ] **Scan type backend** : le libellé de la checkbox devient « Scanner uniquement cet endpoint » (ou équivalent).
 - [ ] **Quand décoché (backend)** : affichage d'une section « Fournissez la documentation API pour scanner plusieurs endpoints » avec :
-  1. **Upload de fichier** : OpenAPI (`.json`, `.yaml`), GraphQL (export schéma), Postman Collection (`.json`).
-  2. **URL de spec** (optionnel) : saisie de l'URL de la doc (ex. `https://api.example.com/swagger.json`) — pas de découverte automatique si non fournie.
+  1. **Drag-and-drop de fichier** : OpenAPI (`.json`, `.yaml`), Postman Collection (`.json`).
 - [ ] **Avec doc** : le scanner parse la spec et extrait la liste des endpoints (méthode, chemin, paramètres) pour le scan multi-URL.
 - [ ] **Sans doc** : scan sur la liste fixe de chemins uniquement.
 
@@ -327,19 +326,17 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 
 | Format | Support | Source |
 |--------|---------|--------|
-| **OpenAPI / Swagger** | Fichier | Upload `.json` ou `.yaml` ; ou URL de spec saisie par l'utilisateur |
-| **GraphQL schema** | Fichier | Upload (export du schéma) |
-| **Postman Collection** | Fichier | Upload `.json` (v2.1, v2.0) |
+| **OpenAPI / Swagger** | Fichier | Drag-and-drop `.json` ou `.yaml` |
+| **Postman Collection** | Fichier | Drag-and-drop `.json` (v2.0, v2.1) |
 
 > **Hors périmètre pour l'instant** : bruteforce automatique des chemins de doc (`/swagger`, `/openapi.json`, etc.) sur l'URL backend. La liste d'endpoints provient uniquement de l'import utilisateur ou de la liste fixe.
 
 #### Décisions d'implémentation
 
 - [ ] **Flux** : identique au crawler — parse doc → affichage des endpoints → étape de validation (ajout/suppression) → bouton « Lancer le scan » → scan passif multi-URL.
-- [ ] **Parsing** : côté frontend (libs JS pour OpenAPI, GraphQL, Postman). Le frontend envoie une **liste d'URLs** au backend, pas le fichier.
-- [ ] **Fetch spec par URL** : côté frontend pour l'instant (CORS à surveiller ; migration backend possible plus tard).
+- [ ] **Parsing** : côté frontend (libs JS pour OpenAPI, Postman). Le frontend envoie une **liste d'URLs** au backend, pas le fichier.
 - [ ] **Limite endpoints** : 200 max (aligné sur la limite crawler).
-- [ ] **Formats** : OpenAPI/Swagger, GraphQL schema, Postman Collection dès le début.
+- [ ] **Formats** : OpenAPI/Swagger, Postman Collection dès le début.
 
 #### Tests concernés
 
