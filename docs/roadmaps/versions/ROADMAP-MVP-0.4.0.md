@@ -6,7 +6,7 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 
 ## Sommaire
 
-**Ordre recommandé pour la lecture et l'implémentation :** 0 (architecture) -> 1 (passif restant) -> 2 (vérification d'autorisation) -> 3 (actif MVP + backlog intrusif) -> 4 (rapports/analytics) -> 5 (scan paramétrable) -> 6 (infra/qualité) -> 7 (release).
+**Ordre recommandé pour la lecture et l'implémentation :** 0 (architecture) -> 1 (passif restant) -> 2 (vérification d'autorisation + 2.4 backend/doc API) -> 3 (actif MVP + backlog intrusif) -> 4 (rapports/analytics) -> 5 (scan paramétrable) -> 6 (infra/qualité) -> 7 (release).
 
 - [0) Architecture : deux scanners](#0-architecture--deux-scanners)
   - [0.1 Rappel : passif vs actif](#01-rappel--passif-vs-actif)
@@ -21,6 +21,7 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
   - [2.1 Méthode : vérification DNS](#21-méthode--vérification-dns)
   - [2.2 Flux utilisateur (Scanner 2 uniquement)](#22-flux-utilisateur-scanner-2-uniquement)
   - [2.3 Cas particuliers](#23-cas-particuliers)
+- [2.4 Option backend et import de documentation API](#24-option-backend-et-import-de-documentation-api) *(prérequis avant tests actifs backend)*
 - [3) Introduire les tests actifs (Scanner 2)](#3-introduire-les-tests-actifs-scanner-2)
   - [3.1 Cadre et sécurité](#31-cadre-et-sécurité)
   - [3.2 Tests actifs — Redirections](#32-tests-actifs--redirections-déjà-partiellement-actif)
@@ -237,6 +238,51 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 
 - [ ] **Fallback :** En dev/local, ou si la vérification DNS échoue (timeout, DNS privé), option de fallback : case à cocher + avertissement
 - [ ] **API publique :** Domaine pré-vérifié dans le compte, ou acceptation préalable (doc + CGU)
+
+---
+
+### 2.4 Option backend et import de documentation API
+
+> **Prérequis avant le développement des tests actifs backend.** À implémenter avant ou en parallèle des tests IDOR, mass assignment, GraphQL, etc.
+
+Lorsque l'utilisateur active l'option **« Inclure les tests backend »** (case à cocher dans l'interface de lancement de scan), le système requiert ou fortement recommande la **fourniture de la documentation API** pour découvrir les endpoints à tester.
+
+#### Comportement attendu
+
+- [ ] **Option « Inclure les tests backend »** : case à cocher dans le formulaire de lancement de scan (Scanner 2, ou mode actif).
+- [ ] **Quand cochée** : affichage d'une section dédiée demandant :
+  1. **URL backend** (si distincte du frontend) : ex. `https://api.example.com` ;
+  2. **Import de la documentation API** — requis ou fortement recommandé.
+- [ ] **Sans doc** : les tests backend se limitent à une liste fixe de chemins (cf. `sensitive_paths`, `exposed_files`).
+- [ ] **Avec doc** : couverture complète des endpoints (méthodes, paramètres) extraits de la spec.
+
+#### Formats acceptés pour l'import
+
+| Format | Support | Source |
+|--------|---------|--------|
+| **OpenAPI / Swagger** | URL ou fichier | `https://api.example.com/openapi.json`, ou upload fichier `.json` / `.yaml` |
+| **GraphQL schema** | URL ou fichier | Introspection depuis `/graphql`, ou export du schéma |
+| **Postman Collection** | Optionnel | Fichier `.json` (v2.1, v2.0) |
+
+#### Flux utilisateur
+
+1. L'utilisateur coche « Inclure les tests backend ».
+2. Le système affiche : « Fournissez la documentation API pour une couverture optimale ».
+3. L'utilisateur choisit :
+   - **URL** : saisie de l'URL de la spec (ex. `https://api.example.com/swagger.json`) ;
+   - **Fichier** : upload d'un fichier OpenAPI/GraphQL/Postman.
+4. Si fourni : le scanner parse la spec et extrait la liste des endpoints (méthode, chemin, paramètres).
+5. Si non fourni : fallback sur la liste fixe de chemins + bruteforce des chemins de doc courants (`/swagger`, `/openapi.json`, `/api-docs`, `/graphql`).
+
+#### Fallback (sans import)
+
+- [ ] Bruteforce des chemins de doc : tester `/swagger`, `/swagger.json`, `/openapi.json`, `/api-docs`, `/graphql`, etc. sur l'URL backend.
+- [ ] Si une spec est découverte (200 + contenu valide) : la parser et l'utiliser comme source d'endpoints.
+- [ ] Sinon : appliquer les tests sur la liste fixe (`/api/`, `/admin/`, `/auth/`, etc.) configurée dans `settings.yml`.
+
+#### Tests concernés
+
+Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, injection sur API, etc.) s'appuient sur la liste d'endpoints issue de la doc ou du fallback.
 
 ---
 
@@ -676,4 +722,4 @@ Certains tests (exposition fichiers, API docs, directory listing, etc.) s'exécu
 2. **URL backend optionnelle** : proposer à l'utilisateur de saisir une **URL backend** en option lors du scan. Si fournie, exécuter ces tests sur les deux URLs (frontend + backend).
 3. **Autres tests concernés** : exposition fichiers, directory listing, endpoints API docs (Swagger, GraphQL), information disclosure (stack traces, headers debug), éventuellement CORS et méthodes HTTP sur les endpoints API.
 
-**Recommandation :** À court terme, documenter cette limitation dans l'interface (tooltip ou notice). À moyen terme, implémenter l'option « URL backend optionnelle » pour étendre la couverture des tests.
+**Recommandation :** À court terme, documenter cette limitation dans l'interface (tooltip ou notice). À moyen terme, implémenter l'option « URL backend optionnelle » pour étendre la couverture des tests. Voir [section 2.4](#24-option-backend-et-import-de-documentation-api) pour l'option backend et l'import de documentation API.
