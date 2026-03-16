@@ -12,12 +12,12 @@ from app.config_loader import get_multi_scan_settings
 from app.models.multi_scan import MultiScanResult, PageScanResult
 from app.services.passive._page_checks_runner import run_page_checks
 from app.services.passive._scan_core import FindingsBundle, build_findings_bundle
-from app.services.passive.cors_cross_origin.checks import run_cors_domain_checks
-from app.services.passive.directory_listing import run_directory_listing_checks
-from app.services.passive.exposed_files import run_exposed_files_checks
-from app.services.passive.robots_txt import run_robots_txt_checks
-from app.services.passive.sitemap import run_sitemap_checks
-from app.services.passive.tls import run_tls_checks
+from app.services.passive.both.cors_cross_origin.checks import run_cors_domain_checks
+from app.services.passive.both.directory_listing import run_directory_listing_checks
+from app.services.passive.both.exposed_files import run_exposed_files_checks
+from app.services.passive.both.robots_txt import run_robots_txt_checks
+from app.services.passive.both.tls import run_tls_checks
+from app.services.passive.frontend.sitemap import run_sitemap_checks
 from app.services.pipelines.multi_scan_base import BaseMultiScanOrchestrator, MultiScanExecutionSettings, OnProgress
 from app.services.scan_preflight_common import validate_multi_scan_urls_common
 from app.utils.http_fetch import get_with_client_or_error, http_request_category, log_http_metrics, scan_client

@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from app.services.passive.information_disclosure import InformationDisclosureCheckResult, check_information_disclosure_from_response
+from app.services.passive.both.information_disclosure import InformationDisclosureCheckResult, check_information_disclosure_from_response
 
 
 def _mock_response(

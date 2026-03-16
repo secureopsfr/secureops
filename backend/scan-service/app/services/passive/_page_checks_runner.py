@@ -17,13 +17,13 @@ from typing import Any
 
 import httpx
 
-from app.services.passive.cache import checks as cache_checks
-from app.services.passive.cookies import check_cookies_from_response
-from app.services.passive.cors_cross_origin.checks import run_cors_page_checks
-from app.services.passive.information_disclosure import check_information_disclosure_from_response
-from app.services.passive.integrity import check_integrity_from_response
-from app.services.passive.security_headers import check_security_headers_from_response
-from app.services.passive.tech_fingerprinting import check_tech_fingerprinting_from_response
+from app.services.passive.both.cache import checks as cache_checks
+from app.services.passive.both.cookies import check_cookies_from_response
+from app.services.passive.both.cors_cross_origin.checks import run_cors_page_checks
+from app.services.passive.both.information_disclosure import check_information_disclosure_from_response
+from app.services.passive.both.security_headers import check_security_headers_from_response
+from app.services.passive.both.tech_fingerprinting import check_tech_fingerprinting_from_response
+from app.services.passive.frontend.integrity import check_integrity_from_response
 from app.utils.http_fetch import http_request_category
 
 

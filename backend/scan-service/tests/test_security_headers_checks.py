@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from app.services.passive.security_headers import check_security_headers_from_response
+from app.services.passive.both.security_headers import check_security_headers_from_response
 
 
 def test_check_security_headers_tous_presents() -> None:

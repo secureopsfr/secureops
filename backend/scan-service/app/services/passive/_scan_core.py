@@ -7,20 +7,20 @@ from datetime import datetime, timezone
 
 from app.catalogue.category_summaries import build_category_summaries
 from app.models.scan_result import ScanResult
-from app.services.passive.cache import checks as cache_checks
-from app.services.passive.cookies import check_cookies_from_response
-from app.services.passive.cors_cross_origin import run_cors_cross_origin_checks
-from app.services.passive.directory_listing import run_directory_listing_checks
-from app.services.passive.exposed_files import run_exposed_files_checks
-from app.services.passive.information_disclosure import check_information_disclosure_from_response
-from app.services.passive.integrity import check_integrity_from_response
+from app.services.passive.both.cache import checks as cache_checks
+from app.services.passive.both.cookies import check_cookies_from_response
+from app.services.passive.both.cors_cross_origin import run_cors_cross_origin_checks
+from app.services.passive.both.directory_listing import run_directory_listing_checks
+from app.services.passive.both.exposed_files import run_exposed_files_checks
+from app.services.passive.both.information_disclosure import check_information_disclosure_from_response
+from app.services.passive.both.robots_txt import run_robots_txt_checks
+from app.services.passive.both.security_headers import check_security_headers_from_response
+from app.services.passive.both.tech_fingerprinting import check_tech_fingerprinting_from_response
+from app.services.passive.both.tls import run_tls_checks
+from app.services.passive.both.tls.posture import compute_tls_posture
+from app.services.passive.frontend.integrity import check_integrity_from_response
+from app.services.passive.frontend.sitemap import run_sitemap_checks
 from app.services.passive.normalization import normalize_results
-from app.services.passive.robots_txt import run_robots_txt_checks
-from app.services.passive.security_headers import check_security_headers_from_response
-from app.services.passive.sitemap import run_sitemap_checks
-from app.services.passive.tech_fingerprinting import check_tech_fingerprinting_from_response
-from app.services.passive.tls import run_tls_checks
-from app.services.passive.tls.posture import compute_tls_posture
 from app.services.scoring import compute_score
 
 
