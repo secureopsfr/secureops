@@ -10,6 +10,8 @@ import type { ScanStep } from "./scanService";
 export interface CrawlUrlEntry {
   url: string;
   depth?: number;
+  /** Paramètres de chemin ({id}, :id) et leurs valeurs pour résolution avant scan. */
+  params?: Record<string, string>;
 }
 
 export interface CrawlResponse {

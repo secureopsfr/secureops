@@ -1,12 +1,19 @@
 /**
  * Parse API documentation specs (OpenAPI, Postman) to extract endpoint URLs.
  * Returns CrawlUrlEntry[] suitable for backend multi-scan.
+ * Les URLs avec paramètres ({id}, :id) reçoivent des valeurs par défaut.
  */
 
 import yaml from "js-yaml";
 import type { CrawlUrlEntry } from "../services/crawlService";
+import { processUrlWithParams } from "./urlPathParams";
 
 const MAX_ENDPOINTS = 200;
+
+function toCrawlEntry(url: string): CrawlUrlEntry {
+  const { url: u, params } = processUrlWithParams(url);
+  return params ? { url: u, depth: 0, params } : { url: u, depth: 0 };
+}
 
 export type ParseApiDocResult =
   | {
@@ -69,7 +76,7 @@ function parseOpenApi(
       // skip invalid
     }
   }
-  return Array.from(unique).map((url) => ({ url, depth: 0 }));
+  return Array.from(unique).map(toCrawlEntry);
 }
 
 function parsePostman(
@@ -129,7 +136,7 @@ function parsePostman(
   }
 
   walk(item);
-  return Array.from(unique).map((url) => ({ url, depth: 0 }));
+  return Array.from(unique).map(toCrawlEntry);
 }
 
 /**

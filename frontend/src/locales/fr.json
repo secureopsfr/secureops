@@ -508,6 +508,8 @@
     "addUrlPlaceholderExamplePath": "exemple",
     "launchScanFromList": "Lancer le scan",
     "removeUrl": "Supprimer",
+    "urlsReady": "URLs prêtes ({{count}})",
+    "urlsWithParams": "URLs avec paramètres ({{count}})",
     "multiResultTitle": "Résultats du scan multi-pages",
     "multiPageCount": "{{count}} page(s) scannée(s)",
     "multiPages": "pages",

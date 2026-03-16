@@ -21,6 +21,7 @@ import {
   savePendingScanResult,
   consumePendingScanResult,
 } from "../utils/scanStorage";
+import { resolveCrawlUrlsToScanUrls } from "../utils/urlPathParams";
 import {
   saveMultiScan,
   saveScan,
@@ -288,9 +289,11 @@ export function useScanFlow({
   );
 
   const handleLaunchScanFromValidation = useCallback(() => {
-    const urlStrings = crawl.urls.map((u) => u.url).filter(Boolean);
+    const urlStrings = resolveCrawlUrlsToScanUrls(crawl.urls).filter(Boolean);
     if (urlStrings.length > 1) {
       runMultiScanOnUrls(urlStrings, scanTarget, scanMode);
+    } else if (urlStrings.length === 1) {
+      runScanOnUrl(urlStrings[0], scanTarget, scanMode);
     } else {
       runScanOnUrl(normalizeScanUrl(url.trim()), scanTarget, scanMode);
     }

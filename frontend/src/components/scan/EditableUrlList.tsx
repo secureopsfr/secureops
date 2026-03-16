@@ -9,6 +9,10 @@ import {
   buildDomainBasedPlaceholder,
   buildDomainBasedPlaceholderOrNull,
 } from "../../utils/urlValidation";
+import {
+  processUrlWithParams,
+  resolveUrlWithParams,
+} from "../../utils/urlPathParams";
 import { showErrorToast } from "../../utils/toastNotifications";
 import type { CrawlUrlEntry } from "../../services/crawlService";
 
@@ -47,6 +51,12 @@ export default function EditableUrlList({
   const urlsListRef = useRef<HTMLUListElement>(null);
 
   const isOverUrlLimit = urls.length > MAX_URLS;
+  const urlsWithoutParams = urls.filter(
+    (u) => !u.params || Object.keys(u.params).length === 0,
+  );
+  const urlsWithParams = urls.filter(
+    (u) => u.params && Object.keys(u.params).length > 0,
+  );
   const startWithScheme = startUrl.includes("://")
     ? startUrl
     : `https://${startUrl}`;
@@ -60,6 +70,11 @@ export default function EditableUrlList({
         startUrl,
         t("scanner.addUrlPlaceholderExamplePath"),
       ) || t("scanner.addUrlPlaceholder");
+
+  const resolveCrawlEntryUrl = (e: CrawlUrlEntry) =>
+    e.params && Object.keys(e.params).length > 0
+      ? resolveUrlWithParams(e.url, e.params)
+      : e.url;
 
   const handleRemove = (index: number) => {
     onUrlsChange(urls.filter((_, i) => i !== index));
@@ -82,14 +97,47 @@ export default function EditableUrlList({
       showErrorToast(t(errorKey || "scanner.addUrlErrorInvalidDomain"));
       return;
     }
-    if (urls.some((u) => u.url === normalized)) {
+    const { url: finalUrl, params } = processUrlWithParams(normalized);
+    const duplicateUrl = params
+      ? resolveUrlWithParams(finalUrl, params)
+      : finalUrl;
+    if (urls.some((u) => resolveCrawlEntryUrl(u) === duplicateUrl)) {
       setInputHasError(true);
       showErrorToast(t("scanner.addUrlErrorDuplicate"));
       return;
     }
-    onUrlsChange([...urls, { url: normalized, depth: 0 }]);
+    onUrlsChange([
+      ...urls,
+      params
+        ? { url: finalUrl, depth: 0, params }
+        : { url: finalUrl, depth: 0 },
+    ]);
     setNewUrl("");
     setInputHasError(false);
+  };
+
+  const handleUpdateParam = (
+    index: number,
+    paramName: string,
+    value: string,
+  ) => {
+    const entry = urls[index];
+    if (!entry?.params) return;
+    const updated = [...urls];
+    updated[index] = {
+      ...entry,
+      params: { ...entry.params, [paramName]: value },
+    };
+    onUrlsChange(updated);
+  };
+
+  const getGlobalIndex = (entry: CrawlUrlEntry) => {
+    const idx = urls.findIndex(
+      (u) =>
+        u.url === entry.url &&
+        JSON.stringify(u.params || {}) === JSON.stringify(entry.params || {}),
+    );
+    return idx >= 0 ? idx : 0;
   };
 
   return (
@@ -102,47 +150,124 @@ export default function EditableUrlList({
         </div>
       )}
 
-      <section
-        className={`mb-5 rounded-xl border ${
-          isOverUrlLimit
-            ? "border-[rgb(var(--danger))] ring-1 ring-[rgba(var(--danger),0.35)]"
-            : "border-[var(--border)]"
-        }`}
-      >
-        <div className="border-b border-[var(--border)] px-4 py-2.5">
-          <p className="text-sm font-medium text-[var(--text)]">
-            {`URLs (${urls.length})`}
-          </p>
-        </div>
-        <ul
-          ref={urlsListRef}
-          className={`${compact ? "max-h-56" : "max-h-72"} overflow-y-auto`}
+      {urlsWithoutParams.length > 0 && (
+        <section
+          className={`mb-5 rounded-xl border ${
+            isOverUrlLimit
+              ? "border-[rgb(var(--danger))] ring-1 ring-[rgba(var(--danger),0.35)]"
+              : "border-[var(--border)]"
+          }`}
         >
-          {urls.map((entry, i) => (
-            <li
-              key={`${entry.url}-${i}`}
-              className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5 last:border-b-0"
-            >
-              <span
-                className="min-w-0 flex-1 truncate text-sm"
-                title={entry.url}
-              >
-                {entry.url}
-              </span>
-              {allowUrlRemoval && (
-                <button
-                  type="button"
-                  onClick={() => handleRemove(i)}
-                  className="shrink-0 rounded-md p-1.5 text-[var(--muted)] hover:bg-[var(--color-surface-hover)] hover:text-red-500 transition-colors"
-                  aria-label={t("scanner.removeUrl")}
+          <div className="border-b border-[var(--border)] px-4 py-2.5">
+            <p className="text-sm font-medium text-[var(--text)]">
+              {t("scanner.urlsReady", { count: urlsWithoutParams.length })}
+            </p>
+          </div>
+          <ul
+            ref={urlsListRef}
+            className={`${compact ? "max-h-40" : "max-h-52"} overflow-y-auto`}
+          >
+            {urlsWithoutParams.map((entry) => {
+              const globalIdx = getGlobalIndex(entry);
+              return (
+                <li
+                  key={`simple-${entry.url}-${globalIdx}`}
+                  className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5 last:border-b-0"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+                  <span
+                    className="min-w-0 flex-1 truncate text-sm"
+                    title={entry.url}
+                  >
+                    {entry.url}
+                  </span>
+                  {allowUrlRemoval && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(globalIdx)}
+                      className="shrink-0 rounded-md p-1.5 text-[var(--muted)] hover:bg-[var(--color-surface-hover)] hover:text-red-500 transition-colors"
+                      aria-label={t("scanner.removeUrl")}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {urlsWithParams.length > 0 && (
+        <section
+          className={`mb-5 rounded-xl border ${
+            isOverUrlLimit
+              ? "border-[rgb(var(--danger))] ring-1 ring-[rgba(var(--danger),0.35)]"
+              : "border-[var(--border)]"
+          }`}
+        >
+          <div className="border-b border-[var(--border)] px-4 py-2.5">
+            <p className="text-sm font-medium text-[var(--text)]">
+              {t("scanner.urlsWithParams", { count: urlsWithParams.length })}
+            </p>
+          </div>
+          <ul
+            className={`${compact ? "max-h-40" : "max-h-52"} overflow-y-auto`}
+          >
+            {urlsWithParams.map((entry) => {
+              const globalIdx = getGlobalIndex(entry);
+              const paramEntries = entry.params
+                ? Object.entries(entry.params)
+                : [];
+              return (
+                <li
+                  key={`param-${entry.url}-${globalIdx}`}
+                  className="border-b border-[var(--border)] px-4 py-2.5 last:border-b-0"
+                >
+                  <div className="flex items-start gap-2">
+                    <span
+                      className="min-w-0 flex-1 truncate text-sm"
+                      title={entry.url}
+                    >
+                      {entry.url}
+                    </span>
+                    {allowUrlRemoval && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(globalIdx)}
+                        className="shrink-0 rounded-md p-1.5 text-[var(--muted)] hover:bg-[var(--color-surface-hover)] hover:text-red-500 transition-colors"
+                        aria-label={t("scanner.removeUrl")}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {paramEntries.map(([name, value]) => (
+                      <div
+                        key={name}
+                        className="flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--surface-secondary)]/40 px-2 py-1"
+                      >
+                        <label className="text-xs text-[var(--muted)]">
+                          {name}:
+                        </label>
+                        <input
+                          type="text"
+                          value={value}
+                          onChange={(e) =>
+                            handleUpdateParam(globalIdx, name, e.target.value)
+                          }
+                          className="auth-input w-20 py-0.5 text-xs"
+                          size={1}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {allowManualAdd && urls.length < MAX_URLS && (
         <div className="mb-5 rounded-xl border border-[var(--border)] p-4">

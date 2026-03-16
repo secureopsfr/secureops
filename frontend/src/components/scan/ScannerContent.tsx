@@ -24,6 +24,7 @@ import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
 import ScheduleFormSection from "./ScheduleFormSection";
 import ScanTypeSelector from "./ScanTypeSelector";
 import { normalizeScanUrl } from "../../utils/scanUrl";
+import { resolveCrawlUrlsToScanUrls } from "../../utils/urlPathParams";
 import { Checkbox } from "../inputs";
 
 export default function ScannerContent() {
@@ -95,7 +96,7 @@ export default function ScannerContent() {
 
   const handleScheduleFromValidation = useCallback(async () => {
     if (!isAuthenticated || authLoading) return;
-    const urlStrings = crawl.urls.map((u) => u.url).filter(Boolean);
+    const urlStrings = resolveCrawlUrlsToScanUrls(crawl.urls).filter(Boolean);
     if (urlStrings.length === 0) return;
 
     const normalizedBaseUrl = normalizeScanUrl(url.trim() || urlStrings[0]);
