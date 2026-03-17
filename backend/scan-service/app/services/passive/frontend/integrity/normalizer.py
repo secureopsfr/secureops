@@ -16,6 +16,7 @@ _ISSUE_MAP: dict[str, tuple[str, str, str]] = {
     "target_blank": ("integrity-target-blank-noopener", 'Liens target="_blank" sans noopener', "low"),
     "robots_missing": ("integrity-meta-robots-missing", "Meta robots absente sur page sensible", "low"),
     "robots_no_noindex": ("integrity-meta-robots-no-noindex", "Meta robots sans noindex sur page sensible", "low"),
+    "forms_post_without_csrf": ("integrity-forms-post-without-csrf", "Formulaires POST sans champ CSRF", "low"),
     "connection_failed": ("integrity-connection-failed", "Analyse d'intégrité impossible", "info"),
 }
 

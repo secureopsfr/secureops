@@ -267,8 +267,8 @@ cache:
   sensitive_max_age: 0           # max-age autorisé pour une page sensible (0 = uniquement no-store / no-cache / private)
 
 # Intégrité et sous-ressources (roadmap §5.6).
-# Analyse passive du HTML de la page principale : SRI, scripts inline vs CSP, formulaires,
-# liens target=\"_blank\" et meta robots sur pages sensibles.
+# Analyse passive du HTML de la page principale : SRI, scripts inline vs CSP, formulaires
+# (autocomplete, CSRF), liens target="_blank" et meta robots sur pages sensibles.
 integrity:
   max_body_bytes: 524288  # Taille maximale de HTML analysé (512 Ko)
   sensitive_paths:
@@ -276,6 +276,14 @@ integrity:
     - "/admin"
     - "/auth"
     - "/api/"
+  csrf_field_names:  # Noms de champs hidden considérés comme token CSRF (formulaires POST)
+    - "csrf_token"
+    - "_token"
+    - "authenticity_token"
+    - "_csrf"
+    - "csrf"
+    - "__RequestVerificationToken"
+    - "CSRFToken"
 
 # Heuristiques cookies (session/tiers) : paramètres de détection.
 cookies_heuristics:

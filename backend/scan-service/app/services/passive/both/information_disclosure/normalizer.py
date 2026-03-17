@@ -17,6 +17,7 @@ _ISSUE_MAP: dict[str, tuple[str, str, str]] = {
     "runtime_version": ("info-disclosure-powered-by-version", "Version runtime exposée", "low"),
     "aspnet_version": ("info-disclosure-aspnet-version", "Version ASP.NET exposée", "low"),
     "custom_header": ("info-disclosure-custom-header", "En-tête custom révélant la stack", "low"),
+    "meta_generator": ("info-disclosure-meta-generator", "Meta generator exposant la stack", "info"),
     "connection_failed": ("info-disclosure-connection-failed", "Analyse fuites impossible", "info"),
 }
 

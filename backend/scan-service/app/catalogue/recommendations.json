@@ -739,6 +739,16 @@
     "title_en": "Custom header revealing stack",
     "references": ["https://owasp.org/www-community/controls/Fingerprinting"]
   },
+  "info-disclosure-meta-generator": {
+    "recommendation": "Retirer ou généraliser la balise <meta name=\"generator\"> qui expose le CMS ou la version. Les frameworks (WordPress, Drupal, Joomla, etc.) l'ajoutent par défaut.",
+    "recommendation_en": "Remove or generalize the <meta name=\"generator\"> tag that exposes the CMS or version. Frameworks (WordPress, Drupal, Joomla, etc.) add it by default.",
+    "title_fr": "Meta generator exposant la stack",
+    "title_en": "Meta generator exposing stack",
+    "references": [
+      "https://owasp.org/www-community/controls/Fingerprinting",
+      "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta/name"
+    ]
+  },
   "info-disclosure-connection-failed": {
     "recommendation": "Vérifier que la réponse HTTPS est accessible pour permettre l'analyse des fuites d'information.",
     "recommendation_en": "Ensure HTTPS response is accessible to allow information disclosure analysis.",
@@ -981,6 +991,16 @@
     "title_fr": "Meta robots sans noindex sur page sensible",
     "title_en": "robots meta without noindex on sensitive page",
     "references": ["https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag"]
+  },
+  "integrity-forms-post-without-csrf": {
+    "recommendation": "Ajouter un champ hidden avec token CSRF dans chaque formulaire POST (csrf_token, _token, authenticity_token, etc.). Valider le token côté serveur.",
+    "recommendation_en": "Add a hidden field with CSRF token in each POST form (csrf_token, _token, authenticity_token, etc.). Validate the token server-side.",
+    "title_fr": "Formulaires POST sans champ CSRF",
+    "title_en": "POST forms without CSRF field",
+    "references": [
+      "https://owasp.org/www-community/attacks/csrf",
+      "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+    ]
   },
   "integrity-connection-failed": {
     "recommendation": "Vérifier que la page principale est accessible en HTTPS et que son contenu HTML peut être chargé pour permettre les vérifications d'intégrité.",

@@ -162,12 +162,17 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 ---
 
 ### 1.4 Tests passifs complémentaires
-*Périmètre : **frontend** (formulaires, meta) ; **les deux** (OWASP mapping, rapport conformité)*
+*Périmètre : **frontend** (formulaires, meta) ; **les deux** (OWASP mapping)*
 
-- [ ] Formulaires : détection de tokens CSRF (présence de champ csrf_token, _token, etc.)
-- [ ] Métadonnées : analyse des balises `<meta>` (robots, generator)
+- [x] Formulaires : détection de tokens CSRF (présence de champ csrf_token, _token, etc.)
+
+  > **Fait :** Parser HTML dans `frontend/integrity/checks.py` : détection des `<form method="post">` sans champ hidden dont le nom figure dans `integrity.csrf_field_names` (configurable dans `settings.yml` : csrf_token, _token, authenticity_token, _csrf, __RequestVerificationToken, etc.). Un seul finding agrégé avec le nombre de formulaires concernés. Sévérité Low. Normalizer + slug `integrity-forms-post-without-csrf` + recommandation dans le catalogue.
+
+- [x] Métadonnées : analyse des balises `<meta>` (robots, generator)
+
+  > **Fait :** Meta robots : déjà couvert par integrity (présence de `<meta name="robots">` et directive noindex sur pages sensibles). Meta generator : ajout dans `information_disclosure/checks.py` — détection de `<meta name="generator" content="...">` dans le body HTML, finding `info-disclosure-meta-generator` (sévérité info). Le module `tech_fingerprinting` utilise déjà meta generator pour le fingerprinting CMS et la détection de versions vulnérables.
+
 - [ ] Mapping OWASP Top 10 : associer chaque finding à une catégorie OWASP (A01–A10)
-- [ ] Rapport de conformité : synthèse par catégorie OWASP
 
 ---
 
@@ -267,7 +272,7 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 | **cors_cross_origin** | Vérifications CORS (ACAO, credentials, CORP) **+** contrôle mixed content (ressources HTTP sur page HTTPS) | Vérifications CORS uniquement ; **pas** de contrôle mixed content |
 | **tech_fingerprinting** | Analyse des headers (Server, X-Powered-By) **+** détection via HTML (meta generator, scripts) | Analyse des headers uniquement ; **pas** de `_detect_from_html` |
 | **sitemap** | Vérification Sitemap (robots.txt, sitemap.xml, URLs sensibles) | **Étape entière ignorée** (non pertinente pour une API) |
-| **integrity** | Intégrité HTML (SRI, scripts, formulaires, target="_blank", meta robots) | **Étape entière ignorée** (réponse JSON/XML, pas de HTML) |
+| **integrity** | Intégrité HTML (SRI, scripts, formulaires CSRF, autocomplete, target="_blank", meta robots) | **Étape entière ignorée** (réponse JSON/XML, pas de HTML) |
 | **robots_txt** | Présence et contenu de robots.txt (Disallow, Sitemap) | **Étape entière ignorée** (non pertinent pour une API) |
 | **methodes_http_et_redirections** | TRACE, HEAD, Allow/ACAM, PUT/DELETE/PATCH, redirections | Même exécution ; sévérité `dangerous_methods` : backend→Info, frontend→Low |
 | **apis_et_formats** | GraphQL, Swagger, REST listes, Content-Type, X-CTO, compression | Même exécution ; phase domaine (api_checks) + phase page (formats, api_page) |

@@ -401,6 +401,37 @@ D’autres headers custom peuvent révéler la stack : **`X-Generator`**, **`X-P
 
 ---
 
+### 2.4 Balise meta generator (HTML)
+
+#### Résumé
+
+La balise **`<meta name="generator" content="WordPress 6.4.2">`** (ou équivalent Drupal, Joomla, etc.) expose le CMS et sa version. Les frameworks l'ajoutent souvent par défaut. Le scan la détecte dans le corps HTML et signale une fuite d'information (sévérité info).
+
+#### Explication détaillée
+
+Voir [tech-fingerprinting.md](tech-fingerprinting.md) pour l'usage du meta generator dans le fingerprinting. Le module *information disclosure* signale sa présence comme divulgation d'information, indépendamment du check de version vulnérable.
+
+#### Exemple
+
+- **Finding** : Corps HTML contenant `<meta name="generator" content="WordPress 6.4.2">` → révélation de la stack et de la version.
+
+#### Vulnérabilité et impact
+
+- **Vraisemblance** : Très forte. Beaucoup de CMS ajoutent cette balise par défaut.
+- **Impact** : Faible. Facilité de reconnaissance et de ciblage d'exploits connus.
+
+#### Conseils
+
+- Retirer ou généraliser la balise meta generator en production (plugin, configuration, ou templating).
+- Ne pas exposer de versions précises dans les réponses HTML.
+
+#### Références
+
+- [OWASP – Fingerprinting](https://owasp.org/www-community/controls/Fingerprinting)
+- [MDN – meta name](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta/name)
+
+---
+
 ## Matrice de sévérité (synthèse)
 
 | Type de fuite | Sévérité typique |
@@ -410,6 +441,7 @@ D’autres headers custom peuvent révéler la stack : **`X-Generator`**, **`X-P
 | Secret / token / clé API | Critical |
 | Headers de débogage (X-Debug-Token, etc.) | Medium |
 | Version précise dans headers | Low à Medium |
+| Meta generator (HTML) | Info |
 
 ---
 

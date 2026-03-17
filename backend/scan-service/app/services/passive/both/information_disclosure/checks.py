@@ -32,7 +32,8 @@ class InfoDiscIssue:
         kind: Discriminant sémantique du problème.
             Valeurs possibles : "stack_trace", "debug_mode", "secret",
             "debug_headers", "server_version", "runtime_version",
-            "aspnet_version", "custom_header", "connection_failed".
+            "aspnet_version", "custom_header", "meta_generator",
+            "connection_failed".
         message: Message lisible pour l'affichage SSE et le rapport.
     """
 
@@ -221,6 +222,26 @@ def _detect_custom_stack_headers(response: httpx.Response) -> list[InfoDiscIssue
     return issues
 
 
+_META_GENERATOR_PATTERN = re.compile(
+    r'<meta\s+name=["\']generator["\']\s+content=["\']([^"\']+)["\']',
+    re.IGNORECASE,
+)
+
+
+def _detect_meta_generator(body: str) -> list[InfoDiscIssue]:
+    """Détecte la balise <meta name="generator"> révélant CMS/framework et version."""
+    if not body:
+        return []
+    match = _META_GENERATOR_PATTERN.search(body)
+    if not match:
+        return []
+    content = match.group(1).strip()
+    if not content:
+        return []
+    msg = f'Balise <meta name="generator"> exposant la stack : {content}.'
+    return [InfoDiscIssue(kind="meta_generator", message=msg)]
+
+
 def check_information_disclosure_from_response(
     response: httpx.Response | None,
 ) -> InformationDisclosureCheckResult:
@@ -261,6 +282,7 @@ def check_information_disclosure_from_response(
     issues.extend(_detect_debug_headers(response))
     issues.extend(_detect_server_and_runtime_versions(response))
     issues.extend(_detect_custom_stack_headers(response))
+    issues.extend(_detect_meta_generator(body_text))
 
     findings = tuple(issue.message for issue in issues)
     return InformationDisclosureCheckResult(findings=findings, fetch_ok=True, issues=tuple(issues))
