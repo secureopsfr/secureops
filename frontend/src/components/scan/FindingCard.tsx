@@ -34,6 +34,11 @@ export default function FindingCard({ finding }: FindingCardProps) {
           <span className="text-xs text-muted-theme">
             {t(getCategoryKey(finding.category))}
           </span>
+          {finding.owasp_categories && finding.owasp_categories.length > 0 && (
+            <span className="text-xs text-muted-theme" title="OWASP Top 10">
+              {finding.owasp_categories.join(", ")}
+            </span>
+          )}
         </div>
       </div>
       {finding.evidence && (

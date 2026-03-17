@@ -15,6 +15,7 @@ class Finding(BaseModel):
     evidence: str = ""
     recommendation: str = ""
     references: list[str] = []
+    owasp_categories: list[str] = []
 
     @field_validator("severity", mode="before")
     @classmethod

@@ -32,6 +32,8 @@ export interface ScanFinding {
   evidence: string;
   recommendation: string;
   references: string[];
+  /** Codes OWASP Top 10 (ex. A01, A02). */
+  owasp_categories?: string[];
 }
 
 export interface CategorySummary {

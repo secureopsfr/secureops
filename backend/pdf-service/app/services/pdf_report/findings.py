@@ -129,7 +129,13 @@ def build_finding_block(
         </div>
         """
 
-    badge_html = f'<span class="finding-badge" style="background:{badge_bg};color:{badge_text}">{escape(severity_display)}</span>'
+    owasp_cats = getattr(f, "owasp_categories", None) or []
+    owasp_html = ""
+    if owasp_cats:
+        owasp_str = ", ".join(owasp_cats)
+        owasp_label = t("owasp", lang)
+        owasp_html = f' <span class="finding-owasp" title="{owasp_label}">{escape(owasp_str)}</span>'
+    badge_html = f'<span class="finding-badge" style="background:{badge_bg};color:{badge_text}">{escape(severity_display)}</span>{owasp_html}'
     block = f"""
     <div class="finding-block" id="finding-{section_num}-{finding_idx}">
         <h3 class="finding-title-row">
@@ -320,14 +326,12 @@ def build_other_tests_section(
         ok_tests_label=ok_tests_label,
     )
     subsections_html: list[str] = []
-    subsections_html.append(
-        f"""
+    subsections_html.append(f"""
     <div class="category-intro" id="sect-other-tests-intro">
         <h3 class="category-intro-title">{section_num}.1 {escape(summary_label)}</h3>
         <p class="category-intro-summary">{summary_text}</p>
     </div>
-    """
-    )
+    """)
     for sub_num, cat in enumerate(ok_cats, start=2):
         cat_label = category_labels.get(cat, cat)
         subsections_html.append(_build_ok_category_subsection(section_num, sub_num, cat, cat_label, lang))

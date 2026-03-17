@@ -172,7 +172,9 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 
   > **Fait :** Meta robots : déjà couvert par integrity (présence de `<meta name="robots">` et directive noindex sur pages sensibles). Meta generator : ajout dans `information_disclosure/checks.py` — détection de `<meta name="generator" content="...">` dans le body HTML, finding `info-disclosure-meta-generator` (sévérité info). Le module `tech_fingerprinting` utilise déjà meta generator pour le fingerprinting CMS et la détection de versions vulnérables.
 
-- [ ] Mapping OWASP Top 10 : associer chaque finding à une catégorie OWASP (A01–A10)
+- [x] Mapping OWASP Top 10 : associer chaque finding à une catégorie OWASP (A01–A10)
+
+  > **Fait :** Mapping OWASP Top 10:2025 dans `catalogue/owasp_mapping.json` (fichier dédié). Module `catalogue/owasp.py` avec `get_owasp_categories(slug)` — correspondance exacte + préfixe pour slugs dynamiques (exposed_files-*, directory_listing-*). Pas de fallback : slugs non mappés retournent (). Champ `owasp_categories: tuple[str, ...]` ajouté au modèle Finding et à `to_dict()`. Tous les normalizers passifs peuplent ce champ. Affichage dans le PDF (après le badge sévérité) et dans l'UI (FindingCard).
 
 ---
 
