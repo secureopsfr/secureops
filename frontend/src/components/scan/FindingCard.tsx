@@ -35,7 +35,7 @@ export default function FindingCard({ finding }: FindingCardProps) {
             {t(getCategoryKey(finding.category))}
           </span>
           {finding.owasp_categories?.map((code) => (
-            <Badge key={code} variant="default" title="OWASP Top 10">
+            <Badge key={code} variant="default">
               {code}
             </Badge>
           ))}
