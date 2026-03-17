@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.services.passive.cors_cross_origin.checks import CorsCrossOriginCheckResult, run_cors_cross_origin_checks
+from app.services.passive.both.cors_cross_origin.checks import CorsCrossOriginCheckResult, run_cors_cross_origin_checks
 
 
 def _mock_response(

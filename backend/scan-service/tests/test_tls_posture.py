@@ -1,7 +1,7 @@
 """Tests unitaires pour le calcul de la posture TLS (passive)."""
 
-from app.services.passive.tls.checks import TlsCheckResult
-from app.services.passive.tls.posture import POSTURE_CRITICAL, POSTURE_OK, POSTURE_WARNING, compute_tls_posture
+from app.services.passive.both.tls.checks import TlsCheckResult
+from app.services.passive.both.tls.posture import POSTURE_CRITICAL, POSTURE_OK, POSTURE_WARNING, compute_tls_posture
 
 
 def test_posture_ok_all_valid() -> None:

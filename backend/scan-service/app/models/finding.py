@@ -24,6 +24,7 @@ class Finding:
     evidence: str
     recommendation: str
     references: tuple[str, ...]
+    owasp_categories: tuple[str, ...] = ()
 
     def to_dict(self) -> dict:
         """Sérialise pour le payload SSE."""
@@ -35,4 +36,5 @@ class Finding:
             "evidence": self.evidence,
             "recommendation": self.recommendation,
             "references": list(self.references),
+            "owasp_categories": list(self.owasp_categories),
         }

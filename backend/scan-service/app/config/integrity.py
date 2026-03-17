@@ -12,6 +12,16 @@ from functools import lru_cache
 
 from app.config._base import _load_settings_yml
 
+_DEFAULT_CSRF_FIELD_NAMES = (
+    "csrf_token",
+    "_token",
+    "authenticity_token",
+    "_csrf",
+    "csrf",
+    "__RequestVerificationToken",
+    "CSRFToken",
+)
+
 
 @dataclass(frozen=True)
 class IntegritySettings:
@@ -21,10 +31,13 @@ class IntegritySettings:
         max_body_bytes (int): Nombre maximal d'octets de HTML à analyser.
         sensitive_paths (tuple[str, ...]): Chemins considérés comme sensibles
             (login, admin, API, etc.) pour l'analyse des meta robots.
+        csrf_field_names (tuple[str, ...]): Noms de champs hidden considérés
+            comme token CSRF dans les formulaires POST.
     """
 
     max_body_bytes: int
     sensitive_paths: tuple[str, ...]
+    csrf_field_names: tuple[str, ...]
 
 
 @lru_cache(maxsize=1)
@@ -44,4 +57,10 @@ def get_integrity_settings() -> IntegritySettings:
         "/api/",
     ]
     sensitive_paths = tuple(str(p) for p in raw_paths)
-    return IntegritySettings(max_body_bytes=max_body_bytes, sensitive_paths=sensitive_paths)
+    raw_csrf = raw.get("csrf_field_names") or list(_DEFAULT_CSRF_FIELD_NAMES)
+    csrf_field_names = tuple(str(n).strip().lower() for n in raw_csrf if str(n).strip())
+    return IntegritySettings(
+        max_body_bytes=max_body_bytes,
+        sensitive_paths=sensitive_paths,
+        csrf_field_names=csrf_field_names or _DEFAULT_CSRF_FIELD_NAMES,
+    )

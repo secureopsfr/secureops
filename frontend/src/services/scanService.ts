@@ -32,6 +32,8 @@ export interface ScanFinding {
   evidence: string;
   recommendation: string;
   references: string[];
+  /** Codes OWASP Top 10 (ex. A01, A02). */
+  owasp_categories?: string[];
 }
 
 export interface CategorySummary {
@@ -118,7 +120,7 @@ export type ScanEventHandler =
   | { type: "save_failed"; data: string }
   | { type: "save_done"; data: { scan_id: string } };
 
-export type AsyncScanType = "frontend" | "backend" | "both";
+export type AsyncScanType = "frontend" | "backend";
 export type AsyncScanMode = "passive" | "intrusive" | "destructive" | "custom";
 
 interface AsyncScanCreateResponse {
@@ -320,9 +322,12 @@ export async function runMultiScan(
         onEvent({ type: "step", data: ev.data });
       } else if (ev.type === "result") {
         const data = ev.data as MultiScanResult;
+        const errorCount =
+          data.page_results?.filter((p) => p.error).length ?? 0;
         logger.info(`${logPrefix} result received`, {
           pages: data.page_results?.length ?? 0,
           score_global: data.score_global,
+          errorCount,
         });
         onEvent({ type: "result", data });
       } else if (ev.type === "error") {

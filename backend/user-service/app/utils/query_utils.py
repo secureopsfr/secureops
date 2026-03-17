@@ -19,8 +19,8 @@ def apply_scan_type_filter(
     scan_type_column: ColumnElement[str],
     scan_type: Optional[str],
 ) -> Select[Any]:
-    """Ajoute un filtre par type de scan (frontend, backend, both) si fourni."""
-    if scan_type and scan_type in ("frontend", "backend", "both", "custom"):
+    """Ajoute un filtre par type de scan (frontend, backend) si fourni."""
+    if scan_type and scan_type in ("frontend", "backend", "custom"):
         return stmt.where(scan_type_column == scan_type)
     return stmt
 

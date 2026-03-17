@@ -8,7 +8,7 @@ import type { PaginatedListResponse } from "../types/api";
 
 export type Frequency = "daily" | "weekly" | "monthly";
 
-export type ScanType = "frontend" | "backend" | "both";
+export type ScanType = "frontend" | "backend";
 export type ScanMode = "passive" | "intrusive" | "destructive" | "custom";
 export type ResultMode = "single" | "multi";
 

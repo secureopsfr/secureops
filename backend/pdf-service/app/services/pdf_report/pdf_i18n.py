@@ -72,6 +72,7 @@ _PDF_STRINGS: dict[str, dict[str, str]] = {
     "anomalies_detected": {"fr": "anomalies détectées", "en": "findings detected"},
     "anomaly_detected": {"fr": "anomalie détectée", "en": "finding detected"},
     "evidence": {"fr": "Preuve", "en": "Evidence"},
+    "owasp": {"fr": "OWASP Top 10", "en": "OWASP Top 10"},
     "detail": {"fr": "Détail", "en": "Detail"},
     "how_to_fix": {"fr": "Comment corriger", "en": "How to fix"},
     "learn_more": {"fr": "En savoir plus :", "en": "Learn more:"},

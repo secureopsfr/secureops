@@ -9,15 +9,15 @@ from fastapi.testclient import TestClient
 
 from app.errors.fetch_errors import FetchResult
 from app.main import app
-from app.services.passive.cors_cross_origin.checks import CorsCrossOriginCheckResult
-from app.services.passive.directory_listing import DirectoryListingCheckResult
-from app.services.passive.exposed_files import ExposedFilesCheckResult
-from app.services.passive.information_disclosure.checks import InformationDisclosureCheckResult
-from app.services.passive.integrity import IntegrityCheckResult
-from app.services.passive.robots_txt import RobotsTxtCheckResult
-from app.services.passive.sitemap import SitemapCheckResult
-from app.services.passive.tech_fingerprinting.checks import TechFingerprintingCheckResult
-from app.services.passive.tls.checks import TlsCheckResult
+from app.services.passive.both.cors_cross_origin.checks import CorsCrossOriginCheckResult
+from app.services.passive.both.directory_listing import DirectoryListingCheckResult
+from app.services.passive.both.exposed_files import ExposedFilesCheckResult
+from app.services.passive.both.information_disclosure.checks import InformationDisclosureCheckResult
+from app.services.passive.both.tech_fingerprinting.checks import TechFingerprintingCheckResult
+from app.services.passive.both.tls.checks import TlsCheckResult
+from app.services.passive.frontend.integrity import IntegrityCheckResult
+from app.services.passive.frontend.robots_txt import RobotsTxtCheckResult
+from app.services.passive.frontend.sitemap import SitemapCheckResult
 
 
 @contextmanager

@@ -1,6 +1,6 @@
 # Vérifications Méthodes HTTP et redirections
 
-Ce document décrit les vérifications relatives aux **méthodes HTTP** exposées et aux **redirections** : objectif, risques (TRACE/XST, open redirect, chaînes excessives), exemples et recommandations.
+Ce document décrit les vérifications relatives aux **méthodes HTTP** exposées et aux **redirections** : objectif, risques (TRACE/XST, chaînes excessives), exemples et recommandations.
 
 ---
 
@@ -8,15 +8,21 @@ Ce document décrit les vérifications relatives aux **méthodes HTTP** exposée
 
 ### Objectif
 
-Les serveurs web peuvent accepter des **méthodes HTTP** variées (GET, POST, PUT, DELETE, TRACE, OPTIONS, etc.). Certaines méthodes sont dangereuses (TRACE → XST) ou inutilement exposées (PUT, DELETE sans nécessité). Les **redirections** mal configurées peuvent permettre des attaques par **open redirect** ou révéler des chaînes de redirection excessives.
+Les serveurs web peuvent accepter des **méthodes HTTP** variées (GET, POST, PUT, DELETE, TRACE, OPTIONS, etc.). Certaines méthodes sont dangereuses (TRACE → XST) ou inutilement exposées (PUT, DELETE sans nécessité). Les **redirections** mal configurées peuvent révéler des chaînes de redirection excessives.
 
-Le scan effectue des requêtes **OPTIONS** pour lister les méthodes, des requêtes **TRACE** pour détecter XST, et teste les paramètres de redirection courants.
+Le scan effectue des requêtes **OPTIONS** pour lister les méthodes, des requêtes **TRACE** pour détecter XST, et suit les redirections pour compter les chaînes excessives.
+
+> **Note :** La détection d'**open redirect** (paramètres url/redirect/next vers domaine externe) est une vérification **intrusive** prévue dans la roadmap ; voir [redirections-actives.md](../intrusive/redirections-actives.md).
 
 ---
 
 ## 1. Méthodes HTTP
 
 ### 1.1 Requête OPTIONS : méthodes autorisées
+
+**Niveau :** Info (informatif — pas un finding de sécurité, aide à l'analyse de surface d'attaque).
+
+**Périmètre :** Les deux (frontend et backend), sans distinction.
 
 #### Résumé
 
@@ -25,6 +31,15 @@ Envoyer une requête **OPTIONS** pour récupérer les **méthodes autorisées** 
 #### Explication détaillée
 
 Une requête `OPTIONS` vers une URL peut renvoyer `Allow: GET, POST, OPTIONS` ou une liste plus longue. Le scan enregistre ces méthodes et les compare aux bonnes pratiques. Les méthodes dangereuses (TRACE, CONNECT) ou non nécessaires (PUT, DELETE sans usage documenté) peuvent être signalées.
+
+#### Relation avec la vérification CORS
+
+La catégorie **CORS et cross-origin** lisait auparavant `Access-Control-Allow-Methods` (ACAM) pour signaler PUT/DELETE/PATCH. Ce finding est **déplacé intégralement** dans la présente catégorie pour centraliser l'analyse des méthodes HTTP. CORS ne signale plus les méthodes dangereuses.
+
+| Aspect | CORS (reste ACAO, ACAC, CORP…) | Méthodes HTTP |
+|--------|--------------------------------|---------------|
+| **Findings méthodes** | Aucun | Allow, ACAM, PUT/DELETE/PATCH, TRACE, HEAD |
+**Allow vs ACAM :** Allow = surface globale ; ACAM = exposition cross-origin. Les deux sont extraits de la même réponse OPTIONS, sans requête supplémentaire.
 
 #### Exemple
 
@@ -42,6 +57,10 @@ Une requête `OPTIONS` vers une URL peut renvoyer `Allow: GET, POST, OPTIONS` ou
 ---
 
 ### 1.2 TRACE activé
+
+**Niveau :** Medium à High (risque XST, fuite cookies/headers).
+
+**Périmètre :** Les deux (frontend et backend), sans distinction.
 
 #### Résumé
 
@@ -123,6 +142,10 @@ TRACE est une méthode de diagnostic qui renvoie l’écho de la requête. Elle 
 
 ### 1.3 PUT, DELETE, PATCH exposés sans nécessité
 
+**Niveau :** Info à Low (surface d'attaque élargie ; gravité selon le contexte).
+
+**Périmètre :** Les deux avec distinction — Frontend (site vitrine) : méthodes modifiantes inattendues → Low. Backend (API REST) : souvent légitimes → Info.
+
 #### Résumé
 
 Si les méthodes **PUT**, **DELETE**, **PATCH** sont exposées sans être nécessaires pour l’application, c’est une **augmentation de la surface d’attaque**. Un attaquant peut tenter des actions de modification ou suppression. Niveau info ou low : à vérifier si ces méthodes sont protégées et utilisées.
@@ -142,6 +165,10 @@ Pour une API REST, PUT/DELETE/PATCH sont souvent légitimes. Pour un site vitrin
 ---
 
 ### 1.4 HEAD supporté
+
+**Niveau :** Info (recommandation d'optimisation — pas un finding de sécurité).
+
+**Périmètre :** Les deux (frontend et backend), sans distinction.
 
 #### Résumé
 
@@ -163,98 +190,15 @@ HEAD doit renvoyer les mêmes headers que GET mais sans corps. Certains serveurs
 
 ## 2. Redirections
 
-### 2.1 Détection open redirect
+### 2.1 Chaînes de redirection excessives (> 5)
+
+**Niveau :** Info à Low.
+
+**Périmètre :** Les deux (frontend et backend), sans distinction.
 
 #### Résumé
 
-Détecter les **open redirects** : une page qui redirige vers une URL fournie par l’utilisateur (paramètre `url`, `redirect`, `next`, `return`, etc.) sans valider que la destination est dans le même domaine. Un attaquant peut construire un lien trompeur : `https://trusted.com/login?next=https://evil.com` qui redirige vers un site malveillant après authentification.
-
-#### Explication détaillée
-
-Le scan peut :
-
-1. Identifier les paramètres de redirection courants (`url`, `redirect`, `next`, `return`, `redirect_uri`, `returnUrl`, etc.).
-2. Envoyer une valeur pointant vers un domaine externe (ex. `https://evil.com` ou un domaine sous contrôle du scan).
-3. Vérifier si la réponse est une redirection (301, 302, 307, 308) vers ce domaine externe.
-
-Si oui → **open redirect**.
-
-#### Exemple
-
-- **OK** : `?next=/dashboard` → redirection vers `/dashboard` (relative, interne).
-- **Finding** : `?next=https://evil.com` → redirection vers `https://evil.com` → open redirect.
-
-#### Vulnérabilité et impact
-
-- **Vraisemblance** : Forte. Les open redirects sont fréquents ; les développeurs oublient souvent de valider la destination.
-- **Impact** : Significative. Phishing (lien apparemment légitime), vol de tokens OAuth si `redirect_uri` est manipulable.
-
-#### Matrice gravité / vraisemblance
-
-<table style="border-collapse: collapse">
-<thead>
-<tr>
-<th style="border: 2px solid #1f2937; padding: 8px; height: 48px; min-height: 48px">Gravité \ Vraisemblance</th>
-<th style="border: 2px solid #1f2937; padding: 8px; height: 48px; min-height: 48px">Très faible</th>
-<th style="border: 2px solid #1f2937; padding: 8px; height: 48px; min-height: 48px">Faible</th>
-<th style="border: 2px solid #1f2937; padding: 8px; height: 48px; min-height: 48px">Forte</th>
-<th style="border: 2px solid #1f2937; padding: 8px; height: 48px; min-height: 48px">Très forte</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="border: 2px solid #1f2937; padding: 12px; height: 56px; min-height: 56px"><strong>Mineure</strong></td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#22c55e; min-width:60px; padding:12px"> </td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#22c55e; min-width:60px; padding:12px"> </td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#facc15; min-width:60px; padding:12px"> </td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#facc15; min-width:60px; padding:12px"> </td>
-</tr>
-<tr>
-<td style="border: 2px solid #1f2937; padding: 12px; height: 56px; min-height: 56px"><strong>Significative</strong></td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#22c55e; min-width:60px; padding:12px"> </td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#facc15; min-width:60px; padding:12px"> </td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#f97316; min-width:60px; padding:12px"> </td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#f97316; min-width:60px; padding:12px; text-align:center; vertical-align:middle; color:#000"><strong>✗</strong></td>
-</tr>
-<tr>
-<td style="border: 2px solid #1f2937; padding: 12px; height: 56px; min-height: 56px"><strong>Importante</strong></td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#facc15; min-width:60px; padding:12px"> </td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#f97316; min-width:60px; padding:12px"> </td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#ef4444; min-width:60px; padding:12px"> </td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#ef4444; min-width:60px; padding:12px"> </td>
-</tr>
-<tr>
-<td style="border: 2px solid #1f2937; padding: 12px; height: 56px; min-height: 56px"><strong>Majeure</strong></td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#f97316; min-width:60px; padding:12px"> </td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#ef4444; min-width:60px; padding:12px"> </td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#ef4444; min-width:60px; padding:12px"> </td>
-<td style="border: 2px solid #1f2937; height: 56px; min-height: 56px; background-color:#ef4444; min-width:60px; padding:12px"> </td>
-</tr>
-</tbody>
-</table>
-
-**Légende :** Vert = faible | Jaune = modéré | Orange = élevé | Rouge = critique
-
-**Risque global : modéré à élevé.**
-
-#### Conseils
-
-- Valider que la destination est dans le même domaine ou une liste blanche.
-- Utiliser des URLs relatives ou des chemins absolus internes uniquement.
-- Pour OAuth : valider stricte de `redirect_uri` contre une liste blanche.
-
-#### Références
-
-- [OWASP – Unvalidated Redirects and Forwards](https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html)
-- [CWE-601 – URL Redirection to Untrusted Site](https://cwe.mitre.org/data/definitions/601.html)
-
----
-
-### 2.2 Chaînes de redirection excessives (> 5)
-
-#### Résumé
-
-Détecter les **chaînes de redirection** longues (plus de 5 redirections). Une chaîne excessive peut indiquer une mauvaise configuration (boucles, redirects inutiles) ou être utilisée pour contourner des contrôles. Elle dégrade aussi les performances et l’expérience utilisateur.
+Détecter les **chaînes de redirection** longues (plus de 5 redirections). Une chaîne excessive peut indiquer une mauvaise configuration (boucles, redirects inutiles) ou être utilisée pour contourner des contrôles. Elle dégrade aussi les performances et l'expérience utilisateur.
 
 #### Explication détaillée
 
@@ -275,7 +219,11 @@ Le scan suit les redirections (avec une limite, ex. 10) et compte le nombre de s
 
 ---
 
-### 2.3 Redirection HTTP→HTTPS : code 301/302 vs 307/308
+### 2.2 Redirection HTTP→HTTPS : code 301/302 vs 307/308
+
+**Niveau :** Info (recommandation pour formulaires sensibles).
+
+**Périmètre :** Les deux avec distinction — Frontend prioritaire (formulaires, login) : 301/302 sur POST peut perdre les données. Backend : pertinent si l'API redirige des requêtes POST.
 
 #### Résumé
 
@@ -303,13 +251,57 @@ RFC 7231 : 301 et 302 peuvent changer en GET ; 307 et 308 préservent la méthod
 
 ## Matrice de sévérité (synthèse)
 
-| Vérification | Sévérité typique |
-|--------------|------------------|
-| TRACE activé (XST) | Medium à High |
-| PUT/DELETE exposés sans nécessité | Info à Low |
-| Open redirect | Medium à High |
-| Chaîne de redirection > 5 | Info à Low |
-| 301/302 sur formulaire POST | Info |
+| Vérification | Sévérité typique | Périmètre |
+|--------------|------------------|-----------|
+| OPTIONS (méthodes autorisées) | Info | Les deux |
+| TRACE activé (XST) | Medium à High | Les deux |
+| PUT/DELETE/PATCH exposés sans nécessité | Info à Low | Les deux (distinction frontend/backend) |
+| HEAD supporté | Info | Les deux |
+| Chaîne de redirection > 5 | Info à Low | Les deux |
+| 301/302 sur formulaire POST | Info | Les deux (frontend prioritaire) |
+
+---
+
+## Décisions d'implémentation
+
+### 1.3 PUT/DELETE/PATCH
+
+Le finding est **déplacé entièrement** de la catégorie CORS vers `methodes_http_et_redirections`. CORS ne signale plus les méthodes dangereuses.
+
+### TRACE, HEAD, redirections : périmètre des URLs
+
+| Vérification | Périmètre | Justification |
+|--------------|-----------|---------------|
+| **TRACE** | Page + chemins sensibles (base + paths configurés) | Oui, ça sert : une API (`/api/`) peut avoir TRACE activé alors que la page d'accueil non. Limite configurable (ex. max 6 URLs). |
+| **HEAD** | Uniquement l'URL de la page | Non nécessaire sur plusieurs chemins : le cas d'usage principal (validation cache ETag/Last-Modified) concerne la page principale. |
+| **Redirections** (chaîne, 301/302) | Chaîne du fetch initial de chaque page | Déjà disponible : le fetch GET de la page suit les redirections. Pas de fetch supplémentaire sur base ou chemins sensibles. |
+
+### 2.2 Formulaire sensible (301/302 vs 307/308)
+
+**Détection des chemins à formulaire sensible :** liste configurable dans `settings.yml`, par ex. `form_sensitive_paths` avec des fragments de chemin par défaut : `/login`, `/auth`, `/signin`, `/register`, `/signup`. Une URL est considérée « formulaire sensible » si son chemin contient l'un de ces fragments. Pas de heuristique générique (détecter tout chemin pouvant servir un formulaire) — liste explicite uniquement.
+
+### Catégorie et configuration
+
+- **Catégorie dédiée** : `methodes_http_et_redirections` dans le rapport (section distincte).
+- **Config** : tout défini dans `settings.yml` (scan-service). Exemple de section :
+
+```yaml
+methodes_http_et_redirections:
+  redirect_chain_max: 5        # Nombre max de redirections avant finding
+  trace_timeout: 3.0           # Timeout (s) pour requête TRACE
+  trace_max_urls: 6            # Limite URLs testées (page + chemins sensibles)
+  form_sensitive_paths:       # Chemins considérés formulaire sensible (301/302 vs 307/308)
+    - "/login"
+    - "/auth"
+    - "/signin"
+    - "/register"
+    - "/signup"
+  checks:
+    trace: true
+    head: true
+    redirect_chain: true
+    redirect_301_302: true
+```
 
 ---
 

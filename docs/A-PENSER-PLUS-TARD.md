@@ -69,20 +69,20 @@ Nouvelle étape de scan : vérifier les **méthodes HTTP** exposées (OPTIONS, T
 
 ### 5.5.1 Méthodes HTTP
 
-- [ ] Requête `OPTIONS` : lister les méthodes autorisées (en-tête `Allow` ou réponse preflight CORS)
-- [ ] `TRACE` activé → finding (XST, risque fuite cookies/headers)
-- [ ] `PUT`, `DELETE`, `PATCH` exposés sans nécessité → info
-- [ ] `HEAD` supporté (bonne pratique)
+- [ ] Requête `OPTIONS` : lister les méthodes autorisées (en-tête `Allow` ou réponse preflight CORS) — *Info (informatif)*
+- [ ] `TRACE` activé → finding (XST, risque fuite cookies/headers) — *Medium à High*
+- [ ] `PUT`, `DELETE`, `PATCH` exposés sans nécessité → info — *Info à Low*
+- [ ] `HEAD` supporté (bonne pratique) — *Info (recommandation)*
 
 ### 5.5.2 Redirections
 
-- [ ] Détection open redirect (paramètre `url`/`redirect`/`next` redirigeant vers domaine externe)
-- [ ] Chaînes de redirection excessives (> 5)
-- [ ] Redirection HTTP→HTTPS avec code 301/302 (pas 307/308 pour préserver méthode)
+- [ ] Détection open redirect (paramètre `url`/`redirect`/`next` redirigeant vers domaine externe) — *Medium à High* (intrusif, voir redirections-actives.md)
+- [ ] Chaînes de redirection excessives (> 5) — *Info à Low*
+- [ ] Redirection HTTP→HTTPS avec code 301/302 (pas 307/308 pour préserver méthode) — *Info*
 
 ### Référence
 
-Spécification détaillée : [methodes-http-et-redirections.md](verifications/methodes-http-et-redirections.md).
+Spécification détaillée et **matrice de sévérité** par vérification : [methodes-http-et-redirections.md](verifications/passive/methodes-http-et-redirections.md). Open redirect (intrusif) : [redirections-actives.md](verifications/intrusive/redirections-actives.md).
 
 ---
 

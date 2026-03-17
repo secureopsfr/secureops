@@ -8,9 +8,13 @@ Ce document décrit les vérifications relatives à l’**intégrité des ressou
 
 ### Objectif
 
-Les ressources chargées depuis des CDN ou des domaines tiers (scripts, CSS) peuvent être **modifiées** (compromission du CDN, MITM). L’attribut **`integrity`** (SRI) permet de vérifier que le contenu n’a pas été altéré. Par ailleurs, l’analyse du HTML peut révéler des configurations à risque : formulaires sans `autocomplete="off"` sur les champs sensibles, liens `target="_blank"` sans `rel="noopener noreferrer"`, etc.
+Les ressources chargées depuis des CDN ou des domaines tiers (scripts, CSS) peuvent être **modifiées** (compromission du CDN, MITM). L’attribut **`integrity`** (SRI) permet de vérifier que le contenu n’a pas été altéré. Par ailleurs, l’analyse du HTML peut révéler des configurations à risque : formulaires sans `autocomplete="off"` sur les champs sensibles, formulaires POST sans champ CSRF, liens `target="_blank"` sans `rel="noopener noreferrer"`, meta robots absente sur pages sensibles, etc.
 
 Le scan parse le HTML de la page et analyse les balises `<script>`, `<link>`, `<form>`, `<a>`, `<meta>`.
+
+**Métadonnées meta :** deux modules couvrent les balises meta :
+- **Meta robots** : ce module (intégrité) vérifie la présence de `<meta name="robots">` et de la directive `noindex` sur les pages sensibles (login, admin, API).
+- **Meta generator** : le module [information-disclosure](information-disclosure.md) signale `<meta name="generator">` comme fuite d’information (CMS/version exposés) ; le module [tech-fingerprinting](tech-fingerprinting.md) l’utilise pour le fingerprinting et la détection de versions vulnérables.
 
 ---
 
@@ -255,7 +259,40 @@ Une attaque « tabnabbing » : l’utilisateur clique sur un lien qui ouvre un s
 
 ---
 
-### 2.4 Meta robots (noindex sur pages sensibles)
+### 2.4 Formulaires POST sans champ CSRF
+
+#### Résumé
+
+Les formulaires **POST** qui modifient des données côté serveur devraient inclure un champ de token CSRF (ex. `csrf_token`, `_token`, `authenticity_token`) pour se protéger contre les attaques Cross-Site Request Forgery. Le scan détecte les formulaires `<form method="post">` qui ne contiennent aucun champ hidden dont le nom figure dans la liste configurée (`integrity.csrf_field_names` dans `settings.yml`).
+
+#### Explication détaillée
+
+Sans token CSRF, un site tiers peut créer une page qui soumet un formulaire à l'insu de l'utilisateur (requête forgée). Le scan parse le HTML et vérifie que chaque formulaire POST contient au moins un champ hidden avec un nom reconnu comme token CSRF. La liste des noms est configurable.
+
+#### Exemple
+
+- **OK** : `<form method="post">` avec `<input type="hidden" name="csrf_token" value="...">`.
+- **Finding** : formulaire POST sans champ csrf_token, _token ou équivalent → risque CSRF.
+
+#### Vulnérabilité et impact
+
+- **Vraisemblance** : Moyenne. Les formulaires sans CSRF sont encore fréquents sur des applications legacy.
+- **Impact** : Significative. Actions non autorisées (changement d'email, de mot de passe, etc.) déclenchées depuis un site tiers.
+
+#### Conseils
+
+- Ajouter un champ hidden avec token CSRF dans chaque formulaire POST.
+- Valider le token côté serveur à chaque soumission.
+- Configurer la liste des noms de champs CSRF dans `integrity.csrf_field_names` si le framework utilise un nom personnalisé.
+
+#### Références
+
+- [OWASP – CSRF](https://owasp.org/www-community/attacks/csrf)
+- [OWASP – Cross-Site Request Forgery Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+
+---
+
+### 2.5 Meta robots (noindex sur pages sensibles)
 
 #### Résumé
 
@@ -293,6 +330,7 @@ Sans `noindex`, une page de login ou d’erreur peut être indexée et apparaît
 | Scripts/CSS externes sans SRI | Medium à High |
 | Formulaires sans autocomplete sur champs sensibles | Low à Medium |
 | target="_blank" sans noopener noreferrer | Medium |
+| Formulaires POST sans champ CSRF | Low |
 | Pages sensibles sans noindex | Low à Info |
 
 ---

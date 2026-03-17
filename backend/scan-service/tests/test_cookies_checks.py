@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from app.services.passive.cookies import check_cookies_from_response
+from app.services.passive.both.cookies import check_cookies_from_response
 
 
 def test_check_cookies_response_none() -> None:

@@ -4,9 +4,11 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 
 **Prérequis :** MVP 0.2.0 livré (API publique, clés API, scan avancé partiel, CI/CD).
 
+**Périmètre des tests :** Pour chaque section, le périmètre est indiqué en *italique* sous le titre : **frontend** (UI, affichage, pages web cibles), **backend** (APIs, moteur scan, services), ou **les deux**.
+
 ## Sommaire
 
-**Ordre recommandé pour la lecture et l'implémentation :** 0 (architecture) -> 1 (passif restant) -> 2 (vérification d'autorisation) -> 3 (actif MVP + backlog intrusif) -> 4 (rapports/analytics) -> 5 (scan paramétrable) -> 6 (infra/qualité) -> 7 (release).
+**Ordre recommandé pour la lecture et l'implémentation :** 0 (architecture) -> 1 (passif restant) -> 2 (vérification d'autorisation + 2.4 backend/doc API) -> 3 (actif MVP + backlog intrusif) -> 4 (rapports/analytics) -> 5 (scan paramétrable) -> 6 (infra/qualité) -> 7 (release).
 
 - [0) Architecture : deux scanners](#0-architecture--deux-scanners)
   - [0.1 Rappel : passif vs actif](#01-rappel--passif-vs-actif)
@@ -17,10 +19,12 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
   - [1.4 Tests passifs complémentaires](#14-tests-passifs-complémentaires)
   - [1.5 Backlog tests reporté depuis la roadmap 0.3.0](#15-backlog-tests-reporté-depuis-la-roadmap-030)
   - [1.6 Backlog reporté depuis la roadmap 0.3.0 (hors section tests)](#16-backlog-reporté-depuis-la-roadmap-030-hors-section-tests)
+  - [1.7 Adaptation des tests passifs pour scan_type backend](#17-adaptation-des-tests-passifs-pour-scan_type-backend)
 - [2) Vérification d'autorisation (uniquement en production)](#2-vérification-dautorisation-uniquement-en-production)
   - [2.1 Méthode : vérification DNS](#21-méthode--vérification-dns)
   - [2.2 Flux utilisateur (Scanner 2 uniquement)](#22-flux-utilisateur-scanner-2-uniquement)
   - [2.3 Cas particuliers](#23-cas-particuliers)
+- [2.4 Option backend et import de documentation API](#24-option-backend-et-import-de-documentation-api) *(prérequis avant tests actifs backend)*
 - [3) Introduire les tests actifs (Scanner 2)](#3-introduire-les-tests-actifs-scanner-2)
   - [3.1 Cadre et sécurité](#31-cadre-et-sécurité)
   - [3.2 Tests actifs — Redirections](#32-tests-actifs--redirections-déjà-partiellement-actif)
@@ -91,18 +95,19 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 > Les tests passifs des sections 5.1 à 5.4 et 5.8 de la roadmap 0.2.0 sont livrés (TLS, headers, cookies, exposition fichiers, directory listing, robots, sitemap, tech fingerprinting, information disclosure, cache, CORS et cross-origin). Il reste à implémenter pour le Scanner 1 (passif) :
 
 ### 1.1 Méthodes HTTP et redirections (ex-roadmap 5.5, voir A-PENSER-PLUS-TARD)
+*Périmètre : **les deux** (frontend et backend)*
 
-- [ ] Requête OPTIONS : méthodes autorisées
-- [ ] TRACE activé → finding (XST)
-- [ ] PUT, DELETE, PATCH exposés sans nécessité → info
-- [ ] HEAD supporté (bonne pratique)
-- [ ] Détection open redirect (paramètres url/redirect/next)
-- [ ] Chaînes de redirection excessives (> 5)
-- [ ] Redirection HTTP→HTTPS : 301/302 vs 307/308
+- [x] Requête OPTIONS : méthodes autorisées — *Info* — Réutilisation des OPTIONS CORS (Allow + Access-Control-Allow-Methods) ; pas de requête supplémentaire.
+- [x] TRACE activé → finding (XST) — *Medium à High* — Requête TRACE sur page + chemins sensibles (limite `trace_max_urls`), finding si 200 + écho.
+- [x] PUT, DELETE, PATCH exposés sans nécessité → info — *Info à Low* — Depuis Allow/ACAM ; distinction frontend (Low) / backend (Info) via `scan_type`.
+- [x] HEAD supporté (bonne pratique) — *Info* — Requête HEAD sur la page ; finding si 4xx/5xx.
+- [x] Chaînes de redirection excessives (> 5) — *Info à Low* — Analyse de `response.history` (fetch initial) ; seuil configurable `redirect_chain_max`.
+- [x] Redirection HTTP→HTTPS : 301/302 vs 307/308 — *Info* — Finding si 301/302 dans la chaîne et URL finale sur chemin formulaire sensible (`form_sensitive_paths`).
 
 ---
 
 ### 1.2 Intégrité et sous-ressources (5.6 — restant roadmap 0.2.0)
+*Périmètre : **frontend** (HTML, scripts, formulaires)*
 
 - [x] Scripts/CSS externes (CDN) sans attribut `integrity` → finding
 - [x] Balises `<script>` sans nonce ou integrity (contexte CSP), uniquement lorsque l'en-tête CSP est présent (sinon, un message informe que les tests avancés ne sont pas appliqués)
@@ -112,27 +117,69 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 
 ---
 
-### 1.3 APIs et formats (ex-roadmap 5.7, voir A-PENSER-PLUS-TARD)
+### 1.3 APIs et formats (ex-roadmap 5.7, voir [apis-et-formats.md](../../verifications/passive/apis-et-formats.md))
+*Périmètre : **backend** (APIs exposées) ; **les deux** (formats de réponse)*
 
-- [ ] GraphQL : introspection activée sur `/graphql` ou similaire
-- [ ] Swagger/OpenAPI exposé sans auth
-- [ ] Endpoints REST : listes non paginées (info)
-- [ ] Content-Type incorrect (JSON servi en text/html)
-- [ ] X-Content-Type-Options: nosniff sur tous les types
-- [ ] Compression (gzip/brotli)
+- [x] GraphQL : introspection activée sur `/graphql` ou similaire — *Backend* — Phase domaine : POST `{"query":"{ __schema { types { name } } }"}` sur chemins `graphql_paths` ; finding si 200 + schéma JSON retourné.
+- [x] Swagger/OpenAPI exposé sans auth — *Backend* — Phase domaine : GET sur `swagger_paths` (`/swagger`, `/api-docs`, `/openapi.json`, etc.) ; finding si 200 + corps contient `openapi`/`swagger` (JSON) ou Swagger UI (HTML).
+- [x] Endpoints REST : listes non paginées (info) — *Backend* — Phase domaine : GET sur `api_list_paths` ; phase page : analyse de chaque réponse JSON (multi-URL) ; finding si tableau ≥ 50 éléments sans `page`/`limit`/`offset` dans la réponse ; seuil `unpaginated_list_threshold: 50`.
+- [x] Content-Type incorrect (JSON servi en text/html) — *Les deux* — Analyse de la réponse (page + réponses API) : si corps ressemble à JSON (`{` ou `[`) et `Content-Type` ≠ `application/json` → finding Medium.
+- [x] X-Content-Type-Options: nosniff sur tous les types — *Les deux* — Vérifié sur les **réponses API uniquement** (phase domaine) ; la page principale reste couverte par `security_headers` pour éviter doublon.
+- [x] Compression (gzip/brotli) — *Les deux* — Sur page (phase page) et sur chaque réponse API (phase domaine) ; finding Info si corps textuel > `compression_min_body_bytes` (1024) et absence de `Content-Encoding: gzip` ou `br`.
+
+#### Architecture : backend vs both
+
+| Module | Périmètre | Phase | Contenu |
+|--------|-----------|-------|---------|
+| `passive/backend/api/` | Backend | Domaine (1× par base) | GraphQL, Swagger, REST listes ; appelle `check_formats_from_response` sur chaque réponse API (Content-Type, X-CTO, compression) |
+| `passive/both/formats/` | Les deux | Page (par URL) | `check_formats_from_response(page_response, check_xcto=False)` — Content-Type, compression uniquement sur la page (X-CTO déjà dans security_headers) |
+
+#### Implémentation technique
+
+- [x] **backend/api** : `run_api_checks(base_url, client)` — probes en séquence GraphQL (POST introspection), Swagger (GET), REST listes (GET) ; pour chaque réponse 200, appelle `check_formats_from_response(..., check_xcto=True)`.
+- [x] **both/formats** : `check_formats_from_response(response, url, check_xcto, compression_min_body_bytes)` — fonction pure, appelée par page checks (page) et par backend/api (réponses API).
+- [x] **REST listes** : `check_rest_from_response(url, response, threshold)` — appelé en phase page pour chaque URL scannée ; détecte JSON avec array ou clé `items`/`users`/`data` ≥ 50 éléments sans pagination.
+- [x] **exposed_files** : retrait des chemins `/swagger`, `/swagger.json`, `/api-docs`, `/api-docs.json`, `/graphql` — centralisés dans apis_et_formats.
+
+#### Fichiers créés / modifiés
+
+| Fichier | Modification |
+|---------|--------------|
+| `passive/backend/api/` | **Nouveau** — checks (GraphQL, Swagger, REST), normalizer, `check_rest_from_response` pour phase page |
+| `passive/both/formats/` | **Nouveau** — checks (Content-Type, X-CTO, compression), normalizer |
+| `config/apis_et_formats.py` | **Nouveau** — chargement `graphql_paths`, `swagger_paths`, `api_list_paths`, `unpaginated_list_threshold`, `compression_min_body_bytes` |
+| `config/settings.yml` | Section `apis_et_formats` ; retrait `/swagger`, `/graphql`, `/api-docs` de `exposed_files` |
+| `both/exposed_files/checks.py` | Retrait des checkers `/swagger`, `/graphql`, `/api-docs` |
+| `passive/_page_checks_runner.py` | Ajout `formats` (check_formats_from_response, check_xcto=False) et `api_page` (check_rest_from_response) |
+| `passive/_scan_core.py` | Ajout étapes `api_checks`, `formats`, `api_page` |
+| `passive/multi_scan_orchestrator.py` | `_run_domain_api` : run_api_checks en phase domaine |
+| `passive/normalization.py` | Normalizers `api_checks`, `formats`, `api_page` → catégorie `apis_et_formats` |
+| `passive/scan_stream.py` | Étapes SSE `api_checks`, `formats`, `api_page` |
+| `catalogue/category_summaries.json` | Entrée `apis_et_formats` ; mise à jour `exposed_files` (retrait swagger/graphql) |
+| `catalogue/recommendations.json` | Slugs api-graphql-introspection, api-swagger-exposed, api-rest-unpaginated, formats-* |
+| `scoring` / `category_labels` | Pondération 5 ; label FR/EN |
 
 ---
 
 ### 1.4 Tests passifs complémentaires
+*Périmètre : **frontend** (formulaires, meta) ; **les deux** (OWASP mapping)*
 
-- [ ] Formulaires : détection de tokens CSRF (présence de champ csrf_token, _token, etc.)
-- [ ] Métadonnées : analyse des balises `<meta>` (robots, generator)
-- [ ] Mapping OWASP Top 10 : associer chaque finding à une catégorie OWASP (A01–A10)
-- [ ] Rapport de conformité : synthèse par catégorie OWASP
+- [x] Formulaires : détection de tokens CSRF (présence de champ csrf_token, _token, etc.)
+
+  > **Fait :** Parser HTML dans `frontend/integrity/checks.py` : détection des `<form method="post">` sans champ hidden dont le nom figure dans `integrity.csrf_field_names` (configurable dans `settings.yml` : csrf_token, _token, authenticity_token, _csrf, __RequestVerificationToken, etc.). Un seul finding agrégé avec le nombre de formulaires concernés. Sévérité Low. Normalizer + slug `integrity-forms-post-without-csrf` + recommandation dans le catalogue.
+
+- [x] Métadonnées : analyse des balises `<meta>` (robots, generator)
+
+  > **Fait :** Meta robots : déjà couvert par integrity (présence de `<meta name="robots">` et directive noindex sur pages sensibles). Meta generator : ajout dans `information_disclosure/checks.py` — détection de `<meta name="generator" content="...">` dans le body HTML, finding `info-disclosure-meta-generator` (sévérité info). Le module `tech_fingerprinting` utilise déjà meta generator pour le fingerprinting CMS et la détection de versions vulnérables.
+
+- [x] Mapping OWASP Top 10 : associer chaque finding à une catégorie OWASP (A01–A10)
+
+  > **Fait :** Mapping OWASP Top 10:2025 dans `catalogue/owasp_mapping.json` (fichier dédié). Module `catalogue/owasp.py` avec `get_owasp_categories(slug)` — correspondance exacte + préfixe pour slugs dynamiques (exposed_files-*, directory_listing-*). Pas de fallback : slugs non mappés retournent (). Champ `owasp_categories: tuple[str, ...]` ajouté au modèle Finding et à `to_dict()`. Tous les normalizers passifs peuplent ce champ. Affichage dans le PDF (après le badge sévérité) et dans l'UI (FindingCard).
 
 ---
 
 ### 1.5 Backlog tests reporté depuis la roadmap 0.3.0
+*Périmètre : **backend** (environnements, CI, scénarios d'intégration scan/crawl)*
 
 Objectif : finaliser la couverture de tests d’intégration de la pipeline scan/crawl, reportée depuis la section 2 de la roadmap v0.3.0.
 
@@ -153,7 +200,7 @@ Objectif : finaliser la couverture de tests d’intégration de la pipeline scan
 - [ ] Scénarios SSRF : URLs internes / localhost / IP privées bloquées en mode prod (`IS_PROD=true`).
 - [ ] Scénarios de ports : ports non autorisés rejetés en prod, autorisés en dev (`IS_PROD=false` via `launch_dev.sh`).
 - [ ] **Scénario crawler → liste → scan sur N URLs** : serveur de test avec pages liées (même domaine) ; lancer le crawler depuis une URL de départ, récupérer la liste d’URLs (via l’API crawler retenue en 7.3 de la v0.3.0), lancer le scan sur un sous-ensemble (ex. 2–3 URLs) ; vérifier que les résultats agrègent les findings par URL ou produisent un rapport cohérent (historique, PDF si applicable).
-- [ ] Vérification des catégories de checks : TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, info disclosure, etc.
+- [ ] Vérification des catégories de checks : TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, info disclosure, methodes_http_et_redirections, apis_et_formats, etc.
 - [ ] Vérification de l’écriture en historique (user-service) et de la génération PDF.
 - [ ] Crawler — tests unitaires : parsing HTML → liste d’URLs attendue ; respect Disallow ; limites (profondeur, max URLs).
 - [ ] Crawler — test d’intégration : crawl d’une page de test (ex. `bad_crawl_server` ou fixture HTML) → vérifier la sortie et l’absence de fuite hors domaine.
@@ -174,6 +221,7 @@ Objectif : finaliser la couverture de tests d’intégration de la pipeline scan
 ---
 
 ### 1.6 Backlog reporté depuis la roadmap 0.3.0 (hors section tests)
+*Périmètre : **backend** (GitHub Action, gouvernance crawler) ; **frontend** (docs/UX, affichage anomalies)*
 
 Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 liés à l’intégration CI/CD, au crawler, à la doc/UX scanner et au rendu d’anomalies.
 
@@ -206,7 +254,63 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 
 ---
 
+### 1.7 Adaptation des tests passifs pour scan_type backend
+*Périmètre : **backend** (moteur scan passif, pipeline)*
+
+> **Contexte :** Lorsqu'un utilisateur lance un scan en mode **backend** (cible API, endpoint JSON/XML plutôt que page HTML), certaines étapes des tests passifs dépendent du **HTML** pour fonctionner (extraction de sous-ressources, meta generator, mixed content). Ces étapes sont sans pertinence ou non applicables sur une réponse API. On **ne supprime pas** le code : on ne l'exécute simplement pas quand `scan_type == "backend"`.
+
+#### Propagation de scan_type dans la pipeline
+
+- [x] **ScanContext** (`_scan_core.py`) : ajout du champ `scan_type` (défaut `"frontend"`).
+- [x] **scan_stream_generator** (`scan_stream.py`) : paramètre keyword-only `scan_type` propagé à `_run_pipeline_steps` puis `_run_checks_with_client`.
+- [x] **async_scan_executor** : lorsqu'on utilise le flux passive, passage explicite de `scan_type` (issu du job) au générateur.
+- [x] Les lambdas des étapes SCAN_STEPS reçoivent `ctx.scan_type` et le transmettent aux fonctions de check concernées.
+
+#### Comportement par check (backend vs frontend)
+
+| Check | Comportement frontend | Comportement backend |
+|-------|------------------------|----------------------|
+| **cache** | Analyse des headers de la page **+** analyse des sous-ressources (JS/CSS/images extraites du HTML) | Analyse des headers de la page uniquement ; **pas** d'analyse des sous-ressources |
+| **cors_cross_origin** | Vérifications CORS (ACAO, credentials, CORP) **+** contrôle mixed content (ressources HTTP sur page HTTPS) | Vérifications CORS uniquement ; **pas** de contrôle mixed content |
+| **tech_fingerprinting** | Analyse des headers (Server, X-Powered-By) **+** détection via HTML (meta generator, scripts) | Analyse des headers uniquement ; **pas** de `_detect_from_html` |
+| **sitemap** | Vérification Sitemap (robots.txt, sitemap.xml, URLs sensibles) | **Étape entière ignorée** (non pertinente pour une API) |
+| **integrity** | Intégrité HTML (SRI, scripts, formulaires CSRF, autocomplete, target="_blank", meta robots) | **Étape entière ignorée** (réponse JSON/XML, pas de HTML) |
+| **robots_txt** | Présence et contenu de robots.txt (Disallow, Sitemap) | **Étape entière ignorée** (non pertinent pour une API) |
+| **methodes_http_et_redirections** | TRACE, HEAD, Allow/ACAM, PUT/DELETE/PATCH, redirections | Même exécution ; sévérité `dangerous_methods` : backend→Info, frontend→Low |
+| **apis_et_formats** | GraphQL, Swagger, REST listes, Content-Type, X-CTO, compression | Même exécution ; phase domaine (api_checks) + phase page (formats, api_page) |
+
+#### Implémentation technique
+
+- [x] **cache** (`both/cache/checks.py`) : `check_cache_from_response(..., scan_type="frontend")` ; si `scan_type == "backend"`, on n'appelle pas `_analyze_subresources`.
+- [x] **cors_cross_origin** (`both/cors_cross_origin/checks.py`) : `run_cors_cross_origin_checks(..., scan_type="frontend")` ; si `scan_type == "backend"`, on n'appelle pas `_check_mixed_content`.
+- [x] **tech_fingerprinting** (`both/tech_fingerprinting/checks.py`) : `check_tech_fingerprinting_from_response(..., scan_type="frontend")` ; si `scan_type == "backend"`, on n'appelle pas `_detect_from_html`.
+- [x] **robots_txt**, **sitemap** et **integrity** : étapes entièrement ignorées quand `scan_type == "backend"` (voir `_FRONTEND_ONLY_STEPS` dans `scan_stream.py`). Ces catégories sont exclues des `category_summaries` et du `total_tests_count` pour les scans backend (voir `build_findings_bundle` avec `_FRONTEND_ONLY_CATEGORIES`).
+
+#### Restructuration frontend
+
+- [x] **robots_txt** déplacé de `both/` vers `frontend/` pour cohérence avec sitemap et integrity (ces trois checks sont frontend-only). Imports mis à jour dans `_scan_core`, `multi_scan_orchestrator`, `normalization` et les tests.
+
+#### Fichiers modifiés
+
+| Fichier | Modification |
+|---------|--------------|
+| `passive/_scan_core.py` | `ScanContext.scan_type` ; lambdas cache, cors, tech_fingerprinting ; `_FRONTEND_ONLY_CATEGORIES` ; `build_findings_bundle(..., scan_type)` ; import `frontend.robots_txt` |
+| `passive/scan_stream.py` | `scan_type` dans `_run_checks_with_client`, `_run_pipeline_steps`, `scan_stream_generator` ; `_FRONTEND_ONLY_STEPS` (robots_txt, sitemap, integrity) |
+| `async_scan_executor.py` | Appel `passive_scan_stream_generator(url, authorization=None, scan_type=scan_type)` |
+| `both/cache/checks.py` | Paramètre `scan_type` ; condition `if scan_type != "backend"` avant `_analyze_subresources` |
+| `both/cors_cross_origin/checks.py` | Paramètre `scan_type` ; condition `if scan_type != "backend"` avant `_check_mixed_content` |
+| `both/tech_fingerprinting/checks.py` | Paramètre `scan_type` ; condition `if scan_type != "backend"` avant `_detect_from_html` |
+| `passive/frontend/robots_txt/` | **Nouveau** — module déplacé depuis `both/` (checks, normalizer, __init__) |
+| `passive/normalization.py` | Import `frontend.robots_txt` ; ajout `methodes_http_et_redirections` |
+| `passive/multi_scan_orchestrator.py` | Import `frontend.robots_txt` |
+| `passive/both/methodes_http_et_redirections/` | **Nouveau** — checks (OPTIONS/Allow/ACAM via CORS, TRACE, HEAD, redirections), normalizer, config |
+| `both/cors_cross_origin/checks.py` | `methodes_data` (Allow/ACAM par URL), retrait finding `dangerous_methods` (déplacé vers methodes_http) |
+| `config/settings.yml` | Section `methodes_http_et_redirections` (redirect_chain_max, trace_*, form_sensitive_paths) |
+
+---
+
 ## 2) Vérification d’autorisation (uniquement en production)
+*Périmètre : **backend** (vérification DNS, cache) ; **frontend** (flux utilisateur, affichage token)*
 
 > **Document dédié :** voir [VERIFICATION-AUTORISATION.md](VERIFICATION-AUTORISATION.md) pour la spécification complète.
 
@@ -240,7 +344,51 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 
 ---
 
+### 2.4 Option backend et import de documentation API
+*Périmètre : **frontend** (formulaire, case à cocher, upload) ; **backend** (parsing spec)*
+
+> **Prérequis avant le développement des tests actifs backend.** À implémenter avant ou en parallèle des tests IDOR, mass assignment, GraphQL, etc.
+
+#### Contexte : crawler et scan frontend vs backend
+
+- **Cible frontend** : le crawler agit comme actuellement. Checkbox « Scanner uniquement cette page » : si **coché** → pas de crawl, scan direct sur l'URL ; si **décoché** → crawler (découverte des pages du site) puis scan multi-URL.
+- **Cible backend** : pas de crawler (une API n'est pas parcourue comme un site HTML). La checkbox change de libellé et de sens :
+  - **Coché** : « Scanner uniquement cet endpoint » — scan direct sur l'URL API saisie.
+  - **Décoché** : « Scanner plusieurs endpoints » — affichage d'une zone d'**import de documentation API** (drag-and-drop de fichier). Les endpoints sont extraits de la doc fournie par l'utilisateur ; **pas de recherche automatique** (bruteforce de chemins de doc exclu pour l'instant).
+- **Sans doc** (backend, multi-endpoints) : les tests se limitent à la liste fixe configurée dans `settings.yml` (`sensitive_paths`, `exposed_files`).
+
+#### Comportement attendu (UI)
+
+- [ ] **Scan type backend** : le libellé de la checkbox devient « Scanner uniquement cet endpoint » (ou équivalent).
+- [ ] **Quand décoché (backend)** : affichage d'une section « Fournissez la documentation API pour scanner plusieurs endpoints » avec :
+  1. **Drag-and-drop de fichier** : OpenAPI (`.json`, `.yaml`), Postman Collection (`.json`).
+- [ ] **Avec doc** : le scanner parse la spec et extrait la liste des endpoints (méthode, chemin, paramètres) pour le scan multi-URL.
+- [ ] **Sans doc** : scan sur la liste fixe de chemins uniquement.
+
+#### Formats acceptés pour l'import
+
+| Format | Support | Source |
+|--------|---------|--------|
+| **OpenAPI / Swagger** | Fichier | Drag-and-drop `.json` ou `.yaml` |
+| **Postman Collection** | Fichier | Drag-and-drop `.json` (v2.0, v2.1) |
+
+> **Hors périmètre pour l'instant** : bruteforce automatique des chemins de doc (`/swagger`, `/openapi.json`, etc.) sur l'URL backend. La liste d'endpoints provient uniquement de l'import utilisateur ou de la liste fixe.
+
+#### Décisions d'implémentation
+
+- [ ] **Flux** : identique au crawler — parse doc → affichage des endpoints → étape de validation (ajout/suppression) → bouton « Lancer le scan » → scan passif multi-URL.
+- [ ] **Parsing** : côté frontend (libs JS pour OpenAPI, Postman). Le frontend envoie une **liste d'URLs** au backend, pas le fichier.
+- [ ] **Limite endpoints** : 200 max (aligné sur la limite crawler).
+- [ ] **Formats** : OpenAPI/Swagger, Postman Collection dès le début.
+
+#### Tests concernés
+
+Les tests actifs orientés backend (IDOR, mass assignment, GraphQL abuse, injection sur API, etc.) s'appuient sur la liste d'endpoints issue de la doc importée ou de la liste fixe.
+
+---
+
 ## 3) Introduire les tests actifs (Scanner 2)
+*Périmètre des tests : selon le type — voir détail par sous-section*
 
 > **Principe :** Tests actifs **légers** au départ. Pas de fuzzing massif, pas de bruteforce. Requêtes ciblées pour détecter des vulnérabilités courantes.
 
@@ -257,6 +405,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.2 Tests actifs — Redirections (déjà partiellement actif)
+*Périmètre : **les deux** (pages frontend avec redirect ; endpoints backend avec redirect_uri)*
 
 - [ ] Open redirect : envoyer `?redirect=https://evil.com`, `?next=//evil.com`, `?url=...` et vérifier si redirection vers domaine externe
 - [ ] Paramètres à tester : `redirect`, `url`, `next`, `return`, `redirect_uri`, `returnUrl`, `continue`, `destination`
@@ -264,6 +413,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.3 Tests actifs — Méthodes HTTP
+*Périmètre : **les deux** (toute URL peut exposer OPTIONS, TRACE, HEAD)*
 
 - [ ] Requête OPTIONS : récupérer Allow
 - [ ] Requête TRACE : détecter XST (si 200 + écho de la requête)
@@ -272,6 +422,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.4 Tests actifs — CORS
+*Périmètre : **les deux** (frontend et API peuvent mal configurer CORS)*
 
 - [ ] Envoyer requête avec `Origin: https://evil.com` (ou domaine de test)
 - [ ] Vérifier si réponse contient `Access-Control-Allow-Origin: https://evil.com` + `Credentials: true` → réflexion non validée
@@ -279,6 +430,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.5 Tests actifs — Paramètres (premiers pas)
+*Périmètre : **les deux** (pages web avec paramètres réfléchis ; APIs avec paramètres dans les réponses)*
 
 - [ ] Détection de paramètres réfléchis : envoyer une chaîne unique (ex. `SecureOpsTest123`) dans les paramètres courants (`q`, `search`, `query`, `id`, `page`, etc.)
 - [ ] Si la chaîne apparaît dans la réponse HTML → paramètre réfléchi (info, vecteur potentiel XSS)
@@ -287,6 +439,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.6 Tests actifs — Path traversal (léger)
+*Périmètre : **backend** (paramètres file, path, document sur endpoints)*
 
 - [ ] Tester `../` dans des paramètres de fichier courants (`file`, `path`, `document`, `template`, `include`)
 - [ ] Exemple : `?file=../../../etc/passwd` — si erreur différente (500, message d’erreur) ou contenu suspect → finding
@@ -295,6 +448,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.7 Tests actifs — Injection basique (erreurs révélatrices)
+*Périmètre : **backend** (formulaires/APIs qui interrogent la BDD)*
 
 - [ ] SQL : envoyer `'` ou `"` dans paramètres (id, search, etc.) — détecter messages d’erreur SQL dans la réponse (MySQL, PostgreSQL, etc.)
 - [ ] Pas d’exploitation ; uniquement détection d’erreur non gérée révélant une injection possible
@@ -303,6 +457,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.8 Tests actifs — DoS (single-source, pas DDoS)
+*Périmètre : **les deux** (tout endpoint peut être ciblé)*
 
 > **Périmètre :** Tests depuis **une seule source** (le scanner) pour évaluer la résilience ou les indicateurs de vulnérabilité DoS. Pas de test DDoS (pas de volume distribué).
 
@@ -314,6 +469,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.9 Documentation et scoring
+*Périmètre : **backend** (matrice sévérité, pondération) ; **frontend** (section rapport PDF)*
 
 - [ ] Créer `docs/verifications/` pour chaque nouveau test actif
 - [ ] Matrice de sévérité par test
@@ -323,11 +479,13 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.10 Backlog intrusif exhaustif (au-dela du MVP strict)
+*Périmètre : **backend** (P0-P4) ; **frontend** (XSS réfléchi) ; **les deux** (open redirect, CORS, méthodes HTTP, rate limiting)*
 
 > Cette section migre le catalogue des tests intrusifs complets dans la roadmap v0.4.0 afin de centraliser la trajectoire Scanner 2.
 > Les items ci-dessous sont priorises P0 -> P4 et complete la section 3 (premiers tests actifs).
 
 ### 3.11 Garde-fous obligatoires (toutes phases)
+*Périmètre : **backend** (moteur scanner)*
 
 - [ ] Autorisation forte : preuve de controle du domaine (DNS TXT), audit trail, acceptation explicite
 - [ ] Kill switch global : arret immediat d'un scan actif en cours
@@ -343,6 +501,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.12 P0 — Indispensable (common, forte valeur)
+*Périmètre : **backend** (auth, session, IDOR, SQLi, path traversal, command injection, CSRF, rate limiting) ; **frontend** (XSS réfléchi) ; **les deux** (open redirect, CORS, méthodes HTTP)*
 
 #### Authentification et session
 
@@ -377,6 +536,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.13 P1 — Tres recommande
+*Périmètre : **backend** (upload, GraphQL, mass assignment, SSRF, XXE, SSTI, deserialization)*
 
 #### Upload et contenu utilisateur
 
@@ -405,6 +565,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.14 P2 — Avance (moins frequent, impact eleve potentiel)
+*Périmètre : **backend** (request smuggling, cache poisoning, host header, race conditions, business logic)*
 
 #### HTTP/cache avances
 
@@ -427,6 +588,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.15 P3 — Specialises
+*Périmètre : **backend** (WebSocket, GraphQL subscriptions, gRPC, OAuth/OIDC, SSO, object storage)*
 
 #### Temps reel et protocoles
 
@@ -447,6 +609,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.16 P4 — Rare/recherche (mode expert explicite)
+*Périmètre : **backend** (tous ces tests ciblent des endpoints)*
 
 - [ ] DoS applicatif controle (burst, slow request/headers, amplification)
 - [ ] HTTP/2 abuse patterns
@@ -457,6 +620,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.17 Exigences techniques minimales (moteur intrusif)
+*Périmètre : **backend** (moteur de scan)*
 
 #### Moteur de requetes
 
@@ -488,6 +652,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.18 Ordre de developpement recommande
+*Périmètre : mix **frontend** + **backend** selon la famille de test (voir 3.12-3.16)*
 
 #### Phase A (MVP intrusif)
 
@@ -519,6 +684,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.19 Exhaustive checklist (families a couvrir)
+*Périmètre : **backend** (majorité) ; **frontend** (XSS) ; **les deux** (CORS, open redirect, méthodes HTTP)*
 
 - [ ] Auth brute force / lockout / enumeration
 - [ ] Session fixation / invalidation / token lifecycle
@@ -555,6 +721,7 @@ Comme pour Let's Encrypt, Google Search Console : l’utilisateur ajoute un enre
 ---
 
 ### 3.20 Desactive par defaut (mode expert uniquement)
+*Périmètre : **backend** (exécution) ; **frontend** (opt-in UI)*
 
 - [ ] Tests potentiellement destructifs
 - [ ] Scenarios impliquant ecriture irreversible
@@ -566,6 +733,7 @@ Activation uniquement en mode expert, avec opt-in explicite et limites strictes.
 ---
 
 ### 3.21 Documentation cible
+*Périmètre : **backend** (docs techniques)*
 
 - [ ] Toutes les specs intrusives detaillees dans `docs/verifications/intrusive/`
 - [x] Catalogue complet intrusif versionne et maintenu dans `docs/verifications/intrusive/catalogue-complet-tests-intrusifs.md`
@@ -574,6 +742,7 @@ Activation uniquement en mode expert, avec opt-in explicite et limites strictes.
 ---
 
 ## 4) Rapports et analytics
+*Périmètre : **backend** (calcul, agrégation, export) ; **frontend** (affichage, graphiques, tableau de bord, explication scoring)*
 
 ### 4.1 Tendances
 
@@ -601,6 +770,7 @@ Activation uniquement en mode expert, avec opt-in explicite et limites strictes.
 ---
 
 ## 5) Scan paramétrable
+*Périmètre : **les deux** (frontend : UI sélecteur de mode ; backend : logique de filtrage par gravité/catégorie)*
 
 Rendre le scan **simple à paramétrer** pour adapter la profondeur et le périmètre selon les besoins.
 
@@ -620,6 +790,7 @@ Rendre le scan **simple à paramétrer** pour adapter la profondeur et le périm
 ---
 
 ## 6) Infra et qualité
+*Périmètre : **backend** (mode async, config, tests unitaires)*
 
 ### 6.1 Mode asynchrone (optionnel)
 
@@ -676,4 +847,4 @@ Certains tests (exposition fichiers, API docs, directory listing, etc.) s'exécu
 2. **URL backend optionnelle** : proposer à l'utilisateur de saisir une **URL backend** en option lors du scan. Si fournie, exécuter ces tests sur les deux URLs (frontend + backend).
 3. **Autres tests concernés** : exposition fichiers, directory listing, endpoints API docs (Swagger, GraphQL), information disclosure (stack traces, headers debug), éventuellement CORS et méthodes HTTP sur les endpoints API.
 
-**Recommandation :** À court terme, documenter cette limitation dans l'interface (tooltip ou notice). À moyen terme, implémenter l'option « URL backend optionnelle » pour étendre la couverture des tests.
+**Recommandation :** À court terme, documenter cette limitation dans l'interface (tooltip ou notice). À moyen terme, implémenter l'option « URL backend optionnelle » pour étendre la couverture des tests. Voir [section 2.4](#24-option-backend-et-import-de-documentation-api) pour l'option backend et l'import de documentation API.

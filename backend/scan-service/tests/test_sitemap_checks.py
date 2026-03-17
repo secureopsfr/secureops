@@ -4,14 +4,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.passive.robots_txt.checks import RobotsTxtCheckResult
-from app.services.passive.sitemap import SensitiveSitemapUrl, SitemapCheckResult, run_sitemap_checks
+from app.services.passive.frontend.robots_txt.checks import RobotsTxtCheckResult
+from app.services.passive.frontend.sitemap import SensitiveSitemapUrl, SitemapCheckResult, run_sitemap_checks
 
 
 @pytest.mark.asyncio()
 async def test_run_sitemap_checks_no_sitemap_found() -> None:
     """Aucun sitemap trouvé (ni déclaré ni fallback) → sitemap_found False."""
-    with patch("app.services.passive.sitemap.checks.get_with_client", new_callable=AsyncMock) as mock_get:
+    with patch("app.services.passive.frontend.sitemap.checks.get_with_client", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = MagicMock(status_code=404, text="")
         robots_result = RobotsTxtCheckResult(
             disallow_paths=(),
@@ -49,7 +49,7 @@ async def test_run_sitemap_checks_sitemap_with_sensitive_url() -> None:
     mock_resp.headers = {"content-type": "application/xml"}
     mock_resp.text = sitemap_xml
 
-    with patch("app.services.passive.sitemap.checks.get_with_client", new_callable=AsyncMock) as mock_get:
+    with patch("app.services.passive.frontend.sitemap.checks.get_with_client", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = mock_resp
         robots_result = RobotsTxtCheckResult(
             disallow_paths=(),
@@ -84,7 +84,7 @@ async def test_run_sitemap_checks_uses_robots_sitemap_url() -> None:
     mock_resp.headers = {"content-type": "application/xml"}
     mock_resp.text = sitemap_xml
 
-    with patch("app.services.passive.sitemap.checks.get_with_client", new_callable=AsyncMock) as mock_get:
+    with patch("app.services.passive.frontend.sitemap.checks.get_with_client", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = mock_resp
         robots_result = RobotsTxtCheckResult(
             disallow_paths=(),

@@ -288,6 +288,18 @@ export default function MultiScanResults({
         </div>
       </Card>
 
+      {errorCount > 0 && (
+        <div className="flex items-start gap-2 rounded-lg border border-[rgb(var(--warning))]/35 bg-[rgb(var(--warning))]/10 px-3 py-2.5">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--warning))]" />
+          <p className="text-sm text-[var(--text)]">
+            {t("scanner.multiScanUnreachableWarning", {
+              count: errorCount,
+              total: result.page_results.length,
+            })}
+          </p>
+        </div>
+      )}
+
       {/* Navigation tabs */}
       <div className="flex gap-1 overflow-x-auto pb-2 mb-2">
         <button

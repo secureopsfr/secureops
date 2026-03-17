@@ -11,7 +11,7 @@ import { buildPaginatedQuery } from "../utils/apiQueryParams";
 import type { PaginatedListResponse } from "../types/api";
 import type { MultiScanResult, ScanResult } from "./scanService";
 
-export type ScanType = "frontend" | "backend" | "both";
+export type ScanType = "frontend" | "backend";
 
 export interface ScanHistoryItem {
   id: string;
@@ -136,10 +136,7 @@ export async function getScanOverview(
 ): Promise<ScanOverviewResponse> {
   const params = new URLSearchParams();
   if (url?.trim()) params.set("url", url.trim());
-  if (
-    scan_type &&
-    ["frontend", "backend", "both", "custom"].includes(scan_type)
-  ) {
+  if (scan_type && ["frontend", "backend", "custom"].includes(scan_type)) {
     params.set("scan_type", scan_type);
   }
   if (

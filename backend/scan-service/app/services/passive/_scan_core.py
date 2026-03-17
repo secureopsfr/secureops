@@ -6,21 +6,25 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from app.catalogue.category_summaries import build_category_summaries
+from app.config_loader import get_apis_et_formats_settings
 from app.models.scan_result import ScanResult
-from app.services.passive.cache import checks as cache_checks
-from app.services.passive.cookies import check_cookies_from_response
-from app.services.passive.cors_cross_origin import run_cors_cross_origin_checks
-from app.services.passive.directory_listing import run_directory_listing_checks
-from app.services.passive.exposed_files import run_exposed_files_checks
-from app.services.passive.information_disclosure import check_information_disclosure_from_response
-from app.services.passive.integrity import check_integrity_from_response
+from app.services.passive.backend.api import ApiCheckResult, check_rest_from_response, run_api_checks
+from app.services.passive.both.cache import checks as cache_checks
+from app.services.passive.both.cookies import check_cookies_from_response
+from app.services.passive.both.cors_cross_origin import run_cors_cross_origin_checks
+from app.services.passive.both.directory_listing import run_directory_listing_checks
+from app.services.passive.both.exposed_files import run_exposed_files_checks
+from app.services.passive.both.formats import check_formats_from_response
+from app.services.passive.both.information_disclosure import check_information_disclosure_from_response
+from app.services.passive.both.methodes_http_et_redirections import run_methodes_http_checks
+from app.services.passive.both.security_headers import check_security_headers_from_response
+from app.services.passive.both.tech_fingerprinting import check_tech_fingerprinting_from_response
+from app.services.passive.both.tls import run_tls_checks
+from app.services.passive.both.tls.posture import compute_tls_posture
+from app.services.passive.frontend.integrity import check_integrity_from_response
+from app.services.passive.frontend.robots_txt import run_robots_txt_checks
+from app.services.passive.frontend.sitemap import run_sitemap_checks
 from app.services.passive.normalization import normalize_results
-from app.services.passive.robots_txt import run_robots_txt_checks
-from app.services.passive.security_headers import check_security_headers_from_response
-from app.services.passive.sitemap import run_sitemap_checks
-from app.services.passive.tech_fingerprinting import check_tech_fingerprinting_from_response
-from app.services.passive.tls import run_tls_checks
-from app.services.passive.tls.posture import compute_tls_posture
 from app.services.scoring import compute_score
 
 
@@ -45,7 +49,14 @@ class FindingsBundle:
     total_tests_count: int
 
 
-def build_findings_bundle(results: dict[str, object]) -> FindingsBundle:
+_FRONTEND_ONLY_CATEGORIES: frozenset[str] = frozenset({"robots_txt", "sitemap", "integrity"})
+
+
+def build_findings_bundle(
+    results: dict[str, object],
+    *,
+    scan_type: str = "frontend",
+) -> FindingsBundle:
     """Calcule findings, score et résumés depuis un dict de résultats de checks.
 
     Source unique pour la logique normalize -> score -> tls_posture ->
@@ -55,6 +66,7 @@ def build_findings_bundle(results: dict[str, object]) -> FindingsBundle:
     Args:
         results: Dict {step_name: check_result} issu d'un scan (ex. "tls",
             "headers", "cache"...). Peut contenir un sous-ensemble de steps.
+        scan_type: "frontend" ou "backend" — exclut sitemap/integrity des résumés si backend.
 
     Returns:
         FindingsBundle prêt à être converti en payload ou PageScanResult.
@@ -70,6 +82,8 @@ def build_findings_bundle(results: dict[str, object]) -> FindingsBundle:
         tls_posture=tls_posture,
         tls_version=tls_version,
     )
+    if scan_type == "backend":
+        category_summaries = [s for s in category_summaries if s.get("category") not in _FRONTEND_ONLY_CATEGORIES]
     total_tests_count = sum(s.get("checks_count", 0) for s in category_summaries)
     return FindingsBundle(
         findings=findings_tuple,
@@ -88,6 +102,7 @@ class ScanContext:
     client: object
     https_response: object
     results: dict[str, object] = field(default_factory=dict)
+    scan_type: str = "frontend"
 
 
 # Étapes de scan partagées entre SSE et endpoint interne.
@@ -107,6 +122,7 @@ SCAN_STEPS: list[tuple[str, Callable]] = [
             ctx.https_response,
             ctx.https_url,
             ctx.client,
+            scan_type=ctx.scan_type,
         ),
     ),
     ("cookies", lambda ctx: check_cookies_from_response(ctx.https_response, is_https=ctx.results["tls"].https_enabled)),
@@ -121,7 +137,10 @@ SCAN_STEPS: list[tuple[str, Callable]] = [
             client=ctx.client,
         ),
     ),
-    ("tech_fingerprinting", lambda ctx: check_tech_fingerprinting_from_response(ctx.https_response)),
+    (
+        "tech_fingerprinting",
+        lambda ctx: check_tech_fingerprinting_from_response(ctx.https_response, scan_type=ctx.scan_type),
+    ),
     ("information_disclosure", lambda ctx: check_information_disclosure_from_response(ctx.https_response)),
     ("integrity", lambda ctx: check_integrity_from_response(ctx.https_response, ctx.https_url)),
     (
@@ -130,6 +149,43 @@ SCAN_STEPS: list[tuple[str, Callable]] = [
             ctx.https_response,
             ctx.https_url,
             ctx.client,
+            scan_type=ctx.scan_type,
+        ),
+    ),
+    (
+        "methodes_http_et_redirections",
+        lambda ctx: run_methodes_http_checks(
+            ctx.https_response,
+            ctx.https_url,
+            ctx.client,
+            cors_result=ctx.results.get("cors_cross_origin"),
+            scan_type=ctx.scan_type,
+        ),
+    ),
+    ("api_checks", lambda ctx: run_api_checks(ctx.https_url, client=ctx.client)),
+    (
+        "formats",
+        lambda ctx: check_formats_from_response(
+            ctx.https_response,
+            url=ctx.https_url,
+            check_xcto=False,
+            compression_min_body_bytes=get_apis_et_formats_settings().compression_min_body_bytes,
+        ),
+    ),
+    (
+        "api_page",
+        lambda ctx: ApiCheckResult(
+            issues=(
+                (r,)
+                if (
+                    r := check_rest_from_response(
+                        ctx.https_url,
+                        ctx.https_response,
+                        get_apis_et_formats_settings().unpaginated_list_threshold,
+                    )
+                )
+                else ()
+            ),
         ),
     ),
 ]
@@ -143,7 +199,7 @@ def build_result_payload(
     scan_type: str = "frontend",
 ) -> dict:
     """Construit le payload normalisé final du scan single-URL."""
-    bundle = build_findings_bundle(results)
+    bundle = build_findings_bundle(results, scan_type=scan_type)
     duration = (time.monotonic() - start_time) if start_time is not None else 0.0
     timestamp = datetime.now(timezone.utc).isoformat()
     scan_result = ScanResult(

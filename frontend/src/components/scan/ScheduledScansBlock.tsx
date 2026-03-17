@@ -130,7 +130,6 @@ export default function ScheduledScansBlock({
 
   const getScanTypeLabel = (scanType: string) => {
     if (scanType === "backend") return t("scanner.scanTypeBackend");
-    if (scanType === "both") return t("scanner.scanTypeBoth");
     return t("scanner.scanTypeFrontend");
   };
 

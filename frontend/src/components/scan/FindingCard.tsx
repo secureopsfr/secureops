@@ -34,6 +34,11 @@ export default function FindingCard({ finding }: FindingCardProps) {
           <span className="text-xs text-muted-theme">
             {t(getCategoryKey(finding.category))}
           </span>
+          {finding.owasp_categories?.map((code) => (
+            <Badge key={code} variant="default">
+              {code}
+            </Badge>
+          ))}
         </div>
       </div>
       {finding.evidence && (

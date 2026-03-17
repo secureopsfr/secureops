@@ -163,7 +163,7 @@ def test_internal_run_multi_scan_forwards_scan_type_and_mode(client):
             "/api/internal/scan/run-multi",
             json={
                 "urls": ["https://example.com/a", "https://example.com/b"],
-                "scan_type": "both",
+                "scan_type": "backend",
                 "scan_mode": "destructive",
             },
         )
@@ -172,6 +172,6 @@ def test_internal_run_multi_scan_forwards_scan_type_and_mode(client):
     assert resp.json()["score_global"] == 88
     mocked_execute.assert_awaited_once_with(
         urls=["https://example.com/a", "https://example.com/b"],
-        scan_type="both",
+        scan_type="backend",
         scan_mode="destructive",
     )

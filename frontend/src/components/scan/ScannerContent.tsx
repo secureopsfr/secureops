@@ -24,6 +24,7 @@ import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
 import ScheduleFormSection from "./ScheduleFormSection";
 import ScanTypeSelector from "./ScanTypeSelector";
 import { normalizeScanUrl } from "../../utils/scanUrl";
+import { resolveCrawlUrlsToScanUrls } from "../../utils/urlPathParams";
 import { Checkbox } from "../inputs";
 
 export default function ScannerContent() {
@@ -95,7 +96,7 @@ export default function ScannerContent() {
 
   const handleScheduleFromValidation = useCallback(async () => {
     if (!isAuthenticated || authLoading) return;
-    const urlStrings = crawl.urls.map((u) => u.url).filter(Boolean);
+    const urlStrings = resolveCrawlUrlsToScanUrls(crawl.urls).filter(Boolean);
     if (urlStrings.length === 0) return;
 
     const normalizedBaseUrl = normalizeScanUrl(url.trim() || urlStrings[0]);
@@ -204,9 +205,7 @@ export default function ScannerContent() {
                       <DropdownSelector
                         selectedValue={scanTarget}
                         onChange={(value) =>
-                          setScanTarget(
-                            value as "frontend" | "backend" | "both",
-                          )
+                          setScanTarget(value as "frontend" | "backend")
                         }
                         options={[
                           {
@@ -217,19 +216,24 @@ export default function ScannerContent() {
                             value: "backend",
                             label: t("scanner.targetBackend"),
                           },
-                          { value: "both", label: t("scanner.targetBoth") },
                         ]}
                         width="100%"
                       />
                     </div>
                     <ScanTypeSelector
                       scanOnlyThisPage={scanOnlyThisPage}
-                      onScanOnlyThisPageChange={setScanOnlyThisPage}
-                      crawlAvailable={scanTarget !== "backend"}
+                      onScanOnlyThisPageChange={(checked) => {
+                        setScanOnlyThisPage(checked);
+                        if (checked) resetCrawlState();
+                      }}
+                      scanTarget={scanTarget}
                       crawlMode={crawl.mode}
                       crawlMaxUrls={crawl.maxUrls}
                       onCrawlModeChange={setCrawlMode}
                       onCrawlMaxUrlsChange={setCrawlMaxUrls}
+                      baseUrl={url.trim()}
+                      apiDocUrls={crawl.urls}
+                      onApiDocUrlsChange={setCrawlUrls}
                       t={t}
                     />
                     {isAuthenticated && !authLoading && (
@@ -256,12 +260,25 @@ export default function ScannerContent() {
                           loading={saving}
                           disabled={!url.trim()}
                         />
+                      ) : scanTarget === "backend" &&
+                        !scanOnlyThisPage &&
+                        crawl.urls.length > 0 ? (
+                        <GenericButton
+                          type="button"
+                          label={t("scanner.cta")}
+                          variant="primary"
+                          onClick={handleLaunchScanFromValidation}
+                          disabled={crawl.urls.length > 200}
+                        />
                       ) : (
                         <GenericButton
                           type="submit"
                           label={t("scanner.cta")}
                           variant="primary"
-                          disabled={!url.trim()}
+                          disabled={
+                            !url.trim() ||
+                            (scanTarget === "backend" && !scanOnlyThisPage)
+                          }
                         />
                       )}
                     </div>
@@ -296,6 +313,7 @@ export default function ScannerContent() {
                 urls: crawl.urls,
                 identifiedCount: crawl.identifiedCount,
                 startUrl: url.trim(),
+                allowFullUrlAdd: scanTarget === "backend",
                 timeoutReached: crawl.timeoutReached,
                 timeoutHtml: crawl.timeoutHtml,
                 timeoutPlaywright: crawl.timeoutPlaywright,

@@ -28,8 +28,8 @@ interface ScanTypePageContentProps {
   placeholderKey: string;
   /** Slug du document (ex. scan-backend, scans-personnalises). */
   docSlug: string;
-  /** Type de scan pour filtrer les blocs (backend ou both). */
-  filterScanType: "backend" | "both";
+  /** Type de scan pour filtrer les blocs. */
+  filterScanType: "frontend" | "backend";
 }
 
 export default function ScanTypePageContent({
@@ -42,8 +42,7 @@ export default function ScanTypePageContent({
   const getToken = useAuthToken(true);
   const [url, setUrl] = useState("");
   const scanTarget = filterScanType;
-  const scanMode: AsyncScanMode =
-    filterScanType === "both" ? "custom" : "passive";
+  const scanMode: AsyncScanMode = "passive";
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   const { steps, enqueueStep, resetSteps } = useStepQueue();

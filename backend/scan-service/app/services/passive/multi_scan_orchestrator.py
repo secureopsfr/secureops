@@ -12,12 +12,13 @@ from app.config_loader import get_multi_scan_settings
 from app.models.multi_scan import MultiScanResult, PageScanResult
 from app.services.passive._page_checks_runner import run_page_checks
 from app.services.passive._scan_core import FindingsBundle, build_findings_bundle
-from app.services.passive.cors_cross_origin.checks import run_cors_domain_checks
-from app.services.passive.directory_listing import run_directory_listing_checks
-from app.services.passive.exposed_files import run_exposed_files_checks
-from app.services.passive.robots_txt import run_robots_txt_checks
-from app.services.passive.sitemap import run_sitemap_checks
-from app.services.passive.tls import run_tls_checks
+from app.services.passive.backend.api import run_api_checks
+from app.services.passive.both.cors_cross_origin.checks import run_cors_domain_checks
+from app.services.passive.both.directory_listing import run_directory_listing_checks
+from app.services.passive.both.exposed_files import run_exposed_files_checks
+from app.services.passive.both.tls import run_tls_checks
+from app.services.passive.frontend.robots_txt import run_robots_txt_checks
+from app.services.passive.frontend.sitemap import run_sitemap_checks
 from app.services.pipelines.multi_scan_base import BaseMultiScanOrchestrator, MultiScanExecutionSettings, OnProgress
 from app.services.scan_preflight_common import validate_multi_scan_urls_common
 from app.utils.http_fetch import get_with_client_or_error, http_request_category, log_http_metrics, scan_client
@@ -30,9 +31,15 @@ logger = logging.getLogger(__name__)
 class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
     """Passive implementation using the reusable multi-scan template."""
 
-    def __init__(self, *, on_progress: OnProgress = None) -> None:
+    def __init__(
+        self,
+        *,
+        on_progress: OnProgress = None,
+        scan_type: str = "frontend",
+    ) -> None:
         """Initialize passive orchestration and shared per-run caches."""
         super().__init__(on_progress=on_progress)
+        self._scan_type = scan_type
         self._assets_cache: dict[str, str | None] = {}
         # Cache du bundle domaine : évite de re-normaliser/re-scorer N fois
         # pour les pages en erreur (toutes partagent le même résultat domaine).
@@ -74,14 +81,18 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
 
         Chaque coroutine retourne un dict partiel qui est fusionné après gather,
         ce qui élimine la mutation concurrente d'un dict partagé.
+        robots_txt et sitemap sont ignorés pour scan_type=backend.
         """
-        partial_results = await asyncio.gather(
+        tasks = [
             self._run_domain_tls(base_url, client),
-            self._run_domain_robots_then_sitemap(base_url, client),
             self._run_domain_exposed_files(base_url, client),
             self._run_domain_directory_listing(base_url, client),
             self._run_domain_cors(base_url, client),
-        )
+            self._run_domain_api(base_url, client),
+        ]
+        if self._scan_type != "backend":
+            tasks.insert(1, self._run_domain_robots_then_sitemap(base_url, client))
+        partial_results = await asyncio.gather(*tasks)
         domain_results: dict[str, Any] = {}
         for partial in partial_results:
             domain_results.update(partial)
@@ -152,11 +163,21 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
             result = await run_cors_domain_checks(base_url, client=client)
         return {"cors_domain": result}
 
+    async def _run_domain_api(
+        self,
+        base_url: str,
+        client: httpx.AsyncClient,
+    ) -> dict[str, Any]:
+        await self.emit_progress("domain_api_check")
+        with http_request_category("api_checks"):
+            result = await run_api_checks(base_url, client=client)
+        return {"api_checks": result}
+
     def _get_domain_bundle(self, domain_results: dict[str, Any]) -> FindingsBundle:
         """Retourne le bundle domaine, calculé une seule fois par run."""
         if self._domain_bundle_cache is None:
             domain_only = {k: v for k, v in domain_results.items() if k != "cors_domain"}
-            self._domain_bundle_cache = build_findings_bundle(domain_only)
+            self._domain_bundle_cache = build_findings_bundle(domain_only, scan_type=self._scan_type)
         return self._domain_bundle_cache
 
     async def run_single_page(
@@ -187,6 +208,12 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
             await self.emit_progress("page_scan_error", url=url)
             return self._build_error_page_result(url, str(exc), domain_results)
 
+        if response.status_code >= 500:
+            err_msg = f"HTTP {response.status_code} (service unavailable)"
+            logger.warning("multi_scan: page returned 5xx url=%s status=%s", url, response.status_code)
+            await self.emit_progress("page_scan_error", url=url)
+            return self._build_error_page_result(url, err_msg, domain_results)
+
         tls_result = domain_results.get("tls")
         is_https = getattr(tls_result, "https_enabled", True)
         page_check_results = await run_page_checks(
@@ -196,11 +223,12 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
             assets_cache=self._assets_cache,
             is_https=is_https,
             domain_cors_result=domain_results.get("cors_domain"),
+            scan_type=self._scan_type,
         )
 
         merged: dict[str, Any] = {k: v for k, v in domain_results.items() if k != "cors_domain"}
         merged.update(page_check_results)
-        bundle: FindingsBundle = build_findings_bundle(merged)
+        bundle: FindingsBundle = build_findings_bundle(merged, scan_type=self._scan_type)
 
         await self.emit_progress("page_scan_done", url=url)
         return PageScanResult(
@@ -251,9 +279,11 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
 async def run_multi_scan(
     urls: list[str],
     on_progress: OnProgress = None,
+    *,
+    scan_type: str = "frontend",
 ) -> MultiScanResult:
     """Public passive multi-scan entrypoint."""
-    orchestrator = PassiveMultiScanOrchestrator(on_progress=on_progress)
+    orchestrator = PassiveMultiScanOrchestrator(on_progress=on_progress, scan_type=scan_type)
     return await orchestrator.run(urls)
 
 

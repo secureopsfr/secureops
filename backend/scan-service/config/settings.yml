@@ -178,26 +178,6 @@ exposed_files:
       severity: critical
       message: "Fichier de backup .env.bak exposé : credentials accessibles."
       message_en: "Backup file .env.bak exposed: credentials accessible."
-    - path: /swagger
-      severity: medium
-      message: "Swagger/OpenAPI exposé : documentation API accessible sans authentification."
-      message_en: "Swagger/OpenAPI exposed: API documentation accessible without authentication."
-    - path: /swagger.json
-      severity: medium
-      message: "Swagger/OpenAPI (swagger.json) exposé : schéma API accessible."
-      message_en: "Swagger/OpenAPI (swagger.json) exposed: API schema accessible."
-    - path: /api-docs
-      severity: medium
-      message: "Documentation API exposée : endpoints et schémas accessibles."
-      message_en: "API documentation exposed: endpoints and schemas accessible."
-    - path: /api-docs.json
-      severity: medium
-      message: "Documentation API (api-docs.json) exposée : schéma accessible."
-      message_en: "API documentation (api-docs.json) exposed: schema accessible."
-    - path: /graphql
-      severity: medium
-      message: "Endpoint GraphQL exposé : introspection possible sans authentification."
-      message_en: "GraphQL endpoint exposed: introspection possible without authentication."
 
 # Directory listing (roadmap §3.5) : répertoires à tester.
 # message (fr) utilisé par les checks ; message_en pour cohérence i18n (catalogue override PDF).
@@ -287,8 +267,8 @@ cache:
   sensitive_max_age: 0           # max-age autorisé pour une page sensible (0 = uniquement no-store / no-cache / private)
 
 # Intégrité et sous-ressources (roadmap §5.6).
-# Analyse passive du HTML de la page principale : SRI, scripts inline vs CSP, formulaires,
-# liens target=\"_blank\" et meta robots sur pages sensibles.
+# Analyse passive du HTML de la page principale : SRI, scripts inline vs CSP, formulaires
+# (autocomplete, CSRF), liens target="_blank" et meta robots sur pages sensibles.
 integrity:
   max_body_bytes: 524288  # Taille maximale de HTML analysé (512 Ko)
   sensitive_paths:
@@ -296,6 +276,14 @@ integrity:
     - "/admin"
     - "/auth"
     - "/api/"
+  csrf_field_names:  # Noms de champs hidden considérés comme token CSRF (formulaires POST)
+    - "csrf_token"
+    - "_token"
+    - "authenticity_token"
+    - "_csrf"
+    - "csrf"
+    - "__RequestVerificationToken"
+    - "CSRFToken"
 
 # Heuristiques cookies (session/tiers) : paramètres de détection.
 cookies_heuristics:
@@ -368,6 +356,45 @@ cors_cross_origin:
   max_sub_resources: 50   # Limite pour détection mixed content (réutilise même logique que cache)
   subresource_timeout: 3.0
 
+# APIs et formats (ex-roadmap 5.7). Référence : docs/verifications/passive/apis-et-formats.md
+apis_et_formats:
+  graphql_paths:
+    - /graphql
+    - /api/graphql
+    - /v1/graphql
+  swagger_paths:
+    - /swagger
+    - /api-docs
+    - /openapi.json
+    - /openapi.yaml
+    - /swagger.json
+    - /api-docs.json
+  api_list_paths:
+    - /api/users
+    - /api/orders
+    - /api/items
+    - /api/products
+    - /api/list
+  unpaginated_list_threshold: 50
+  compression_min_body_bytes: 1024
+
+# Méthodes HTTP et redirections (ex-roadmap 5.5). Référence : docs/verifications/passive/methodes-http-et-redirections.md
+methodes_http_et_redirections:
+  redirect_chain_max: 5        # Nombre max de redirections avant finding
+  trace_timeout: 3.0          # Timeout (s) pour requête TRACE
+  trace_max_urls: 6            # Limite URLs testées pour TRACE (page + chemins sensibles)
+  form_sensitive_paths:        # Chemins considérés formulaire sensible (301/302 vs 307/308)
+    - "/login"
+    - "/auth"
+    - "/signin"
+    - "/register"
+    - "/signup"
+  checks:
+    trace: true
+    head: true
+    redirect_chain: true
+    redirect_301_302: true
+
 # Scan multi-URL : paramètres de performance et limites.
 multi_scan:
   max_urls: 200              # Nombre maximum d'URLs par scan multi (valide pour tous les plans)
@@ -395,6 +422,8 @@ scoring:
     tech_fingerprinting: 5
     information_disclosure: 5
     cors_cross_origin: 5
+    methodes_http_et_redirections: 5
+    apis_et_formats: 5
   severity_penalties:
     critical: 100
     high: 50
@@ -416,3 +445,5 @@ category_labels:
   tech_fingerprinting: { fr: "Empreinte technologique", en: "Technology fingerprinting" }
   information_disclosure: { fr: "Divulgation d'information", en: "Information disclosure" }
   cors_cross_origin: { fr: "CORS / Cross-origin", en: "CORS / Cross-origin" }
+  methodes_http_et_redirections: { fr: "Méthodes HTTP et redirections", en: "HTTP methods and redirects" }
+  apis_et_formats: { fr: "APIs et formats", en: "APIs and formats" }

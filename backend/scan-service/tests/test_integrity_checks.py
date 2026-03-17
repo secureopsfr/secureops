@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from app.services.passive.integrity import IntegrityCheckResult, check_integrity_from_response
+from app.services.passive.frontend.integrity import IntegrityCheckResult, check_integrity_from_response
 
 
 def _mock_response(
