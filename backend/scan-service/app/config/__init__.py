@@ -4,6 +4,7 @@ Réexporte toutes les fonctions get_* pour compatibilité avec config_loader.
 settings reste dans config_loader (caller_file pour create_simple_settings).
 """
 
+from app.config.apis_et_formats import get_apis_et_formats_settings
 from app.config.async_jobs import AsyncJobsSettings, get_async_jobs_settings
 from app.config.cache import CacheSettings, get_cache_settings
 from app.config.cookies import CookiesSettings, get_cookies_settings
@@ -11,7 +12,7 @@ from app.config.cors_cross_origin import CorsCrossOriginSettings, get_cors_cross
 from app.config.external_services import ExternalServicesSettings, get_external_services_settings
 from app.config.information_disclosure import InformationDisclosureSettings, get_information_disclosure_max_body, get_information_disclosure_settings
 from app.config.integrity import IntegritySettings, get_integrity_settings
-from app.config.methodes_http_et_redirections import get_methodes_http_et_redirections_settings
+from app.config.methodes_http_et_redirections import MethodesHttpEtRedirectionsSettings, get_methodes_http_et_redirections_settings
 from app.config.multi_scan import MultiScanSettings, get_multi_scan_settings
 from app.config.path_checks import (
     DirectoryListingConfig,
@@ -46,6 +47,7 @@ __all__ = [
     "ExposedFileConfig",
     "InformationDisclosureSettings",
     "IntegritySettings",
+    "MethodesHttpEtRedirectionsSettings",
     "PathCheckConfig",
     "ScanTimeoutsSettings",
     "ScoringSettings",
@@ -55,6 +57,7 @@ __all__ = [
     "get_cache_settings",
     "get_async_jobs_settings",
     "get_multi_scan_settings",
+    "get_apis_et_formats_settings",
     "get_cors_cross_origin_settings",
     "get_directory_listing_max_body",
     "get_directory_listing_partial_extensions",

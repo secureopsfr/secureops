@@ -85,6 +85,7 @@ pdf:
       - information_disclosure
       - cors_cross_origin
       - methodes_http_et_redirections
+      - apis_et_formats
       - other
     checked:
       - tls
@@ -100,6 +101,7 @@ pdf:
       - information_disclosure
       - cors_cross_origin
       - methodes_http_et_redirections
+      - apis_et_formats
     labels_fr:
       tls: "TLS / HTTPS"
       headers: "Security Headers"
@@ -114,6 +116,7 @@ pdf:
       information_disclosure: "Fuites d'information"
       cors_cross_origin: "CORS et cross-origin"
       methodes_http_et_redirections: "Méthodes HTTP et redirections"
+      apis_et_formats: "APIs et formats"
       other: "Autres"
     labels_en:
       tls: "TLS / HTTPS"
@@ -129,4 +132,5 @@ pdf:
       information_disclosure: "Information disclosure"
       cors_cross_origin: "CORS and cross-origin"
       methodes_http_et_redirections: "HTTP methods and redirects"
+      apis_et_formats: "APIs and formats"
       other: "Other"

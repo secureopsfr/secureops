@@ -6,12 +6,15 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from app.catalogue.category_summaries import build_category_summaries
+from app.config_loader import get_apis_et_formats_settings
 from app.models.scan_result import ScanResult
+from app.services.passive.backend.api import ApiCheckResult, check_rest_from_response, run_api_checks
 from app.services.passive.both.cache import checks as cache_checks
 from app.services.passive.both.cookies import check_cookies_from_response
 from app.services.passive.both.cors_cross_origin import run_cors_cross_origin_checks
 from app.services.passive.both.directory_listing import run_directory_listing_checks
 from app.services.passive.both.exposed_files import run_exposed_files_checks
+from app.services.passive.both.formats import check_formats_from_response
 from app.services.passive.both.information_disclosure import check_information_disclosure_from_response
 from app.services.passive.both.methodes_http_et_redirections import run_methodes_http_checks
 from app.services.passive.both.security_headers import check_security_headers_from_response
@@ -157,6 +160,32 @@ SCAN_STEPS: list[tuple[str, Callable]] = [
             ctx.client,
             cors_result=ctx.results.get("cors_cross_origin"),
             scan_type=ctx.scan_type,
+        ),
+    ),
+    ("api_checks", lambda ctx: run_api_checks(ctx.https_url, client=ctx.client)),
+    (
+        "formats",
+        lambda ctx: check_formats_from_response(
+            ctx.https_response,
+            url=ctx.https_url,
+            check_xcto=False,
+            compression_min_body_bytes=get_apis_et_formats_settings().compression_min_body_bytes,
+        ),
+    ),
+    (
+        "api_page",
+        lambda ctx: ApiCheckResult(
+            issues=(
+                (r,)
+                if (
+                    r := check_rest_from_response(
+                        ctx.https_url,
+                        ctx.https_response,
+                        get_apis_et_formats_settings().unpaginated_list_threshold,
+                    )
+                )
+                else ()
+            ),
         ),
     ),
 ]

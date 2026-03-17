@@ -12,6 +12,7 @@ from app.config_loader import get_multi_scan_settings
 from app.models.multi_scan import MultiScanResult, PageScanResult
 from app.services.passive._page_checks_runner import run_page_checks
 from app.services.passive._scan_core import FindingsBundle, build_findings_bundle
+from app.services.passive.backend.api import run_api_checks
 from app.services.passive.both.cors_cross_origin.checks import run_cors_domain_checks
 from app.services.passive.both.directory_listing import run_directory_listing_checks
 from app.services.passive.both.exposed_files import run_exposed_files_checks
@@ -87,6 +88,7 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
             self._run_domain_exposed_files(base_url, client),
             self._run_domain_directory_listing(base_url, client),
             self._run_domain_cors(base_url, client),
+            self._run_domain_api(base_url, client),
         ]
         if self._scan_type != "backend":
             tasks.insert(1, self._run_domain_robots_then_sitemap(base_url, client))
@@ -160,6 +162,16 @@ class PassiveMultiScanOrchestrator(BaseMultiScanOrchestrator):
         with http_request_category("cors_cross_origin"):
             result = await run_cors_domain_checks(base_url, client=client)
         return {"cors_domain": result}
+
+    async def _run_domain_api(
+        self,
+        base_url: str,
+        client: httpx.AsyncClient,
+    ) -> dict[str, Any]:
+        await self.emit_progress("domain_api_check")
+        with http_request_category("api_checks"):
+            result = await run_api_checks(base_url, client=client)
+        return {"api_checks": result}
 
     def _get_domain_bundle(self, domain_results: dict[str, Any]) -> FindingsBundle:
         """Retourne le bundle domaine, calculé une seule fois par run."""

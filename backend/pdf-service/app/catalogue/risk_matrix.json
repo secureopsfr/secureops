@@ -359,6 +359,38 @@
     "gravite": "Mineure",
     "vraisemblance": "Forte"
   },
+  "api-graphql-introspection": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "api-swagger-exposed": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "api-rest-unpaginated": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "formats-content-type-wrong": {
+    "gravite": "Significative",
+    "vraisemblance": "Moyenne"
+  },
+  "formats-xcto-missing": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "formats-no-compression": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "api-generic": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "formats-generic": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
   "integrity-sri-external-missing": {
     "gravite": "Importante",
     "vraisemblance": "Faible"

@@ -28,6 +28,7 @@ _DEFAULT_WEIGHTS: dict[str, int] = {
     "information_disclosure": 5,
     "cors_cross_origin": 5,
     "methodes_http_et_redirections": 5,
+    "apis_et_formats": 5,
 }
 _DEFAULT_PENALTIES: dict[str, int] = {
     "critical": 100,

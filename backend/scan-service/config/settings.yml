@@ -178,26 +178,6 @@ exposed_files:
       severity: critical
       message: "Fichier de backup .env.bak exposé : credentials accessibles."
       message_en: "Backup file .env.bak exposed: credentials accessible."
-    - path: /swagger
-      severity: medium
-      message: "Swagger/OpenAPI exposé : documentation API accessible sans authentification."
-      message_en: "Swagger/OpenAPI exposed: API documentation accessible without authentication."
-    - path: /swagger.json
-      severity: medium
-      message: "Swagger/OpenAPI (swagger.json) exposé : schéma API accessible."
-      message_en: "Swagger/OpenAPI (swagger.json) exposed: API schema accessible."
-    - path: /api-docs
-      severity: medium
-      message: "Documentation API exposée : endpoints et schémas accessibles."
-      message_en: "API documentation exposed: endpoints and schemas accessible."
-    - path: /api-docs.json
-      severity: medium
-      message: "Documentation API (api-docs.json) exposée : schéma accessible."
-      message_en: "API documentation (api-docs.json) exposed: schema accessible."
-    - path: /graphql
-      severity: medium
-      message: "Endpoint GraphQL exposé : introspection possible sans authentification."
-      message_en: "GraphQL endpoint exposed: introspection possible without authentication."
 
 # Directory listing (roadmap §3.5) : répertoires à tester.
 # message (fr) utilisé par les checks ; message_en pour cohérence i18n (catalogue override PDF).
@@ -368,6 +348,28 @@ cors_cross_origin:
   max_sub_resources: 50   # Limite pour détection mixed content (réutilise même logique que cache)
   subresource_timeout: 3.0
 
+# APIs et formats (ex-roadmap 5.7). Référence : docs/verifications/passive/apis-et-formats.md
+apis_et_formats:
+  graphql_paths:
+    - /graphql
+    - /api/graphql
+    - /v1/graphql
+  swagger_paths:
+    - /swagger
+    - /api-docs
+    - /openapi.json
+    - /openapi.yaml
+    - /swagger.json
+    - /api-docs.json
+  api_list_paths:
+    - /api/users
+    - /api/orders
+    - /api/items
+    - /api/products
+    - /api/list
+  unpaginated_list_threshold: 50
+  compression_min_body_bytes: 1024
+
 # Méthodes HTTP et redirections (ex-roadmap 5.5). Référence : docs/verifications/passive/methodes-http-et-redirections.md
 methodes_http_et_redirections:
   redirect_chain_max: 5        # Nombre max de redirections avant finding
@@ -413,6 +415,7 @@ scoring:
     information_disclosure: 5
     cors_cross_origin: 5
     methodes_http_et_redirections: 5
+    apis_et_formats: 5
   severity_penalties:
     critical: 100
     high: 50
@@ -435,3 +438,4 @@ category_labels:
   information_disclosure: { fr: "Divulgation d'information", en: "Information disclosure" }
   cors_cross_origin: { fr: "CORS / Cross-origin", en: "CORS / Cross-origin" }
   methodes_http_et_redirections: { fr: "Méthodes HTTP et redirections", en: "HTTP methods and redirects" }
+  apis_et_formats: { fr: "APIs et formats", en: "APIs and formats" }

@@ -17,9 +17,12 @@ from typing import Any
 
 import httpx
 
+from app.config_loader import get_apis_et_formats_settings
+from app.services.passive.backend.api import ApiCheckResult, check_rest_from_response
 from app.services.passive.both.cache import checks as cache_checks
 from app.services.passive.both.cookies import check_cookies_from_response
 from app.services.passive.both.cors_cross_origin.checks import run_cors_page_checks
+from app.services.passive.both.formats import check_formats_from_response
 from app.services.passive.both.information_disclosure import check_information_disclosure_from_response
 from app.services.passive.both.methodes_http_et_redirections import run_methodes_http_checks
 from app.services.passive.both.security_headers import check_security_headers_from_response
@@ -83,5 +86,18 @@ async def run_page_checks(
             cors_result=results["cors_cross_origin"],
             scan_type=scan_type,
         )
+
+    # Formats sur page (check_xcto=False : security_headers couvre déjà X-CTO sur la page)
+    fmt_settings = get_apis_et_formats_settings()
+    results["formats"] = check_formats_from_response(
+        response,
+        url=url,
+        check_xcto=False,
+        compression_min_body_bytes=fmt_settings.compression_min_body_bytes,
+    )
+
+    # REST listes non paginées : si la réponse page est une API JSON avec grosse liste
+    rest_issue = check_rest_from_response(url, response, threshold=fmt_settings.unpaginated_list_threshold)
+    results["api_page"] = ApiCheckResult(issues=(rest_issue,) if rest_issue else ())
 
     return results

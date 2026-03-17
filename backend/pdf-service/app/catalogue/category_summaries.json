@@ -130,5 +130,25 @@
       "**Redirect chain** excessive",
       "**301/302** vs 307/308 (sensitive forms)"
     ]
+  },
+  "apis_et_formats": {
+    "description_fr": "Le scan détecte les APIs exposées (GraphQL introspection, Swagger/OpenAPI sans auth, listes REST non paginées) et vérifie les formats de réponse : Content-Type correct, X-Content-Type-Options: nosniff, compression gzip/brotli.",
+    "description_en": "The scan detects exposed APIs (GraphQL introspection, Swagger/OpenAPI without auth, unpaginated REST lists) and verifies response formats: correct Content-Type, X-Content-Type-Options: nosniff, gzip/brotli compression.",
+    "checks_fr": [
+      "**GraphQL** introspection désactivée",
+      "**Swagger/OpenAPI** protégé",
+      "**Listes REST** paginées",
+      "**Content-Type** correct",
+      "**X-Content-Type-Options** nosniff",
+      "**Compression** (gzip/brotli)"
+    ],
+    "checks_en": [
+      "**GraphQL** introspection disabled",
+      "**Swagger/OpenAPI** protected",
+      "**REST lists** paginated",
+      "**Content-Type** correct",
+      "**X-Content-Type-Options** nosniff",
+      "**Compression** (gzip/brotli)"
+    ]
   }
 }

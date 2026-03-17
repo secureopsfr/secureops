@@ -8,12 +8,16 @@ Ajouter une nouvelle catégorie = créer son normalizer.py et l'inscrire ici.
 from typing import TypedDict
 
 from app.models.finding import Finding
+from app.services.passive.backend.api.checks import ApiCheckResult
+from app.services.passive.backend.api.normalizer import normalize as normalize_api
 from app.services.passive.both.cache.checks import CacheCheckResult
 from app.services.passive.both.cache.normalizer import normalize as normalize_cache
 from app.services.passive.both.cookies.checks import CookieCheckResult
 from app.services.passive.both.cookies.normalizer import normalize as normalize_cookies
 from app.services.passive.both.cors_cross_origin.checks import CorsCrossOriginCheckResult
 from app.services.passive.both.cors_cross_origin.normalizer import normalize as normalize_cors
+from app.services.passive.both.formats.checks import FormatsCheckResult
+from app.services.passive.both.formats.normalizer import normalize as normalize_formats
 from app.services.passive.both.information_disclosure.checks import InformationDisclosureCheckResult
 from app.services.passive.both.information_disclosure.normalizer import normalize as normalize_info_disclosure
 from app.services.passive.both.methodes_http_et_redirections.checks import MethodesHttpCheckResult
@@ -49,6 +53,9 @@ class ScanResultsDict(TypedDict, total=False):
     information_disclosure: InformationDisclosureCheckResult
     cors_cross_origin: CorsCrossOriginCheckResult
     methodes_http_et_redirections: MethodesHttpCheckResult
+    api_checks: ApiCheckResult
+    formats: FormatsCheckResult
+    api_page: ApiCheckResult
     integrity: IntegrityCheckResult
 
 
@@ -66,6 +73,9 @@ _NORMALIZERS: list[tuple[str, object]] = [
     ("information_disclosure", normalize_info_disclosure),
     ("cors_cross_origin", normalize_cors),
     ("methodes_http_et_redirections", normalize_methodes_http),
+    ("api_checks", normalize_api),
+    ("formats", normalize_formats),
+    ("api_page", normalize_api),
     ("integrity", normalize_integrity),
 ]
 

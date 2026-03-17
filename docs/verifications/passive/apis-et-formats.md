@@ -18,6 +18,8 @@ Le scan teste des chemins courants d’APIs et de documentation, et analyse les 
 
 ### 1.1 Détection GraphQL : introspection activée
 
+**Périmètre :** Backend uniquement (endpoints GraphQL).
+
 #### Résumé
 
 **GraphQL** permet une requête **introspection** qui permet de découvrir l’intégralité du schéma (types, champs, mutations). Si l’introspection est activée sur un endpoint public, un attaquant peut mapper toute l’API sans documentation. Le scan envoie une requête introspection vers `/graphql` (ou chemins similaires) et vérifie si le schéma est retourné.
@@ -105,6 +107,8 @@ Si la réponse contient le schéma complet, l’introspection est activée. En p
 
 ### 1.2 Swagger / OpenAPI exposé sans auth
 
+**Périmètre :** Backend uniquement (chemins de documentation API).
+
 #### Résumé
 
 Les chemins **`/swagger`**, **`/api-docs`**, **`/openapi.json`** exposent souvent la documentation complète de l’API. Si cette documentation est accessible sans authentification, un attaquant peut découvrir tous les endpoints, paramètres, schémas. Le scan teste ces chemins et vérifie si une documentation est retournée.
@@ -186,6 +190,8 @@ Swagger UI et OpenAPI sont des standards pour documenter les APIs. En production
 
 ### 1.3 Endpoints REST : listes non paginées
 
+**Périmètre :** Backend uniquement (endpoints REST retournant des listes).
+
 #### Résumé
 
 Les endpoints REST qui retournent des **listes** (ex. `/api/users`, `/api/orders`) sans **pagination** peuvent exposer des volumes de données importants ou permettre des dénis de service (requête massive). Le scan peut détecter des réponses JSON avec des tableaux non paginés (info ou low).
@@ -211,6 +217,8 @@ Le scan peut signaler une réponse avec un tableau de grande taille ou sans para
 ## 2. Formats de réponse
 
 ### 2.1 Content-Type incorrect
+
+**Périmètre :** Les deux (frontend et backend), sans distinction.
 
 #### Résumé
 
@@ -247,6 +255,8 @@ Un Content-Type incorrect peut favoriser le MIME sniffing ou des attaques XSS si
 
 ### 2.2 X-Content-Type-Options: nosniff sur tous les types
 
+**Périmètre :** Les deux (frontend et backend), sans distinction.
+
 #### Résumé
 
 L’en-tête **`X-Content-Type-Options: nosniff`** doit être présent sur **toutes** les réponses (HTML, JSON, API, etc.) pour empêcher le MIME sniffing. Le scan vérifie sa présence sur la page principale et, si possible, sur les réponses API.
@@ -266,6 +276,8 @@ Voir [security-headers.md](security-headers.md). Sans `nosniff`, un navigateur p
 ---
 
 ### 2.3 Compression (gzip/brotli)
+
+**Périmètre :** Les deux (frontend et backend), sans distinction.
 
 #### Résumé
 
@@ -292,14 +304,14 @@ Le scan envoie une requête avec `Accept-Encoding: gzip, deflate, br` et vérifi
 
 ## Matrice de sévérité (synthèse)
 
-| Vérification | Sévérité typique |
-|--------------|------------------|
-| GraphQL introspection activée | Medium à High |
-| Swagger/OpenAPI exposé sans auth | Medium à High |
-| Listes non paginées | Info à Low |
-| Content-Type incorrect | Medium |
-| X-Content-Type-Options manquant | Low à Medium |
-| Absence de compression | Info |
+| Vérification | Périmètre | Sévérité typique |
+|--------------|-----------|------------------|
+| GraphQL introspection activée | Backend | Medium à High |
+| Swagger/OpenAPI exposé sans auth | Backend | Medium à High |
+| Listes non paginées | Backend | Info à Low |
+| Content-Type incorrect | Les deux | Medium |
+| X-Content-Type-Options manquant | Les deux | Low à Medium |
+| Absence de compression | Les deux | Info |
 
 ---
 

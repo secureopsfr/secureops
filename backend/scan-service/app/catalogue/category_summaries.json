@@ -66,10 +66,10 @@
   "exposed_files": {
     "label_fr": "Fichiers exposés",
     "label_en": "Exposed files",
-    "description_fr": "Le scan teste une liste de chemins sensibles pour détecter une exposition accidentelle : **/.env**, **/.git/config**, **/backup.zip**, **/phpinfo.php**, **/admin/**, **/.DS_Store**, **/.htaccess**, **/web.config**, **/.svn/entries**, **/composer.json**, **/package.json**, **/.npmrc**, fichiers backup (**config.bak**, **.env.bak**), et endpoints API docs (**/swagger**, **/api-docs**, **/graphql**). Un fichier est exposé si la réponse est 200 et que le contenu correspond aux signatures connues.",
-    "description_en": "The scan tests a list of sensitive paths to detect accidental exposure: **/.env**, **/.git/config**, **/backup.zip**, **/phpinfo.php**, **/admin/**, **/.DS_Store**, **/.htaccess**, **/web.config**, **/.svn/entries**, **/composer.json**, **/package.json**, **/.npmrc**, backup files (**config.bak**, **.env.bak**), and API docs endpoints (**/swagger**, **/api-docs**, **/graphql**). A file is exposed if the response is 200 and the content matches known signatures.",
-    "checks_fr": ["**.env**", "**.git/config**", "**backup.zip**", "**phpinfo.php**", "**/admin/**", "**.DS_Store**", "**.htaccess**", "**web.config**", "**/.svn/entries**", "**composer.json**", "**package.json**", "**backup**", "**swagger/api-docs/graphql**"],
-    "checks_en": ["**.env**", "**.git/config**", "**backup.zip**", "**phpinfo.php**", "**/admin/**", "**.DS_Store**", "**.htaccess**", "**web.config**", "**/.svn/entries**", "**composer.json**", "**package.json**", "**backup**", "**swagger/api-docs/graphql**"]
+    "description_fr": "Le scan teste une liste de chemins sensibles pour détecter une exposition accidentelle : **/.env**, **/.git/config**, **/backup.zip**, **/phpinfo.php**, **/admin/**, **/.DS_Store**, **/.htaccess**, **/web.config**, **/.svn/entries**, **/composer.json**, **/package.json**, **/.npmrc**, fichiers backup (**config.bak**, **.env.bak**). Un fichier est exposé si la réponse est 200 et que le contenu correspond aux signatures connues. Les endpoints **/swagger**, **/api-docs**, **/graphql** sont vérifiés dans la catégorie APIs et formats.",
+    "description_en": "The scan tests a list of sensitive paths to detect accidental exposure: **/.env**, **/.git/config**, **/backup.zip**, **/phpinfo.php**, **/admin/**, **/.DS_Store**, **/.htaccess**, **/web.config**, **/.svn/entries**, **/composer.json**, **/package.json**, **/.npmrc**, backup files (**config.bak**, **.env.bak**). A file is exposed if the response is 200 and the content matches known signatures. Endpoints **/swagger**, **/api-docs**, **/graphql** are verified in the APIs and formats category.",
+    "checks_fr": ["**.env**", "**.git/config**", "**backup.zip**", "**phpinfo.php**", "**/admin/**", "**.DS_Store**", "**.htaccess**", "**web.config**", "**/.svn/entries**", "**composer.json**", "**package.json**", "**backup**"],
+    "checks_en": ["**.env**", "**.git/config**", "**backup.zip**", "**phpinfo.php**", "**/admin/**", "**.DS_Store**", "**.htaccess**", "**web.config**", "**/.svn/entries**", "**composer.json**", "**package.json**", "**backup**"]
   },
   "directory_listing": {
     "label_fr": "Directory listing",
@@ -155,6 +155,28 @@
       "**HEAD** supported",
       "**Redirect chain** excessive",
       "**301/302** vs 307/308 (sensitive forms)"
+    ]
+  },
+  "apis_et_formats": {
+    "label_fr": "APIs et formats",
+    "label_en": "APIs and formats",
+    "description_fr": "Le scan détecte les APIs exposées (GraphQL introspection, Swagger/OpenAPI sans auth, listes REST non paginées) et vérifie les formats de réponse : Content-Type correct, X-Content-Type-Options: nosniff, compression gzip/brotli sur les réponses API et la page principale.",
+    "description_en": "The scan detects exposed APIs (GraphQL introspection, Swagger/OpenAPI without auth, unpaginated REST lists) and verifies response formats: correct Content-Type, X-Content-Type-Options: nosniff, gzip/brotli compression on API responses and main page.",
+    "checks_fr": [
+      "**GraphQL** introspection désactivée",
+      "**Swagger/OpenAPI** protégé",
+      "**Listes REST** paginées",
+      "**Content-Type** correct",
+      "**X-Content-Type-Options** nosniff",
+      "**Compression** (gzip/brotli)"
+    ],
+    "checks_en": [
+      "**GraphQL** introspection disabled",
+      "**Swagger/OpenAPI** protected",
+      "**REST lists** paginated",
+      "**Content-Type** correct",
+      "**X-Content-Type-Options** nosniff",
+      "**Compression** (gzip/brotli)"
     ]
   }
 }

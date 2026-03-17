@@ -97,13 +97,12 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 ### 1.1 Méthodes HTTP et redirections (ex-roadmap 5.5, voir A-PENSER-PLUS-TARD)
 *Périmètre : **les deux** (frontend et backend)*
 
-- [ ] Requête OPTIONS : méthodes autorisées — *Info*
-- [ ] TRACE activé → finding (XST) — *Medium à High*
-- [ ] PUT, DELETE, PATCH exposés sans nécessité → info — *Info à Low*
-- [ ] HEAD supporté (bonne pratique) — *Info*
-- [ ] Détection open redirect (paramètres url/redirect/next) — *Medium à High* (intrusif)
-- [ ] Chaînes de redirection excessives (> 5) — *Info à Low*
-- [ ] Redirection HTTP→HTTPS : 301/302 vs 307/308 — *Info*
+- [x] Requête OPTIONS : méthodes autorisées — *Info* — Réutilisation des OPTIONS CORS (Allow + Access-Control-Allow-Methods) ; pas de requête supplémentaire.
+- [x] TRACE activé → finding (XST) — *Medium à High* — Requête TRACE sur page + chemins sensibles (limite `trace_max_urls`), finding si 200 + écho.
+- [x] PUT, DELETE, PATCH exposés sans nécessité → info — *Info à Low* — Depuis Allow/ACAM ; distinction frontend (Low) / backend (Info) via `scan_type`.
+- [x] HEAD supporté (bonne pratique) — *Info* — Requête HEAD sur la page ; finding si 4xx/5xx.
+- [x] Chaînes de redirection excessives (> 5) — *Info à Low* — Analyse de `response.history` (fetch initial) ; seuil configurable `redirect_chain_max`.
+- [x] Redirection HTTP→HTTPS : 301/302 vs 307/308 — *Info* — Finding si 301/302 dans la chaîne et URL finale sur chemin formulaire sensible (`form_sensitive_paths`).
 
 ---
 
@@ -118,15 +117,47 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 
 ---
 
-### 1.3 APIs et formats (ex-roadmap 5.7, voir A-PENSER-PLUS-TARD)
-*Périmètre : **backend** (APIs, endpoints)*
+### 1.3 APIs et formats (ex-roadmap 5.7, voir [apis-et-formats.md](../../verifications/passive/apis-et-formats.md))
+*Périmètre : **backend** (APIs exposées) ; **les deux** (formats de réponse)*
 
-- [ ] GraphQL : introspection activée sur `/graphql` ou similaire
-- [ ] Swagger/OpenAPI exposé sans auth
-- [ ] Endpoints REST : listes non paginées (info)
-- [ ] Content-Type incorrect (JSON servi en text/html)
-- [ ] X-Content-Type-Options: nosniff sur tous les types
-- [ ] Compression (gzip/brotli)
+- [x] GraphQL : introspection activée sur `/graphql` ou similaire — *Backend* — Phase domaine : POST `{"query":"{ __schema { types { name } } }"}` sur chemins `graphql_paths` ; finding si 200 + schéma JSON retourné.
+- [x] Swagger/OpenAPI exposé sans auth — *Backend* — Phase domaine : GET sur `swagger_paths` (`/swagger`, `/api-docs`, `/openapi.json`, etc.) ; finding si 200 + corps contient `openapi`/`swagger` (JSON) ou Swagger UI (HTML).
+- [x] Endpoints REST : listes non paginées (info) — *Backend* — Phase domaine : GET sur `api_list_paths` ; phase page : analyse de chaque réponse JSON (multi-URL) ; finding si tableau ≥ 50 éléments sans `page`/`limit`/`offset` dans la réponse ; seuil `unpaginated_list_threshold: 50`.
+- [x] Content-Type incorrect (JSON servi en text/html) — *Les deux* — Analyse de la réponse (page + réponses API) : si corps ressemble à JSON (`{` ou `[`) et `Content-Type` ≠ `application/json` → finding Medium.
+- [x] X-Content-Type-Options: nosniff sur tous les types — *Les deux* — Vérifié sur les **réponses API uniquement** (phase domaine) ; la page principale reste couverte par `security_headers` pour éviter doublon.
+- [x] Compression (gzip/brotli) — *Les deux* — Sur page (phase page) et sur chaque réponse API (phase domaine) ; finding Info si corps textuel > `compression_min_body_bytes` (1024) et absence de `Content-Encoding: gzip` ou `br`.
+
+#### Architecture : backend vs both
+
+| Module | Périmètre | Phase | Contenu |
+|--------|-----------|-------|---------|
+| `passive/backend/api/` | Backend | Domaine (1× par base) | GraphQL, Swagger, REST listes ; appelle `check_formats_from_response` sur chaque réponse API (Content-Type, X-CTO, compression) |
+| `passive/both/formats/` | Les deux | Page (par URL) | `check_formats_from_response(page_response, check_xcto=False)` — Content-Type, compression uniquement sur la page (X-CTO déjà dans security_headers) |
+
+#### Implémentation technique
+
+- [x] **backend/api** : `run_api_checks(base_url, client)` — probes en séquence GraphQL (POST introspection), Swagger (GET), REST listes (GET) ; pour chaque réponse 200, appelle `check_formats_from_response(..., check_xcto=True)`.
+- [x] **both/formats** : `check_formats_from_response(response, url, check_xcto, compression_min_body_bytes)` — fonction pure, appelée par page checks (page) et par backend/api (réponses API).
+- [x] **REST listes** : `check_rest_from_response(url, response, threshold)` — appelé en phase page pour chaque URL scannée ; détecte JSON avec array ou clé `items`/`users`/`data` ≥ 50 éléments sans pagination.
+- [x] **exposed_files** : retrait des chemins `/swagger`, `/swagger.json`, `/api-docs`, `/api-docs.json`, `/graphql` — centralisés dans apis_et_formats.
+
+#### Fichiers créés / modifiés
+
+| Fichier | Modification |
+|---------|--------------|
+| `passive/backend/api/` | **Nouveau** — checks (GraphQL, Swagger, REST), normalizer, `check_rest_from_response` pour phase page |
+| `passive/both/formats/` | **Nouveau** — checks (Content-Type, X-CTO, compression), normalizer |
+| `config/apis_et_formats.py` | **Nouveau** — chargement `graphql_paths`, `swagger_paths`, `api_list_paths`, `unpaginated_list_threshold`, `compression_min_body_bytes` |
+| `config/settings.yml` | Section `apis_et_formats` ; retrait `/swagger`, `/graphql`, `/api-docs` de `exposed_files` |
+| `both/exposed_files/checks.py` | Retrait des checkers `/swagger`, `/graphql`, `/api-docs` |
+| `passive/_page_checks_runner.py` | Ajout `formats` (check_formats_from_response, check_xcto=False) et `api_page` (check_rest_from_response) |
+| `passive/_scan_core.py` | Ajout étapes `api_checks`, `formats`, `api_page` |
+| `passive/multi_scan_orchestrator.py` | `_run_domain_api` : run_api_checks en phase domaine |
+| `passive/normalization.py` | Normalizers `api_checks`, `formats`, `api_page` → catégorie `apis_et_formats` |
+| `passive/scan_stream.py` | Étapes SSE `api_checks`, `formats`, `api_page` |
+| `catalogue/category_summaries.json` | Entrée `apis_et_formats` ; mise à jour `exposed_files` (retrait swagger/graphql) |
+| `catalogue/recommendations.json` | Slugs api-graphql-introspection, api-swagger-exposed, api-rest-unpaginated, formats-* |
+| `scoring` / `category_labels` | Pondération 5 ; label FR/EN |
 
 ---
 
@@ -162,7 +193,7 @@ Objectif : finaliser la couverture de tests d’intégration de la pipeline scan
 - [ ] Scénarios SSRF : URLs internes / localhost / IP privées bloquées en mode prod (`IS_PROD=true`).
 - [ ] Scénarios de ports : ports non autorisés rejetés en prod, autorisés en dev (`IS_PROD=false` via `launch_dev.sh`).
 - [ ] **Scénario crawler → liste → scan sur N URLs** : serveur de test avec pages liées (même domaine) ; lancer le crawler depuis une URL de départ, récupérer la liste d’URLs (via l’API crawler retenue en 7.3 de la v0.3.0), lancer le scan sur un sous-ensemble (ex. 2–3 URLs) ; vérifier que les résultats agrègent les findings par URL ou produisent un rapport cohérent (historique, PDF si applicable).
-- [ ] Vérification des catégories de checks : TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, info disclosure, etc.
+- [ ] Vérification des catégories de checks : TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, info disclosure, methodes_http_et_redirections, apis_et_formats, etc.
 - [ ] Vérification de l’écriture en historique (user-service) et de la génération PDF.
 - [ ] Crawler — tests unitaires : parsing HTML → liste d’URLs attendue ; respect Disallow ; limites (profondeur, max URLs).
 - [ ] Crawler — test d’intégration : crawl d’une page de test (ex. `bad_crawl_server` ou fixture HTML) → vérifier la sortie et l’absence de fuite hors domaine.
@@ -238,6 +269,8 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 | **sitemap** | Vérification Sitemap (robots.txt, sitemap.xml, URLs sensibles) | **Étape entière ignorée** (non pertinente pour une API) |
 | **integrity** | Intégrité HTML (SRI, scripts, formulaires, target="_blank", meta robots) | **Étape entière ignorée** (réponse JSON/XML, pas de HTML) |
 | **robots_txt** | Présence et contenu de robots.txt (Disallow, Sitemap) | **Étape entière ignorée** (non pertinent pour une API) |
+| **methodes_http_et_redirections** | TRACE, HEAD, Allow/ACAM, PUT/DELETE/PATCH, redirections | Même exécution ; sévérité `dangerous_methods` : backend→Info, frontend→Low |
+| **apis_et_formats** | GraphQL, Swagger, REST listes, Content-Type, X-CTO, compression | Même exécution ; phase domaine (api_checks) + phase page (formats, api_page) |
 
 #### Implémentation technique
 
@@ -261,8 +294,11 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 | `both/cors_cross_origin/checks.py` | Paramètre `scan_type` ; condition `if scan_type != "backend"` avant `_check_mixed_content` |
 | `both/tech_fingerprinting/checks.py` | Paramètre `scan_type` ; condition `if scan_type != "backend"` avant `_detect_from_html` |
 | `passive/frontend/robots_txt/` | **Nouveau** — module déplacé depuis `both/` (checks, normalizer, __init__) |
-| `passive/normalization.py` | Import `frontend.robots_txt` |
+| `passive/normalization.py` | Import `frontend.robots_txt` ; ajout `methodes_http_et_redirections` |
 | `passive/multi_scan_orchestrator.py` | Import `frontend.robots_txt` |
+| `passive/both/methodes_http_et_redirections/` | **Nouveau** — checks (OPTIONS/Allow/ACAM via CORS, TRACE, HEAD, redirections), normalizer, config |
+| `both/cors_cross_origin/checks.py` | `methodes_data` (Allow/ACAM par URL), retrait finding `dangerous_methods` (déplacé vers methodes_http) |
+| `config/settings.yml` | Section `methodes_http_et_redirections` (redirect_chain_max, trace_*, form_sensitive_paths) |
 
 ---
 

@@ -36,6 +36,8 @@ logger = logging.getLogger(__name__)
 def _extract_anomaly_count(result: object) -> int:
     """Retourne le nombre d'anomalies detectees pour un resultat d'etape."""
     findings = result.get("findings") if isinstance(result, dict) else getattr(result, "findings", None)
+    if findings is None:
+        findings = getattr(result, "issues", None)
     if isinstance(findings, (list, tuple, set)):
         return len(findings)
     return 0
@@ -115,6 +117,9 @@ _SCAN_SSE_STEPS: list[tuple[str, Callable]] = [
     ("integrity", _SCAN_STEP_FN_MAP["integrity"]),
     ("cors_cross_origin", _SCAN_STEP_FN_MAP["cors_cross_origin"]),
     ("methodes_http_et_redirections", _SCAN_STEP_FN_MAP["methodes_http_et_redirections"]),
+    ("api_checks", _SCAN_STEP_FN_MAP["api_checks"]),
+    ("formats", _SCAN_STEP_FN_MAP["formats"]),
+    ("api_page", _SCAN_STEP_FN_MAP["api_page"]),
 ]
 
 

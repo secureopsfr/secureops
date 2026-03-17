@@ -865,6 +865,65 @@
     "title_en": "HTTP methods or redirect issue",
     "references": []
   },
+  "api-graphql-introspection": {
+    "recommendation": "Désactiver l'introspection GraphQL en production ou la protéger par authentification.",
+    "recommendation_en": "Disable GraphQL introspection in production or protect it with authentication.",
+    "title_fr": "Introspection GraphQL activée",
+    "title_en": "GraphQL introspection enabled",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html",
+      "https://graphql.org/learn/introspection/"
+    ]
+  },
+  "api-swagger-exposed": {
+    "recommendation": "Protéger la documentation Swagger/OpenAPI par authentification ou la désactiver en production.",
+    "recommendation_en": "Protect Swagger/OpenAPI documentation with authentication or disable it in production.",
+    "title_fr": "Swagger/OpenAPI exposé sans auth",
+    "title_en": "Swagger/OpenAPI exposed without auth",
+    "references": ["https://swagger.io/docs/specification/authentication/"]
+  },
+  "api-rest-unpaginated": {
+    "recommendation": "Implémenter la pagination (page, limit) sur tous les endpoints retournant des listes.",
+    "recommendation_en": "Implement pagination (page, limit) on all list-returning endpoints.",
+    "title_fr": "Liste REST non paginée",
+    "title_en": "Unpaginated REST list",
+    "references": ["https://cheatsheetseries.owasp.org/cheatsheets/API_Security_Cheat_Sheet.html"]
+  },
+  "formats-content-type-wrong": {
+    "recommendation": "S'assurer que chaque type de réponse a le Content-Type approprié (application/json pour JSON, text/html pour HTML).",
+    "recommendation_en": "Ensure each response type has the appropriate Content-Type (application/json for JSON, text/html for HTML).",
+    "title_fr": "Content-Type incorrect",
+    "title_en": "Incorrect Content-Type",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type"]
+  },
+  "formats-xcto-missing": {
+    "recommendation": "Ajouter X-Content-Type-Options: nosniff sur toutes les réponses pour empêcher le MIME sniffing.",
+    "recommendation_en": "Add X-Content-Type-Options: nosniff on all responses to prevent MIME sniffing.",
+    "title_fr": "X-Content-Type-Options: nosniff absent",
+    "title_en": "X-Content-Type-Options: nosniff missing",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options"]
+  },
+  "formats-no-compression": {
+    "recommendation": "Activer la compression gzip ou brotli sur le serveur pour les réponses textuelles (HTML, JSON, CSS, JS).",
+    "recommendation_en": "Enable gzip or brotli compression on the server for textual responses (HTML, JSON, CSS, JS).",
+    "title_fr": "Réponse sans compression",
+    "title_en": "Response without compression",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding"]
+  },
+  "api-generic": {
+    "recommendation": "Consulter la documentation sur les APIs et formats de réponse.",
+    "recommendation_en": "Consult documentation on APIs and response formats.",
+    "title_fr": "Problème API ou format",
+    "title_en": "API or format issue",
+    "references": []
+  },
+  "formats-generic": {
+    "recommendation": "Vérifier les formats de réponse (Content-Type, X-Content-Type-Options, compression).",
+    "recommendation_en": "Verify response formats (Content-Type, X-Content-Type-Options, compression).",
+    "title_fr": "Problème format de réponse",
+    "title_en": "Response format issue",
+    "references": []
+  },
   "integrity-sri-external-missing": {
     "recommendation": "Ajouter l'attribut integrity (SRI) sur les scripts et feuilles de style chargés depuis des domaines externes (CDN, tiers). Mettre à jour le hash à chaque changement de ressource.",
     "recommendation_en": "Add the integrity (SRI) attribute on scripts and stylesheets loaded from external domains (CDN, third parties). Update the hash whenever the resource changes.",

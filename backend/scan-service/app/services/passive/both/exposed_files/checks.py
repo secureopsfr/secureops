@@ -90,24 +90,6 @@ def _content_matches_backup_config(body: bytes, _path: str) -> bool:
     return False
 
 
-def _content_matches_openapi(body: bytes, _path: str) -> bool:
-    """Vérifie si le corps est Swagger/OpenAPI (JSON ou HTML Swagger UI)."""
-    text = body.decode("utf-8", errors="replace").lower()
-    if '"openapi"' in text or '"swagger"' in text:
-        return True
-    if "swagger" in text and ("paths" in text or "api" in text):
-        return True
-    return False
-
-
-def _content_matches_graphql(body: bytes, _path: str) -> bool:
-    """Vérifie si le corps suggère un endpoint GraphQL (JSON avec data/errors/__schema)."""
-    text = body.decode("utf-8", errors="replace").lower()
-    if "{" not in text:
-        return False
-    return '"data"' in text or '"errors"' in text or '"__schema"' in text or '"querytype"' in text
-
-
 def _content_matches_generic_sensitive(body: bytes, _path: str) -> bool:
     """Checker générique pour chemins non mappés : détecte contenu sensible typique.
 
@@ -159,11 +141,6 @@ def _get_signature_checker(path: str):
         "/config.bak": _content_matches_backup_config,
         "/web.config.bak": _content_matches_backup_config,
         "/.env.bak": _content_matches_env,  # Même signature que .env
-        "/swagger": _content_matches_openapi,
-        "/swagger.json": _content_matches_openapi,
-        "/api-docs": _content_matches_openapi,
-        "/api-docs.json": _content_matches_openapi,
-        "/graphql": _content_matches_graphql,
     }
     return checkers.get(key)
 

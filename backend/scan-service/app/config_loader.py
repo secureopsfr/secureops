@@ -7,6 +7,7 @@ Le chargement est découpé dans app.config/ par domaine.
 from common.config_base import create_simple_settings
 
 from app.config import (
+    ApisEtFormatsSettings,
     AsyncJobsSettings,
     CacheSettings,
     CookiesSettings,
@@ -24,6 +25,7 @@ from app.config import (
     SecurityHeaderConfig,
     SsrfSettings,
     UrlValidationSettings,
+    get_apis_et_formats_settings,
     get_async_jobs_settings,
     get_cache_settings,
     get_cookies_settings,
@@ -55,6 +57,7 @@ from app.config import (
 settings = create_simple_settings("scan-service", default_port=8012, caller_file=__file__)
 
 __all__ = [
+    "ApisEtFormatsSettings",
     "AsyncJobsSettings",
     "CacheSettings",
     "MultiScanSettings",
@@ -75,6 +78,7 @@ __all__ = [
     "get_cache_settings",
     "get_async_jobs_settings",
     "get_multi_scan_settings",
+    "get_apis_et_formats_settings",
     "get_cors_cross_origin_settings",
     "get_directory_listing_max_body",
     "get_directory_listing_partial_extensions",
