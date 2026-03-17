@@ -320,9 +320,12 @@ export async function runMultiScan(
         onEvent({ type: "step", data: ev.data });
       } else if (ev.type === "result") {
         const data = ev.data as MultiScanResult;
+        const errorCount =
+          data.page_results?.filter((p) => p.error).length ?? 0;
         logger.info(`${logPrefix} result received`, {
           pages: data.page_results?.length ?? 0,
           score_global: data.score_global,
+          errorCount,
         });
         onEvent({ type: "result", data });
       } else if (ev.type === "error") {

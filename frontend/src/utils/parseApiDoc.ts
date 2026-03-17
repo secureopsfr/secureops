@@ -79,11 +79,30 @@ function parseOpenApi(
   return Array.from(unique).map(toCrawlEntry);
 }
 
+/** Remplace l'origine d'une URL par celle de baseUrl (quand fourni). */
+function applyBaseOverride(
+  url: string,
+  baseOverride: string | undefined,
+): string {
+  if (!baseOverride?.trim()) return url;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return url;
+    const base = baseOverride.trim();
+    const baseWithScheme = /^https?:\/\//i.test(base)
+      ? base
+      : `https://${base}`;
+    const baseUrl = new URL(baseWithScheme);
+    return `${baseUrl.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return url;
+  }
+}
+
 function parsePostman(
   spec: Record<string, unknown>,
   baseOverride?: string,
 ): CrawlUrlEntry[] {
-  const base = baseOverride || "";
   const item = spec.item as
     | Array<{
         request?: {
@@ -122,7 +141,8 @@ function parsePostman(
           try {
             const parsed = new URL(rawUrl);
             if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-              unique.add(parsed.href);
+              const finalUrl = applyBaseOverride(parsed.href, baseOverride);
+              unique.add(finalUrl);
             }
           } catch {
             // skip
