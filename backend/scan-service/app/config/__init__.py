@@ -11,6 +11,7 @@ from app.config.cors_cross_origin import CorsCrossOriginSettings, get_cors_cross
 from app.config.external_services import ExternalServicesSettings, get_external_services_settings
 from app.config.information_disclosure import InformationDisclosureSettings, get_information_disclosure_max_body, get_information_disclosure_settings
 from app.config.integrity import IntegritySettings, get_integrity_settings
+from app.config.methodes_http_et_redirections import get_methodes_http_et_redirections_settings
 from app.config.multi_scan import MultiScanSettings, get_multi_scan_settings
 from app.config.path_checks import (
     DirectoryListingConfig,
@@ -67,6 +68,7 @@ __all__ = [
     "get_information_disclosure_max_body",
     "get_information_disclosure_settings",
     "get_integrity_settings",
+    "get_methodes_http_et_redirections_settings",
     "get_robots_txt_settings",
     "get_sitemap_fallback_paths",
     "get_cookies_settings",

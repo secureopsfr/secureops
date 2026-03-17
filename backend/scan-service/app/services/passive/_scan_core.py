@@ -13,6 +13,7 @@ from app.services.passive.both.cors_cross_origin import run_cors_cross_origin_ch
 from app.services.passive.both.directory_listing import run_directory_listing_checks
 from app.services.passive.both.exposed_files import run_exposed_files_checks
 from app.services.passive.both.information_disclosure import check_information_disclosure_from_response
+from app.services.passive.both.methodes_http_et_redirections import run_methodes_http_checks
 from app.services.passive.both.security_headers import check_security_headers_from_response
 from app.services.passive.both.tech_fingerprinting import check_tech_fingerprinting_from_response
 from app.services.passive.both.tls import run_tls_checks
@@ -145,6 +146,16 @@ SCAN_STEPS: list[tuple[str, Callable]] = [
             ctx.https_response,
             ctx.https_url,
             ctx.client,
+            scan_type=ctx.scan_type,
+        ),
+    ),
+    (
+        "methodes_http_et_redirections",
+        lambda ctx: run_methodes_http_checks(
+            ctx.https_response,
+            ctx.https_url,
+            ctx.client,
+            cors_result=ctx.results.get("cors_cross_origin"),
             scan_type=ctx.scan_type,
         ),
     ),

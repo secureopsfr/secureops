@@ -12,7 +12,6 @@ _ISSUE_MAP: dict[str, tuple[str, str, str]] = {
     "acao_star_sensitive": ("cors-allow-origin-star-sensitive", "Access-Control-Allow-Origin: * sur endpoint sensible", "high"),
     "credentials_origin_star": ("cors-credentials-origin-star", "Incohérence CORS (Credentials + Allow-Origin: *)", "critical"),
     "origin_reflection": ("cors-credentials-origin-reflection", "Réflexion d'origine non validée (CORS)", "critical"),
-    "dangerous_methods": ("cors-allow-methods-dangerous", "Méthodes CORS dangereuses exposées (PUT/DELETE/PATCH)", "info"),
     "expose_headers_sensitive": ("cors-expose-headers-sensitive", "En-tête sensible exposé (Access-Control-Expose-Headers)", "medium"),
     "corp_missing_main": ("corp-missing-main", "Cross-Origin-Resource-Policy manquant (page principale)", "low"),
     "corp_missing_sensitive": ("corp-missing", "Cross-Origin-Resource-Policy manquant", "low"),

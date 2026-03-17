@@ -16,6 +16,8 @@ from app.services.passive.both.cors_cross_origin.checks import CorsCrossOriginCh
 from app.services.passive.both.cors_cross_origin.normalizer import normalize as normalize_cors
 from app.services.passive.both.information_disclosure.checks import InformationDisclosureCheckResult
 from app.services.passive.both.information_disclosure.normalizer import normalize as normalize_info_disclosure
+from app.services.passive.both.methodes_http_et_redirections.checks import MethodesHttpCheckResult
+from app.services.passive.both.methodes_http_et_redirections.normalizer import normalize as normalize_methodes_http
 from app.services.passive.both.path_checks.core import PathCheckResult
 from app.services.passive.both.path_checks.normalizer import normalize_directory_listing, normalize_exposed_files
 from app.services.passive.both.security_headers.checks import SecurityHeadersCheckResult
@@ -46,6 +48,7 @@ class ScanResultsDict(TypedDict, total=False):
     cache: CacheCheckResult
     information_disclosure: InformationDisclosureCheckResult
     cors_cross_origin: CorsCrossOriginCheckResult
+    methodes_http_et_redirections: MethodesHttpCheckResult
     integrity: IntegrityCheckResult
 
 
@@ -62,6 +65,7 @@ _NORMALIZERS: list[tuple[str, object]] = [
     ("tech_fingerprinting", normalize_tech),
     ("information_disclosure", normalize_info_disclosure),
     ("cors_cross_origin", normalize_cors),
+    ("methodes_http_et_redirections", normalize_methodes_http),
     ("integrity", normalize_integrity),
 ]
 

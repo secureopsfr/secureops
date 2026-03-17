@@ -823,6 +823,48 @@
     "title_en": "CORS or cross-origin issue",
     "references": ["https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing"]
   },
+  "methodes-http-dangerous-methods": {
+    "recommendation": "N'exposer que les méthodes HTTP réellement nécessaires. Protéger PUT/DELETE/PATCH par authentification et autorisation.",
+    "recommendation_en": "Only expose HTTP methods that are actually needed. Protect PUT/DELETE/PATCH with authentication and authorization.",
+    "title_fr": "Méthodes PUT/DELETE/PATCH exposées",
+    "title_en": "PUT/DELETE/PATCH methods exposed",
+    "references": ["https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/03-Testing_for_HTTP_Verb_Tampering"]
+  },
+  "methodes-http-trace-enabled": {
+    "recommendation": "Désactiver la méthode TRACE sur le serveur web (TraceEnable Off sur Apache, pas de support TRACE sur Nginx).",
+    "recommendation_en": "Disable TRACE method on the web server (TraceEnable Off on Apache, no TRACE support on Nginx).",
+    "title_fr": "TRACE activé (risque XST)",
+    "title_en": "TRACE enabled (XST risk)",
+    "references": ["https://owasp.org/www-community/attacks/Cross_Site_Tracing"]
+  },
+  "methodes-http-head-unsupported": {
+    "recommendation": "Implémenter la méthode HEAD pour permettre la validation de cache (ETag, Last-Modified) sans télécharger le corps.",
+    "recommendation_en": "Implement HEAD method to allow cache validation (ETag, Last-Modified) without downloading the body.",
+    "title_fr": "HEAD non supporté",
+    "title_en": "HEAD not supported",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/HEAD"]
+  },
+  "methodes-http-redirect-chain-excessive": {
+    "recommendation": "Simplifier la chaîne de redirections ; éviter les boucles ou les redirects inutiles.",
+    "recommendation_en": "Simplify the redirect chain; avoid loops or unnecessary redirects.",
+    "title_fr": "Chaîne de redirection excessive",
+    "title_en": "Excessive redirect chain",
+    "references": ["https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html"]
+  },
+  "methodes-http-redirect-301-302-form": {
+    "recommendation": "Utiliser 307 ou 308 pour les redirections de formulaires afin de préserver la méthode HTTP (POST reste POST).",
+    "recommendation_en": "Use 307 or 308 for form redirects to preserve the HTTP method (POST stays POST).",
+    "title_fr": "Redirection 301/302 sur formulaire sensible",
+    "title_en": "301/302 redirect on sensitive form",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections"]
+  },
+  "methodes-http-generic": {
+    "recommendation": "Consulter la documentation sur les méthodes HTTP et les redirections.",
+    "recommendation_en": "Consult documentation on HTTP methods and redirects.",
+    "title_fr": "Problème Méthodes HTTP ou redirections",
+    "title_en": "HTTP methods or redirect issue",
+    "references": []
+  },
   "integrity-sri-external-missing": {
     "recommendation": "Ajouter l'attribut integrity (SRI) sur les scripts et feuilles de style chargés depuis des domaines externes (CDN, tiers). Mettre à jour le hash à chaque changement de ressource.",
     "recommendation_en": "Add the integrity (SRI) attribute on scripts and stylesheets loaded from external domains (CDN, third parties). Update the hash whenever the resource changes.",

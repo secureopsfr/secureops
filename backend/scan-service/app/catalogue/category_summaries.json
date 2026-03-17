@@ -114,13 +114,12 @@
   "cors_cross_origin": {
     "label_fr": "CORS et cross-origin",
     "label_en": "CORS and cross-origin",
-    "description_fr": "Le scan envoie des requêtes **GET et OPTIONS** avec l'en-tête **Origin** vers la page principale et vers des URLs dérivées (chemins sensibles : /api/, /user/, /admin/, etc.). Il vérifie **Access-Control-Allow-Origin** (* sur endpoint sensible), **Access-Control-Allow-Credentials** avec réflexion d'origine, **Access-Control-Allow-Methods** (PUT/DELETE/PATCH), **Access-Control-Expose-Headers** (en-têtes sensibles), **Cross-Origin-Resource-Policy** (CORP), et la détection du **mixed content** (ressources HTTP sur page HTTPS). Le finding « CORP manquant sur endpoint sensible » n'est émis que si la réponse ressemble à une API (JSON, XML, etc.), et non pour une page HTML (ex. « Cette page n'existe pas »). **Referrer-Policy** est vérifié dans la catégorie **Security Headers**.",
-    "description_en": "The scan sends **GET and OPTIONS** requests with the **Origin** header to the main page and to derived URLs (sensitive paths: /api/, /user/, /admin/, etc.). It checks **Access-Control-Allow-Origin** (* on sensitive endpoint), **Access-Control-Allow-Credentials** with origin reflection, **Access-Control-Allow-Methods** (PUT/DELETE/PATCH), **Access-Control-Expose-Headers** (sensitive headers), **Cross-Origin-Resource-Policy** (CORP), and **mixed content** detection (HTTP resources on HTTPS page). The « CORP missing on sensitive endpoint » finding is only reported when the response looks like an API (JSON, XML, etc.), not for HTML pages (e.g. « Page not found »). **Referrer-Policy** is verified in the **Security Headers** category.",
+    "description_fr": "Le scan envoie des requêtes **GET et OPTIONS** avec l'en-tête **Origin** vers la page principale et vers des URLs dérivées (chemins sensibles : /api/, /user/, /admin/, etc.). Il vérifie **Access-Control-Allow-Origin** (* sur endpoint sensible), **Access-Control-Allow-Credentials** avec réflexion d'origine, **Access-Control-Expose-Headers** (en-têtes sensibles), **Cross-Origin-Resource-Policy** (CORP), et la détection du **mixed content** (ressources HTTP sur page HTTPS). Les méthodes PUT/DELETE/PATCH sont désormais vérifiées dans la catégorie **Méthodes HTTP et redirections**. **Referrer-Policy** est vérifié dans **Security Headers**.",
+    "description_en": "The scan sends **GET and OPTIONS** requests with the **Origin** header to the main page and to derived URLs (sensitive paths: /api/, /user/, /admin/, etc.). It checks **Access-Control-Allow-Origin** (* on sensitive endpoint), **Access-Control-Allow-Credentials** with origin reflection, **Access-Control-Expose-Headers** (sensitive headers), **Cross-Origin-Resource-Policy** (CORP), and **mixed content** detection (HTTP resources on HTTPS page). PUT/DELETE/PATCH methods are now verified in **HTTP methods and redirects**. **Referrer-Policy** is verified in **Security Headers**.",
     "checks_fr": [
       "**GET/OPTIONS** avec Origin (page + chemins sensibles)",
       "**ACAO *** sur endpoint sensible",
       "**Credentials** + réflexion d'origine",
-      "**Allow-Methods** (PUT/DELETE/PATCH)",
       "**Expose-Headers** sensibles",
       "**CORP** manquant",
       "**Mixed content** (HTTP sur HTTPS)",
@@ -130,11 +129,32 @@
       "**GET/OPTIONS** with Origin (page + sensitive paths)",
       "**ACAO *** on sensitive endpoint",
       "**Credentials** + origin reflection",
-      "**Allow-Methods** (PUT/DELETE/PATCH)",
       "**Expose-Headers** sensitive",
       "**CORP** missing",
       "**Mixed content** (HTTP on HTTPS)",
       "**Referrer-Policy** (checked in Security Headers)"
+    ]
+  },
+  "methodes_http_et_redirections": {
+    "label_fr": "Méthodes HTTP et redirections",
+    "label_en": "HTTP methods and redirects",
+    "description_fr": "Le scan réutilise les réponses OPTIONS (Allow, Access-Control-Allow-Methods) du module CORS, effectue des requêtes TRACE (détection XST) et HEAD, et analyse les chaînes de redirection. Signale les méthodes PUT/DELETE/PATCH exposées, TRACE activé, HEAD manquant, chaînes excessives et 301/302 sur formulaires sensibles.",
+    "description_en": "The scan reuses OPTIONS responses (Allow, Access-Control-Allow-Methods) from the CORS module, performs TRACE (XST detection) and HEAD requests, and analyzes redirect chains. Reports exposed PUT/DELETE/PATCH methods, TRACE enabled, missing HEAD, excessive chains and 301/302 on sensitive forms.",
+    "checks_fr": [
+      "**Allow/ACAM** (méthodes autorisées)",
+      "**PUT/DELETE/PATCH** exposés",
+      "**TRACE** (XST)",
+      "**HEAD** supporté",
+      "**Chaîne de redirections** excessive",
+      "**301/302** vs 307/308 (formulaires sensibles)"
+    ],
+    "checks_en": [
+      "**Allow/ACAM** (allowed methods)",
+      "**PUT/DELETE/PATCH** exposed",
+      "**TRACE** (XST)",
+      "**HEAD** supported",
+      "**Redirect chain** excessive",
+      "**301/302** vs 307/308 (sensitive forms)"
     ]
   }
 }

@@ -97,13 +97,13 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 ### 1.1 Méthodes HTTP et redirections (ex-roadmap 5.5, voir A-PENSER-PLUS-TARD)
 *Périmètre : **les deux** (frontend et backend)*
 
-- [ ] Requête OPTIONS : méthodes autorisées
-- [ ] TRACE activé → finding (XST)
-- [ ] PUT, DELETE, PATCH exposés sans nécessité → info
-- [ ] HEAD supporté (bonne pratique)
-- [ ] Détection open redirect (paramètres url/redirect/next)
-- [ ] Chaînes de redirection excessives (> 5)
-- [ ] Redirection HTTP→HTTPS : 301/302 vs 307/308
+- [ ] Requête OPTIONS : méthodes autorisées — *Info*
+- [ ] TRACE activé → finding (XST) — *Medium à High*
+- [ ] PUT, DELETE, PATCH exposés sans nécessité → info — *Info à Low*
+- [ ] HEAD supporté (bonne pratique) — *Info*
+- [ ] Détection open redirect (paramètres url/redirect/next) — *Medium à High* (intrusif)
+- [ ] Chaînes de redirection excessives (> 5) — *Info à Low*
+- [ ] Redirection HTTP→HTTPS : 301/302 vs 307/308 — *Info*
 
 ---
 

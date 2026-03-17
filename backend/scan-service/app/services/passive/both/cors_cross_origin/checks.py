@@ -7,7 +7,6 @@ Ce module implémente les contrôles décrits dans docs/verifications/cors-et-cr
   - Access-Control-Allow-Origin: * sur endpoint sensible ;
   - Access-Control-Allow-Credentials: true avec réflexion d'origine non validée ;
   - Incohérence Credentials + Allow-Origin * ;
-  - Méthodes PUT/DELETE/PATCH exposées sans nécessité ;
   - En-têtes sensibles dans Access-Control-Expose-Headers.
 - **Mixed content** : détection de ressources en http:// sur une page servie en HTTPS
   (sous-ressources extraites du HTML).
@@ -36,7 +35,7 @@ class CorsIssue:
     Attributes:
         kind: Discriminant sémantique du problème.
             Valeurs possibles : "acao_star_sensitive", "credentials_origin_star",
-            "origin_reflection", "dangerous_methods", "expose_headers_sensitive",
+            "origin_reflection", "expose_headers_sensitive",
             "corp_missing_main", "corp_missing_sensitive", "mixed_content",
             "connection_failed".
         message: Message lisible pour l'affichage SSE et le rapport.
@@ -44,6 +43,9 @@ class CorsIssue:
 
     kind: str
     message: str
+
+
+MethodesDataEntry = tuple[str, frozenset[str], frozenset[str]]  # (url, allow_methods, acam_methods)
 
 
 @dataclass(frozen=True)
@@ -55,11 +57,13 @@ class CorsCrossOriginCheckResult:
             Dérivés des ``issues``.
         fetch_ok: True si au moins la page principale a pu être analysée.
         issues: Issues typées consommées par le normalizer sans correspondance de chaînes.
+        methodes_data: Données Allow/ACAM par URL pour methodes_http (sans requête supplémentaire).
     """
 
     findings: tuple[str, ...]
     fetch_ok: bool
     issues: tuple[CorsIssue, ...] = field(default=())
+    methodes_data: tuple[MethodesDataEntry, ...] = field(default=())
 
     def to_dict(self) -> dict[str, Any]:
         """Sérialise pour l'événement SSE result."""
@@ -96,6 +100,23 @@ def _get_cors_headers(resp: httpx.Response) -> dict[str, str | None]:
         "expose_headers": get_header_insensitive(resp, "Access-Control-Expose-Headers"),
         "corp": get_header_insensitive(resp, "Cross-Origin-Resource-Policy"),
     }
+
+
+def _extract_methodes_data(opt_resp: httpx.Response | None, get_resp: httpx.Response | None) -> tuple[frozenset[str], frozenset[str]]:
+    """Extrait Allow (HTTP) et Access-Control-Allow-Methods depuis les réponses.
+
+    Retourne (allow_methods, acam_methods) pour alimenter methodes_http.
+    """
+    allow_raw: str | None = None
+    acam_raw: str | None = None
+    for resp in (opt_resp, get_resp):
+        if resp is None:
+            continue
+        if allow_raw is None:
+            allow_raw = get_header_insensitive(resp, "Allow")
+        if acam_raw is None:
+            acam_raw = get_header_insensitive(resp, "Access-Control-Allow-Methods")
+    return (_parse_allow_methods(allow_raw), _parse_allow_methods(acam_raw))
 
 
 _API_CONTENT_TYPES = (
@@ -189,13 +210,8 @@ def _collect_methods_expose_issues(
     settings: Any,
     issues: list[CorsIssue],
 ) -> None:
-    """Collecte les issues Allow-Methods et Expose-Headers dans la liste fournie."""
+    """Collecte les issues Expose-Headers (méthodes dangereuses déplacées vers methodes_http)."""
     like_api = not is_sensitive or _response_looks_like_api(get_resp)
-    allow_methods = _parse_allow_methods(cors.get("allow_methods"))
-    dangerous = allow_methods & {"PUT", "DELETE", "PATCH"}
-    if dangerous and like_api:
-        msg = f"Méthodes CORS potentiellement dangereuses exposées ({', '.join(sorted(dangerous))}) : {url}."
-        issues.append(CorsIssue(kind="dangerous_methods", message=msg))
     exposed = _parse_expose_headers(cors.get("expose_headers"))
     for sensitive_header in settings.expose_headers_sensitive:
         if sensitive_header in exposed and like_api:
@@ -209,6 +225,8 @@ async def _check_cors_for_url(
     is_sensitive: bool,
     settings: Any,
     issues: list[CorsIssue],
+    *,
+    methodes_collector: list[MethodesDataEntry] | None = None,
 ) -> None:
     """Analyse les réponses GET et OPTIONS avec Origin et collecte les issues pour cette URL."""
     timeout = settings.subresource_timeout
@@ -217,6 +235,10 @@ async def _check_cors_for_url(
     opt_resp = await _request_with_origin(client, url, "OPTIONS", origin, timeout)
     cors = _merge_cors_from_responses(opt_resp, get_resp)
     sensitive_and_like_api = is_sensitive and _response_looks_like_api(get_resp)
+
+    if methodes_collector is not None and (opt_resp is not None or get_resp is not None):
+        allow_m, acam_m = _extract_methodes_data(opt_resp, get_resp)
+        methodes_collector.append((url, allow_m, acam_m))
 
     _collect_acao_credentials_issues(cors, url, origin, sensitive_and_like_api, issues)
     _collect_methods_expose_issues(cors, url, is_sensitive, get_resp, settings, issues)
@@ -261,6 +283,7 @@ async def run_cors_domain_checks(
         CorsCrossOriginCheckResult: Findings issus des chemins sensibles uniquement.
     """
     issues: list[CorsIssue] = []
+    methodes_collector: list[MethodesDataEntry] = []
     settings = get_cors_cross_origin_settings()
     base_for_paths = base_url.rstrip("/")
 
@@ -268,10 +291,22 @@ async def run_cors_domain_checks(
         if not path.strip():
             continue
         derived = build_url_with_path(base_for_paths, path)
-        await _check_cors_for_url(client, derived, is_sensitive=True, settings=settings, issues=issues)
+        await _check_cors_for_url(
+            client,
+            derived,
+            is_sensitive=True,
+            settings=settings,
+            issues=issues,
+            methodes_collector=methodes_collector,
+        )
 
     findings = tuple(issue.message for issue in issues)
-    return CorsCrossOriginCheckResult(findings=findings, fetch_ok=True, issues=tuple(issues))
+    return CorsCrossOriginCheckResult(
+        findings=findings,
+        fetch_ok=True,
+        issues=tuple(issues),
+        methodes_data=tuple(methodes_collector),
+    )
 
 
 async def run_cors_page_checks(
@@ -305,8 +340,18 @@ async def run_cors_page_checks(
         findings = tuple(issue.message for issue in issues)
         return CorsCrossOriginCheckResult(findings=findings, fetch_ok=False, issues=tuple(issues))
 
+    methodes_collector: list[MethodesDataEntry] = []
+    if domain_result and domain_result.methodes_data:
+        methodes_collector.extend(list(domain_result.methodes_data))
     is_sensitive = _is_sensitive_url(page_url, settings.sensitive_paths)
-    await _check_cors_for_url(client, page_url, is_sensitive=is_sensitive, settings=settings, issues=issues)
+    await _check_cors_for_url(
+        client,
+        page_url,
+        is_sensitive=is_sensitive,
+        settings=settings,
+        issues=issues,
+        methodes_collector=methodes_collector,
+    )
 
     if not is_sensitive:
         corp = get_header_insensitive(response, "Cross-Origin-Resource-Policy")
@@ -318,7 +363,12 @@ async def run_cors_page_checks(
         await _check_mixed_content(response, page_url, settings.max_sub_resources, issues)
 
     findings = tuple(issue.message for issue in issues)
-    return CorsCrossOriginCheckResult(findings=findings, fetch_ok=True, issues=tuple(issues))
+    return CorsCrossOriginCheckResult(
+        findings=findings,
+        fetch_ok=True,
+        issues=tuple(issues),
+        methodes_data=tuple(methodes_collector),
+    )
 
 
 async def run_cors_cross_origin_checks(
@@ -355,6 +405,7 @@ async def run_cors_cross_origin_checks(
 
     page_url = str(response.url) if getattr(response, "url", None) else https_url
     base_for_paths = page_url.rstrip("/") or page_url
+    methodes_collector: list[MethodesDataEntry] = []
 
     urls_to_check: list[tuple[str, bool]] = [(page_url, _is_sensitive_url(page_url, settings.sensitive_paths))]
     for path in settings.sensitive_paths:
@@ -365,7 +416,14 @@ async def run_cors_cross_origin_checks(
             urls_to_check.append((derived, True))
 
     for url, is_sensitive in urls_to_check:
-        await _check_cors_for_url(client, url, is_sensitive, settings, issues)
+        await _check_cors_for_url(
+            client,
+            url,
+            is_sensitive,
+            settings,
+            issues,
+            methodes_collector=methodes_collector,
+        )
 
     main_is_sensitive = _is_sensitive_url(page_url, settings.sensitive_paths)
     if not main_is_sensitive:
@@ -378,4 +436,9 @@ async def run_cors_cross_origin_checks(
         await _check_mixed_content(response, page_url, settings.max_sub_resources, issues)
 
     findings = tuple(issue.message for issue in issues)
-    return CorsCrossOriginCheckResult(findings=findings, fetch_ok=True, issues=tuple(issues))
+    return CorsCrossOriginCheckResult(
+        findings=findings,
+        fetch_ok=True,
+        issues=tuple(issues),
+        methodes_data=tuple(methodes_collector),
+    )

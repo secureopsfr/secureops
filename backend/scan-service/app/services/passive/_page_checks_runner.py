@@ -21,6 +21,7 @@ from app.services.passive.both.cache import checks as cache_checks
 from app.services.passive.both.cookies import check_cookies_from_response
 from app.services.passive.both.cors_cross_origin.checks import run_cors_page_checks
 from app.services.passive.both.information_disclosure import check_information_disclosure_from_response
+from app.services.passive.both.methodes_http_et_redirections import run_methodes_http_checks
 from app.services.passive.both.security_headers import check_security_headers_from_response
 from app.services.passive.both.tech_fingerprinting import check_tech_fingerprinting_from_response
 from app.services.passive.frontend.integrity import check_integrity_from_response
@@ -74,5 +75,13 @@ async def run_page_checks(
         results["cache"] = await cache_checks.check_cache_from_response(response, url, client, assets_cache=assets_cache, scan_type=scan_type)
     with http_request_category("cors_cross_origin"):
         results["cors_cross_origin"] = await run_cors_page_checks(response, url, client, domain_result=domain_cors_result, scan_type=scan_type)
+    with http_request_category("methodes_http_et_redirections"):
+        results["methodes_http_et_redirections"] = await run_methodes_http_checks(
+            response,
+            url,
+            client,
+            cors_result=results["cors_cross_origin"],
+            scan_type=scan_type,
+        )
 
     return results

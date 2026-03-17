@@ -368,6 +368,23 @@ cors_cross_origin:
   max_sub_resources: 50   # Limite pour détection mixed content (réutilise même logique que cache)
   subresource_timeout: 3.0
 
+# Méthodes HTTP et redirections (ex-roadmap 5.5). Référence : docs/verifications/passive/methodes-http-et-redirections.md
+methodes_http_et_redirections:
+  redirect_chain_max: 5        # Nombre max de redirections avant finding
+  trace_timeout: 3.0          # Timeout (s) pour requête TRACE
+  trace_max_urls: 6            # Limite URLs testées pour TRACE (page + chemins sensibles)
+  form_sensitive_paths:        # Chemins considérés formulaire sensible (301/302 vs 307/308)
+    - "/login"
+    - "/auth"
+    - "/signin"
+    - "/register"
+    - "/signup"
+  checks:
+    trace: true
+    head: true
+    redirect_chain: true
+    redirect_301_302: true
+
 # Scan multi-URL : paramètres de performance et limites.
 multi_scan:
   max_urls: 200              # Nombre maximum d'URLs par scan multi (valide pour tous les plans)
@@ -395,6 +412,7 @@ scoring:
     tech_fingerprinting: 5
     information_disclosure: 5
     cors_cross_origin: 5
+    methodes_http_et_redirections: 5
   severity_penalties:
     critical: 100
     high: 50
@@ -416,3 +434,4 @@ category_labels:
   tech_fingerprinting: { fr: "Empreinte technologique", en: "Technology fingerprinting" }
   information_disclosure: { fr: "Divulgation d'information", en: "Information disclosure" }
   cors_cross_origin: { fr: "CORS / Cross-origin", en: "CORS / Cross-origin" }
+  methodes_http_et_redirections: { fr: "Méthodes HTTP et redirections", en: "HTTP methods and redirects" }

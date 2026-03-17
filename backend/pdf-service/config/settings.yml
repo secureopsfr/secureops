@@ -84,6 +84,7 @@ pdf:
       - tech_fingerprinting
       - information_disclosure
       - cors_cross_origin
+      - methodes_http_et_redirections
       - other
     checked:
       - tls
@@ -98,6 +99,7 @@ pdf:
       - tech_fingerprinting
       - information_disclosure
       - cors_cross_origin
+      - methodes_http_et_redirections
     labels_fr:
       tls: "TLS / HTTPS"
       headers: "Security Headers"
@@ -111,6 +113,7 @@ pdf:
       tech_fingerprinting: "Tech fingerprinting"
       information_disclosure: "Fuites d'information"
       cors_cross_origin: "CORS et cross-origin"
+      methodes_http_et_redirections: "Méthodes HTTP et redirections"
       other: "Autres"
     labels_en:
       tls: "TLS / HTTPS"
@@ -125,4 +128,5 @@ pdf:
       tech_fingerprinting: "Tech fingerprinting"
       information_disclosure: "Information disclosure"
       cors_cross_origin: "CORS and cross-origin"
+      methodes_http_et_redirections: "HTTP methods and redirects"
       other: "Other"
