@@ -1,5 +1,6 @@
 """Normalisation des résultats Méthodes HTTP en list[Finding]."""
 
+from app.catalogue.owasp import get_owasp_categories
 from app.catalogue.recommendations import get_recommendation, get_references
 from app.models.finding import Finding
 from app.services.passive.both.methodes_http_et_redirections.checks import MethodesHttpCheckResult
@@ -25,6 +26,7 @@ def _finding(slug: str, category: str, title: str, severity: str, evidence: str)
         evidence=evidence,
         recommendation=get_recommendation(slug),
         references=get_references(slug),
+        owasp_categories=get_owasp_categories(slug),
     )
 
 

@@ -4,6 +4,7 @@ Le fallback legacy (correspondance de chaînes sur result.findings) a été supp
 La normalisation utilise exclusivement les attributs structurés de CookieInfo.
 """
 
+from app.catalogue.owasp import get_owasp_categories
 from app.catalogue.recommendations import get_recommendation, get_references
 from app.config_loader import get_cookies_settings
 from app.models.finding import Finding
@@ -20,6 +21,7 @@ def _finding(slug: str, category: str, title: str, severity: str, evidence: str)
         evidence=evidence,
         recommendation=get_recommendation(slug),
         references=get_references(slug),
+        owasp_categories=get_owasp_categories(slug),
     )
 
 
