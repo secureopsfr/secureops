@@ -18,6 +18,7 @@ recalculer les hashes SRI.
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from typing import Final
@@ -229,10 +230,8 @@ def _analyze_html(
         base_host=base_host,
         csrf_field_names=csrf_field_names,
     )
-    try:
+    with contextlib.suppress(Exception):
         parser.feed(html)
-    except Exception:
-        pass
     parser.close()
     return parser.data
 

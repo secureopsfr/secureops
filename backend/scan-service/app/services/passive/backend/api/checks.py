@@ -78,9 +78,8 @@ def _is_swagger_or_openapi(body: bytes, ct: str | None) -> bool:
             text = body.decode("utf-8", errors="replace")
             if text.strip().startswith("{"):
                 data = json.loads(text)
-                if isinstance(data, dict):
-                    if "openapi" in data or "swagger" in data:
-                        return True
+                if isinstance(data, dict) and ("openapi" in data or "swagger" in data):
+                    return True
         except Exception:
             pass
     text_lower = body.decode("utf-8", errors="replace").lower()

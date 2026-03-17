@@ -4,7 +4,7 @@ Réexporte toutes les fonctions get_* pour compatibilité avec config_loader.
 settings reste dans config_loader (caller_file pour create_simple_settings).
 """
 
-from app.config.apis_et_formats import get_apis_et_formats_settings
+from app.config.apis_et_formats import ApisEtFormatsSettings, get_apis_et_formats_settings
 from app.config.async_jobs import AsyncJobsSettings, get_async_jobs_settings
 from app.config.cache import CacheSettings, get_cache_settings
 from app.config.cookies import CookiesSettings, get_cookies_settings
@@ -37,6 +37,7 @@ from app.config.timeouts import ScanTimeoutsSettings, get_scan_timeouts
 from app.config.url_validation import UrlValidationSettings, get_url_validation_settings
 
 __all__ = [
+    "ApisEtFormatsSettings",
     "CacheSettings",
     "AsyncJobsSettings",
     "MultiScanSettings",

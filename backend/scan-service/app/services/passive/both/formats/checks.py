@@ -58,14 +58,12 @@ def _check_content_type(
     ct_lower = ct.split(";")[0].strip().lower()
     body = getattr(response, "content", b"") or b""
 
-    if _looks_like_json(body):
-        if "application/json" not in ct_lower and "application/ld+json" not in ct_lower:
-            msg = f"Contenu JSON servi avec Content-Type incorrect ({ct.split(';')[0].strip()}) : {url}."
-            issues.append(FormatsIssue(kind="content_type_wrong", message=msg, url=url))
-    elif _looks_like_html(body):
-        if "text/html" not in ct_lower:
-            msg = f"Contenu HTML servi avec Content-Type incorrect ({ct.split(';')[0].strip()}) : {url}."
-            issues.append(FormatsIssue(kind="content_type_wrong", message=msg, url=url))
+    if _looks_like_json(body) and "application/json" not in ct_lower and "application/ld+json" not in ct_lower:
+        msg = f"Contenu JSON servi avec Content-Type incorrect ({ct.split(';')[0].strip()}) : {url}."
+        issues.append(FormatsIssue(kind="content_type_wrong", message=msg, url=url))
+    elif _looks_like_html(body) and "text/html" not in ct_lower:
+        msg = f"Contenu HTML servi avec Content-Type incorrect ({ct.split(';')[0].strip()}) : {url}."
+        issues.append(FormatsIssue(kind="content_type_wrong", message=msg, url=url))
 
 
 def _check_xcto(
