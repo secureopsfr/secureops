@@ -1,7 +1,6 @@
 "use client";
 
 import { lazy } from "react";
-import { useLanguage } from "../../../components/LanguageProvider";
 import { useAccountPage } from "../../../hooks/useAccountPage";
 import AccountLayout from "../../../components/user/AccountLayout";
 import Loading from "./loading";
@@ -24,8 +23,6 @@ const PrivacySection = lazy(
 );
 
 export default function MonComptePage() {
-  const { t } = useLanguage();
-
   const {
     user,
     loading,
@@ -47,7 +44,6 @@ export default function MonComptePage() {
     handleDeleteAccount,
     handleSignOutAll,
     handleSignOut,
-    lp,
   } = useAccountPage();
 
   if (loading) {

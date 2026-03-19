@@ -6,7 +6,6 @@
  * pour que l'aperçu ait exactement la même forme que la page de résultats réelle.
  */
 
-import { useLanguage } from "../LanguageProvider";
 import ScanResultHeroCard from "./ScanResultHeroCard";
 import ScanSummarySection from "./ScanSummarySection";
 import { severitySort } from "./scanConstants";
@@ -20,7 +19,6 @@ interface FakeScanResultsBlurredProps {
 export default function FakeScanResultsBlurred({
   result,
 }: FakeScanResultsBlurredProps) {
-  const { t } = useLanguage();
   const sortedFindings = [...result.findings].sort(severitySort);
 
   return (

@@ -151,7 +151,6 @@ export default function ScanSummarySection({
               {displayCategories.map((cat) => {
                 const count = byCategory[cat] ?? 0;
                 const nbChecks = checksCountByCategory[cat] ?? 0;
-                const anchorId = `${anchorPrefix}anomalies-${cat}`;
                 const summaryEntry = summariesByCategory[cat];
                 const label =
                   (language === "en"
@@ -246,7 +245,6 @@ export default function ScanSummarySection({
               const hasAnomalies = anomalyCount > 0;
               const hasInfos = infoCount > 0;
               const hasAny = hasAnomalies || hasInfos;
-              const anchorId = `${anchorPrefix}anomalies-${entry.category}`;
 
               return (
                 <div
