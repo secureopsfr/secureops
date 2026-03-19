@@ -420,7 +420,7 @@ export default function CrawlersContent() {
               />
             ) : (
               <>
-                <FakeScanResultsBlurred />
+                <FakeScanResultsBlurred result={result} />
                 <Modal
                   isOpen
                   onClose={() => {}}

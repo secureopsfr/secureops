@@ -425,7 +425,7 @@ export default function ScannerContent() {
               />
             ) : (
               <>
-                <FakeScanResultsBlurred />
+                <FakeScanResultsBlurred result={result} />
                 <Modal
                   isOpen
                   onClose={() => {}}
