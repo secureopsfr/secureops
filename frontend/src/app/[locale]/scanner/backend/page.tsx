@@ -42,7 +42,7 @@ export default async function ScannerBackendPage({
           <ScanTypePageContent
             titleKey="scanner.backend.title"
             placeholderKey="scanner.backend.placeholder"
-            docSlug="scan-backend"
+            docSlug="scan-passif"
             filterScanType="backend"
           />
         </div>

@@ -19,7 +19,9 @@ interface AdminGuardProps {
 export default function AdminGuard({ children }: AdminGuardProps) {
   const router = useRouter();
   const { t, lp } = useLanguage();
-  const { user, isLoading: authLoading } = useAuthUser();
+  const { user, isLoading: authLoading } = useAuthUser({
+    listenToAuthEvents: true,
+  });
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 

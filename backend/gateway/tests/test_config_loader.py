@@ -37,6 +37,11 @@ def test_settings_is_cached(monkeypatch) -> None:
             ),
             timeouts=config_loader_module.TimeoutsConf(request_timeout=20.0, crawl_timeout=90.0),
             headers=config_loader_module.HeadersConf(hop_by_hop=["connection"]),
+            rate_limits=config_loader_module.RateLimitsConf(
+                user=config_loader_module.RateLimitBucketConf(limit=10, window_seconds=60),
+                api_key=config_loader_module.RateLimitBucketConf(limit=10, window_seconds=60),
+                anon=config_loader_module.RateLimitBucketConf(limit=3, window_seconds=60),
+            ),
         )
 
     reset_settings_cache()
@@ -68,6 +73,11 @@ def test_get_services_config_uses_local_when_not_docker(monkeypatch) -> None:
             ),
             timeouts=config_loader_module.TimeoutsConf(request_timeout=20.0, crawl_timeout=90.0),
             headers=config_loader_module.HeadersConf(hop_by_hop=["connection"]),
+            rate_limits=config_loader_module.RateLimitsConf(
+                user=config_loader_module.RateLimitBucketConf(limit=10, window_seconds=60),
+                api_key=config_loader_module.RateLimitBucketConf(limit=10, window_seconds=60),
+                anon=config_loader_module.RateLimitBucketConf(limit=3, window_seconds=60),
+            ),
         )
 
     monkeypatch.setattr(config_loader_module, "settings", fake_settings)

@@ -52,6 +52,14 @@ export const STEP_I18N_KEYS: Record<string, string> = {
   integrity_done: "scanner.integrityDone",
   cors_cross_origin_check: "scanner.corsCheck",
   cors_cross_origin_done: "scanner.corsDone",
+  methodes_http_et_redirections_check: "scanner.methodesHttpCheck",
+  methodes_http_et_redirections_done: "scanner.methodesHttpDone",
+  api_checks_check: "scanner.apiChecksCheck",
+  api_checks_done: "scanner.apiChecksDone",
+  formats_check: "scanner.formatsCheck",
+  formats_done: "scanner.formatsDone",
+  api_page_check: "scanner.apiPageCheck",
+  api_page_done: "scanner.apiPageDone",
   // Intrusive fake probe steps
   intrusive_reflected_xss_check: "scanner.intrusiveReflectedXssCheck",
   intrusive_reflected_xss_done: "scanner.intrusiveReflectedXssDone",
@@ -209,6 +217,10 @@ export function buildTimelineSteps(
       rawSteps.some(
         (s) =>
           s.step === "cors_cross_origin_done" ||
+          s.step === "methodes_http_et_redirections_done" ||
+          s.step === "api_page_done" ||
+          s.step === "formats_done" ||
+          s.step === "api_checks_done" ||
           s.step === "intrusive_authz_bypass_done" ||
           s.step === "custom_guardrails_done" ||
           s.step === "destructive_safety_done" ||

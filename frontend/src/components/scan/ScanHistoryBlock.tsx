@@ -164,8 +164,8 @@ export default function ScanHistoryBlock({
                       : "scanner.scanResultModeSingle";
                   const modeBadgeClass =
                     item.result_mode === "multi"
-                      ? "bg-[rgba(14,165,233,0.22)] text-white/70 border border-[rgba(14,165,233,0.40)]"
-                      : "bg-[rgba(168,85,247,0.22)] text-white/70 border border-[rgba(168,85,247,0.40)]";
+                      ? "bg-[rgba(14,165,233,0.12)] text-[rgb(14,165,233)]"
+                      : "bg-[rgba(168,85,247,0.12)] text-[rgb(168,85,247)]";
                   return (
                     <li
                       key={item.id}
@@ -191,11 +191,9 @@ export default function ScanHistoryBlock({
                           >
                             {t(modeKey)}
                           </span>
-                          {!filterScanType && (
-                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
-                              {t(scanTypeKey)}
-                            </span>
-                          )}
+                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
+                            {t(scanTypeKey)}
+                          </span>
                           {formatDate(item.created_at)} · {item.score ?? "—"}
                           /100 · {t(badge.labelKey)}
                         </span>

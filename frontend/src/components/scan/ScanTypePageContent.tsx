@@ -26,8 +26,8 @@ interface ScanTypePageContentProps {
   titleKey: string;
   /** Clé i18n pour le placeholder/description. */
   placeholderKey: string;
-  /** Slug du document (ex. scan-backend, scans-personnalises). */
-  docSlug: string;
+  /** Slug du document (ex. scan-backend). Omit to hide the doc link. */
+  docSlug?: string;
   /** Type de scan pour filtrer les blocs. */
   filterScanType: "frontend" | "backend";
 }
@@ -131,17 +131,19 @@ export default function ScanTypePageContent({
           <div className="page-header text-center mb-4">
             <h1 className="page-title mb-2">{t(titleKey)}</h1>
             <p className="page-subtitle mt-0">{t(placeholderKey)}</p>
-            <Link
-              href={lp(`/scanner/docs/${docSlug}`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
-            >
-              <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
-                <FileText className="w-4 h-4" />
-                {t("scanner.docsLink")}
-              </span>
-            </Link>
+            {docSlug ? (
+              <Link
+                href={lp(`/scanner/docs/${docSlug}`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
+              >
+                <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
+                  <FileText className="w-4 h-4" />
+                  {t("scanner.docsLink")}
+                </span>
+              </Link>
+            ) : null}
           </div>
         </div>
       </AnimateInView>

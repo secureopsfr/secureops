@@ -155,8 +155,8 @@ export default function LandingScanBlock() {
 
   if (state === "success" && result && !authLoading && !isAuthenticated) {
     return (
-      <div className="landing-scan-block mt-8 space-y-4">
-        <FakeScanResultsBlurred />
+      <div className="landing-scan-block mt-8 space-y-4 w-full max-w-[1400px] mx-auto px-4 sm:px-8">
+        <FakeScanResultsBlurred result={result} />
         <Modal
           isOpen
           onClose={() => {}}

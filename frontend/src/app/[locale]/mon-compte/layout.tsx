@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslation } from "../../../i18n/server";
 import { SITE_URL, type Locale } from "../../../i18n/config";
+import AuthGuard from "../../../components/auth/AuthGuard";
 
 export async function generateMetadata({
   params,
@@ -24,5 +25,7 @@ export default function MonCompteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <AuthGuard loadingMessageKey="account.loadingInfo">{children}</AuthGuard>
+  );
 }

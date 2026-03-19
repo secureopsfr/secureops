@@ -75,27 +75,57 @@ export default function ScannerDocsPage() {
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {docs.map((doc) => (
-                  <Link
-                    key={doc.slug}
-                    href={lp(`/scanner/docs/${doc.slug}`)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-4 p-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[rgb(var(--primary))] hover:bg-[rgba(var(--primary),0.05)] transition-colors no-underline h-full min-h-[120px]"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-[rgba(var(--primary),0.1)] flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-5 h-5 text-[rgb(var(--primary))]" />
+                {docs.map((doc) => {
+                  const isComingSoon =
+                    /intrusif|intrusive|destructeur|destructive|personnalise|personnalises|custom/i.test(
+                      doc.slug,
+                    ) ||
+                    /intrusif|intrusive|destructeur|destructive|personnalise|personnalises|custom/i.test(
+                      doc.title,
+                    );
+                  return isComingSoon ? (
+                    <div
+                      key={doc.slug}
+                      className="flex items-center gap-4 p-6 rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] opacity-55 min-h-[120px] cursor-not-allowed"
+                      aria-disabled="true"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-[rgba(var(--primary),0.1)] flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-5 h-5 text-[rgb(var(--primary))]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-lg font-semibold text-[var(--text)] line-clamp-2 mb-0.5">
+                          {doc.title}
+                        </h2>
+                        <span className="inline-block text-xs font-medium text-[rgb(var(--primary))] bg-[rgba(var(--primary),0.12)] px-2.5 py-1 rounded-full w-fit mb-1">
+                          {t("scanner.docs.comingSoon")}
+                        </span>
+                        <p className="text-sm text-[var(--color-text-muted)]">
+                          <code className="text-xs">{doc.slug}</code>
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h2 className="text-lg font-semibold text-[var(--text)] mb-1 line-clamp-2">
-                        {doc.title}
-                      </h2>
-                      <p className="text-sm text-[var(--color-text-muted)]">
-                        <code className="text-xs">{doc.slug}</code>
-                      </p>
-                    </div>
-                  </Link>
-                ))}
+                  ) : (
+                    <Link
+                      key={doc.slug}
+                      href={lp(`/scanner/docs/${doc.slug}`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-4 p-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[rgb(var(--primary))] hover:bg-[rgba(var(--primary),0.05)] transition-colors no-underline h-full min-h-[120px]"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-[rgba(var(--primary),0.1)] flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-5 h-5 text-[rgb(var(--primary))]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-lg font-semibold text-[var(--text)] mb-1 line-clamp-2">
+                          {doc.title}
+                        </h2>
+                        <p className="text-sm text-[var(--color-text-muted)]">
+                          <code className="text-xs">{doc.slug}</code>
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </div>

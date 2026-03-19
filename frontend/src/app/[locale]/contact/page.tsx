@@ -84,11 +84,11 @@ export default async function ContactPage({
       name: "SecureOps",
       url: SITE_URL,
       logo: `${SITE_URL}/logo.png`,
-      email: "contact@secureops.io",
+      email: "contact@secureops.fr",
       contactPoint: {
         "@type": "ContactPoint",
         contactType: "customer support",
-        email: "contact@secureops.io",
+        email: "contact@secureops.fr",
         url: pageUrl,
         availableLanguage: ["French", "English"],
       },

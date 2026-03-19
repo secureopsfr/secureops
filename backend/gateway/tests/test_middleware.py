@@ -74,8 +74,8 @@ def test_admin_route_requires_admin_flag(monkeypatch) -> None:
     assert calls == [True]
 
 
-def test_admin_docs_are_auth_only_not_admin(monkeypatch) -> None:
-    """GET /admin/api/docs* doit être auth-only (pas require_admin)."""
+def test_admin_docs_are_public(monkeypatch) -> None:
+    """GET /admin/api/docs est une route publique (aucune authentification requise)."""
     calls: list[bool] = []
 
     async def fake_authenticate(request, require_admin=False):  # type: ignore[no-untyped-def]
@@ -88,7 +88,9 @@ def test_admin_docs_are_auth_only_not_admin(monkeypatch) -> None:
     resp = client.get("/admin/api/docs")
 
     assert resp.status_code == 200
-    assert calls == [False]
+    assert resp.json() == {"status": "docs"}
+    # Route publique : _authenticate n'est jamais appelé
+    assert calls == []
 
 
 def test_auth_only_method_path_uses_simple_auth(monkeypatch) -> None:

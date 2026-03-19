@@ -18,7 +18,7 @@ export default function ScannerApiDocPage() {
   const baseUrl =
     typeof window !== "undefined"
       ? getApiBaseUrl()
-      : process.env.NEXT_PUBLIC_GATEWAY_URL || "https://api.secureops.io";
+      : process.env.NEXT_PUBLIC_GATEWAY_URL || "https://api.secureops.fr";
 
   return (
     <>

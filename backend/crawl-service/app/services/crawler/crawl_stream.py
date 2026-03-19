@@ -8,7 +8,9 @@ import asyncio
 import contextlib
 from collections.abc import AsyncGenerator, Callable
 
-from app.config_loader import get_crawler_settings, get_ssrf_settings
+from common.blacklist import check_blacklist
+
+from app.config_loader import get_blacklist_settings, get_crawler_settings, get_ssrf_settings
 from app.services.crawler.executor import execute_crawl_by_mode, make_run_crawler
 from app.services.crawler.stream_queue import consume_crawl_queue, error_response_for_exception, put_error_from_exception
 from app.services.crawler.types import CrawlMode
@@ -95,6 +97,8 @@ async def crawl_stream_generator(
         yield sse_message("step", {"step": "validation_url_check", "message": ""})
         validated = validate_and_normalize_url(url)
         yield sse_message("step", {"step": "validation_url_done", "message": ""})
+
+        await check_blacklist(validated, get_blacklist_settings())
 
         yield sse_message("step", {"step": "ssrf_check", "message": ""})
         await check_ssrf(validated, timeout=get_ssrf_settings().dns_timeout)

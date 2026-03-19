@@ -20,7 +20,9 @@ if TYPE_CHECKING:
 from html.parser import HTMLParser
 from urllib.parse import urlparse, urlunparse
 
-from app.config_loader import get_crawler_settings, get_ssrf_settings
+from common.blacklist import check_blacklist
+
+from app.config_loader import get_blacklist_settings, get_crawler_settings, get_ssrf_settings
 from app.services.crawler.anti_bot import detect_anti_bot
 from app.services.crawler.url_utils import is_same_domain, normalize_base_domain, normalize_url
 from app.services.robots_txt.checks import run_robots_txt_checks
@@ -389,6 +391,7 @@ async def prepare_crawl_context(
         CrawlContext avec tous les champs communs pour run_crawl et run_crawl_playwright.
     """
     validated = validate_and_normalize_url(start_url)
+    await check_blacklist(validated, get_blacklist_settings())
     await check_ssrf(validated, timeout=get_ssrf_settings().dns_timeout)
     settings = get_crawler_settings()
     max_urls_limit = max_urls if max_urls is not None else settings.max_urls

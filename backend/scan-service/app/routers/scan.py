@@ -5,12 +5,14 @@ import os
 import uuid
 
 from common.async_jobs import generate_job_token, hash_job_token
+from common.blacklist import check_blacklist
+from common.url_utils import URLValidationError
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.config_loader import get_async_jobs_settings, get_external_services_settings
+from app.config_loader import get_async_jobs_settings, get_blacklist_settings, get_external_services_settings
 from app.db import get_async_session
 from app.schemas.async_job import ScanAsyncCreateRequest, ScanAsyncCreateResponse, ScanAsyncMultiCreateRequest, ScanAsyncStatusResponse
 from app.services.async_job_repository import create_job, get_job_by_id
@@ -28,6 +30,7 @@ from app.use_cases.async_job_access import (
     require_job_access,
     require_user_for_non_frontend,
 )
+from app.utils.url_validator import validate_and_normalize_url
 
 # Clé API pour les appels service-to-service (endpoint interne).
 # Si définie, le header X-Internal-Api-Key doit correspondre.
@@ -199,6 +202,11 @@ async def create_scan_async_job(
         raise HTTPException(status_code=401, detail=str(exc))
     except AnonymousPassiveFrontendOnlyError as exc:
         raise HTTPException(status_code=401, detail=str(exc))
+    try:
+        normalized_url = validate_and_normalize_url(body.url)
+        await check_blacklist(normalized_url, get_blacklist_settings())
+    except URLValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     raw_job_token: str | None = None
     token_hash: str | None = None
     if not authenticated_user_id:
@@ -209,7 +217,7 @@ async def create_scan_async_job(
         async with get_async_session() as session:
             job = await create_job(
                 session,
-                url=body.url,
+                url=normalized_url,
                 scan_type=body.scan_type,
                 input_json=job_input,
                 user_id=authenticated_user_id,
@@ -244,11 +252,17 @@ async def create_multi_scan_async_job(
         raise HTTPException(status_code=401, detail="Authentification requise pour le scan multi-URL")
 
     try:
-        job_input = {"scan_mode": body.scan_mode, "urls": body.urls, **(body.input or {})}
+        normalized_urls = [validate_and_normalize_url(u) for u in body.urls]
+        await check_blacklist(normalized_urls[0], get_blacklist_settings())
+    except URLValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    try:
+        job_input = {"scan_mode": body.scan_mode, "urls": normalized_urls, **(body.input or {})}
         async with get_async_session() as session:
             job = await create_job(
                 session,
-                url=body.urls[0],
+                url=normalized_urls[0],
                 scan_type=body.scan_type,
                 input_json=job_input,
                 user_id=authenticated_user_id,

@@ -3,7 +3,11 @@
  */
 
 import { getApiBaseUrl } from "../utils/apiClient";
-import { pollAsyncJob } from "../utils/pollAsyncJob";
+import {
+  parse429Error,
+  parseHttpError,
+  pollAsyncJob,
+} from "../utils/pollAsyncJob";
 import logger from "../utils/logger";
 import type { ScanStep } from "./scanService";
 
@@ -72,10 +76,20 @@ export async function runCrawl(
   onEvent: (ev: CrawlEventHandler) => void,
   maxUrls: number = 50,
   mode: CrawlMode = "html",
+  getToken?: () => Promise<string | null>,
 ): Promise<void> {
   const logPrefix = "[crawl-polling]";
   const base = getApiBaseUrl().replace(/\/$/, "");
   const createEndpoint = `${base}/crawl/api/crawl/async`;
+
+  const authHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  if (getToken) {
+    const token = await getToken();
+    if (token) authHeaders.Authorization = `Bearer ${token}`;
+  }
 
   await pollAsyncJob<CrawlResponse>({
     logPrefix,
@@ -89,10 +103,7 @@ export async function runCrawl(
       });
       const res = await fetch(createEndpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+        headers: authHeaders,
         body: JSON.stringify({
           url,
           scan_type: "frontend",
@@ -100,15 +111,16 @@ export async function runCrawl(
         }),
       });
       if (!res.ok) {
-        logger.error(`${logPrefix} create job failed`, { status: res.status });
-        onEvent({
-          type: "error",
-          data: {
-            message: `Erreur HTTP ${res.status}`,
-            status_code: res.status,
-          },
-        });
-        throw new Error(`create job failed: ${res.status}`);
+        const errorData =
+          res.status === 429
+            ? await parse429Error(res)
+            : await parseHttpError(res);
+        const logFn = res.status >= 500 ? logger.error : logger.warn;
+        logFn(
+          `${logPrefix} create job failed: ${res.status} - ${errorData.message}`,
+        );
+        onEvent({ type: "error", data: errorData });
+        throw new Error(errorData.message);
       }
       const data = (await res.json()) as AsyncCrawlCreateResponse;
       logger.info(`${logPrefix} create job success`, {
@@ -121,7 +133,11 @@ export async function runCrawl(
     resultUrl: (jobId) => `${base}/crawl/api/crawl/async/${jobId}/result`,
     buildPollHeaders: (jobToken) => {
       const h: Record<string, string> = { Accept: "application/json" };
-      if (jobToken) h["X-Job-Token"] = jobToken;
+      if (jobToken) {
+        h["X-Job-Token"] = jobToken;
+      } else if (authHeaders.Authorization) {
+        h.Authorization = authHeaders.Authorization;
+      }
       return h;
     },
     onEvent: (ev) => {

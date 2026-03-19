@@ -21,9 +21,6 @@ export default function ScanResultsGate({ signInHref }: ScanResultsGateProps) {
       <p className="text-muted-theme text-sm max-w-md">
         {t("scanner.gateDesc")}
       </p>
-      <p className="text-muted-theme text-xs max-w-md">
-        {t("scanner.gateHistoryDesc")}
-      </p>
       <GenericButton
         label={t("scanner.gateCta")}
         href={signInHref}

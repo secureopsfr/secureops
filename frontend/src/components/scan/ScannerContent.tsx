@@ -146,7 +146,7 @@ export default function ScannerContent() {
               <h1 className="page-title mb-2">{t("scanner.title")}</h1>
               <p className="page-subtitle mt-0">{t("scanner.subtitle")}</p>
               <Link
-                href={lp("/scanner/docs/scan-frontend")}
+                href={lp("/scanner/docs/scan-passif")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
@@ -425,7 +425,7 @@ export default function ScannerContent() {
               />
             ) : (
               <>
-                <FakeScanResultsBlurred />
+                <FakeScanResultsBlurred result={result} />
                 <Modal
                   isOpen
                   onClose={() => {}}

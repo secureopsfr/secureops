@@ -92,7 +92,7 @@ export function proxy(request: NextRequest) {
     const internalSlug = EN_SLUG_TO_INTERNAL[slug];
 
     if (internalSlug) {
-      // Rewrite /en/pricing → /en/tarifs (internal route)
+      // Rewrite EN slugs to internal routes (e.g. /en/login → /en/connexion)
       const url = request.nextUrl.clone();
       const remainingSegments = segments.slice(2);
       url.pathname = `/${locale}/${internalSlug}${remainingSegments.length ? "/" + remainingSegments.join("/") : ""}`;

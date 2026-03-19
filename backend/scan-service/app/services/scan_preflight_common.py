@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Callable
 
-from app.config_loader import get_ssrf_settings
+from common.blacklist import check_blacklist
+
+from app.config_loader import get_blacklist_settings, get_ssrf_settings
 from app.utils.sse import sse_message
 from app.utils.ssrf import check_ssrf
 from app.utils.url_helpers import get_scan_base_url, registered_domain
@@ -38,6 +40,8 @@ async def run_single_preflight(
         events.append(timeout_error_message_factory())
         return None, events
 
+    await check_blacklist(normalized_url, get_blacklist_settings())
+
     events.append(sse_message("step", {"step": "ssrf_check", "message": ""}))
     await check_ssrf(normalized_url, timeout=get_ssrf_settings().dns_timeout)
     events.append(sse_message("step", {"step": "ssrf_done", "message": ""}))
@@ -51,12 +55,13 @@ async def run_single_preflight(
 
 
 async def validate_multi_scan_urls_common(urls: list[str]) -> list[str]:
-    """Validate/normalize URLs and enforce single registered-domain + SSRF check."""
+    """Validate/normalize URLs and enforce single registered-domain + blacklist + SSRF check."""
     normalized = [validate_and_normalize_url(url) for url in urls]
     reg_domains = {registered_domain(get_scan_base_url(u)) for u in normalized}
     reg_domains.discard("")
     if len(reg_domains) > 1:
         raise ValueError("Toutes les URLs doivent appartenir au même domaine enregistré. " f"Domaines détectés : {', '.join(sorted(reg_domains))}")
 
+    await check_blacklist(normalized[0], get_blacklist_settings())
     await check_ssrf(normalized[0], timeout=get_ssrf_settings().dns_timeout)
     return normalized

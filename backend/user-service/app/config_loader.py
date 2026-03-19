@@ -21,6 +21,13 @@ from common.config_base import (
 
 
 @dataclass(frozen=True)
+class DailyQuotaSettings:
+    """Paramètres du quota journalier (scans + crawls)."""
+
+    limit: int
+
+
+@dataclass(frozen=True)
 class ApiKeysSettings:
     """Paramètres des clés API (API publique)."""
 
@@ -36,8 +43,15 @@ class AppSettings:
     general: GeneralSettings
     server: ServerSettings
     database: DatabaseSettings
+    daily_quota: DailyQuotaSettings
     api_keys: ApiKeysSettings
     routers: RoutersSettings
+
+
+def _parse_daily_quota_settings(data: Dict[str, Any] | None) -> DailyQuotaSettings:
+    if data is None:
+        data = {}
+    return DailyQuotaSettings(limit=int(data.get("limit", 50)))
 
 
 def _parse_api_keys_settings(data: Dict[str, Any] | None) -> ApiKeysSettings:
@@ -87,9 +101,10 @@ def settings() -> AppSettings:
         general=general,
         server=parse_server_settings(data.get("server", {}), default_port=8011),
         database=parse_database_settings(data.get("database", {})),
+        daily_quota=_parse_daily_quota_settings(data.get("daily_quota")),
         api_keys=_parse_api_keys_settings(data.get("api_keys")),
         routers=routers,
     )
 
 
-__all__ = ["settings", "AppSettings", "GeneralSettings", "RoutersSettings", "ApiKeysSettings"]
+__all__ = ["settings", "AppSettings", "GeneralSettings", "RoutersSettings", "DailyQuotaSettings", "ApiKeysSettings"]
