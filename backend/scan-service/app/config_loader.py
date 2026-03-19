@@ -9,6 +9,7 @@ from common.config_base import create_simple_settings
 from app.config import (
     ApisEtFormatsSettings,
     AsyncJobsSettings,
+    BlacklistSettings,
     CacheSettings,
     CookiesSettings,
     CorsCrossOriginSettings,
@@ -27,6 +28,7 @@ from app.config import (
     UrlValidationSettings,
     get_apis_et_formats_settings,
     get_async_jobs_settings,
+    get_blacklist_settings,
     get_cache_settings,
     get_cookies_settings,
     get_cors_cross_origin_settings,
@@ -58,6 +60,7 @@ settings = create_simple_settings("scan-service", default_port=8012, caller_file
 
 __all__ = [
     "ApisEtFormatsSettings",
+    "BlacklistSettings",
     "AsyncJobsSettings",
     "CacheSettings",
     "MultiScanSettings",
@@ -87,6 +90,7 @@ __all__ = [
     "get_directory_listing_sensitive_403_paths",
     "get_cookies_settings",
     "get_external_services_settings",
+    "get_blacklist_settings",
     "get_exposed_files_max_body",
     "get_exposed_files_settings",
     "get_exposed_files_severity_upgrade",

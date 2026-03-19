@@ -66,6 +66,12 @@ ssrf:
     - "fe80::/10"
     - "fc00::/7"
 
+# Liste noire (roadmap 1.6.2) : domaines interdits pour scan/crawl.
+# Par défaut : secureops.fr (prod). Pour désactiver : domains: []
+blacklist:
+  domains:
+    - "secureops.fr"  # domaine prod + sous-domaines (www, app, etc.)
+
 # Security Headers (roadmap §3.2) : en-têtes à vérifier.
 # message_absent (fr) utilisé par les checks ; message_absent_en pour cohérence i18n (catalogue override PDF).
 # severity : high, medium, low, info — sévérité du finding si l'en-tête est absent.

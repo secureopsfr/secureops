@@ -176,7 +176,7 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 
 #### 1.6.2 Gouvernance crawler (ex-section 7.6 de la v0.3.0)
 
-- [ ] Liste noire configurable (ex. dans `settings.yml`) pour bloquer des domaines/cibles.
+- [x] **Liste noire configurable** — *Fait :* section `blacklist.domains` dans `settings.yml` (scan-service, crawl-service) ; blocage scan/crawl si hostname exact ou sous-domaine (ex. `secureops.fr` bloque `www.secureops.fr`). Par défaut : `secureops.fr`. Voir `common/blacklist.py`, `common/config_base.py`.
 - [x] **Quotas et rate limiting** — *Fait :* rate limiting court terme (10 req/60s user, 3 req/60s anon) et quota journalier fusionné (50 scans+crawls/jour par user) sur `scan/async` et `crawl/async` ; réponses 429 + `Retry-After` ; scans planifiés consomment le quota ; affichage `X / 50` dans le hub Scanner. Voir `docs/RATE-LIMITING.md`.
 
 #### 1.6.3 Scanner hub: docs/UX — déplacé en roadmap 0.5.0

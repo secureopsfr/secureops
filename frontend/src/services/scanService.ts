@@ -3,7 +3,11 @@
  */
 
 import { getApiBaseUrl } from "../utils/apiClient";
-import { pollAsyncJob, parse429Error } from "../utils/pollAsyncJob";
+import {
+  parse429Error,
+  parseHttpError,
+  pollAsyncJob,
+} from "../utils/pollAsyncJob";
 import logger from "../utils/logger";
 
 export interface ScanStep {
@@ -200,13 +204,17 @@ export async function runAsyncScan(
         }),
       });
       if (!res.ok) {
-        logger.error(`${logPrefix} create job failed`, { status: res.status });
         const errorData =
           res.status === 429
             ? await parse429Error(res)
-            : { message: `Erreur HTTP ${res.status}`, status_code: res.status };
+            : await parseHttpError(res);
+        // 4xx = rejet attendu (domaine interdit, quota, etc.) → warn ; 5xx → error
+        const logFn = res.status >= 500 ? logger.error : logger.warn;
+        logFn(
+          `${logPrefix} create job failed: ${res.status} - ${errorData.message}`,
+        );
         onEvent({ type: "error", data: errorData });
-        throw new Error(`create job failed: ${res.status}`);
+        throw new Error(errorData.message);
       }
       const data = (await res.json()) as AsyncScanCreateResponse;
       createData = data;
@@ -297,18 +305,9 @@ export async function runMultiScan(
         const errorData =
           res.status === 429
             ? await parse429Error(res)
-            : await res
-                .json()
-                .then((b: Record<string, unknown>) => ({
-                  message: String(b?.detail ?? `Erreur HTTP ${res.status}`),
-                  status_code: res.status,
-                }))
-                .catch(() => ({
-                  message: `Erreur HTTP ${res.status}`,
-                  status_code: res.status,
-                }));
+            : await parseHttpError(res);
         onEvent({ type: "error", data: errorData });
-        throw new Error(`create job failed: ${res.status}`);
+        throw new Error(errorData.message);
       }
       const data = (await res.json()) as { job_id: string; status: string };
       logger.info(`${logPrefix} create job success`, { job_id: data.job_id });

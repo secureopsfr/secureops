@@ -427,7 +427,7 @@ En **Docker**, le Dockerfile exécute déjà `playwright install --with-deps chr
 ### 6.3 Non implémenté (prévu)
 
 - **Quotas** : pas de limite de crawls/jour par utilisateur ou par domaine.
-- **Liste noire** : pas de config pour bloquer des domaines ou patterns d'URL.
+- **Liste noire** : implémentée (roadmap 1.6.2). Section `blacklist.domains` dans `crawl-service/config/settings.yml`. Par défaut : `secureops.fr` (domaine + sous-domaines).
 - **Crawl-delay** : pas d'attente entre requêtes si robots.txt le demande.
 - **Version asynchrone** : pas de job_id + polling pour les crawls longs.
 
@@ -447,7 +447,7 @@ Le crawler ne suit que les liens du même domaine. Aucune fuite vers des domaine
 ### 7.3 Évolutions prévues
 
 - Quotas de crawls par utilisateur/domaine.
-- Liste noire configurable (domaines ou patterns interdits).
+- ~~Liste noire configurable~~ — fait (roadmap 1.6.2).
 - Logging des tentatives pour audit/modération.
 
 ---

@@ -270,6 +270,43 @@ class SsrfSettings:
     blocked_ipv6_networks: tuple[str, ...]
 
 
+# ---------------------------------------------------------------------------
+# BlacklistSettings et parse_blacklist_settings (liste noire, roadmap 1.6.2)
+# ---------------------------------------------------------------------------
+
+_DEFAULT_BLACKLIST_DOMAINS = ("secureops.fr",)
+
+
+@dataclass(frozen=True)
+class BlacklistSettings:
+    """Liste noire de domaines : bloque scan et crawl sur ces domaines/cibles."""
+
+    domains: tuple[str, ...]
+
+
+def parse_blacklist_settings(data: Dict[str, Any] | None) -> BlacklistSettings:
+    """Construit BlacklistSettings depuis la section blacklist du YAML.
+
+    Args:
+        data: Section blacklist (dict) ou None.
+
+    Returns:
+        BlacklistSettings: configuration liste noire.
+    """
+    bl = data or {}
+    domains_raw = bl.get("domains")
+    if domains_raw is None:
+        return BlacklistSettings(domains=_DEFAULT_BLACKLIST_DOMAINS)
+    return BlacklistSettings(
+        domains=tuple(str(d).lower().strip() for d in domains_raw if d),
+    )
+
+
+# ---------------------------------------------------------------------------
+# SsrfSettings et parse_ssrf_settings (item 7)
+# ---------------------------------------------------------------------------
+
+
 def parse_ssrf_settings(data: Dict[str, Any] | None) -> SsrfSettings:
     """Construit SsrfSettings depuis la section ssrf du YAML.
 

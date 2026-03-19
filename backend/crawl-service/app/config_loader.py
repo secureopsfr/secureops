@@ -7,10 +7,12 @@ from functools import lru_cache
 from pathlib import Path
 
 from common.config_base import (
+    BlacklistSettings,
     SsrfSettings,
     UrlValidationSettings,
     create_simple_settings,
     load_yaml,
+    parse_blacklist_settings,
     parse_ssrf_settings,
     parse_url_validation_settings,
 )
@@ -35,6 +37,18 @@ def get_ssrf_settings() -> SsrfSettings:
     """Charge la section SSRF depuis config/settings.yml."""
     data = _get_data()
     return parse_ssrf_settings(data.get("ssrf"))
+
+
+# ---------------------------------------------------------------------------
+# Blacklist
+# ---------------------------------------------------------------------------
+
+
+@lru_cache(maxsize=1)
+def get_blacklist_settings() -> BlacklistSettings:
+    """Charge la section blacklist depuis config/settings.yml."""
+    data = _get_data()
+    return parse_blacklist_settings(data.get("blacklist"))
 
 
 # ---------------------------------------------------------------------------
@@ -249,10 +263,12 @@ settings = create_simple_settings("crawl-service", default_port=8014, caller_fil
 
 __all__ = [
     "AsyncJobsSettings",
+    "BlacklistSettings",
     "CrawlerSettings",
     "SsrfSettings",
     "UrlValidationSettings",
     "get_async_jobs_settings",
+    "get_blacklist_settings",
     "get_crawler_settings",
     "get_robots_txt_messages",
     "get_robots_txt_settings",
