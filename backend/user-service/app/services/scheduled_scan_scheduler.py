@@ -8,6 +8,7 @@ import httpx
 from common.logging_config import get_logger
 
 from app.db import get_async_session
+from app.services.daily_quota_repository import check_and_increment_quota
 from app.services.scan_alert_service import check_and_send_scan_alerts
 from app.services.scan_repository import create_scan, get_last_scan_by_user_and_url
 from app.services.scheduled_scan_repository import get_scans_due_for_execution, update_next_run_at
@@ -213,8 +214,48 @@ def _is_valid_scan_payload(data: dict) -> bool:
     return has_single_payload or has_multi_payload
 
 
+async def _check_quota_and_reserve(scan, now: datetime) -> tuple[bool, str | None]:
+    """Vérifie le quota journalier, l'incrémente si dispo, et reporte next_run si épuisé.
+
+    Returns:
+        (proceed, cognito_sub): proceed=True si le scan peut s'exécuter, cognito_sub pour logs.
+    """
+    async with get_async_session() as session:
+        user = await get_user_by_id(session, scan.user_id)
+        if not user:
+            logger.warning("Scan planifié ignoré (utilisateur introuvable): id=%s", scan.id)
+            return False, None
+        cognito_sub = user.cognito_sub
+        allowed, remaining = await check_and_increment_quota(session, cognito_sub=cognito_sub)
+        if not allowed:
+            next_run = compute_next_run(
+                from_dt=now,
+                frequency=scan.frequency,
+                schedule_hour=scan.schedule_hour,
+                schedule_minute=scan.schedule_minute,
+                schedule_day_of_week=scan.schedule_day_of_week,
+                schedule_day_of_month=scan.schedule_day_of_month,
+                timezone_name=getattr(scan, "timezone", None),
+            )
+            await update_next_run_at(session, scan.id, next_run)
+            await session.commit()
+            logger.info(
+                "Scan planifié reporté (quota journalier épuisé): id=%s user=%s next_run=%s",
+                scan.id,
+                cognito_sub,
+                next_run.isoformat(),
+            )
+            return False, cognito_sub
+        await session.commit()
+    return True, cognito_sub
+
+
 async def _process_due_scan(scan, now: datetime) -> bool:
     """Traite un scan dû et retourne True si exécution/persistance réussie."""
+    proceed, _ = await _check_quota_and_reserve(scan, now)
+    if not proceed:
+        return False
+
     if _is_multi_scan(scan):
         data, url_to_scan = await _execute_multi_due_scan(scan)
     else:
@@ -263,6 +304,10 @@ async def _process_due_scan(scan, now: datetime) -> bool:
 
 async def run_due_scheduled_scans() -> tuple[int, int]:
     """Exécute les scans planifiés dus et met à jour next_run_at en cas de succès.
+
+    Chaque scan planifié consomme 1 unité du quota journalier (même pool que les
+    scans/crawls manuels). Si le quota est épuisé, next_run_at est reporté à la
+    prochaine occurrence planifiée pour éviter des retries inutiles.
 
     En cas d'échec du scan (site down, timeout), next_run_at n'est PAS mis à jour
     pour permettre un retry au prochain passage du scheduler.

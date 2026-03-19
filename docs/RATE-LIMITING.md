@@ -53,7 +53,7 @@ La combinaison des trois est plus fiable qu'une seule couche.
 
 ### Politique recommandee SecureOps (decision produit)
 
-- **Quota global fusionne par user** pour la conso journaliere (UI + API cumules).
+- **Quota global fusionne par user** pour la conso journaliere (UI + API + scans planifies cumules).
 - **Sous-limites separees court terme** pour la protection anti-abus :
   - bucket JWT (`user_id + route + method`)
   - bucket API key (`api_key_id + route + method`)
@@ -211,6 +211,7 @@ A instrumenter :
 - rate limiting court terme en memoire dans la gateway (`utils/rate_limiter.py`) ;
 - quota long terme PostgreSQL dans le user-service (`daily_quotas` table) ;
 - middleware gateway etendu : rate limit + quota sur `scan/async` et `crawl/async` ;
+- scheduler scans planifies : consommation du quota avant chaque execution, report de `next_run_at` si epuise ;
 - frontend : hook `useQuota` + affichage `X / 50` dans le header.
 
 ### Phase 2 - Quotas long terme
@@ -241,6 +242,7 @@ Le rate limiting est necessaire mais ne suffit pas seul. Garder aussi :
 - [x] Endpoint interne `POST /api/internal/quota/check-and-increment` (user-service)
 - [x] Endpoint public `GET /api/user/quota/daily` (user-service)
 - [x] Gateway : `AuthMiddleware` etendu avec check rate limit + quota
+- [x] Scans planifies : quota consomme via `scheduled_scan_scheduler` (user-service)
 - [x] Reponse standard `429` + `Retry-After` + payload JSON
 - [x] Frontend : hook `useQuota` + affichage header
 - [ ] Migration Alembic executee en production (`0021_add_daily_quotas`)
@@ -256,7 +258,7 @@ Pour SecureOps, la voie la plus robuste est :
 
 - **edge limiting** (proxy/gateway) pour proteger vite ;
 - **limites metier en app** avec buckets separes (IP / user / API key) ;
-- **quotas long terme fusionnes par user** pour une conso simple (UI + API) ;
+- **quotas long terme fusionnes par user** pour une conso simple (UI + API + scans planifies) ;
 - **observabilite + ajustements** pour eviter de penaliser les utilisateurs legitimes.
 
 Cette approche permet de reduire le risque d'abus et de DoS tout en gardant une experience stable.
