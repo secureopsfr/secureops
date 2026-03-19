@@ -17,6 +17,15 @@ const getApiBaseUrl = (): string => {
 
 export { getApiBaseUrl };
 
+async function getBearerToken(forceRefresh = false): Promise<string | null> {
+  const session = await fetchAuthSession({ forceRefresh });
+  return (
+    session.tokens?.accessToken?.toString() ??
+    session.tokens?.idToken?.toString() ??
+    null
+  );
+}
+
 /**
  * Effectue un appel API avec gestion automatique du rafraîchissement du token.
  * Cette fonction est utilisée par tous les services pour maintenir une cohérence.
@@ -28,12 +37,28 @@ export async function fetchWithAuth(
   const { headers = {}, ...rest } = options;
 
   // Récupérer le token depuis la session Amplify
-  let token: string | undefined;
+  let token: string | null = null;
   try {
-    const session = await fetchAuthSession();
-    token = session.tokens?.accessToken?.toString();
+    token = await getBearerToken(false);
+    if (!token) {
+      log("[ApiClient] Aucun token initial, tentative de refresh...");
+      token = await getBearerToken(true);
+    }
   } catch (err) {
     error("[ApiClient] Impossible de récupérer le token:", err);
+    throw new Error("Authentification requise");
+  }
+
+  if (!token) {
+    warn("[ApiClient] Aucun token disponible après refresh, déconnexion");
+    try {
+      await signOut();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("auth:signOut"));
+      }
+    } catch (signOutErr) {
+      error("[ApiClient] Erreur lors de la déconnexion:", signOutErr);
+    }
     throw new Error("Authentification requise");
   }
 
@@ -52,8 +77,7 @@ export async function fetchWithAuth(
   if (response.status === 401) {
     log("[ApiClient] Token expiré (401), rafraîchissement et retry...");
     try {
-      const session = await fetchAuthSession({ forceRefresh: true });
-      const refreshedToken = session.tokens?.accessToken?.toString();
+      const refreshedToken = await getBearerToken(true);
 
       if (refreshedToken) {
         const refreshedHeaders: HeadersInit = {

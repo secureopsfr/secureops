@@ -1,7 +1,7 @@
 {
-  "name": "SecureOps – Cybersécurité SaaS",
+  "name": "SecureOps - Scan de vulnérabilités gratuit",
   "short_name": "SecureOps",
-  "description": "Projet gratuit de scan de vulnérabilités. Première version : tests passifs uniquement. Tests intrusifs à venir.",
+  "description": "SecureOps est un projet gratuit et indépendant de scan de vulnérabilités. Première version : tests passifs uniquement. Tests intrusifs à venir.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
