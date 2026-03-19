@@ -239,7 +239,7 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 
 - [ ] Liste noire configurable (ex. dans `settings.yml`) pour bloquer des domaines/cibles.
 - [ ] Modération (optionnel) : ajouter a posteriori des domaines bloqués et logger les tentatives (audit).
-- [ ] Quotas crawler, rate limiting, réponses 429 (aligné avec `A-PENSER-PLUS-TARD.md`).
+- [x] **Quotas et rate limiting** : rate limiting court terme (10 req/60s user, 3 req/60s anon) et quota journalier fusionné (50 scans+crawls/jour par user) sur `scan/async` et `crawl/async` ; réponses 429 + `Retry-After` ; scans planifiés consomment le quota ; affichage `X / 50` dans le hub Scanner. Voir `docs/RATE-LIMITING.md`.
 
 #### 1.6.3 Scanner hub: docs/UX (ex-section 8.2 de la v0.3.0)
 
@@ -811,7 +811,7 @@ Rendre le scan **simple à paramétrer** pour adapter la profondeur et le périm
 ## 7) Release MVP v0.4.0
 
 - [ ] Tag `v0.4.0`
-- [ ] Release notes : tests passifs complets + premiers tests actifs + rapports et analytics + scan paramétrable + explication du scoring
+- [ ] Release notes : tests passifs complets + premiers tests actifs + rapports et analytics + scan paramétrable + explication du scoring + rate limiting et quotas (scan/crawl/planifiés)
 - [ ] Mise à jour du disclaimer (tests actifs)
 - [ ] Documentation : liste des requêtes envoyées en mode actif
 
@@ -821,12 +821,13 @@ Rendre le scan **simple à paramétrer** pour adapter la profondeur et le périm
 |---------|-------|
 | **0.1.0** | Tests passifs de base (TLS, headers, cookies, fichiers, directory listing, robots, fingerprinting) |
 | **0.2.0** | Améliorations + nouveaux tests passifs (5.1–5.7 partiels) + API publique, export, monitoring |
-| **0.4.0** | **Scanner 1 (passif)** : tous les tests passifs finalisés, toute URL. **Scanner 2 (actif)** : tests passifs (optionnel, défaut oui) + premiers tests actifs, **uniquement URLs vérifiées** (DNS). **Rapports et analytics** : tendances, export CSV/JSON, tableau de bord. **Scan paramétrable** : mode par gravité (ex. critical uniquement). **Scoring** : explication dans le frontend. |
+| **0.4.0** | **Scanner 1 (passif)** : tous les tests passifs finalisés, toute URL. **Scanner 2 (actif)** : tests passifs (optionnel, défaut oui) + premiers tests actifs, **uniquement URLs vérifiées** (DNS). **Rate limiting et quotas** : limite court terme + quota 50 scans+crawls/jour (UI, API, scans planifiés cumulés), affichage dans le hub. **Rapports et analytics** : tendances, export CSV/JSON, tableau de bord. **Scan paramétrable** : mode par gravité (ex. critical uniquement). **Scoring** : explication dans le frontend. |
 
 ---
 
 # Notes importantes (MVP 0.4.0)
 
+- **Rate limiting et quotas** : implémentés (voir `docs/RATE-LIMITING.md`) — rate limit court terme + quota journalier 50 scans/crawls (scans manuels, API, scans planifiés cumulés), affichage dans le hub Scanner.
 - Les tests actifs envoient des requêtes **craftées**. Le disclaimer « usage autorisé uniquement » doit être explicite.
 - **Deux scanners :** Scanner 1 (passif) = toute URL. Scanner 2 (actif) = uniquement les URLs dont le domaine a été vérifié via DNS. La vérification DNS est activée uniquement en production.
 - Commencer par des tests actifs **légers** ; pas de fuzzing, pas de bruteforce.
