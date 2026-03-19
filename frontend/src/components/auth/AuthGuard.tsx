@@ -7,16 +7,21 @@ import LoadingScreen from "../LoadingScreen";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
 
-interface ScannerGuardProps {
+interface AuthGuardProps {
   children: React.ReactNode;
+  /** Message affiché pendant la vérification de l'authentification. */
+  loadingMessageKey?: string;
 }
 
 /**
- * Garde d'accès pour les pages Scanner (scanner, docs, analyses, etc.).
- * Redirige vers la connexion (avec returnTo = page actuelle) si l'utilisateur
- * n'est pas authentifié. Réagit aussi à la déconnexion automatique (session expirée).
+ * Garde d'accès générique : redirige vers la connexion si l'utilisateur n'est pas authentifié.
+ * Utilisé pour mon-compte et autres pages protégées.
+ * Réagit à la déconnexion automatique (session expirée) via listenToAuthEvents.
  */
-export default function ScannerGuard({ children }: ScannerGuardProps) {
+export default function AuthGuard({
+  children,
+  loadingMessageKey = "common.loading",
+}: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { t, lp } = useLanguage();
@@ -28,9 +33,9 @@ export default function ScannerGuard({ children }: ScannerGuardProps) {
     if (authLoading) return;
 
     if (!user) {
-      const returnTo = pathname || lp("/scanner");
+      const returnTo = pathname || lp("/");
       log(
-        "[ScannerGuard] Utilisateur non authentifié, redirection vers /connexion",
+        "[AuthGuard] Utilisateur non authentifié, redirection vers /connexion",
       );
       router.push(
         `${lp("/connexion")}?returnTo=${encodeURIComponent(returnTo)}`,
@@ -39,9 +44,7 @@ export default function ScannerGuard({ children }: ScannerGuardProps) {
   }, [authLoading, user, router, lp, pathname]);
 
   if (authLoading || !user) {
-    return (
-      <LoadingScreen variant="fullPage" message={t("scanner.checkingAccess")} />
-    );
+    return <LoadingScreen variant="fullPage" message={t(loadingMessageKey)} />;
   }
 
   return <>{children}</>;

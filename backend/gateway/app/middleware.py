@@ -14,10 +14,11 @@ from .utils.auth import get_current_user
 logger = logging.getLogger(__name__)
 
 # ── Routes publiques (aucune authentification) ──────────────────────
-PUBLIC_EXACT: set[str] = {"/health"}
+PUBLIC_EXACT: set[str] = {"/health", "/admin/api/docs"}
 PUBLIC_PREFIX: tuple[str, ...] = (
     "/images/",
     "/admin/images/",
+    "/admin/api/docs/",
     "/scan/api/scan/async",
     "/crawl/api/crawl/async",
 )
@@ -30,8 +31,6 @@ PUBLIC_METHOD_PATHS: set[tuple[str, str]] = {
 AUTH_ONLY_METHOD_PATHS: set[tuple[str, str]] = {
     ("POST", "/user/api/user/init"),  # Tout utilisateur authentifié peut init son compte
 }
-AUTH_ONLY_PREFIX: tuple[str, ...] = ("/admin/api/docs/",)
-AUTH_ONLY_EXACT: set[str] = {"/admin/api/docs"}
 OPTIONAL_AUTH_PUBLIC_PREFIX: tuple[str, ...] = (
     "/scan/api/scan/async",
     "/crawl/api/crawl/async",
@@ -156,11 +155,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         # Routes auth-only (pas de vérification de groupe)
         if (method, path) in AUTH_ONLY_METHOD_PATHS:
-            _, error_response = await _authenticate(request, require_admin=False)
-            return error_response or await call_next(request)
-
-        # Routes auth-only par chemin (GET docs admin)
-        if method == "GET" and (path in AUTH_ONLY_EXACT or path.startswith(AUTH_ONLY_PREFIX)):
             _, error_response = await _authenticate(request, require_admin=False)
             return error_response or await call_next(request)
 

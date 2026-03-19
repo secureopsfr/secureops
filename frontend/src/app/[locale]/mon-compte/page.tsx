@@ -1,8 +1,6 @@
 "use client";
 
 import { lazy } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import { useLanguage } from "../../../components/LanguageProvider";
 import { useAccountPage } from "../../../hooks/useAccountPage";
 import AccountLayout from "../../../components/user/AccountLayout";
@@ -56,29 +54,9 @@ export default function MonComptePage() {
     return <Loading />;
   }
 
+  // AuthGuard en layout garantit que user est défini ; ce bloc reste en secours
   if (!user) {
-    return (
-      <>
-        <div className="fixed-logo">
-          <Link href={lp("/")} className="logo">
-            <Image
-              src="/logo.png"
-              alt="SecureOps Logo"
-              width={40}
-              height={40}
-            />
-            <span className="logo-brand hidden md:inline">
-              Secure<span>Ops</span>
-            </span>
-          </Link>
-        </div>
-        <div className="fixed inset-0 bg-theme flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-theme">{t("account.mustBeLoggedIn")}</p>
-          </div>
-        </div>
-      </>
-    );
+    return null;
   }
 
   return (

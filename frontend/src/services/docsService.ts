@@ -1,9 +1,9 @@
 /**
- * Service pour la lecture des pages de documentation (utilisateurs connectés).
- * Les endpoints GET /admin/api/docs sont accessibles avec auth simple (pas admin).
+ * Service pour la lecture des pages de documentation.
+ * Les endpoints GET /admin/api/docs sont publics (pas d'authentification).
  */
 
-import { fetchWithAuth } from "../utils/apiClient";
+import { fetchJson } from "../utils/apiClient";
 import { getApiBaseUrl } from "../utils/apiClient";
 
 export interface DocPageRecord {
@@ -27,19 +27,17 @@ export interface DocPageContent {
 }
 
 export async function getDocsList(): Promise<DocPagesResponse> {
-  const res = await fetchWithAuth(`${getApiBaseUrl()}/admin/api/docs`);
-  if (!res.ok) {
-    throw new Error("Impossible de charger la documentation");
-  }
-  return res.json();
+  return fetchJson(
+    `${getApiBaseUrl()}/admin/api/docs`,
+    {},
+    "Impossible de charger la documentation",
+  );
 }
 
 export async function getDocBySlug(slug: string): Promise<DocPageContent> {
-  const res = await fetchWithAuth(
+  return fetchJson(
     `${getApiBaseUrl()}/admin/api/docs/${encodeURIComponent(slug)}`,
+    {},
+    "Page de documentation introuvable",
   );
-  if (!res.ok) {
-    throw new Error("Page de documentation introuvable");
-  }
-  return res.json();
 }

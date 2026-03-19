@@ -5,8 +5,10 @@ import re
 from datetime import datetime, timezone
 from typing import Dict, List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+
+from app.utils.auth import require_admin_user
 
 # Répertoire de stockage des docs (HTML)
 DOCS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "docs")
@@ -141,19 +143,20 @@ def _list_docs() -> List[Dict]:
     return docs
 
 
-# ── Endpoints admin (CRUD, protégés par require_admin) ─────────────
+# ── Endpoints lecture (publics) ───────────────────────────────────────
+# Documentation accessible à tous (gateway PUBLIC_EXACT/PREFIX).
 
 
 @router.get("/docs")
-async def list_docs_admin() -> Dict:
-    """Liste les pages de documentation (admin)."""
+async def list_docs() -> Dict:
+    """Liste les pages de documentation (public)."""
     docs = _list_docs()
     return {"docs": docs, "total": len(docs)}
 
 
 @router.get("/docs/{slug}")
-async def get_doc_admin(slug: str) -> DocPageContent:
-    """Récupère le contenu d'une page doc (admin)."""
+async def get_doc(slug: str) -> DocPageContent:
+    """Récupère le contenu d'une page doc (utilisateur authentifié)."""
     file_path = safe_doc_path(slug)
 
     with open(file_path, "r", encoding="utf-8") as f:
@@ -172,7 +175,7 @@ async def get_doc_admin(slug: str) -> DocPageContent:
 
 
 @router.put("/docs/{slug}")
-async def update_doc(slug: str, body: DocPageUpdateRequest) -> Dict:
+async def update_doc(slug: str, body: DocPageUpdateRequest, _: dict = Depends(require_admin_user)) -> Dict:
     """Met à jour une page doc (admin)."""
     file_path = safe_doc_path(slug)
 
@@ -184,7 +187,7 @@ async def update_doc(slug: str, body: DocPageUpdateRequest) -> Dict:
 
 
 @router.post("/docs")
-async def create_doc(body: DocPageCreateRequest) -> Dict:
+async def create_doc(body: DocPageCreateRequest, _: dict = Depends(require_admin_user)) -> Dict:
     """Crée une nouvelle page doc (admin)."""
     os.makedirs(DOCS_DIR, exist_ok=True)
 
@@ -230,17 +233,8 @@ async def create_doc(body: DocPageCreateRequest) -> Dict:
 
 
 @router.delete("/docs/{slug}")
-async def delete_doc(slug: str) -> Dict:
+async def delete_doc(slug: str, _: dict = Depends(require_admin_user)) -> Dict:
     """Supprime une page doc (admin)."""
     file_path = safe_doc_path(slug)
     os.remove(file_path)
     return {"message": f"Page '{slug}' supprimée avec succès"}
-
-
-# ── Endpoints lecture publique (auth simple, pas admin) ─────────────
-# Ces routes sont exposées sous le même préfixe /admin/api mais la lecture
-# est autorisée pour tout utilisateur authentifié via une exception dans le gateway.
-
-
-# La liste et le détail sont les mêmes que les endpoints admin ; le gateway
-# appliquera require_admin=False pour GET /admin/api/docs et GET /admin/api/docs/{slug}.

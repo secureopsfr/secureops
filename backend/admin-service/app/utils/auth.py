@@ -32,13 +32,13 @@ def _extract_bearer_token(authorization: str | None) -> str:
     return token
 
 
-def require_admin_user(
+def require_authenticated_user(
     authorization: str | None = Header(default=None, alias="Authorization"),  # noqa: B008
 ) -> dict[str, Any]:
-    """Vérifie qu'un utilisateur JWT appartient au groupe admin."""
+    """Vérifie qu'un utilisateur JWT est authentifié (sans vérifier le groupe admin)."""
     token = _extract_bearer_token(authorization)
     try:
-        claims = verify_cognito_jwt(token)
+        return verify_cognito_jwt(token)
     except Exception as exc:  # pragma: no cover - dépend de la lib JWT
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -46,6 +46,12 @@ def require_admin_user(
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
+
+def require_admin_user(
+    authorization: str | None = Header(default=None, alias="Authorization"),  # noqa: B008
+) -> dict[str, Any]:
+    """Vérifie qu'un utilisateur JWT appartient au groupe admin."""
+    claims = require_authenticated_user(authorization)
     groups = claims.get("cognito:groups", [])
     if "admin" not in groups:
         raise HTTPException(

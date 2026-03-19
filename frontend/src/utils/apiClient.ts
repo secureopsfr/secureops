@@ -2,8 +2,8 @@
  * Client API centralisé pour gérer les appels authentifiés avec gestion automatique du rafraîchissement du token.
  */
 
-import { fetchAuthSession } from "aws-amplify/auth";
-import { log, error } from "./logger";
+import { fetchAuthSession, signOut } from "aws-amplify/auth";
+import { log, error, warn } from "./logger";
 
 const DEFAULT_GATEWAY = "http://localhost:8000";
 
@@ -69,7 +69,23 @@ export async function fetchWithAuth(
         if (response.ok) {
           log("[ApiClient] Token rafraîchi avec succès, requête réussie");
         } else if (response.status === 401) {
-          error("[ApiClient] Token toujours invalide après rafraîchissement");
+          warn(
+            "[ApiClient] 401 après retry — peut être un refus d'accès (autorisation) ou session expirée",
+          );
+          // Ne pas déconnecter : un 401 peut signifier "accès refusé" (ex. endpoint
+          // admin pour un user non-admin), pas forcément "session expirée"
+        }
+      } else {
+        warn(
+          "[ApiClient] Impossible d'obtenir un token rafraîchi, session expirée",
+        );
+        try {
+          await signOut();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("auth:signOut"));
+          }
+        } catch (signOutErr) {
+          error("[ApiClient] Erreur lors de la déconnexion:", signOutErr);
         }
       }
     } catch (refreshErr) {
