@@ -94,8 +94,6 @@ export default function ScannerHub() {
 
   const renderCard = (card: CardItem) => {
     const Icon = card.icon;
-    const isDocsLink =
-      !isComingSoon(card) && card.href.includes("/scanner/docs");
     const soon = isComingSoon(card);
 
     const cardContent = (
@@ -133,13 +131,7 @@ export default function ScannerHub() {
     }
 
     return (
-      <Link
-        key={card.id}
-        href={card.href}
-        target={isDocsLink ? "_blank" : undefined}
-        rel={isDocsLink ? "noopener noreferrer" : undefined}
-        className="block h-full"
-      >
+      <Link key={card.id} href={card.href} className="block h-full">
         {cardContent}
       </Link>
     );
