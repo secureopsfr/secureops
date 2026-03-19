@@ -65,6 +65,19 @@ timeouts:
   request_timeout: 20.0  # Timeout en secondes pour les requêtes HTTP
   crawl_timeout: 90.0    # Timeout pour POST /crawl/api/crawl (crawl SPA peut prendre 60s+)
 
+# Rate limiting court terme (fenêtre glissante) pour scan/crawl async
+# (limit, window_seconds) par type d'authentification
+rate_limits:
+  user:
+    limit: 10
+    window_seconds: 60
+  api_key:
+    limit: 10
+    window_seconds: 60
+  anon:
+    limit: 3
+    window_seconds: 60
+
 # Configuration des headers
 headers:
   # Headers « hop-by-hop » à ne pas proxyer

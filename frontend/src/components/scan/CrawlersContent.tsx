@@ -177,6 +177,7 @@ export default function CrawlersContent() {
         },
         effectiveMaxUrls,
         crawl.mode,
+        getToken,
       ).catch((err) => {
         setError({
           message: err instanceof Error ? err.message : t("scanner.crawlError"),
@@ -195,6 +196,7 @@ export default function CrawlersContent() {
       resetCrawlSteps,
       setCrawlMaxUrls,
       setCrawlResult,
+      getToken,
     ],
   );
 

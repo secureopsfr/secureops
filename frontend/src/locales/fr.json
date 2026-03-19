@@ -54,7 +54,9 @@
     "signOutError": "Erreur lors de la déconnexion :",
     "openMenu": "Ouvrir le menu",
     "closeMenu": "Fermer le menu",
-    "menu": "Menu"
+    "menu": "Menu",
+    "quotaRemaining": "{{remaining}} / {{limit}} scans",
+    "quotaExhausted": "0 / {{limit}} scans"
   },
   "footer": {
     "description": "Projet gratuit et indépendant de scan de vulnérabilités. Première version : tests passifs uniquement. Tests intrusifs prévus dans les versions futures.",
@@ -634,6 +636,8 @@
     "errorTitle": "Erreur lors du scan",
     "errorGeneric": "Une erreur est survenue. Veuillez réessayer.",
     "saveFailed": "Impossible de sauvegarder le scan dans l'historique.",
+    "quotaExceeded": "Quota journalier atteint (50 scans/crawls). Vous pourrez relancer un job demain à minuit UTC.",
+    "rateLimitExceeded": "Trop de requêtes. Veuillez patienter quelques secondes avant de réessayer.",
     "categoryTls": "TLS/HTTPS",
     "categoryHeaders": "Security Headers",
     "categoryCache": "Cache et performances",

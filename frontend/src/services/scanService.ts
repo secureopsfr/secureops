@@ -3,7 +3,7 @@
  */
 
 import { getApiBaseUrl } from "../utils/apiClient";
-import { pollAsyncJob } from "../utils/pollAsyncJob";
+import { pollAsyncJob, parse429Error } from "../utils/pollAsyncJob";
 import logger from "../utils/logger";
 
 export interface ScanStep {
@@ -201,13 +201,11 @@ export async function runAsyncScan(
       });
       if (!res.ok) {
         logger.error(`${logPrefix} create job failed`, { status: res.status });
-        onEvent({
-          type: "error",
-          data: {
-            message: `Erreur HTTP ${res.status}`,
-            status_code: res.status,
-          },
-        });
+        const errorData =
+          res.status === 429
+            ? await parse429Error(res)
+            : { message: `Erreur HTTP ${res.status}`, status_code: res.status };
+        onEvent({ type: "error", data: errorData });
         throw new Error(`create job failed: ${res.status}`);
       }
       const data = (await res.json()) as AsyncScanCreateResponse;
@@ -296,15 +294,20 @@ export async function runMultiScan(
         }),
       });
       if (!res.ok) {
-        let errorMsg = `Erreur HTTP ${res.status}`;
-        try {
-          const body = await res.json();
-          if (body?.detail) errorMsg = body.detail;
-        } catch {}
-        onEvent({
-          type: "error",
-          data: { message: errorMsg, status_code: res.status },
-        });
+        const errorData =
+          res.status === 429
+            ? await parse429Error(res)
+            : await res
+                .json()
+                .then((b: Record<string, unknown>) => ({
+                  message: String(b?.detail ?? `Erreur HTTP ${res.status}`),
+                  status_code: res.status,
+                }))
+                .catch(() => ({
+                  message: `Erreur HTTP ${res.status}`,
+                  status_code: res.status,
+                }));
+        onEvent({ type: "error", data: errorData });
         throw new Error(`create job failed: ${res.status}`);
       }
       const data = (await res.json()) as { job_id: string; status: string };

@@ -16,6 +16,8 @@ Index de la documentation du projet.
 
 - [**VARIABLES-ENVIRONNEMENT.md**](VARIABLES-ENVIRONNEMENT.md) — Référence détaillée des variables d’environnement (racine et frontend).
 
+- [**RATE-LIMITING.md**](RATE-LIMITING.md) — Guide complet de protection anti-abus : stratégie de rate limiting, réponses 429, architecture Redis, observabilité et plan de déploiement progressif.
+
 ## Roadmaps et versions
 
 - [**ROADMAP-MVP-0.1.0.md**](roadmaps/versions/ROADMAP-MVP-0.1.0.md) — Roadmap MVP 0.1.0 : scanner de posture sécurité (TLS, headers, cookies, exposition fichiers, etc.).

@@ -27,6 +27,10 @@ database:
   ssl_mode: "prefer"
   pool_logging: false
 
+# Quota journalier (scans + crawls cumulés par utilisateur, reset minuit UTC)
+daily_quota:
+  limit: 50
+
 # Clés API (API publique)
 api_keys:
   max_per_user: 5  # Nombre maximum de clés par utilisateur

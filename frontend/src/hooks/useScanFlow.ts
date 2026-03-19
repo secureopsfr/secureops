@@ -265,6 +265,7 @@ export function useScanFlow({
         },
         crawl.maxUrls,
         crawl.mode,
+        getToken,
       ).catch((err) => {
         setError({
           message: err instanceof Error ? err.message : t("scanner.crawlError"),
@@ -285,6 +286,7 @@ export function useScanFlow({
       resetCrawlSteps,
       setCrawlResult,
       crawl,
+      getToken,
     ],
   );
 

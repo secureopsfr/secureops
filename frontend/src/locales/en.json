@@ -54,7 +54,9 @@
     "signOutError": "Error during sign out:",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "menu": "Menu"
+    "menu": "Menu",
+    "quotaRemaining": "{{remaining}} / {{limit}} scans",
+    "quotaExhausted": "0 / {{limit}} scans"
   },
   "footer": {
     "description": "Independent, free vulnerability scanning project. First version: passive tests only. Intrusive tests planned for future versions.",
@@ -634,6 +636,8 @@
     "errorTitle": "Scan error",
     "errorGeneric": "An error occurred. Please try again.",
     "saveFailed": "Unable to save scan to history.",
+    "quotaExceeded": "Daily quota reached (50 scans/crawls). You can start a new job tomorrow at midnight UTC.",
+    "rateLimitExceeded": "Too many requests. Please wait a few seconds before trying again.",
     "categoryTls": "TLS/HTTPS",
     "categoryHeaders": "Security Headers",
     "categoryCache": "Cache and performance",

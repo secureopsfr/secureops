@@ -10,13 +10,18 @@ import {
   Flame,
   BookOpen,
   Construction,
+  Gauge,
 } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import AnimateInView from "../AnimateInView";
 import Card from "../ui/cards/Card";
+import { useAuthUser } from "../../hooks/useAuthUser";
+import { useQuota } from "../../hooks/useQuota";
 
 export default function ScannerHub() {
   const { t, lp } = useLanguage();
+  const { isAuthenticated } = useAuthUser({});
+  const { quota, loading: quotaLoading } = useQuota(isAuthenticated);
 
   const sectionGestion = [
     {
@@ -147,11 +152,36 @@ export default function ScannerHub() {
         aria-label={t("scanner.ariaHeader")}
       >
         <div className="page-container">
-          <div className="page-header text-center mb-4">
+          <div className="page-header text-center mb-1">
             <h1 className="page-title mb-2">{t("scanner.hub.title")}</h1>
             <p className="page-subtitle mt-0 max-w-2xl mx-auto">
               {t("scanner.hub.subtitle")}
             </p>
+            {isAuthenticated && (
+              <div className="flex justify-center mt-4">
+                <span
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-colors ${
+                    quotaLoading || quota === null
+                      ? "border-[var(--color-border)] text-[var(--muted)] bg-transparent animate-pulse"
+                      : quota.remaining === 0
+                        ? "border-[rgb(var(--danger))] text-[rgb(var(--danger))] bg-[rgba(var(--danger),0.08)]"
+                        : quota.remaining <= Math.ceil(quota.limit * 0.2)
+                          ? "border-[var(--color-warning,#f59e0b)] text-[var(--color-warning,#f59e0b)] bg-[rgba(245,158,11,0.08)]"
+                          : "border-[var(--color-border)] text-[var(--text)] bg-transparent"
+                  }`}
+                >
+                  <Gauge className="w-4 h-4 shrink-0" />
+                  {quotaLoading || quota === null
+                    ? "— / 50"
+                    : quota.remaining === 0
+                      ? t("header.quotaExhausted", { limit: quota.limit })
+                      : t("header.quotaRemaining", {
+                          remaining: quota.remaining,
+                          limit: quota.limit,
+                        })}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </AnimateInView>
