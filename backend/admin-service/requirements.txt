@@ -1,3 +1,6 @@
+# Package commun partagé (pour tests locaux)
+-e ../common
+
 alembic==1.13.1
 annotated-types==0.7.0
 Mako==1.3.2

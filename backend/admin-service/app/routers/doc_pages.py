@@ -10,6 +10,9 @@ from pydantic import BaseModel
 
 from app.utils.auth import require_admin_user
 
+# Dépendance admin réutilisée (évite B008: function call in default)
+_require_admin = Depends(require_admin_user)
+
 # Répertoire de stockage des docs (HTML)
 DOCS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "docs")
 
@@ -175,7 +178,7 @@ async def get_doc(slug: str) -> DocPageContent:
 
 
 @router.put("/docs/{slug}")
-async def update_doc(slug: str, body: DocPageUpdateRequest, _: dict = Depends(require_admin_user)) -> Dict:
+async def update_doc(slug: str, body: DocPageUpdateRequest, _: dict = _require_admin) -> Dict:
     """Met à jour une page doc (admin)."""
     file_path = safe_doc_path(slug)
 
@@ -187,7 +190,7 @@ async def update_doc(slug: str, body: DocPageUpdateRequest, _: dict = Depends(re
 
 
 @router.post("/docs")
-async def create_doc(body: DocPageCreateRequest, _: dict = Depends(require_admin_user)) -> Dict:
+async def create_doc(body: DocPageCreateRequest, _: dict = _require_admin) -> Dict:
     """Crée une nouvelle page doc (admin)."""
     os.makedirs(DOCS_DIR, exist_ok=True)
 
@@ -233,7 +236,7 @@ async def create_doc(body: DocPageCreateRequest, _: dict = Depends(require_admin
 
 
 @router.delete("/docs/{slug}")
-async def delete_doc(slug: str, _: dict = Depends(require_admin_user)) -> Dict:
+async def delete_doc(slug: str, _: dict = _require_admin) -> Dict:
     """Supprime une page doc (admin)."""
     file_path = safe_doc_path(slug)
     os.remove(file_path)
