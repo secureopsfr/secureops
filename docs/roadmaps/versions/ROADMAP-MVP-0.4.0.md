@@ -277,10 +277,8 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 
 ### 4.4 Explication du scoring
 
-- [ ] Afficher dans le frontend comment est calculé le score (formule, pondération par gravité)
-- [ ] Tooltip ou lien « Comment est calculé le score ? » à proximité du score affiché
-- [ ] Explication des niveaux de gravité (critical, high, medium, low, info) et de leur impact sur le score
-- [ ] Page ou modal dédiée décrivant le système de scoring (optionnel)
+- [ ] **Enrichir la doc scanner** : ajouter une page/section (formule, pondération par gravité, niveaux critical/high/medium/low/info et leur impact sur le score).
+- [ ] **Lien depuis le score** : afficher le lien « Comment est calculé le score ? » à côté du score (page résultats, carte score) pointant vers cette doc.
 
 ---
 
@@ -301,7 +299,6 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 - [ ] Tag `v0.4.0`
 - [ ] Release notes : tests passifs complets + premiers tests actifs + rapports et analytics + scan paramétrable + explication du scoring + rate limiting et quotas (scan/crawl/planifiés)
 - [ ] Mise à jour du disclaimer (tests actifs)
-- [ ] Documentation : liste des requêtes envoyées en mode actif
 
 # Synthèse
 
