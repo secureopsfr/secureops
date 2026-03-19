@@ -797,7 +797,7 @@
       "profile": "Profile",
       "security": "Security & sign in",
       "settings": "Settings",
-      "subscription": "Subscription & billing",
+      "subscription": "Subscription",
       "privacy": "Data & privacy"
     },
     "history": {
@@ -943,15 +943,10 @@
     "updateError": "Error updating"
   },
   "subscription": {
-    "title": "Subscription & billing",
+    "title": "Subscription",
     "currentPlan": "Current plan",
     "freePlan": "Free plan",
-    "premiumPlan": "Premium plan",
-    "freeDesc": "You are currently using basic features. Advanced features are available with the premium subscription.",
-    "premiumDesc": "You have access to all premium features.",
-    "paymentTitle": "Payment and billing",
-    "stripeInfo": "For added security, billing is managed by Stripe, a trusted payment provider. SecureOps never stores your card information: they are processed directly via a secure payment interface.",
-    "manageBtn": "Manage subscription and invoices"
+    "freeDesc": "Complimentary access to all features, with usage limits suited for individual use."
   },
   "privacy": {
     "title": "Data & privacy",

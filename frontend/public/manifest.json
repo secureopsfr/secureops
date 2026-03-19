@@ -29,12 +29,6 @@
 
   "shortcuts": [
     {
-      "name": "Tarifs",
-      "short_name": "Tarifs",
-      "url": "/fr/tarifs",
-      "icons": [{ "src": "/logo.png", "sizes": "512x512", "type": "image/png" }]
-    },
-    {
       "name": "Contact",
       "short_name": "Contact",
       "url": "/fr/contact",

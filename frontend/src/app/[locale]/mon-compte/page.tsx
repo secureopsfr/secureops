@@ -107,15 +107,7 @@ export default function MonComptePage() {
         initialLanguage={userLanguage}
       />
 
-      <SubscriptionSection
-        subscription={subscription}
-        onManageSubscription={() => {
-          const stripePortalUrl =
-            process.env.NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL ||
-            "https://billing.stripe.com";
-          window.open(stripePortalUrl, "_blank");
-        }}
-      />
+      <SubscriptionSection subscription={subscription} />
 
       <PrivacySection
         onExportData={handleExportData}

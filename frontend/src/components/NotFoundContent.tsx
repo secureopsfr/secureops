@@ -7,7 +7,7 @@ import { GenericButton } from "./buttons";
 import AnimateInView from "./AnimateInView";
 import { useLanguage } from "./LanguageProvider";
 import { LOCALES, DEFAULT_LOCALE, type Locale } from "../i18n/config";
-import { Home, Mail, CreditCard } from "lucide-react";
+import { Home, Mail } from "lucide-react";
 
 /**
  * Contenu de la page 404 : Header, message stylé, actions, Footer.
@@ -62,13 +62,6 @@ export default function NotFoundContent() {
                 href={lp("/contact")}
                 variant="outline"
                 icon={<Mail className="w-4 h-4" />}
-                iconPosition="left"
-              />
-              <GenericButton
-                label={t("notFound.pricing")}
-                href={lp("/tarifs")}
-                variant="outline"
-                icon={<CreditCard className="w-4 h-4" />}
                 iconPosition="left"
               />
             </div>

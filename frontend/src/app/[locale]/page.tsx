@@ -97,14 +97,6 @@ export default async function HomePage({
     operatingSystem: "Web",
     description: t("metadata.homeDescription"),
     url: `${SITE_URL}/${locale}`,
-    offers: {
-      "@type": "AggregateOffer",
-      priceCurrency: "EUR",
-      lowPrice: "23",
-      highPrice: "79",
-      offerCount: 3,
-      url: `${SITE_URL}/${locale}/${SLUG_MAP[locale as Locale].tarifs}`,
-    },
   };
 
   return (

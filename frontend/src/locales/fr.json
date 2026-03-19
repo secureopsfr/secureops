@@ -797,7 +797,7 @@
       "profile": "Profil",
       "security": "Sécurité & connexion",
       "settings": "Paramètres",
-      "subscription": "Abonnement & facturation",
+      "subscription": "Abonnement",
       "privacy": "Données & confidentialité"
     },
     "history": {
@@ -943,15 +943,10 @@
     "updateError": "Erreur lors de la mise à jour"
   },
   "subscription": {
-    "title": "Abonnement & facturation",
+    "title": "Abonnement",
     "currentPlan": "Plan actuel",
     "freePlan": "Plan gratuit",
-    "premiumPlan": "Plan premium",
-    "freeDesc": "Vous utilisez actuellement les fonctionnalités de base. Les fonctionnalités avancées sont disponibles avec l'abonnement premium.",
-    "premiumDesc": "Vous bénéficiez de toutes les fonctionnalités premium.",
-    "paymentTitle": "Paiement et facturation",
-    "stripeInfo": "Pour plus de sécurité, la facturation est gérée par Stripe, un prestataire de paiement reconnu. ImmoSphere ne stocke jamais vos informations de carte : elles sont traitées directement via une interface de paiement sécurisée.",
-    "manageBtn": "Gérer l'abonnement et les factures"
+    "freeDesc": "Accès gratuit à l'ensemble des fonctionnalités, avec des limites d'utilisation adaptées à un usage individuel."
   },
   "privacy": {
     "title": "Données & confidentialité",
