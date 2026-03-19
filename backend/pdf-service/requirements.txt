@@ -1,6 +1,4 @@
-# Package commun partagé (pour tests locaux)
--e ../common
-
+# Le package "common" est installé dans le Dockerfile ; pour le dev local : pip install -e ../common
 fastapi==0.110.0
 uvicorn==0.29.0
 httpx>=0.25.0,<0.27.0
