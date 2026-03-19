@@ -57,6 +57,7 @@ export default function ScanResultHeroCard({
     return () => cancelAnimationFrame(raf);
   }, [score]);
 
+  const anomalyFindings = findings.filter((f) => f.severity !== "info");
   const byCategory = findings.reduce<Record<string, number>>((acc, f) => {
     acc[f.category] = (acc[f.category] ?? 0) + 1;
     return acc;
@@ -151,11 +152,15 @@ export default function ScanResultHeroCard({
         </div>
 
         <div className="mt-8 flex flex-col items-center gap-2">
-          <span className="text-2xl font-bold text-[var(--text)] sm:text-3xl">
-            {findings.length}
+          <span className="text-2xl font-bold text-[rgb(var(--warning))] sm:text-3xl">
+            {anomalyFindings.length}
           </span>
           <p className="text-center text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
-            {t("scanner.findings")}
+            {t(
+              anomalyFindings.length === 1
+                ? "scanner.anomalies_one"
+                : "scanner.anomalies",
+            )}
           </p>
         </div>
 

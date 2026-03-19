@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, Minus } from "lucide-react";
+import { useLanguage } from "../LanguageProvider";
 import { LoadingSpinner } from "../LoadingScreen";
 import { PATH_DRAW_DURATION } from "./ScanLoaderGeometry";
 
@@ -27,6 +28,7 @@ export function StepCircle({
   muted?: boolean;
   anomalous?: boolean;
 }) {
+  const { t } = useLanguage();
   const circleClass = muted
     ? "bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.14)]"
     : anomalous
@@ -38,12 +40,12 @@ export function StepCircle({
       role="status"
       aria-label={
         muted
-          ? "Arrete"
+          ? t("scanner.ariaStopped")
           : done
             ? anomalous
-              ? "Anomalie detectee"
-              : "Termine"
-            : "En cours"
+              ? t("scanner.ariaFindingDetected")
+              : t("scanner.ariaDone")
+            : t("scanner.ariaInProgress")
       }
       style={{
         opacity: 0,
