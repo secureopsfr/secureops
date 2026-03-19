@@ -1,3 +1,6 @@
+# Package commun partagé (pour tests locaux)
+-e ../common
+
 fastapi==0.110.0
 uvicorn==0.29.0
 cryptography>=42.0.0

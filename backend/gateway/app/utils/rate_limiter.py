@@ -19,6 +19,7 @@ class InMemoryRateLimiter:
     """Limiteur de débit à fenêtre fixe, thread-safe, sans dépendance externe."""
 
     def __init__(self) -> None:
+        """Initialise le limiteur de débit en mémoire."""
         self._windows: dict[str, _Window] = {}
         self._lock = Lock()
 

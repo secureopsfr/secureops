@@ -12,7 +12,6 @@ from app.config_loader import get_async_jobs_settings, get_blacklist_settings
 from app.db import get_async_session
 from app.schemas.async_job import CrawlAsyncCreateRequest, CrawlAsyncCreateResponse, CrawlAsyncStatusResponse
 from app.services.async_job_repository import create_job, get_job_by_id
-from app.utils.url_validator import validate_and_normalize_url
 from app.use_cases.async_job_access import (
     JobAccessDeniedError,
     JobNotFoundError,
@@ -21,6 +20,7 @@ from app.use_cases.async_job_access import (
     require_existing_job,
     require_job_access,
 )
+from app.utils.url_validator import validate_and_normalize_url
 
 router = APIRouter(prefix="/api", tags=["crawl"])
 _X_AUTHENTICATED_USER_ID = Header(default=None, alias="X-Authenticated-User-Id")
