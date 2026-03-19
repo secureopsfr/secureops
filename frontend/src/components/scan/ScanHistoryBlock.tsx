@@ -164,8 +164,8 @@ export default function ScanHistoryBlock({
                       : "scanner.scanResultModeSingle";
                   const modeBadgeClass =
                     item.result_mode === "multi"
-                      ? "bg-[rgba(14,165,233,0.22)] text-white/70 border border-[rgba(14,165,233,0.40)]"
-                      : "bg-[rgba(168,85,247,0.22)] text-white/70 border border-[rgba(168,85,247,0.40)]";
+                      ? "bg-[rgba(14,165,233,0.12)] text-[rgb(14,165,233)]"
+                      : "bg-[rgba(168,85,247,0.12)] text-[rgb(168,85,247)]";
                   return (
                     <li
                       key={item.id}
