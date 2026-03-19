@@ -65,7 +65,7 @@ export default async function HomePage({
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
-      email: "contact@secureops.io",
+      email: "contact@secureops.fr",
       url: `${SITE_URL}/${locale}/${SLUG_MAP[locale as Locale].contact}`,
       availableLanguage: ["French", "English"],
     },

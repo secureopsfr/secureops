@@ -56,6 +56,18 @@ export async function GET(
     categories: ["security", "business", "productivity"],
     shortcuts: [
       {
+        name: t("header.faq"),
+        short_name: t("header.faq"),
+        url: `/${locale}/${SLUG_MAP[l].faq}`,
+        icons: [
+          {
+            src: "/logo.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+        ],
+      },
+      {
         name: t("header.contact"),
         short_name: t("header.contact"),
         url: `/${locale}/${SLUG_MAP[l].contact}`,

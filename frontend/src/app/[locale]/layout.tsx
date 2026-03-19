@@ -161,11 +161,11 @@ export default async function LocaleLayout({
     url: SITE_URL,
     logo: `${SITE_URL}/logo.png`,
     description: t("metadata.siteDescription"),
-    email: "contact@secureops.io",
+    email: "contact@secureops.fr",
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
-      email: "contact@secureops.io",
+      email: "contact@secureops.fr",
       availableLanguage: ["French", "English"],
     },
   };

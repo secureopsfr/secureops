@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Header from "../../../components/ui/Header";
 import Footer from "../../../components/ui/Footer";
-import ContactForm from "../../../components/ContactForm";
+import FAQContent from "../../../components/FAQContent";
 import { getTranslation } from "../../../i18n/server";
 import {
   SITE_URL,
@@ -19,14 +19,14 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = getTranslation(locale as Locale);
   const l = locale as Locale;
-  const slug = SLUG_MAP[l].contact;
+  const slug = SLUG_MAP[l].faq;
 
   return {
-    title: t("metadata.contactTitle"),
-    description: t("metadata.contactDescription"),
+    title: t("metadata.faqTitle"),
+    description: t("metadata.faqDescription"),
     openGraph: {
-      title: `${t("metadata.contactTitle")} – SecureOps`,
-      description: t("metadata.contactDescription"),
+      title: `${t("metadata.faqTitle")} – SecureOps`,
+      description: t("metadata.faqDescription"),
       url: `${SITE_URL}/${locale}/${slug}`,
     },
     alternates: {
@@ -35,16 +35,16 @@ export async function generateMetadata({
         ...Object.fromEntries(
           LOCALES.map((loc) => [
             loc,
-            `${SITE_URL}/${loc}/${SLUG_MAP[loc].contact}`,
+            `${SITE_URL}/${loc}/${SLUG_MAP[loc].faq}`,
           ]),
         ),
-        "x-default": `${SITE_URL}/${DEFAULT_LOCALE}/${SLUG_MAP[DEFAULT_LOCALE].contact}`,
+        "x-default": `${SITE_URL}/${DEFAULT_LOCALE}/${SLUG_MAP[DEFAULT_LOCALE].faq}`,
       },
     },
   };
 }
 
-export default async function ContactPage({
+export default async function FAQPage({
   params,
 }: {
   params: Promise<{ locale: string }>;
@@ -52,7 +52,7 @@ export default async function ContactPage({
   const { locale } = await params;
   const t = getTranslation(locale as Locale);
   const l = locale as Locale;
-  const pageUrl = `${SITE_URL}/${locale}/${SLUG_MAP[l].contact}`;
+  const pageUrl = `${SITE_URL}/${locale}/${SLUG_MAP[l].faq}`;
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -67,32 +67,47 @@ export default async function ContactPage({
       {
         "@type": "ListItem",
         position: 2,
-        name: t("metadata.contactTitle"),
+        name: t("metadata.faqTitle"),
         item: pageUrl,
       },
     ],
   };
 
-  const contactPageJsonLd = {
+  const faqJsonLd = {
     "@context": "https://schema.org",
-    "@type": "ContactPage",
-    name: t("metadata.contactTitle"),
-    description: t("metadata.contactDescription"),
-    url: pageUrl,
-    mainEntity: {
-      "@type": "Organization",
-      name: "SecureOps",
-      url: SITE_URL,
-      logo: `${SITE_URL}/logo.png`,
-      email: "contact@secureops.fr",
-      contactPoint: {
-        "@type": "ContactPoint",
-        contactType: "customer support",
-        email: "contact@secureops.fr",
-        url: pageUrl,
-        availableLanguage: ["French", "English"],
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: t("faqPage.q1Question"),
+        acceptedAnswer: { "@type": "Answer", text: t("faqPage.q1Answer") },
       },
-    },
+      {
+        "@type": "Question",
+        name: t("faqPage.q2Question"),
+        acceptedAnswer: { "@type": "Answer", text: t("faqPage.q2Answer") },
+      },
+      {
+        "@type": "Question",
+        name: t("faqPage.q3Question"),
+        acceptedAnswer: { "@type": "Answer", text: t("faqPage.q3Answer") },
+      },
+      {
+        "@type": "Question",
+        name: t("faqPage.q4Question"),
+        acceptedAnswer: { "@type": "Answer", text: t("faqPage.q4Answer") },
+      },
+      {
+        "@type": "Question",
+        name: t("faqPage.q5Question"),
+        acceptedAnswer: { "@type": "Answer", text: t("faqPage.q5Answer") },
+      },
+      {
+        "@type": "Question",
+        name: t("faqPage.q6Question"),
+        acceptedAnswer: { "@type": "Answer", text: t("faqPage.q6Answer") },
+      },
+    ],
   };
 
   return (
@@ -103,13 +118,13 @@ export default async function ContactPage({
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(contactPageJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <Header />
       <main id="main" className="min-h-screen">
-        <ContactForm />
-        <Footer locale={locale} />
+        <FAQContent />
       </main>
+      <Footer locale={locale} />
     </>
   );
 }

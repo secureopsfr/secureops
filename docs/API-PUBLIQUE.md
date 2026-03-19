@@ -245,7 +245,7 @@ Endpoint recommandé pour les intégrations API (CI/CD, scripts).
 
 **Exemple curl :**
 ```bash
-curl -X POST "https://api.secureops.io/scan/api/scan/async" \
+curl -X POST "https://api.secureops.fr/scan/api/scan/async" \
   -H "X-API-Key: sk_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"url":"https://example.com","scan_type":"backend","input":{}}'

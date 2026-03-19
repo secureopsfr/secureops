@@ -1,7 +1,7 @@
 {
   "name": "SecureOps – Cybersécurité SaaS",
   "short_name": "SecureOps",
-  "description": "Plateforme SaaS de cybersécurité : détection de vulnérabilités, monitoring et protection en temps réel.",
+  "description": "Projet gratuit de scan de vulnérabilités. Première version : tests passifs uniquement. Tests intrusifs à venir.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -28,6 +28,12 @@
   "categories": ["security", "business", "productivity"],
 
   "shortcuts": [
+    {
+      "name": "FAQ",
+      "short_name": "FAQ",
+      "url": "/fr/faq",
+      "icons": [{ "src": "/logo.png", "sizes": "512x512", "type": "image/png" }]
+    },
     {
       "name": "Contact",
       "short_name": "Contact",

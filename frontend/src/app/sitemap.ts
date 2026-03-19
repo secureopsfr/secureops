@@ -11,6 +11,7 @@ const PUBLIC_PAGES: {
   priority: number;
 }[] = [
   { internalSlug: "", changeFrequency: "weekly", priority: 1 },
+  { internalSlug: "faq", changeFrequency: "monthly", priority: 0.7 },
   { internalSlug: "contact", changeFrequency: "monthly", priority: 0.7 },
   { internalSlug: "scanner", changeFrequency: "weekly", priority: 0.8 },
   {

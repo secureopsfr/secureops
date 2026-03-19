@@ -50,6 +50,7 @@ export default function Header() {
     ...(isAuthenticated
       ? [{ label: t("header.scanner"), href: lp("/scanner") }]
       : []),
+    { label: t("header.faq"), href: lp("/faq") },
     { label: t("header.contact"), href: lp("/contact") },
   ];
 

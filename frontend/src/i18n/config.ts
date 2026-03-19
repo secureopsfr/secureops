@@ -12,6 +12,7 @@ export const DEFAULT_LOCALE: Locale = "fr";
 
 /** Slugs used in the file-system (always French). */
 const INTERNAL_SLUGS = [
+  "faq",
   "contact",
   "scanner",
   "connexion",
@@ -30,6 +31,7 @@ const INTERNAL_SLUGS = [
 export const SLUG_MAP: Record<Locale, Record<string, string>> = {
   fr: Object.fromEntries(INTERNAL_SLUGS.map((s) => [s, s])),
   en: {
+    faq: "faq",
     contact: "contact",
     scanner: "scanner",
     connexion: "login",
