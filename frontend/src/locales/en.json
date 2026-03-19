@@ -1028,7 +1028,7 @@
   },
   "privacyPage": {
     "title": "Privacy Policy",
-    "subtitle": "Personal Data Protection — Last updated: February 2026",
+    "subtitle": "Personal Data Protection — Last updated: March 2026",
     "intro": "SecureOps (\"SecureOps\", \"we\") places the highest importance on the protection of personal data and the respect of its users' privacy. This Privacy Policy informs you about how your data is collected, used, protected, shared and the rights you have, in accordance with:",
     "introItems": [
       "Regulation (EU) 2016/679 (GDPR)",
@@ -1037,7 +1037,7 @@
     ],
     "section1Title": "1. Data controller",
     "section1Text1": "SecureOps —",
-    "section1Text2": "Email: contact@secureops.fr",
+    "section1Text2": "Email: pierreglerant@gmail.com",
     "section1Text3": "For any question or to exercise your rights: contact us by email or via the",
     "section1Text3Link": "contact form",
     "section1Text3End": "— Subject: GDPR Request.",
@@ -1058,9 +1058,20 @@
     "section2_1cItems": [
       "Identity (name, first name)",
       "Email address",
-      "Password (encrypted)",
+      "Password (bcrypt-hashed, if email/password sign-up)",
+      "Google OAuth data (if signing in via Google: email, name, Google identifier)",
       "Service usage history"
     ],
+    "section2_1dTitle": "D. Scan and analysis data",
+    "section2_1dItems": [
+      "URL(s) submitted for security analysis",
+      "Scan results, security scores (/100) and associated recommendations",
+      "Scan history (date, target, result, severity levels)",
+      "Scheduled scan configurations (frequency, targets, options)",
+      "Pages discovered during automated crawls",
+      "API keys (sk_...): name, expiry date, IP restrictions, tags (raw values are never stored — hashed)"
+    ],
+    "section2_1dText": "This data is directly linked to your account and strictly necessary to provide the security service.",
     "section2_2Title": "2.2 Data collected automatically",
     "section2_2Intro": "When browsing the site, we anonymously collect certain technical logs to improve our service and understand its usage:",
     "section2_2Items": [
@@ -1093,27 +1104,32 @@
     "section4_2Title": "4.2 Subcontractors",
     "section4_2Intro": "Currently, SecureOps uses:",
     "section4_2Items": [
-      "AWS (cloud infrastructure and hosting)",
-      "Cloudflare (protection and CDN)"
+      "AWS (cloud infrastructure, hosting and identity management via Cognito)",
+      "Cloudflare (DDoS protection, WAF and CDN)",
+      "Cloudflare Turnstile (anti-bot protection for the contact form)"
     ],
     "section4_2Text": "Each subcontractor is bound by a GDPR-compliant contract guaranteeing an adequate level of security.",
     "section5Title": "5. Data retention periods",
     "section5Items": [
       "Contact form: 12 months after the last exchange",
       "Newsletter: until unsubscription, immediate deletion after unsubscription",
-      "User account: account lifetime + 12 months after deletion",
+      "User account (profile, email, preferences): account lifetime + 12 months after deletion",
+      "Scan data (results, history, scores, scheduled configurations): account lifetime + 12 months after deletion",
+      "API keys: deleted immediately upon revocation or account deletion",
       "Non-IP technical logs: 0 to 24 hours, no archiving"
     ],
     "section6Title": "6. Data security",
     "section6Intro": "We implement technical and organizational measures, including:",
     "section6Items": [
-      "Secure hosting within the European Union",
-      "Communication encryption (HTTPS/TLS)",
-      "Firewall and server protections",
+      "Hosting exclusively in EU AWS regions (eu-west / eu-central)",
+      "Communication encryption (HTTPS/TLS 1.2+)",
+      "DDoS protection and WAF via Cloudflare",
       "Strict limitation of internal access",
-      "Password hashing (bcrypt)",
-      "Minimal technical logging",
-      "Enhanced authentication (MFA available)"
+      "Password hashing (bcrypt) — plaintext passwords are never stored",
+      "API key hashing (sk_...) — raw values are never retained",
+      "Identity management via AWS Cognito (OAuth 2.0, MFA, Google SSO)",
+      "Minimal technical logging (no IP address retention)",
+      "Enhanced authentication available (MFA via app or SMS)"
     ],
     "section7Title": "7. Your GDPR rights",
     "section7Intro": "You have the following rights:",
@@ -1134,12 +1150,12 @@
     "section8Future": "Future cookies",
     "section8FutureText": "(audience measurement, personalization, advertising): a CNIL-compliant cookie banner will be deployed before activation.",
     "section9Title": "9. Transfer outside the European Union",
-    "section9Text1": "No transfer outside the EU at this time.",
-    "section9Text2": "In case of future transfer (e.g. US providers), we will apply:",
+    "section9Text1": "All your data is hosted exclusively in EU AWS regions (e.g. eu-west-1, eu-central-1). No data is hosted outside the European Union.",
+    "section9Text2": "AWS is a US-incorporated company potentially subject to the CLOUD Act. Accordingly, data transfers to AWS are governed by:",
     "section9Items": [
-      "Standard contractual clauses (SCC)",
-      "Additional protection mechanisms",
-      "Prior GDPR compliance checks"
+      "Standard Contractual Clauses (SCC) approved by the European Commission",
+      "AWS Data Processing Agreement (DPA)",
+      "Additional protection measures: encryption in transit (TLS) and at rest, strict access control"
     ],
     "section10Title": "10. Policy modifications",
     "section10Intro": "SecureOps may modify this policy to account for:",

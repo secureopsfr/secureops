@@ -120,7 +120,7 @@ export default async function PolitiqueConfidentialitePage({
                 <PrivacySection1
                   t={t}
                   contactHref={contactHref}
-                  siteHomeUrl={`${SITE_URL}/${locale}`}
+                  siteHomeUrl={SITE_URL}
                 />
               </AnimateInView>
               <AnimateInView className="landing-reveal-privacy-block">
@@ -220,6 +220,12 @@ function PrivacySection2({ t }: { t: TFn }) {
         <Strong>{t("privacyPage.section2_1cTitle")}</Strong>
       </Paragraph>
       <DynamicBulletList t={t} listKey="privacyPage.section2_1cItems" />
+
+      <Paragraph>
+        <Strong>{t("privacyPage.section2_1dTitle")}</Strong>
+      </Paragraph>
+      <DynamicBulletList t={t} listKey="privacyPage.section2_1dItems" />
+      <Paragraph>{t("privacyPage.section2_1dText")}</Paragraph>
 
       <SubTitle>{t("privacyPage.section2_2Title")}</SubTitle>
       <Paragraph>{t("privacyPage.section2_2Intro")}</Paragraph>

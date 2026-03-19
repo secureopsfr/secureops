@@ -1028,7 +1028,7 @@
   },
   "privacyPage": {
     "title": "Politique de Confidentialité",
-    "subtitle": "Protection des Données Personnelles — Dernière mise à jour : Février 2026",
+    "subtitle": "Protection des Données Personnelles — Dernière mise à jour : Mars 2026",
     "intro": "SecureOps (« SecureOps », « nous ») accorde une importance primordiale à la protection des données personnelles et au respect de la vie privée de ses utilisateurs. La présente Politique de Confidentialité vous informe de la manière dont vos données sont collectées, utilisées, protégées, partagées et des droits dont vous disposez, conformément :",
     "introItems": [
       "au Règlement (UE) 2016/679 (RGPD)",
@@ -1037,7 +1037,7 @@
     ],
     "section1Title": "1. Responsable du traitement",
     "section1Text1": "SecureOps —",
-    "section1Text2": "Email : contact@secureops.fr",
+    "section1Text2": "Email : pierreglerant@gmail.com",
     "section1Text3": "Pour toute question ou exercice de vos droits : contactez-nous par mail ou via le",
     "section1Text3Link": "formulaire de contact",
     "section1Text3End": "— Objet : Demande RGPD.",
@@ -1058,9 +1058,20 @@
     "section2_1cItems": [
       "Identité (nom, prénom)",
       "Adresse email",
-      "Mot de passe (chiffré)",
+      "Mot de passe (chiffré via bcrypt, si inscription email/mot de passe)",
+      "Données Google OAuth (si connexion via Google : email, nom, identifiant Google)",
       "Historique d'utilisation du service"
     ],
+    "section2_1dTitle": "D. Données de scan et d'analyse",
+    "section2_1dItems": [
+      "URL(s) soumises pour analyse de sécurité",
+      "Résultats de scan, scores (/100) et recommandations associées",
+      "Historique des scans (date, cible, résultat, niveaux de sévérité)",
+      "Configurations de scans planifiés (fréquence, cibles, options)",
+      "Pages découvertes lors des crawls automatisés",
+      "Clés API (sk_...) : nom, date d'expiration, restrictions IP, tags (les valeurs brutes ne sont jamais stockées — hachées)"
+    ],
+    "section2_1dText": "Ces données sont directement liées à votre compte et strictement nécessaires à la fourniture du service de sécurité.",
     "section2_2Title": "2.2 Données collectées automatiquement",
     "section2_2Intro": "Lors de votre navigation sur le site, nous collectons de manière anonyme certains logs techniques pour améliorer notre service et comprendre l'utilisation qui en est faite :",
     "section2_2Items": [
@@ -1093,27 +1104,32 @@
     "section4_2Title": "4.2 Sous-traitants",
     "section4_2Intro": "À ce jour, SecureOps utilise :",
     "section4_2Items": [
-      "AWS (infrastructure cloud et hébergement)",
-      "Cloudflare (protection et CDN)"
+      "AWS (infrastructure cloud, hébergement et gestion des identités via Cognito)",
+      "Cloudflare (protection DDoS, WAF et CDN)",
+      "Cloudflare Turnstile (protection anti-bot du formulaire de contact)"
     ],
     "section4_2Text": "Chaque sous-traitant est encadré par contrat conforme RGPD garantissant un niveau de sécurité adéquat.",
     "section5Title": "5. Durées de conservation",
     "section5Items": [
       "Formulaire de contact : 12 mois après le dernier échange",
       "Newsletter : jusqu'à désinscription, suppression immédiate après désinscription",
-      "Compte utilisateur : durée de vie du compte + 12 mois après suppression",
+      "Compte utilisateur (profil, email, préférences) : durée de vie du compte + 12 mois après suppression",
+      "Données de scan (résultats, historique, scores, configurations planifiées) : durée de vie du compte + 12 mois après suppression",
+      "Clés API : supprimées immédiatement après révocation ou suppression du compte",
       "Logs techniques non IP : 0 à 24 h, pas d'archivage"
     ],
     "section6Title": "6. Sécurité des données",
     "section6Intro": "Nous mettons en œuvre des mesures techniques et organisationnelles, dont notamment :",
     "section6Items": [
-      "Hébergement sécurisé en Union européenne",
-      "Chiffrement des communications (HTTPS/TLS)",
-      "Pare-feu et protections serveur",
+      "Hébergement exclusivement dans des régions EU d'AWS (eu-west / eu-central)",
+      "Chiffrement des communications (HTTPS/TLS 1.2+)",
+      "Protection DDoS et WAF via Cloudflare",
       "Limitation stricte des accès internes",
-      "Hashing des mots de passe (bcrypt)",
-      "Journalisation technique minimale",
-      "Authentification renforcée (MFA disponible)"
+      "Hachage des mots de passe (bcrypt) — les mots de passe en clair ne sont jamais stockés",
+      "Hachage des clés API (sk_...) — les valeurs brutes ne sont jamais conservées",
+      "Gestion des identités via AWS Cognito (OAuth 2.0, MFA, Google SSO)",
+      "Journalisation technique minimale (sans conservation d'adresse IP)",
+      "Authentification renforcée disponible (MFA par application ou SMS)"
     ],
     "section7Title": "7. Vos droits RGPD",
     "section7Intro": "Vous disposez des droits suivants :",
@@ -1134,12 +1150,12 @@
     "section8Future": "Futurs cookies",
     "section8FutureText": " (mesure d'audience, personnalisation, publicité) : un bandeau cookies conforme CNIL sera déployé avant activation.",
     "section9Title": "9. Transfert hors Union Européenne",
-    "section9Text1": "Aucun transfert hors UE à ce jour.",
-    "section9Text2": "En cas de transfert futur (ex. prestataires US), nous appliquerons :",
+    "section9Text1": "L'ensemble de vos données est hébergé exclusivement dans des régions européennes d'AWS (ex. eu-west-1, eu-central-1). Aucune donnée n'est hébergée en dehors de l'Union européenne.",
+    "section9Text2": "AWS est une société de droit américain potentiellement soumise au CLOUD Act. En conséquence, le transfert de données vers AWS est encadré par :",
     "section9Items": [
-      "Clauses contractuelles types (SCC)",
-      "Mécanismes de protection additionnels",
-      "Vérifications préalables de conformité RGPD"
+      "Les Clauses Contractuelles Types (SCC) approuvées par la Commission européenne",
+      "Le Data Processing Agreement (DPA) d'AWS",
+      "Des mesures de protection complémentaires : chiffrement en transit (TLS) et au repos, contrôle strict des accès"
     ],
     "section10Title": "10. Modification de la politique",
     "section10Intro": "SecureOps peut modifier cette politique pour tenir compte :",
