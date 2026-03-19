@@ -25,6 +25,7 @@ export default function ScannerHub() {
       bodyKey: "scanner.hub.cardSuiviScansBody",
       href: lp("/scanner/vue-d-ensemble"),
       icon: BarChart3,
+      comingSoon: false,
     },
     {
       id: "cles-api",
@@ -32,6 +33,7 @@ export default function ScannerHub() {
       bodyKey: "scanner.hub.cardApiPubliqueBody",
       href: lp("/scanner/cles-api"),
       icon: Terminal,
+      comingSoon: false,
     },
     {
       id: "documentation",
@@ -39,6 +41,7 @@ export default function ScannerHub() {
       bodyKey: "scanner.hub.cardDocsBody",
       href: lp("/scanner/docs"),
       icon: BookOpen,
+      comingSoon: false,
     },
   ];
 
@@ -49,6 +52,7 @@ export default function ScannerHub() {
       bodyKey: "scanner.hub.cardCrawlersBody",
       href: lp("/scanner/crawlers"),
       icon: Bot,
+      comingSoon: false,
     },
     {
       id: "scan-passif",
@@ -56,6 +60,7 @@ export default function ScannerHub() {
       bodyKey: "scanner.hub.cardScanPassiveBody",
       href: lp("/scanner/analyses?mode=passive"),
       icon: ShieldCheck,
+      comingSoon: false,
     },
     {
       id: "scan-intrusif",
@@ -63,6 +68,7 @@ export default function ScannerHub() {
       bodyKey: "scanner.hub.cardScanIntrusiveBody",
       href: lp("/scanner/analyses?mode=intrusive"),
       icon: Bug,
+      comingSoon: true,
     },
     {
       id: "scan-destructeur",
@@ -70,6 +76,7 @@ export default function ScannerHub() {
       bodyKey: "scanner.hub.cardScanDestructiveBody",
       href: lp("/scanner/analyses?mode=destructive"),
       icon: Flame,
+      comingSoon: true,
     },
     {
       id: "scans-personnalises",
@@ -77,12 +84,54 @@ export default function ScannerHub() {
       bodyKey: "scanner.hub.cardScansPersonnalisesBody",
       href: lp("/scanner/scans-personnalises"),
       icon: Construction,
+      comingSoon: true,
     },
   ];
 
-  const renderCard = (card: (typeof sectionGestion)[0]) => {
+  type CardItem = (typeof sectionGestion)[0] | (typeof sectionScanner)[0];
+  const isComingSoon = (c: CardItem): c is CardItem & { comingSoon: true } =>
+    "comingSoon" in c && c.comingSoon === true;
+
+  const renderCard = (card: CardItem) => {
     const Icon = card.icon;
-    const isDocsLink = card.href.includes("/scanner/docs");
+    const isDocsLink =
+      !isComingSoon(card) && card.href.includes("/scanner/docs");
+    const soon = isComingSoon(card);
+
+    const cardContent = (
+      <Card
+        disableHover
+        className={
+          "h-full flex flex-col pt-6 transition-all " +
+          (soon
+            ? "opacity-55 cursor-not-allowed border-dashed"
+            : "hover:border-[rgb(var(--primary))] hover:shadow-lg cursor-pointer")
+        }
+      >
+        <div className={`flex items-center gap-3 ${soon ? "mb-1" : "mb-3"}`}>
+          <Icon
+            className="w-6 h-6 shrink-0"
+            style={{ color: "rgb(var(--primary))" }}
+          />
+          <h3 className="section-title !text-left !mb-0">{t(card.titleKey)}</h3>
+        </div>
+        {soon && (
+          <span className="inline-block text-xs font-medium text-[rgb(var(--primary))] bg-[rgba(var(--primary),0.12)] px-2.5 py-1 rounded-full w-fit mb-3">
+            {t("scanner.hub.comingSoon")}
+          </span>
+        )}
+        <p className="text-sm text-[var(--muted)] flex-1">{t(card.bodyKey)}</p>
+      </Card>
+    );
+
+    if (soon) {
+      return (
+        <div key={card.id} className="block h-full" aria-disabled="true">
+          {cardContent}
+        </div>
+      );
+    }
+
     return (
       <Link
         key={card.id}
@@ -91,23 +140,7 @@ export default function ScannerHub() {
         rel={isDocsLink ? "noopener noreferrer" : undefined}
         className="block h-full"
       >
-        <Card
-          disableHover
-          className="h-full flex flex-col pt-6 transition-all hover:border-[rgb(var(--primary))] hover:shadow-lg cursor-pointer"
-        >
-          <div className="flex items-center gap-3 mb-3">
-            <Icon
-              className="w-6 h-6 shrink-0"
-              style={{ color: "rgb(var(--primary))" }}
-            />
-            <h3 className="section-title !text-left !mb-0">
-              {t(card.titleKey)}
-            </h3>
-          </div>
-          <p className="text-sm text-[var(--muted)] flex-1">
-            {t(card.bodyKey)}
-          </p>
-        </Card>
+        {cardContent}
       </Link>
     );
   };

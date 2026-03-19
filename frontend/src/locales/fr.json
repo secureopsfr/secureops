@@ -327,7 +327,7 @@
       "cardDocsBody": "Documentation des scanners, de l'API et intégration CI/CD.",
       "cardScansPersonnalises": "Scans personnalisés",
       "cardScansPersonnalisesBody": "Composer un scan custom avec votre propre stratégie.",
-      "comingSoon": "Bientôt disponible",
+      "comingSoon": "Prochainement disponible",
       "backToHub": "Retour au hub"
     },
     "docsApi": {
@@ -349,7 +349,8 @@
       "intro": "Documentation des scanners, de l'API et de l'intégration CI/CD.",
       "loading": "Chargement de la documentation...",
       "empty": "Aucune page de documentation disponible.",
-      "backToList": "Retour à la documentation"
+      "backToList": "Retour à la documentation",
+      "comingSoon": "Prochainement disponible"
     },
     "scansPersonnalises": {
       "metaTitle": "Scans personnalisés",
@@ -368,7 +369,7 @@
       "tabClesApi": "Clés API",
       "tabApiPublique": "API publique",
       "historiquesTitle": "Historiques",
-      "comingSoon": "Bientôt disponible",
+      "comingSoon": "Prochainement disponible",
       "kpiFakeData": "Données fictives pour l'instant",
       "kpiScansThisMonth": "Scans ce mois",
       "kpiTotalScans": "Total scans",

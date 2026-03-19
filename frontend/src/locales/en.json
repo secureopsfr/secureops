@@ -349,7 +349,8 @@
       "intro": "Scanner, API and CI/CD integration documentation.",
       "loading": "Loading documentation...",
       "empty": "No documentation pages available.",
-      "backToList": "Back to documentation"
+      "backToList": "Back to documentation",
+      "comingSoon": "Coming soon"
     },
     "scansPersonnalises": {
       "metaTitle": "Custom scans",
