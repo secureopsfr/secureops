@@ -18,6 +18,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
     "black>=25.0.0",
     "isort>=5.10.0",
     "flake8>=6.0.0",
@@ -45,3 +46,4 @@ line_length = 150
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q -ra"
+asyncio_mode = "auto"
