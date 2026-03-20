@@ -80,8 +80,8 @@ services:
       - COGNITO_REGION=${COGNITO_REGION:-eu-west-3}
       - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}
       - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      # Pas de AWS_ACCESS_KEY_* : sur EC2 utiliser le rôle (secureops-ec2-role) pour Cognito.
+      # Des clés dans .env souvent d’un autre compte → « User pool does not exist » sur AdminGetUser.
       - SCAN_SERVICE_URL=http://scan-service:8012
       - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
       - ADMIN_SERVICE_URL=http://admin-service:8010
