@@ -6,6 +6,7 @@ Contient les fonctions de proxy buffer et stream pour les requêtes vers les ser
 import logging
 
 import httpx
+from common.jwt_verifier import verify_cognito_jwt
 from common.logging_config import correlation_id_ctx
 from fastapi import HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
@@ -17,6 +18,31 @@ logger = logging.getLogger(__name__)
 
 config = settings()
 HOP_BY_HOP = set(config.headers.hop_by_hop)
+
+
+def _token_looks_like_jwt(token: str) -> bool:
+    return token.count(".") == 2 and all(len(p) > 0 for p in token.split(".", 2))
+
+
+def _cognito_sub_from_request_authorization(request: Request) -> str | None:
+    """Extrait le cognito sub depuis Authorization Bearer si JWT valide.
+
+    Utilisé quand le middleware n'a pas rempli request.state.user (ex. DISABLE_AUTH_MIDDLEWARE=true)
+    mais que le client envoie quand même un JWT : scan-service / crawl attendent X-Authenticated-User-Id.
+    """
+    auth = request.headers.get("Authorization") or ""
+    if not auth.startswith("Bearer "):
+        return None
+    token = auth[7:].strip()
+    if not token or not _token_looks_like_jwt(token):
+        return None
+    try:
+        claims = verify_cognito_jwt(token)
+        sub = claims.get("sub")
+        return str(sub) if sub else None
+    except Exception:
+        logger.debug("JWT présent mais non vérifiable pour X-Authenticated-User-Id", exc_info=True)
+        return None
 
 
 def _log_proxy_request(service_url: str, path: str, request: Request, mode: str = "buffer") -> None:
@@ -42,6 +68,10 @@ def _build_proxied_headers(request: Request, extra_headers: dict[str, str] | Non
         user_id = user.get("user_id") or user.get("sub")
         if user_id:
             headers["X-Authenticated-User-Id"] = str(user_id)
+    elif "x-authenticated-user-id" not in {k.lower() for k in headers}:
+        derived_sub = _cognito_sub_from_request_authorization(request)
+        if derived_sub:
+            headers["X-Authenticated-User-Id"] = derived_sub
     cid = correlation_id_ctx.get()
     if cid:
         headers["X-Correlation-ID"] = cid

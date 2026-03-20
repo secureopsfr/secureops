@@ -123,3 +123,38 @@ def test_protected_route_returns_auth_error(monkeypatch) -> None:
 
     assert resp.status_code == 401
     assert resp.json()["detail"] == "unauthorized"
+
+
+def test_multi_async_post_triggers_quota_after_auth(monkeypatch) -> None:
+    """POST /scan/api/scan/multi-async doit vérifier le quota après authentification."""
+    quota_calls: list[str] = []
+
+    async def fake_authenticate(request, require_admin=False):  # type: ignore[no-untyped-def]
+        request.state.user = {"sub": "cognito-sub-xyz", "auth_type": "jwt"}
+        return request.state.user, None
+
+    def fake_check_short_term(request, path, method):  # type: ignore[no-untyped-def]
+        return None
+
+    async def fake_check_long_term(request):  # type: ignore[no-untyped-def]
+        user = getattr(request.state, "user", None)
+        if user and user.get("sub"):
+            quota_calls.append(str(user["sub"]))
+        return None
+
+    monkeypatch.setattr(middleware_module, "_authenticate", fake_authenticate)
+    monkeypatch.setattr(middleware_module, "_check_short_term_rate_limit", fake_check_short_term)
+    monkeypatch.setattr(middleware_module, "_check_long_term_quota", fake_check_long_term)
+
+    app = FastAPI()
+    app.add_middleware(AuthMiddleware)
+
+    @app.post("/scan/api/scan/multi-async")
+    async def multi_async() -> dict[str, str]:
+        return {"status": "accepted"}
+
+    client = TestClient(app)
+    resp = client.post("/scan/api/scan/multi-async")
+
+    assert resp.status_code == 200
+    assert quota_calls == ["cognito-sub-xyz"]

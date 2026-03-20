@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Header from "../../components/ui/Header";
 import Footer from "../../components/ui/Footer";
-import OAuthCallbackHandler from "../../components/OAuthCallbackHandler";
 import HomeContent from "../../components/HomeContent";
 import { getTranslation } from "../../i18n/server";
 import {
@@ -119,7 +118,6 @@ export default async function HomePage({
           __html: JSON.stringify(softwareJsonLd),
         }}
       />
-      <OAuthCallbackHandler />
       <Header />
       <main id="main">
         <HomeContent locale={locale} />

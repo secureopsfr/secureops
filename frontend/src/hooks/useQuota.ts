@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchJsonWithAuth, getApiBaseUrl } from "../utils/apiClient";
+import { DAILY_QUOTA_CHANGED_EVENT } from "../utils/quotaEvents";
 
 export interface DailyQuota {
   used: number;
@@ -33,6 +34,32 @@ export function useQuota(isAuthenticated: boolean): UseQuotaResult {
     };
   }, []);
 
+  const fetchQuota = useCallback(async () => {
+    if (!isAuthenticated) {
+      setQuota(null);
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await fetchJsonWithAuth<DailyQuota>(
+        `${getApiBaseUrl()}/user/api/user/quota/daily`,
+        {},
+        "Impossible de récupérer le quota",
+      );
+      if (mountedRef.current) {
+        setQuota(data);
+      }
+    } catch {
+      if (mountedRef.current) {
+        setQuota(null);
+      }
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (!isAuthenticated) {
       setQuota(null);
@@ -41,34 +68,23 @@ export function useQuota(isAuthenticated: boolean): UseQuotaResult {
 
     let cancelled = false;
 
-    const fetch = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchJsonWithAuth<DailyQuota>(
-          `${getApiBaseUrl()}/user/api/user/quota/daily`,
-          {},
-          "Impossible de récupérer le quota",
-        );
-        if (!cancelled && mountedRef.current) {
-          setQuota(data);
-        }
-      } catch {
-        // Échec silencieux : ne pas casser le header si le quota est indisponible
-        if (!cancelled && mountedRef.current) {
-          setQuota(null);
-        }
-      } finally {
-        if (!cancelled && mountedRef.current) {
-          setLoading(false);
-        }
-      }
+    const run = async () => {
+      if (cancelled) return;
+      await fetchQuota();
     };
 
-    fetch();
+    void run();
+
+    const onRefresh = () => {
+      if (!cancelled && mountedRef.current) void fetchQuota();
+    };
+    window.addEventListener(DAILY_QUOTA_CHANGED_EVENT, onRefresh);
+
     return () => {
       cancelled = true;
+      window.removeEventListener(DAILY_QUOTA_CHANGED_EVENT, onRefresh);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fetchQuota]);
 
   return { quota, loading };
 }

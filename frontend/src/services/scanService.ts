@@ -3,6 +3,7 @@
  */
 
 import { getApiBaseUrl } from "../utils/apiClient";
+import { notifyDailyQuotaChanged } from "../utils/quotaEvents";
 import {
   parse429Error,
   parseHttpError,
@@ -223,6 +224,9 @@ export async function runAsyncScan(
         scan_type: data.scan_type,
         anonymous: Boolean(data.job_token),
       });
+      if (authHeaders.Authorization) {
+        notifyDailyQuotaChanged();
+      }
       return { job_id: data.job_id, job_token: data.job_token };
     },
     pollUrl: (jobId) => `${base}/scan/api/scan/async/${jobId}`,
@@ -311,6 +315,7 @@ export async function runMultiScan(
       }
       const data = (await res.json()) as { job_id: string; status: string };
       logger.info(`${logPrefix} create job success`, { job_id: data.job_id });
+      notifyDailyQuotaChanged();
       return { job_id: data.job_id };
     },
     pollUrl: (jobId) => `${base}/scan/api/scan/async/${jobId}`,
