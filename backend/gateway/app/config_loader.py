@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import yaml
 from pydantic import BaseModel, ValidationError
@@ -30,6 +30,8 @@ class CorsConf(BaseModel):
     allow_methods: List[str]
     allow_headers: List[str]
     allow_credentials: bool
+    # Optionnel : motif regex sur l’origine complète (ex. toutes les URL AWS Amplify).
+    allow_origin_regex: Optional[str] = None
 
 
 class ServiceConf(BaseModel):

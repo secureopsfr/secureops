@@ -36,6 +36,7 @@ app.add_middleware(
     allow_methods=config.cors.allow_methods,
     allow_headers=config.cors.allow_headers,
     allow_credentials=config.cors.allow_credentials,
+    allow_origin_regex=config.cors.allow_origin_regex,
 )
 
 # Middleware d'authentification (protège toutes les routes sauf /health)
