@@ -1,8 +1,8 @@
-"""Tests unitaires pour les vérifications Information disclosure (app.services.information_disclosure.checks)."""
+"""Tests unitaires pour les vérifications Information disclosure (passive)."""
 
 from unittest.mock import MagicMock
 
-from app.services.information_disclosure import InformationDisclosureCheckResult, check_information_disclosure_from_response
+from app.services.passive.both.information_disclosure import InformationDisclosureCheckResult, check_information_disclosure_from_response
 
 
 def _mock_response(

@@ -61,13 +61,39 @@ export default function ScanSummarySection({
   const { t, language } = useLanguage();
 
   const sortedFindings = [...findings].sort(severitySort);
+  const anomalyFindings = sortedFindings.filter((f) => f.severity !== "info");
+  const infoFindings = sortedFindings.filter((f) => f.severity === "info");
 
   const byCategory = sortedFindings.reduce<Record<string, number>>((acc, f) => {
     acc[f.category] = (acc[f.category] ?? 0) + 1;
     return acc;
   }, {});
+  const byCategoryAnomalies = anomalyFindings.reduce<Record<string, number>>(
+    (acc, f) => {
+      acc[f.category] = (acc[f.category] ?? 0) + 1;
+      return acc;
+    },
+    {},
+  );
+  const byCategoryInfos = infoFindings.reduce<Record<string, number>>(
+    (acc, f) => {
+      acc[f.category] = (acc[f.category] ?? 0) + 1;
+      return acc;
+    },
+    {},
+  );
 
   const summaries = category_summaries ?? buildFallbackSummaries(byCategory);
+  const summariesByCategory = summaries.reduce<Record<string, CategorySummary>>(
+    (acc, entry) => {
+      acc[entry.category] = entry;
+      return acc;
+    },
+    {},
+  );
+  const displayCategories = category_summaries
+    ? summaries.map((entry) => entry.category)
+    : CHECKED_CATEGORIES_ORDER;
 
   const checksCountByCategory = summaries.reduce<Record<string, number>>(
     (acc, entry) => {
@@ -83,7 +109,7 @@ export default function ScanSummarySection({
 
   const totalTestsCount =
     total_tests_count ??
-    CHECKED_CATEGORIES_ORDER.reduce(
+    displayCategories.reduce(
       (sum, cat) => sum + (checksCountByCategory[cat] ?? 0),
       0,
     );
@@ -122,18 +148,20 @@ export default function ScanSummarySection({
               </tr>
             </thead>
             <tbody>
-              {CHECKED_CATEGORIES_ORDER.map((cat) => {
+              {displayCategories.map((cat) => {
                 const count = byCategory[cat] ?? 0;
                 const nbChecks = checksCountByCategory[cat] ?? 0;
-                const anchorId = `${anchorPrefix}anomalies-${cat}`;
+                const summaryEntry = summariesByCategory[cat];
+                const label =
+                  (language === "en"
+                    ? summaryEntry?.label_en
+                    : summaryEntry?.label_fr) || t(getCategoryKey(cat));
                 return (
                   <tr
                     key={cat}
                     className="border-b border-[var(--color-border)] last:border-b-0"
                   >
-                    <td className="py-3 px-4 text-[var(--text)]">
-                      {t(getCategoryKey(cat))}
-                    </td>
+                    <td className="py-3 px-4 text-[var(--text)]">{label}</td>
                     <td className="py-3 px-4 text-center text-[var(--muted)]">
                       {nbChecks}
                     </td>
@@ -143,23 +171,50 @@ export default function ScanSummarySection({
                           {t("scanner.statusOk")}
                         </span>
                       ) : (
-                        <a
-                          href={`#${anchorId}`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            document
-                              .getElementById(anchorId)
-                              ?.scrollIntoView({ behavior: "smooth" });
-                          }}
-                          className="font-medium text-[rgb(var(--warning))] hover:underline cursor-pointer"
-                        >
-                          {count}{" "}
-                          {t(
-                            count === 1
-                              ? "scanner.anomalies_one"
-                              : "scanner.anomalies",
+                        <span className="flex flex-wrap justify-end gap-x-2 gap-y-1">
+                          {(byCategoryAnomalies[cat] ?? 0) > 0 && (
+                            <a
+                              href={`#${anchorPrefix}anomalies-section`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                document
+                                  .getElementById(
+                                    `${anchorPrefix}anomalies-section`,
+                                  )
+                                  ?.scrollIntoView({ behavior: "smooth" });
+                              }}
+                              className="font-medium text-[rgb(var(--warning))] hover:underline cursor-pointer"
+                            >
+                              {byCategoryAnomalies[cat]}{" "}
+                              {t(
+                                byCategoryAnomalies[cat] === 1
+                                  ? "scanner.anomalies_one"
+                                  : "scanner.anomalies",
+                              )}
+                            </a>
                           )}
-                        </a>
+                          {(byCategoryInfos[cat] ?? 0) > 0 && (
+                            <a
+                              href={`#${anchorPrefix}infos-section`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                document
+                                  .getElementById(
+                                    `${anchorPrefix}infos-section`,
+                                  )
+                                  ?.scrollIntoView({ behavior: "smooth" });
+                              }}
+                              className="font-medium text-[rgb(var(--primary))] hover:underline cursor-pointer"
+                            >
+                              {byCategoryInfos[cat]}{" "}
+                              {t(
+                                byCategoryInfos[cat] === 1
+                                  ? "scanner.infos_one"
+                                  : "scanner.infos",
+                              )}
+                            </a>
+                          )}
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -185,8 +240,11 @@ export default function ScanSummarySection({
                 t(getCategoryKey(entry.category));
               const shortSummary =
                 desc || t(getCategorySummaryOkKey(entry.category));
-              const hasAnomalies = entry.anomaly_count > 0;
-              const anchorId = `${anchorPrefix}anomalies-${entry.category}`;
+              const anomalyCount = byCategoryAnomalies[entry.category] ?? 0;
+              const infoCount = byCategoryInfos[entry.category] ?? 0;
+              const hasAnomalies = anomalyCount > 0;
+              const hasInfos = infoCount > 0;
+              const hasAny = hasAnomalies || hasInfos;
 
               return (
                 <div
@@ -212,56 +270,62 @@ export default function ScanSummarySection({
                             `scanner.tlsPosture${entry.tls_posture.charAt(0).toUpperCase()}${entry.tls_posture.slice(1)}`,
                           )}
                         </span>
-                      ) : hasAnomalies ? (
-                        <a
-                          href={`#${anchorId}`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            document
-                              .getElementById(anchorId)
-                              ?.scrollIntoView({ behavior: "smooth" });
-                          }}
-                          className="text-sm font-medium text-[rgb(var(--primary))] hover:underline"
-                        >
-                          {entry.anomaly_count}{" "}
-                          {t(
-                            entry.anomaly_count === 1
-                              ? "scanner.anomalies_one"
-                              : "scanner.anomalies",
-                          )}{" "}
-                          <span className="text-xs">
-                            ({t("scanner.details")})
-                          </span>
-                        </a>
+                      ) : hasAny ? (
+                        <>
+                          {hasAnomalies && (
+                            <a
+                              href={`#${anchorPrefix}anomalies-section`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                document
+                                  .getElementById(
+                                    `${anchorPrefix}anomalies-section`,
+                                  )
+                                  ?.scrollIntoView({ behavior: "smooth" });
+                              }}
+                              className="text-sm font-medium text-[rgb(var(--warning))] hover:underline"
+                            >
+                              {anomalyCount}{" "}
+                              {t(
+                                anomalyCount === 1
+                                  ? "scanner.anomalies_one"
+                                  : "scanner.anomalies",
+                              )}{" "}
+                              <span className="text-xs">
+                                ({t("scanner.details")})
+                              </span>
+                            </a>
+                          )}
+                          {hasInfos && (
+                            <a
+                              href={`#${anchorPrefix}infos-section`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                document
+                                  .getElementById(
+                                    `${anchorPrefix}infos-section`,
+                                  )
+                                  ?.scrollIntoView({ behavior: "smooth" });
+                              }}
+                              className="text-sm font-medium text-[rgb(var(--primary))] hover:underline"
+                            >
+                              {infoCount}{" "}
+                              {t(
+                                infoCount === 1
+                                  ? "scanner.infos_one"
+                                  : "scanner.infos",
+                              )}{" "}
+                              <span className="text-xs">
+                                ({t("scanner.details")})
+                              </span>
+                            </a>
+                          )}
+                        </>
                       ) : (
                         <span className="text-sm font-medium text-[rgb(var(--success))]">
                           {t("scanner.statusOk")}
                         </span>
                       )}
-                      {entry.category === "tls" &&
-                        entry.tls_posture &&
-                        hasAnomalies && (
-                          <a
-                            href={`#${anchorId}`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              document
-                                .getElementById(anchorId)
-                                ?.scrollIntoView({ behavior: "smooth" });
-                            }}
-                            className="text-sm font-medium text-[rgb(var(--primary))] hover:underline"
-                          >
-                            {entry.anomaly_count}{" "}
-                            {t(
-                              entry.anomaly_count === 1
-                                ? "scanner.anomalies_one"
-                                : "scanner.anomalies",
-                            )}{" "}
-                            <span className="text-xs">
-                              ({t("scanner.details")})
-                            </span>
-                          </a>
-                        )}
                     </div>
                   </div>
                   {(desc || shortSummary) && (
@@ -277,33 +341,73 @@ export default function ScanSummarySection({
                     </p>
                   )}
                   <p className="text-sm text-[var(--muted)] leading-relaxed">
-                    {hasAnomalies ? (
-                      (() => {
-                        const categoryFindings = sortedFindings.filter(
-                          (f) => f.category === entry.category,
-                        );
-                        const titles = categoryFindings
-                          .map((f) => f.title)
-                          .join(", ");
-                        const boldPart =
-                          entry.anomaly_count === 1
-                            ? t("scanner.summaryOneAnomalyBold")
-                            : `${entry.anomaly_count} ${t("scanner.anomalies")}`;
-                        const afterKey =
-                          entry.anomaly_count === 1
-                            ? "scanner.summaryOneAnomalyAfter"
-                            : "scanner.summaryAnomaliesCountAfter";
-                        const afterParams: Record<string, string | number> =
-                          entry.anomaly_count === 1
-                            ? { titles }
-                            : { count: entry.anomaly_count, titles };
-                        return (
+                    {hasAny ? (
+                      <>
+                        {hasAnomalies && (
                           <>
-                            <strong>{boldPart}</strong>
-                            {t(afterKey, afterParams)}
+                            <strong>
+                              {anomalyCount === 1
+                                ? t("scanner.summaryOneAnomalyBold")
+                                : `${anomalyCount} ${t("scanner.anomalies")}`}
+                            </strong>
+                            {t(
+                              anomalyCount === 1
+                                ? "scanner.summaryOneAnomalyAfter"
+                                : "scanner.summaryAnomaliesCountAfter",
+                              anomalyCount === 1
+                                ? {
+                                    titles: anomalyFindings
+                                      .filter(
+                                        (f) => f.category === entry.category,
+                                      )
+                                      .map((f) => f.title)
+                                      .join(", "),
+                                  }
+                                : {
+                                    count: anomalyCount,
+                                    titles: anomalyFindings
+                                      .filter(
+                                        (f) => f.category === entry.category,
+                                      )
+                                      .map((f) => f.title)
+                                      .join(", "),
+                                  },
+                            )}
+                            {hasInfos && " "}
                           </>
-                        );
-                      })()
+                        )}
+                        {hasInfos && (
+                          <>
+                            <strong className="text-[rgb(var(--primary))]">
+                              {infoCount === 1
+                                ? t("scanner.summaryOneInfoBold")
+                                : `${infoCount} ${t("scanner.infos")}`}
+                            </strong>
+                            {t(
+                              infoCount === 1
+                                ? "scanner.summaryOneInfoAfter"
+                                : "scanner.summaryInfosCountAfter",
+                              infoCount === 1
+                                ? {
+                                    titles: infoFindings
+                                      .filter(
+                                        (f) => f.category === entry.category,
+                                      )
+                                      .map((f) => f.title)
+                                      .join(", "),
+                                  }
+                                : {
+                                    titles: infoFindings
+                                      .filter(
+                                        (f) => f.category === entry.category,
+                                      )
+                                      .map((f) => f.title)
+                                      .join(", "),
+                                  },
+                            )}
+                          </>
+                        )}
+                      </>
                     ) : (
                       <>
                         <strong>{t("scanner.summaryNoAnomaliesBold")}</strong>
@@ -318,41 +422,78 @@ export default function ScanSummarySection({
         </Card>
       </Wrap>
 
-      {/* ── Findings détaillés ── */}
-      <Wrap {...(wrapProps as object)}>
-        <Card
-          disableHover
-          className="scanner-block p-4"
-          id={
-            anchorPrefix
-              ? `${anchorPrefix}anomalies-section`
-              : "anomalies-section"
-          }
-        >
-          <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wider text-[var(--text)]">
-            {t("scanner.findings")}
-          </h3>
-          {sortedFindings.length === 0 ? (
-            <p className="text-muted-theme">{t("scanner.noFindings")}</p>
-          ) : (
-            <ul className="divide-y-0">
-              {(() => {
-                const seenCategories = new Set<string>();
-                return sortedFindings.map((f, i) => {
-                  const isFirstOfCategory = !seenCategories.has(f.category);
-                  if (isFirstOfCategory) seenCategories.add(f.category);
-                  const anchorId = `${anchorPrefix}anomalies-${f.category}`;
-                  return (
-                    <li
-                      key={`${f.id}-${i}`}
-                      id={isFirstOfCategory ? anchorId : undefined}
-                    >
+      {/* ── Anomalies détaillées ── */}
+      {(anomalyFindings.length > 0 || infoFindings.length > 0) && (
+        <Wrap {...(wrapProps as object)}>
+          <div className="space-y-6">
+            {anomalyFindings.length > 0 && (
+              <Card
+                disableHover
+                className="scanner-block p-4"
+                id={
+                  anchorPrefix
+                    ? `${anchorPrefix}anomalies-section`
+                    : "anomalies-section"
+                }
+              >
+                <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wider text-[var(--text)]">
+                  {t("scanner.findings")}
+                </h3>
+                <ul className="divide-y-0">
+                  {(() => {
+                    const seenCategories = new Set<string>();
+                    return anomalyFindings.map((f, i) => {
+                      const isFirstOfCategory = !seenCategories.has(f.category);
+                      if (isFirstOfCategory) seenCategories.add(f.category);
+                      const anchorId = `${anchorPrefix}anomalies-${f.category}`;
+                      return (
+                        <li
+                          key={`${f.id}-${i}`}
+                          id={isFirstOfCategory ? anchorId : undefined}
+                        >
+                          <AnimateInView
+                            className="landing-reveal-finding"
+                            as="div"
+                          >
+                            <FindingCard finding={f} />
+                            {i < anomalyFindings.length - 1 && (
+                              <div
+                                className="my-4 mx-auto w-[90%] border-t border-[var(--color-border)] opacity-50"
+                                aria-hidden
+                              />
+                            )}
+                          </AnimateInView>
+                        </li>
+                      );
+                    });
+                  })()}
+                </ul>
+              </Card>
+            )}
+
+            {/* ── Infos (section séparée, bleue) ── */}
+            {infoFindings.length > 0 && (
+              <Card
+                disableHover
+                className="scanner-block p-4 border-[rgba(var(--primary),0.3)]"
+                id={
+                  anchorPrefix
+                    ? `${anchorPrefix}infos-section`
+                    : "infos-section"
+                }
+              >
+                <h3 className="mb-4 text-center text-sm font-semibold uppercase tracking-wider text-[rgb(var(--primary))]">
+                  {t("scanner.findingsInfos")}
+                </h3>
+                <ul className="divide-y-0">
+                  {infoFindings.map((f, i) => (
+                    <li key={`${f.id}-${i}`}>
                       <AnimateInView
                         className="landing-reveal-finding"
                         as="div"
                       >
                         <FindingCard finding={f} />
-                        {i < sortedFindings.length - 1 && (
+                        {i < infoFindings.length - 1 && (
                           <div
                             className="my-4 mx-auto w-[90%] border-t border-[var(--color-border)] opacity-50"
                             aria-hidden
@@ -360,13 +501,23 @@ export default function ScanSummarySection({
                         )}
                       </AnimateInView>
                     </li>
-                  );
-                });
-              })()}
-            </ul>
-          )}
-        </Card>
-      </Wrap>
+                  ))}
+                </ul>
+              </Card>
+            )}
+          </div>
+        </Wrap>
+      )}
+
+      {sortedFindings.length === 0 && (
+        <Wrap {...(wrapProps as object)}>
+          <Card disableHover className="scanner-block p-4">
+            <p className="text-muted-theme text-center">
+              {t("scanner.noFindings")}
+            </p>
+          </Card>
+        </Wrap>
+      )}
     </>
   );
 }

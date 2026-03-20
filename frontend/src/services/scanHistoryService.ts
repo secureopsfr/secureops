@@ -11,12 +11,13 @@ import { buildPaginatedQuery } from "../utils/apiQueryParams";
 import type { PaginatedListResponse } from "../types/api";
 import type { MultiScanResult, ScanResult } from "./scanService";
 
-export type ScanType = "frontend" | "backend" | "custom";
+export type ScanType = "frontend" | "backend";
 
 export interface ScanHistoryItem {
   id: string;
   url: string;
   scan_type: ScanType;
+  scan_mode?: "passive" | "intrusive" | "destructive" | "custom";
   result_mode: "single" | "multi";
   status: string;
   score: number | null;
@@ -30,6 +31,7 @@ export type ScanHistoryListResponse = PaginatedListResponse<ScanHistoryItem>;
 export interface ScanHistoryDetail extends ScanResult {
   id: string;
   scan_type: ScanType;
+  scan_mode?: "passive" | "intrusive" | "destructive" | "custom";
   status: string;
   created_at: string;
   result_mode?: "single" | "multi";
@@ -48,10 +50,14 @@ export type ScanHistorySelection =
  * Returns:
  *   string | null: ID du scan créé, ou null si non enregistré (ex. retention "none").
  */
-export async function saveScan(result: ScanResult): Promise<string | null> {
+export async function saveScan(
+  result: ScanResult,
+  scanType: ScanType = "frontend",
+): Promise<string | null> {
   const body: Record<string, unknown> = {
     url: result.url,
-    scan_type: "frontend",
+    scan_type: scanType,
+    scan_mode: result.scan_mode ?? "passive",
     status: "success",
     score: result.score,
     findings: result.findings,
@@ -79,6 +85,7 @@ export async function saveMultiScan(
   const body: Record<string, unknown> = {
     url: result.base_url,
     scan_type: result.scan_type || "frontend",
+    scan_mode: result.scan_mode || "passive",
     result_mode: "multi",
     status: result.status || "success",
     score: result.score_global,
@@ -125,11 +132,18 @@ export async function getScanOverview(
   scan_type?: string | null,
   date_from?: string | null,
   date_to?: string | null,
+  scan_mode?: string | null,
 ): Promise<ScanOverviewResponse> {
   const params = new URLSearchParams();
   if (url?.trim()) params.set("url", url.trim());
   if (scan_type && ["frontend", "backend", "custom"].includes(scan_type)) {
     params.set("scan_type", scan_type);
+  }
+  if (
+    scan_mode &&
+    ["passive", "intrusive", "destructive", "custom"].includes(scan_mode)
+  ) {
+    params.set("scan_mode", scan_mode);
   }
   if (date_from?.trim()) params.set("date_from", date_from.trim());
   if (date_to?.trim()) params.set("date_to", date_to.trim());
@@ -148,12 +162,14 @@ export async function getScanHistory(
   scan_type?: string | null,
   date_from?: string | null,
   date_to?: string | null,
+  scan_mode?: string | null,
 ): Promise<ScanHistoryListResponse> {
   const query = buildPaginatedQuery({
     page,
     limit,
     url,
     scan_type,
+    scan_mode,
     date_from,
     date_to,
   });

@@ -8,13 +8,15 @@ import type { PaginatedListResponse } from "../types/api";
 
 export type Frequency = "daily" | "weekly" | "monthly";
 
-export type ScanType = "frontend" | "backend" | "custom";
+export type ScanType = "frontend" | "backend";
+export type ScanMode = "passive" | "intrusive" | "destructive" | "custom";
 export type ResultMode = "single" | "multi";
 
 export interface ScheduledScan {
   id: string;
   url: string;
   scan_type: ScanType;
+  scan_mode: ScanMode;
   result_mode?: ResultMode;
   urls?: string[] | null;
   frequency: string;
@@ -32,6 +34,7 @@ export interface ScanAlertEvent {
   id: string;
   url: string;
   scan_type: ScanType;
+  scan_mode: ScanMode;
   alert_type: string;
   email_sent: boolean;
   triggered_at: string;
@@ -40,6 +43,7 @@ export interface ScanAlertEvent {
 export interface CreateScheduledScanInput {
   url: string;
   scan_type: ScanType;
+  scan_mode?: ScanMode;
   result_mode?: ResultMode;
   urls?: string[];
   frequency: Frequency;
@@ -82,6 +86,7 @@ export async function createScheduledScan(
       body: JSON.stringify({
         url: input.url,
         scan_type: input.scan_type,
+        scan_mode: input.scan_mode ?? "passive",
         result_mode: input.result_mode ?? "single",
         urls: input.urls ?? null,
         frequency: input.frequency,
@@ -104,8 +109,9 @@ export async function getScheduledScans(
   limit = 10,
   url?: string | null,
   scan_type?: string | null,
+  scan_mode?: string | null,
 ): Promise<ScheduledScanListResponse> {
-  const query = buildPaginatedQuery({ page, limit, url, scan_type });
+  const query = buildPaginatedQuery({ page, limit, url, scan_type, scan_mode });
   return fetchJsonWithAuth<ScheduledScanListResponse>(
     `${getApiBaseUrl()}/user/api/scans/schedule?${query}`,
     { method: "GET" },
@@ -154,6 +160,7 @@ export async function getScanAlertHistory(
   limit = 10,
   url?: string | null,
   scan_type?: string | null,
+  scan_mode?: string | null,
   date_from?: string | null,
   date_to?: string | null,
 ): Promise<ScanAlertHistoryListResponse> {
@@ -162,6 +169,7 @@ export async function getScanAlertHistory(
     limit,
     url,
     scan_type,
+    scan_mode,
     date_from,
     date_to,
   });

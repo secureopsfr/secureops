@@ -45,22 +45,6 @@ function decodeTokenPayload(token: {
   return token.payload;
 }
 
-/* ─── Helper: detect auth method from token + user ──────── */
-
-function detectAuthMethod(
-  loginId: string | undefined,
-  identities?: unknown,
-): "email" | "google" {
-  if (
-    loginId?.includes("google") ||
-    loginId?.includes("Google") ||
-    identities
-  ) {
-    return "google";
-  }
-  return "email";
-}
-
 /* ─── Hook ──────────────────────────────────────────────── */
 
 export function useAccountPage() {
@@ -88,7 +72,6 @@ export function useAccountPage() {
 
   const [userLanguage, setUserLanguage] = useState<"fr" | "en">("en");
 
-  const [authMethod, setAuthMethod] = useState<"email" | "google">("email");
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [passwordData, setPasswordData] = useState<PasswordData>({
     currentPassword: "",
@@ -124,12 +107,6 @@ export function useAccountPage() {
               email: (payload.email as string) || currentUser.username || "",
               phoneNumber: (payload.phone_number as string) || "",
             });
-            setAuthMethod(
-              detectAuthMethod(
-                currentUser.signInDetails?.loginId,
-                payload.identities,
-              ),
-            );
           } else {
             setProfile({
               givenName: "",
@@ -137,7 +114,6 @@ export function useAccountPage() {
               email: currentUser.username || "",
               phoneNumber: "",
             });
-            setAuthMethod(detectAuthMethod(currentUser.signInDetails?.loginId));
           }
         } catch (err) {
           log("Impossible de récupérer les attributs depuis le token:", err);
@@ -147,7 +123,6 @@ export function useAccountPage() {
             email: currentUser.username || "",
             phoneNumber: "",
           });
-          setAuthMethod(detectAuthMethod(currentUser.signInDetails?.loginId));
         }
 
         // Load subscription & user preferences
@@ -385,7 +360,6 @@ export function useAccountPage() {
     setProfile,
     subscription,
     userLanguage,
-    authMethod,
     showChangePassword,
     setShowChangePassword,
     passwordData,

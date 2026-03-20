@@ -739,6 +739,16 @@
     "title_en": "Custom header revealing stack",
     "references": ["https://owasp.org/www-community/controls/Fingerprinting"]
   },
+  "info-disclosure-meta-generator": {
+    "recommendation": "Retirer ou généraliser la balise <meta name=\"generator\"> qui expose le CMS ou la version. Les frameworks (WordPress, Drupal, Joomla, etc.) l'ajoutent par défaut.",
+    "recommendation_en": "Remove or generalize the <meta name=\"generator\"> tag that exposes the CMS or version. Frameworks (WordPress, Drupal, Joomla, etc.) add it by default.",
+    "title_fr": "Meta generator exposant la stack",
+    "title_en": "Meta generator exposing stack",
+    "references": [
+      "https://owasp.org/www-community/controls/Fingerprinting",
+      "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta/name"
+    ]
+  },
   "info-disclosure-connection-failed": {
     "recommendation": "Vérifier que la réponse HTTPS est accessible pour permettre l'analyse des fuites d'information.",
     "recommendation_en": "Ensure HTTPS response is accessible to allow information disclosure analysis.",
@@ -823,6 +833,107 @@
     "title_en": "CORS or cross-origin issue",
     "references": ["https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing"]
   },
+  "methodes-http-dangerous-methods": {
+    "recommendation": "N'exposer que les méthodes HTTP réellement nécessaires. Protéger PUT/DELETE/PATCH par authentification et autorisation.",
+    "recommendation_en": "Only expose HTTP methods that are actually needed. Protect PUT/DELETE/PATCH with authentication and authorization.",
+    "title_fr": "Méthodes PUT/DELETE/PATCH exposées",
+    "title_en": "PUT/DELETE/PATCH methods exposed",
+    "references": ["https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/03-Testing_for_HTTP_Verb_Tampering"]
+  },
+  "methodes-http-trace-enabled": {
+    "recommendation": "Désactiver la méthode TRACE sur le serveur web (TraceEnable Off sur Apache, pas de support TRACE sur Nginx).",
+    "recommendation_en": "Disable TRACE method on the web server (TraceEnable Off on Apache, no TRACE support on Nginx).",
+    "title_fr": "TRACE activé (risque XST)",
+    "title_en": "TRACE enabled (XST risk)",
+    "references": ["https://owasp.org/www-community/attacks/Cross_Site_Tracing"]
+  },
+  "methodes-http-head-unsupported": {
+    "recommendation": "Implémenter la méthode HEAD pour permettre la validation de cache (ETag, Last-Modified) sans télécharger le corps.",
+    "recommendation_en": "Implement HEAD method to allow cache validation (ETag, Last-Modified) without downloading the body.",
+    "title_fr": "HEAD non supporté",
+    "title_en": "HEAD not supported",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/HEAD"]
+  },
+  "methodes-http-redirect-chain-excessive": {
+    "recommendation": "Simplifier la chaîne de redirections ; éviter les boucles ou les redirects inutiles.",
+    "recommendation_en": "Simplify the redirect chain; avoid loops or unnecessary redirects.",
+    "title_fr": "Chaîne de redirection excessive",
+    "title_en": "Excessive redirect chain",
+    "references": ["https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html"]
+  },
+  "methodes-http-redirect-301-302-form": {
+    "recommendation": "Utiliser 307 ou 308 pour les redirections de formulaires afin de préserver la méthode HTTP (POST reste POST).",
+    "recommendation_en": "Use 307 or 308 for form redirects to preserve the HTTP method (POST stays POST).",
+    "title_fr": "Redirection 301/302 sur formulaire sensible",
+    "title_en": "301/302 redirect on sensitive form",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections"]
+  },
+  "methodes-http-generic": {
+    "recommendation": "Consulter la documentation sur les méthodes HTTP et les redirections.",
+    "recommendation_en": "Consult documentation on HTTP methods and redirects.",
+    "title_fr": "Problème Méthodes HTTP ou redirections",
+    "title_en": "HTTP methods or redirect issue",
+    "references": []
+  },
+  "api-graphql-introspection": {
+    "recommendation": "Désactiver l'introspection GraphQL en production ou la protéger par authentification.",
+    "recommendation_en": "Disable GraphQL introspection in production or protect it with authentication.",
+    "title_fr": "Introspection GraphQL activée",
+    "title_en": "GraphQL introspection enabled",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html",
+      "https://graphql.org/learn/introspection/"
+    ]
+  },
+  "api-swagger-exposed": {
+    "recommendation": "Protéger la documentation Swagger/OpenAPI par authentification ou la désactiver en production.",
+    "recommendation_en": "Protect Swagger/OpenAPI documentation with authentication or disable it in production.",
+    "title_fr": "Swagger/OpenAPI exposé sans auth",
+    "title_en": "Swagger/OpenAPI exposed without auth",
+    "references": ["https://swagger.io/docs/specification/authentication/"]
+  },
+  "api-rest-unpaginated": {
+    "recommendation": "Implémenter la pagination (page, limit) sur tous les endpoints retournant des listes.",
+    "recommendation_en": "Implement pagination (page, limit) on all list-returning endpoints.",
+    "title_fr": "Liste REST non paginée",
+    "title_en": "Unpaginated REST list",
+    "references": ["https://cheatsheetseries.owasp.org/cheatsheets/API_Security_Cheat_Sheet.html"]
+  },
+  "formats-content-type-wrong": {
+    "recommendation": "S'assurer que chaque type de réponse a le Content-Type approprié (application/json pour JSON, text/html pour HTML).",
+    "recommendation_en": "Ensure each response type has the appropriate Content-Type (application/json for JSON, text/html for HTML).",
+    "title_fr": "Content-Type incorrect",
+    "title_en": "Incorrect Content-Type",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type"]
+  },
+  "formats-xcto-missing": {
+    "recommendation": "Ajouter X-Content-Type-Options: nosniff sur toutes les réponses pour empêcher le MIME sniffing.",
+    "recommendation_en": "Add X-Content-Type-Options: nosniff on all responses to prevent MIME sniffing.",
+    "title_fr": "X-Content-Type-Options: nosniff absent",
+    "title_en": "X-Content-Type-Options: nosniff missing",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options"]
+  },
+  "formats-no-compression": {
+    "recommendation": "Activer la compression gzip ou brotli sur le serveur pour les réponses textuelles (HTML, JSON, CSS, JS).",
+    "recommendation_en": "Enable gzip or brotli compression on the server for textual responses (HTML, JSON, CSS, JS).",
+    "title_fr": "Réponse sans compression",
+    "title_en": "Response without compression",
+    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding"]
+  },
+  "api-generic": {
+    "recommendation": "Consulter la documentation sur les APIs et formats de réponse.",
+    "recommendation_en": "Consult documentation on APIs and response formats.",
+    "title_fr": "Problème API ou format",
+    "title_en": "API or format issue",
+    "references": []
+  },
+  "formats-generic": {
+    "recommendation": "Vérifier les formats de réponse (Content-Type, X-Content-Type-Options, compression).",
+    "recommendation_en": "Verify response formats (Content-Type, X-Content-Type-Options, compression).",
+    "title_fr": "Problème format de réponse",
+    "title_en": "Response format issue",
+    "references": []
+  },
   "integrity-sri-external-missing": {
     "recommendation": "Ajouter l'attribut integrity (SRI) sur les scripts et feuilles de style chargés depuis des domaines externes (CDN, tiers). Mettre à jour le hash à chaque changement de ressource.",
     "recommendation_en": "Add the integrity (SRI) attribute on scripts and stylesheets loaded from external domains (CDN, third parties). Update the hash whenever the resource changes.",
@@ -880,6 +991,16 @@
     "title_fr": "Meta robots sans noindex sur page sensible",
     "title_en": "robots meta without noindex on sensitive page",
     "references": ["https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag"]
+  },
+  "integrity-forms-post-without-csrf": {
+    "recommendation": "Ajouter un champ hidden avec token CSRF dans chaque formulaire POST (csrf_token, _token, authenticity_token, etc.). Valider le token côté serveur.",
+    "recommendation_en": "Add a hidden field with CSRF token in each POST form (csrf_token, _token, authenticity_token, etc.). Validate the token server-side.",
+    "title_fr": "Formulaires POST sans champ CSRF",
+    "title_en": "POST forms without CSRF field",
+    "references": [
+      "https://owasp.org/www-community/attacks/csrf",
+      "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+    ]
   },
   "integrity-connection-failed": {
     "recommendation": "Vérifier que la page principale est accessible en HTTPS et que son contenu HTML peut être chargé pour permettre les vérifications d'intégrité.",

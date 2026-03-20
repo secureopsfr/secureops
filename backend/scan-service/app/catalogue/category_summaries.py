@@ -26,6 +26,8 @@ _CATEGORY_ORDER = (
     "tech_fingerprinting",
     "information_disclosure",
     "cors_cross_origin",
+    "methodes_http_et_redirections",
+    "apis_et_formats",
 )
 
 

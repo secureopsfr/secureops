@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-ScanType = Literal["frontend", "backend", "custom"]
+ScanType = Literal["frontend"]
 JobStatus = Literal["pending", "running", "completed", "failed"]
 
 

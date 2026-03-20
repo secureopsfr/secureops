@@ -10,7 +10,8 @@ from pydantic import BaseModel, Field, model_validator
 from app.config_loader import get_multi_scan_settings
 from app.utils.url_helpers import registered_domain
 
-ScanType = Literal["frontend", "backend", "custom"]
+ScanType = Literal["frontend", "backend"]
+ScanMode = Literal["passive", "intrusive", "destructive", "custom"]
 JobStatus = Literal["pending", "running", "completed", "failed"]
 
 
@@ -19,6 +20,7 @@ class ScanAsyncCreateRequest(BaseModel):
 
     url: str = Field(..., min_length=1)
     scan_type: ScanType = "frontend"
+    scan_mode: ScanMode = "passive"
     input: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -34,6 +36,7 @@ class ScanAsyncMultiCreateRequest(BaseModel):
 
     urls: list[str] = Field(..., min_length=2)
     scan_type: ScanType = "frontend"
+    scan_mode: ScanMode = "passive"
     input: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
@@ -59,6 +62,7 @@ class ScanAsyncCreateResponse(BaseModel):
     job_id: str
     status: JobStatus
     scan_type: ScanType
+    scan_mode: ScanMode = "passive"
     job_token: str | None = None
 
 
@@ -67,6 +71,7 @@ class ScanAsyncStatusResponse(BaseModel):
 
     job_id: str
     scan_type: ScanType
+    scan_mode: ScanMode = "passive"
     status: JobStatus
     result_mode: str = "single"
     attempt_count: int

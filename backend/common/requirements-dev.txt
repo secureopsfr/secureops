@@ -1,5 +1,6 @@
 # Dev/lint deps pour backend/common (CI, pre-commit)
 pytest>=7.4.0
+pytest-asyncio>=0.23.0
 black>=25.0.0
 isort>=5.10.0
 flake8>=6.0.0

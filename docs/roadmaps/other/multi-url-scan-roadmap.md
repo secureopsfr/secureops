@@ -1070,7 +1070,7 @@ Avec N pages scannées en parallèle, on génère potentiellement **N × page_ch
 - `asyncio.Semaphore(MAX_CONCURRENT_PAGES)` : max 5 pages en parallèle (configurable).
 - Respecter `Crawl-delay` issu de `robots_txt` pour les pages checks.
 - Ajouter un délai configurable entre page scans (`scan_page_delay_ms`, défaut 200ms).
-- Header `User-Agent` clair : `SecureOps-Scanner/1.0 (+https://secureops.io/bot)`.
+- Header `User-Agent` clair : `SecureOps-Scanner/1.0 (+https://secureops.fr/bot)`.
 
 ### 12.2 Mémoire
 

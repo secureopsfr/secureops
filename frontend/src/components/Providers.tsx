@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
 // Side-effect: configure Amplify before any auth hook runs.
-// The OAuth listener is lazy-loaded only in OAuthCallbackHandler.
 import "./AmplifyProvider";
 import { ThemeProvider } from "./ThemeProvider";
 import { LanguageProvider } from "./LanguageProvider";

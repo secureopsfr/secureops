@@ -10,8 +10,10 @@ interface ScannerHistoryAlertsSectionProps {
   onSelectScan: (selection: ScanHistorySelection) => void;
   /** Filtre optionnel par URL (historique/alertes/suivis limités à cette URL). */
   filterUrl?: string | null;
-  /** Filtre optionnel par type de scan (frontend, backend, custom). */
+  /** Filtre optionnel par type de scan (frontend, backend). */
   filterScanType?: string | null;
+  /** Filtre optionnel par mode de scan (passive, intrusive, destructive, custom). */
+  filterScanMode?: string | null;
   /** Filtre optionnel date de début (historique des scans et alertes uniquement). */
   filterDateFrom?: string | null;
   /** Filtre optionnel date de fin (historique des scans et alertes uniquement). */
@@ -26,6 +28,7 @@ export default function ScannerHistoryAlertsSection({
   onSelectScan,
   filterUrl,
   filterScanType,
+  filterScanMode,
   filterDateFrom,
   filterDateTo,
   scheduleRefreshTrigger = 0,
@@ -38,6 +41,7 @@ export default function ScannerHistoryAlertsSection({
       <ScheduledScansBlock
         filterUrl={filterUrl}
         filterScanType={filterScanType}
+        filterScanMode={filterScanMode}
         refreshTrigger={scheduleRefreshTrigger}
       />
       <div className="flex flex-col lg:flex-row gap-6">
@@ -46,6 +50,7 @@ export default function ScannerHistoryAlertsSection({
             onSelectScan={onSelectScan}
             filterUrl={filterUrl}
             filterScanType={filterScanType}
+            filterScanMode={filterScanMode}
             filterDateFrom={filterDateFrom}
             filterDateTo={filterDateTo}
           />
@@ -54,6 +59,7 @@ export default function ScannerHistoryAlertsSection({
           <AlertHistoryBlock
             filterUrl={filterUrl}
             filterScanType={filterScanType}
+            filterScanMode={filterScanMode}
           />
         </div>
       </div>

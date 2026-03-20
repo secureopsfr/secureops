@@ -19,9 +19,20 @@ def apply_scan_type_filter(
     scan_type_column: ColumnElement[str],
     scan_type: Optional[str],
 ) -> Select[Any]:
-    """Ajoute un filtre par type de scan (frontend, backend, custom) si fourni."""
+    """Ajoute un filtre par type de scan (frontend, backend) si fourni."""
     if scan_type and scan_type in ("frontend", "backend", "custom"):
         return stmt.where(scan_type_column == scan_type)
+    return stmt
+
+
+def apply_scan_mode_filter(
+    stmt: Select[Any],
+    scan_mode_column: ColumnElement[str],
+    scan_mode: Optional[str],
+) -> Select[Any]:
+    """Ajoute un filtre par mode de scan (passive, intrusive, destructive, custom)."""
+    if scan_mode and scan_mode in ("passive", "intrusive", "destructive", "custom"):
+        return stmt.where(scan_mode_column == scan_mode)
     return stmt
 
 

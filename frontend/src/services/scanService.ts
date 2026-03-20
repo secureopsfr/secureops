@@ -3,7 +3,12 @@
  */
 
 import { getApiBaseUrl } from "../utils/apiClient";
-import { pollAsyncJob } from "../utils/pollAsyncJob";
+import { notifyDailyQuotaChanged } from "../utils/quotaEvents";
+import {
+  parse429Error,
+  parseHttpError,
+  pollAsyncJob,
+} from "../utils/pollAsyncJob";
 import logger from "../utils/logger";
 
 export interface ScanStep {
@@ -32,6 +37,8 @@ export interface ScanFinding {
   evidence: string;
   recommendation: string;
   references: string[];
+  /** Codes OWASP Top 10 (ex. A01, A02). */
+  owasp_categories?: string[];
 }
 
 export interface CategorySummary {
@@ -57,6 +64,8 @@ export interface ScanResult {
   duration: number;
   score: number;
   findings: ScanFinding[];
+  scan_type?: AsyncScanType;
+  scan_mode?: AsyncScanMode;
   category_summaries?: CategorySummary[];
   /** Nombre total de tests effectués (calculé par le backend). */
   total_tests_count?: number;
@@ -83,6 +92,7 @@ export interface MultiScanResult {
   timestamp: string;
   duration: number;
   scan_type: string;
+  scan_mode?: AsyncScanMode;
   status: string;
 }
 
@@ -115,7 +125,8 @@ export type ScanEventHandler =
   | { type: "save_failed"; data: string }
   | { type: "save_done"; data: { scan_id: string } };
 
-export type AsyncScanType = "frontend" | "backend" | "custom";
+export type AsyncScanType = "frontend" | "backend";
+export type AsyncScanMode = "passive" | "intrusive" | "destructive" | "custom";
 
 interface AsyncScanCreateResponse {
   job_id: string;
@@ -142,6 +153,7 @@ export async function runScan(
     onEvent,
     {
       scanType: "frontend",
+      scanMode: "passive",
       input: {},
       logPrefix: "[scan-polling]",
     },
@@ -154,6 +166,7 @@ export async function runAsyncScan(
   onEvent: (ev: ScanEventHandler) => void,
   options: {
     scanType: AsyncScanType;
+    scanMode?: AsyncScanMode;
     input?: Record<string, unknown>;
     logPrefix?: string;
   },
@@ -187,19 +200,22 @@ export async function runAsyncScan(
         body: JSON.stringify({
           url,
           scan_type: options.scanType,
+          scan_mode: options.scanMode ?? "passive",
           input: options.input ?? {},
         }),
       });
       if (!res.ok) {
-        logger.error(`${logPrefix} create job failed`, { status: res.status });
-        onEvent({
-          type: "error",
-          data: {
-            message: `Erreur HTTP ${res.status}`,
-            status_code: res.status,
-          },
-        });
-        throw new Error(`create job failed: ${res.status}`);
+        const errorData =
+          res.status === 429
+            ? await parse429Error(res)
+            : await parseHttpError(res);
+        // 4xx = rejet attendu (domaine interdit, quota, etc.) → warn ; 5xx → error
+        const logFn = res.status >= 500 ? logger.error : logger.warn;
+        logFn(
+          `${logPrefix} create job failed: ${res.status} - ${errorData.message}`,
+        );
+        onEvent({ type: "error", data: errorData });
+        throw new Error(errorData.message);
       }
       const data = (await res.json()) as AsyncScanCreateResponse;
       createData = data;
@@ -208,6 +224,9 @@ export async function runAsyncScan(
         scan_type: data.scan_type,
         anonymous: Boolean(data.job_token),
       });
+      if (authHeaders.Authorization) {
+        notifyDailyQuotaChanged();
+      }
       return { job_id: data.job_id, job_token: data.job_token };
     },
     pollUrl: (jobId) => `${base}/scan/api/scan/async/${jobId}`,
@@ -246,6 +265,7 @@ export async function runMultiScan(
   urls: string[],
   onEvent: (ev: MultiScanEventHandler) => void,
   getToken: () => Promise<string | null>,
+  options?: { scanType?: AsyncScanType; scanMode?: AsyncScanMode },
 ): Promise<void> {
   const logPrefix = "[multi-scan-polling]";
   const base = getApiBaseUrl().replace(/\/$/, "");
@@ -279,22 +299,23 @@ export async function runMultiScan(
           Accept: "application/json",
           Authorization: authHeader,
         },
-        body: JSON.stringify({ urls, scan_type: "frontend" }),
+        body: JSON.stringify({
+          urls,
+          scan_type: options?.scanType ?? "frontend",
+          scan_mode: options?.scanMode ?? "passive",
+        }),
       });
       if (!res.ok) {
-        let errorMsg = `Erreur HTTP ${res.status}`;
-        try {
-          const body = await res.json();
-          if (body?.detail) errorMsg = body.detail;
-        } catch {}
-        onEvent({
-          type: "error",
-          data: { message: errorMsg, status_code: res.status },
-        });
-        throw new Error(`create job failed: ${res.status}`);
+        const errorData =
+          res.status === 429
+            ? await parse429Error(res)
+            : await parseHttpError(res);
+        onEvent({ type: "error", data: errorData });
+        throw new Error(errorData.message);
       }
       const data = (await res.json()) as { job_id: string; status: string };
       logger.info(`${logPrefix} create job success`, { job_id: data.job_id });
+      notifyDailyQuotaChanged();
       return { job_id: data.job_id };
     },
     pollUrl: (jobId) => `${base}/scan/api/scan/async/${jobId}`,
@@ -308,9 +329,12 @@ export async function runMultiScan(
         onEvent({ type: "step", data: ev.data });
       } else if (ev.type === "result") {
         const data = ev.data as MultiScanResult;
+        const errorCount =
+          data.page_results?.filter((p) => p.error).length ?? 0;
         logger.info(`${logPrefix} result received`, {
           pages: data.page_results?.length ?? 0,
           score_global: data.score_global,
+          errorCount,
         });
         onEvent({ type: "result", data });
       } else if (ev.type === "error") {

@@ -8,6 +8,7 @@ export type BadgeVariant =
   | "warning"
   | "error"
   | "info"
+  | "primary"
   | "pending"
   | "in_progress"
   | "processed"
@@ -27,6 +28,7 @@ const variantStyles: Record<BadgeVariant, { bg: string; text: string }> = {
   warning: { bg: "rgba(var(--warning),0.2)", text: "rgb(var(--warning))" },
   error: { bg: "rgba(var(--danger),0.2)", text: "rgb(var(--danger))" },
   info: { bg: "rgba(var(--info),0.2)", text: "rgb(var(--info))" },
+  primary: { bg: "rgba(var(--primary),0.2)", text: "rgb(var(--primary))" },
   pending: { bg: "rgba(var(--warning),0.2)", text: "rgb(var(--warning))" },
   in_progress: { bg: "rgba(var(--info),0.2)", text: "rgb(var(--info))" },
   processed: { bg: "rgba(var(--success),0.2)", text: "rgb(var(--success))" },

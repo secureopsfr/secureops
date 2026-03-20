@@ -53,6 +53,11 @@ ssrf:
     - "fe80::/10"
     - "fc00::/7"
 
+# Liste noire (roadmap 1.6.2) : domaines interdits pour crawl.
+blacklist:
+  domains:
+    - "secureops.fr"  # domaine prod + sous-domaines (www, app, etc.)
+
 robots_txt:
   patterns: []
   messages:

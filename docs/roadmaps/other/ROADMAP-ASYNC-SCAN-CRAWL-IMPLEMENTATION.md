@@ -260,7 +260,6 @@ Meme codebase/image par service, commande differente.
 Modifier:
 
 - `backend/docker-compose.backend.betatest.yml`
-- `backend/docker-compose.backend.betatest.limited.yml`
 
 Ajouts:
 

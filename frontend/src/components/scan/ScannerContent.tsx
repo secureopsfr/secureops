@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AlertTriangle, FileText, Globe } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
@@ -10,7 +11,7 @@ import { useAuthToken } from "../../hooks/useAuthToken";
 import { useScanFlow } from "../../hooks/useScanFlow";
 import { useScheduleForm } from "../../hooks/useScheduleForm";
 import AnimateInView from "../AnimateInView";
-import { GenericButton } from "../buttons";
+import { DropdownSelector, GenericButton } from "../buttons";
 import Card from "../ui/cards/Card";
 import Modal from "../ui/Modal";
 import CrawlValidationStep from "./CrawlValidationStep";
@@ -23,10 +24,12 @@ import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
 import ScheduleFormSection from "./ScheduleFormSection";
 import ScanTypeSelector from "./ScanTypeSelector";
 import { normalizeScanUrl } from "../../utils/scanUrl";
+import { resolveCrawlUrlsToScanUrls } from "../../utils/urlPathParams";
 import { Checkbox } from "../inputs";
 
 export default function ScannerContent() {
   const { t, lp } = useLanguage();
+  const searchParams = useSearchParams();
   const { isAuthenticated, isLoading: authLoading } = useAuthUser({
     listenToAuthEvents: true,
   });
@@ -35,6 +38,10 @@ export default function ScannerContent() {
   const {
     url,
     setUrl,
+    scanTarget,
+    setScanTarget,
+    scanMode,
+    setScanMode,
     scanOnlyThisPage,
     setScanOnlyThisPage,
     state,
@@ -63,25 +70,40 @@ export default function ScannerContent() {
 
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
 
+  useEffect(() => {
+    const mode = searchParams.get("mode");
+    if (!mode) return;
+    if (
+      mode === "passive" ||
+      mode === "intrusive" ||
+      mode === "destructive" ||
+      mode === "custom"
+    ) {
+      setScanMode(mode);
+    }
+  }, [searchParams, setScanMode]);
+
   const handleAddScheduledScan = useCallback(async () => {
     if (!url.trim()) {
       return;
     }
     await submitSchedule({
       url: normalizeScanUrl(url),
-      scan_type: "frontend",
+      scan_type: scanTarget,
+      scan_mode: scanMode,
     });
-  }, [url, submitSchedule]);
+  }, [url, submitSchedule, scanTarget, scanMode]);
 
   const handleScheduleFromValidation = useCallback(async () => {
     if (!isAuthenticated || authLoading) return;
-    const urlStrings = crawl.urls.map((u) => u.url).filter(Boolean);
+    const urlStrings = resolveCrawlUrlsToScanUrls(crawl.urls).filter(Boolean);
     if (urlStrings.length === 0) return;
 
     const normalizedBaseUrl = normalizeScanUrl(url.trim() || urlStrings[0]);
     const success = await submitSchedule({
       url: normalizedBaseUrl,
-      scan_type: "frontend",
+      scan_type: scanTarget,
+      scan_mode: scanMode,
       result_mode: urlStrings.length > 1 ? "multi" : "single",
       urls: urlStrings.length > 1 ? urlStrings : undefined,
     });
@@ -96,6 +118,8 @@ export default function ScannerContent() {
     resetCrawlState,
     setState,
     submitSchedule,
+    scanTarget,
+    scanMode,
     url,
   ]);
 
@@ -122,7 +146,7 @@ export default function ScannerContent() {
               <h1 className="page-title mb-2">{t("scanner.title")}</h1>
               <p className="page-subtitle mt-0">{t("scanner.subtitle")}</p>
               <Link
-                href={lp("/scanner/docs/scan-frontend")}
+                href={lp("/scanner/docs/scan-passif")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
@@ -174,13 +198,42 @@ export default function ScannerContent() {
                       required
                       className="auth-input w-full"
                     />
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--text)] mb-2">
+                        {t("scanner.targetLabel")}
+                      </label>
+                      <DropdownSelector
+                        selectedValue={scanTarget}
+                        onChange={(value) =>
+                          setScanTarget(value as "frontend" | "backend")
+                        }
+                        options={[
+                          {
+                            value: "frontend",
+                            label: t("scanner.targetFrontend"),
+                          },
+                          {
+                            value: "backend",
+                            label: t("scanner.targetBackend"),
+                          },
+                        ]}
+                        width="100%"
+                      />
+                    </div>
                     <ScanTypeSelector
                       scanOnlyThisPage={scanOnlyThisPage}
-                      onScanOnlyThisPageChange={setScanOnlyThisPage}
+                      onScanOnlyThisPageChange={(checked) => {
+                        setScanOnlyThisPage(checked);
+                        if (checked) resetCrawlState();
+                      }}
+                      scanTarget={scanTarget}
                       crawlMode={crawl.mode}
                       crawlMaxUrls={crawl.maxUrls}
                       onCrawlModeChange={setCrawlMode}
                       onCrawlMaxUrlsChange={setCrawlMaxUrls}
+                      baseUrl={url.trim()}
+                      apiDocUrls={crawl.urls}
+                      onApiDocUrlsChange={setCrawlUrls}
                       t={t}
                     />
                     {isAuthenticated && !authLoading && (
@@ -207,12 +260,25 @@ export default function ScannerContent() {
                           loading={saving}
                           disabled={!url.trim()}
                         />
+                      ) : scanTarget === "backend" &&
+                        !scanOnlyThisPage &&
+                        crawl.urls.length > 0 ? (
+                        <GenericButton
+                          type="button"
+                          label={t("scanner.cta")}
+                          variant="primary"
+                          onClick={handleLaunchScanFromValidation}
+                          disabled={crawl.urls.length > 200}
+                        />
                       ) : (
                         <GenericButton
                           type="submit"
                           label={t("scanner.cta")}
                           variant="primary"
-                          disabled={!url.trim()}
+                          disabled={
+                            !url.trim() ||
+                            (scanTarget === "backend" && !scanOnlyThisPage)
+                          }
                         />
                       )}
                     </div>
@@ -247,6 +313,7 @@ export default function ScannerContent() {
                 urls: crawl.urls,
                 identifiedCount: crawl.identifiedCount,
                 startUrl: url.trim(),
+                allowFullUrlAdd: scanTarget === "backend",
                 timeoutReached: crawl.timeoutReached,
                 timeoutHtml: crawl.timeoutHtml,
                 timeoutPlaywright: crawl.timeoutPlaywright,
@@ -330,7 +397,8 @@ export default function ScannerContent() {
               <ScannerHistoryAlertsSection
                 className="mt-6"
                 onSelectScan={handleSelectScan}
-                filterScanType="frontend"
+                filterScanType={scanTarget}
+                filterScanMode={scanMode}
               />
             )}
 
@@ -357,7 +425,7 @@ export default function ScannerContent() {
               />
             ) : (
               <>
-                <FakeScanResultsBlurred />
+                <FakeScanResultsBlurred result={result} />
                 <Modal
                   isOpen
                   onClose={() => {}}

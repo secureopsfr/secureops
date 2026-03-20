@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { log } from "../../utils/logger";
 import LoadingScreen from "../LoadingScreen";
 import { useLanguage } from "../LanguageProvider";
@@ -12,26 +12,31 @@ interface ScannerGuardProps {
 }
 
 /**
- * Garde d'accès pour la page Scanner.
- * Redirige vers la connexion (avec returnTo) si l'utilisateur n'est pas authentifié.
+ * Garde d'accès pour les pages Scanner (scanner, docs, analyses, etc.).
+ * Redirige vers la connexion (avec returnTo = page actuelle) si l'utilisateur
+ * n'est pas authentifié. Réagit aussi à la déconnexion automatique (session expirée).
  */
 export default function ScannerGuard({ children }: ScannerGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { t, lp } = useLanguage();
-  const { user, isLoading: authLoading } = useAuthUser();
+  const { user, isLoading: authLoading } = useAuthUser({
+    listenToAuthEvents: true,
+  });
 
   useEffect(() => {
     if (authLoading) return;
 
     if (!user) {
+      const returnTo = pathname || lp("/scanner");
       log(
         "[ScannerGuard] Utilisateur non authentifié, redirection vers /connexion",
       );
       router.push(
-        `${lp("/connexion")}?returnTo=${encodeURIComponent(lp("/scanner"))}`,
+        `${lp("/connexion")}?returnTo=${encodeURIComponent(returnTo)}`,
       );
     }
-  }, [authLoading, user, router, lp]);
+  }, [authLoading, user, router, lp, pathname]);
 
   if (authLoading || !user) {
     return (

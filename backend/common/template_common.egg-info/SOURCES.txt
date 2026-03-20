@@ -2,6 +2,7 @@ pyproject.toml
 common/__init__.py
 common/async_database.py
 common/async_jobs.py
+common/blacklist.py
 common/cognito.py
 common/config_base.py
 common/crud.py
@@ -23,6 +24,7 @@ template_common.egg-info/SOURCES.txt
 template_common.egg-info/dependency_links.txt
 template_common.egg-info/requires.txt
 template_common.egg-info/top_level.txt
+tests/test_blacklist.py
 tests/test_config_base.py
 tests/test_datetime_utils.py
 tests/test_env_utils.py

@@ -60,8 +60,10 @@ Le crawler propose **trois modes** selon le type de site :
 
 ### 1.1 Flux global
 
+> Ce flux s'applique à la **cible frontend**. Pour la cible backend, voir §1.12.
+
 ```
-Utilisateur saisit URL
+Utilisateur saisit URL (frontend)
         │
         ▼
 ┌─────────────────────────────────────┐
@@ -207,6 +209,11 @@ Les domaines `www.example.com` et `example.com` sont traités comme le **même s
 | **Scanner uniquement cette page** | décoché | Si coché : pas de crawl, scan direct sur l'URL. |
 | **Mode** | `html` | `html` (HTTP), `playwright` (SPA), `both` (parallèle + fusion). |
 | **Limite d'URLs** | 50 | Nombre max d'URLs à découvrir (5–200). |
+
+### 1.12 Cible frontend vs backend
+
+- **Cible frontend** : le crawler agit comme décrit ci-dessus. La checkbox « Scanner uniquement cette page » contrôle l'exécution ou non du crawler.
+- **Cible backend** : le crawler **ne s'applique pas** (une API ne se parcourt pas comme un site HTML). La checkbox change de libellé (« Scanner uniquement cet endpoint ») et de sens : si décochée, l'utilisateur fournit une **documentation API** (fichier OpenAPI/GraphQL/Postman ou URL de spec) pour obtenir une liste d'endpoints à scanner. Pas de découverte automatique (bruteforce de chemins de doc) pour l'instant. Voir roadmap 1.0.0 §2.4.
 
 ---
 
@@ -420,7 +427,7 @@ En **Docker**, le Dockerfile exécute déjà `playwright install --with-deps chr
 ### 6.3 Non implémenté (prévu)
 
 - **Quotas** : pas de limite de crawls/jour par utilisateur ou par domaine.
-- **Liste noire** : pas de config pour bloquer des domaines ou patterns d'URL.
+- **Liste noire** : implémentée (roadmap 1.6.2). Section `blacklist.domains` dans `crawl-service/config/settings.yml`. Par défaut : `secureops.fr` (domaine + sous-domaines).
 - **Crawl-delay** : pas d'attente entre requêtes si robots.txt le demande.
 - **Version asynchrone** : pas de job_id + polling pour les crawls longs.
 
@@ -440,7 +447,7 @@ Le crawler ne suit que les liens du même domaine. Aucune fuite vers des domaine
 ### 7.3 Évolutions prévues
 
 - Quotas de crawls par utilisateur/domaine.
-- Liste noire configurable (domaines ou patterns interdits).
+- ~~Liste noire configurable~~ — fait (roadmap 1.6.2).
 - Logging des tentatives pour audit/modération.
 
 ---

@@ -32,14 +32,17 @@ interface ScheduledScansBlockProps {
   refreshTrigger?: number;
   /** Filtre optionnel par URL (suivis limités à cette URL). */
   filterUrl?: string | null;
-  /** Filtre optionnel par type de scan (frontend, backend, custom). */
+  /** Filtre optionnel par type de scan (frontend, backend, both). */
   filterScanType?: string | null;
+  /** Filtre optionnel par mode de scan (passive, intrusive, destructive, custom). */
+  filterScanMode?: string | null;
 }
 
 export default function ScheduledScansBlock({
   refreshTrigger = 0,
   filterUrl,
   filterScanType,
+  filterScanMode,
 }: ScheduledScansBlockProps) {
   const { t } = useLanguage();
 
@@ -55,12 +58,13 @@ export default function ScheduledScansBlock({
           perPage,
           filterUrl ?? undefined,
           filterScanType ?? undefined,
+          filterScanMode ?? undefined,
         ),
       perPage: 10,
       onError,
       refreshTrigger:
-        filterUrl != null || filterScanType != null
-          ? `${filterUrl ?? ""}_${filterScanType ?? ""}`
+        filterUrl != null || filterScanType != null || filterScanMode != null
+          ? `${filterUrl ?? ""}_${filterScanType ?? ""}_${filterScanMode ?? ""}`
           : refreshTrigger,
     });
 
@@ -126,8 +130,14 @@ export default function ScheduledScansBlock({
 
   const getScanTypeLabel = (scanType: string) => {
     if (scanType === "backend") return t("scanner.scanTypeBackend");
-    if (scanType === "custom") return t("scanner.scanTypeCustom");
     return t("scanner.scanTypeFrontend");
+  };
+
+  const getScanModeLabel = (scanMode?: string) => {
+    if (scanMode === "intrusive") return t("scanner.modeIntrusive");
+    if (scanMode === "destructive") return t("scanner.modeDestructive");
+    if (scanMode === "custom") return t("scanner.modeCustom");
+    return t("scanner.modePassive");
   };
 
   return (
@@ -155,6 +165,11 @@ export default function ScheduledScansBlock({
                           {formatUrlDisplay(item.url)}
                         </p>
                         <p className="text-xs text-[var(--muted)] mt-0.5">
+                          {!filterScanMode && (
+                            <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(16,185,129,0.18)] text-[rgb(16,185,129)] mr-1">
+                              {getScanModeLabel(item.scan_mode)}
+                            </span>
+                          )}
                           {!filterScanType && (
                             <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
                               {getScanTypeLabel(item.scan_type ?? "frontend")}

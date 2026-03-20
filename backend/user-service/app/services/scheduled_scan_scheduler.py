@@ -8,6 +8,7 @@ import httpx
 from common.logging_config import get_logger
 
 from app.db import get_async_session
+from app.services.daily_quota_repository import check_and_increment_quota
 from app.services.scan_alert_service import check_and_send_scan_alerts
 from app.services.scan_repository import create_scan, get_last_scan_by_user_and_url
 from app.services.scheduled_scan_repository import get_scans_due_for_execution, update_next_run_at
@@ -37,11 +38,13 @@ def _build_internal_headers() -> dict:
     return headers
 
 
-async def _call_scan_service_single(url: str) -> dict:
+async def _call_scan_service_single(url: str, scan_type: str, scan_mode: str) -> dict:
     """Appelle le scan-service (single) et retourne la réponse JSON.
 
     Args:
         url: URL à scanner.
+        scan_type: Cible de scan (frontend, backend, both).
+        scan_mode: Mode de scan (passive, intrusive, destructive, custom).
 
     Returns:
         dict: Réponse JSON du scan-service (ou dict vide si non-JSON).
@@ -50,7 +53,11 @@ async def _call_scan_service_single(url: str) -> dict:
     async with httpx.AsyncClient(timeout=SCAN_TIMEOUT) as client:
         resp = await client.post(
             f"{SCAN_SERVICE_URL.rstrip('/')}/api/internal/scan/run",
-            json={"url": url},
+            json={
+                "url": url,
+                "scan_type": scan_type,
+                "scan_mode": scan_mode,
+            },
             headers=headers,
         )
     if resp.headers.get("content-type", "").startswith("application/json"):
@@ -58,13 +65,17 @@ async def _call_scan_service_single(url: str) -> dict:
     return {}
 
 
-async def _call_scan_service_multi(urls: list[str]) -> dict:
+async def _call_scan_service_multi(urls: list[str], scan_type: str, scan_mode: str) -> dict:
     """Appelle le scan-service (multi) et retourne la réponse JSON."""
     headers = _build_internal_headers()
     async with httpx.AsyncClient(timeout=SCAN_TIMEOUT) as client:
         resp = await client.post(
             f"{SCAN_SERVICE_URL.rstrip('/')}/api/internal/scan/run-multi",
-            json={"urls": urls},
+            json={
+                "urls": urls,
+                "scan_type": scan_type,
+                "scan_mode": scan_mode,
+            },
             headers=headers,
         )
     if resp.headers.get("content-type", "").startswith("application/json"):
@@ -91,6 +102,7 @@ async def _persist_result_and_schedule_next(scan, data: dict, now: datetime) -> 
                 user_id=scan.user_id,
                 url=persisted_url,
                 scan_type=getattr(scan, "scan_type", "frontend"),
+                scan_mode=getattr(scan, "scan_mode", "passive"),
                 status=data.get("status", "success"),
                 score=data.get("score_global") if is_multi else data.get("score"),
                 findings=data.get("findings", []),
@@ -156,7 +168,11 @@ async def _execute_multi_due_scan(scan) -> tuple[dict | None, str]:
         logger.warning("Scan multi planifié ignoré (moins de 2 URLs valides): id=%s", scan.id)
         return None, ""
 
-    data = await _call_scan_service_multi(normalized_urls)
+    data = await _call_scan_service_multi(
+        normalized_urls,
+        scan_type=str(getattr(scan, "scan_type", "frontend")),
+        scan_mode=str(getattr(scan, "scan_mode", "passive")),
+    )
     try:
         url_to_scan = normalize_scan_url(scan.url)
     except URLValidationError as e:
@@ -183,7 +199,11 @@ async def _execute_single_due_scan(scan) -> tuple[dict | None, str]:
         )
         return None, ""
 
-    data = await _call_scan_service_single(url_to_scan)
+    data = await _call_scan_service_single(
+        url_to_scan,
+        scan_type=str(getattr(scan, "scan_type", "frontend")),
+        scan_mode=str(getattr(scan, "scan_mode", "passive")),
+    )
     return data, url_to_scan
 
 
@@ -194,8 +214,48 @@ def _is_valid_scan_payload(data: dict) -> bool:
     return has_single_payload or has_multi_payload
 
 
+async def _check_quota_and_reserve(scan, now: datetime) -> tuple[bool, str | None]:
+    """Vérifie le quota journalier, l'incrémente si dispo, et reporte next_run si épuisé.
+
+    Returns:
+        (proceed, cognito_sub): proceed=True si le scan peut s'exécuter, cognito_sub pour logs.
+    """
+    async with get_async_session() as session:
+        user = await get_user_by_id(session, scan.user_id)
+        if not user:
+            logger.warning("Scan planifié ignoré (utilisateur introuvable): id=%s", scan.id)
+            return False, None
+        cognito_sub = user.cognito_sub
+        allowed, remaining = await check_and_increment_quota(session, cognito_sub=cognito_sub)
+        if not allowed:
+            next_run = compute_next_run(
+                from_dt=now,
+                frequency=scan.frequency,
+                schedule_hour=scan.schedule_hour,
+                schedule_minute=scan.schedule_minute,
+                schedule_day_of_week=scan.schedule_day_of_week,
+                schedule_day_of_month=scan.schedule_day_of_month,
+                timezone_name=getattr(scan, "timezone", None),
+            )
+            await update_next_run_at(session, scan.id, next_run)
+            await session.commit()
+            logger.info(
+                "Scan planifié reporté (quota journalier épuisé): id=%s user=%s next_run=%s",
+                scan.id,
+                cognito_sub,
+                next_run.isoformat(),
+            )
+            return False, cognito_sub
+        await session.commit()
+    return True, cognito_sub
+
+
 async def _process_due_scan(scan, now: datetime) -> bool:
     """Traite un scan dû et retourne True si exécution/persistance réussie."""
+    proceed, _ = await _check_quota_and_reserve(scan, now)
+    if not proceed:
+        return False
+
     if _is_multi_scan(scan):
         data, url_to_scan = await _execute_multi_due_scan(scan)
     else:
@@ -229,6 +289,7 @@ async def _process_due_scan(scan, now: datetime) -> bool:
         last_scan=last_scan,
         scan_alerts_enabled=getattr(scan, "scan_alerts_enabled", True),
         scan_type=getattr(scan, "scan_type", "frontend"),
+        scan_mode=getattr(scan, "scan_mode", "passive"),
         scheduled_scan_id=scan.id,
     )
     await _persist_result_and_schedule_next(scan, data, now)
@@ -243,6 +304,10 @@ async def _process_due_scan(scan, now: datetime) -> bool:
 
 async def run_due_scheduled_scans() -> tuple[int, int]:
     """Exécute les scans planifiés dus et met à jour next_run_at en cas de succès.
+
+    Chaque scan planifié consomme 1 unité du quota journalier (même pool que les
+    scans/crawls manuels). Si le quota est épuisé, next_run_at est reporté à la
+    prochaine occurrence planifiée pour éviter des retries inutiles.
 
     En cas d'échec du scan (site down, timeout), next_run_at n'est PAS mis à jour
     pour permettre un retry au prochain passage du scheduler.

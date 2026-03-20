@@ -59,6 +59,21 @@ class HeadersConf(BaseModel):
     hop_by_hop: List[str]
 
 
+class RateLimitBucketConf(BaseModel):
+    """Configuration d'un bucket de rate limiting."""
+
+    limit: int
+    window_seconds: int
+
+
+class RateLimitsConf(BaseModel):
+    """Configuration du rate limiting court terme (user, api_key, anon)."""
+
+    user: RateLimitBucketConf
+    api_key: RateLimitBucketConf
+    anon: RateLimitBucketConf
+
+
 class Settings(BaseModel):
     """Configuration complète du service."""
 
@@ -67,6 +82,7 @@ class Settings(BaseModel):
     services: ServicesConf
     timeouts: TimeoutsConf
     headers: HeadersConf
+    rate_limits: RateLimitsConf
 
 
 def _read_yaml() -> dict:

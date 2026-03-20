@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scheduled_scan import ScheduledScan
-from app.utils.query_utils import apply_scan_type_filter, apply_url_filter
+from app.utils.query_utils import apply_scan_mode_filter, apply_scan_type_filter, apply_url_filter
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +20,7 @@ async def create_scheduled_scan(
     url: str,
     scan_type: str,
     frequency: str,
+    scan_mode: str = "passive",
     result_mode: str = "single",
     urls: Optional[List[str]] = None,
     schedule_hour: int = 2,
@@ -61,6 +62,7 @@ async def create_scheduled_scan(
         user_id=user_id,
         url=url,
         scan_type=scan_type,
+        scan_mode=scan_mode,
         result_mode=result_mode,
         urls_json=urls,
         frequency=frequency,
@@ -104,6 +106,7 @@ async def count_scheduled_scans_by_user(
     user_id: uuid.UUID,
     url: Optional[str] = None,
     scan_type: Optional[str] = None,
+    scan_mode: Optional[str] = None,
 ) -> int:
     """Compte le nombre total de scans planifiés d'un utilisateur.
 
@@ -118,6 +121,7 @@ async def count_scheduled_scans_by_user(
     stmt = select(func.count(ScheduledScan.id)).where(ScheduledScan.user_id == user_id)
     stmt = apply_url_filter(stmt, ScheduledScan.url, url)
     stmt = apply_scan_type_filter(stmt, ScheduledScan.scan_type, scan_type)
+    stmt = apply_scan_mode_filter(stmt, ScheduledScan.scan_mode, scan_mode)
     result = await session.execute(stmt)
     return result.scalar() or 0
 
@@ -129,6 +133,7 @@ async def list_scheduled_scans_by_user(
     offset: int = 0,
     url: Optional[str] = None,
     scan_type: Optional[str] = None,
+    scan_mode: Optional[str] = None,
 ) -> List[ScheduledScan]:
     """Liste les scans planifiés d'un utilisateur (pagination).
 
@@ -138,7 +143,7 @@ async def list_scheduled_scans_by_user(
         limit: Nombre max d'éléments.
         offset: Décalage pour pagination.
         url: Filtre optionnel par URL exacte.
-        scan_type: Filtre optionnel (frontend, backend, custom).
+        scan_type: Filtre optionnel (frontend, backend, both).
 
     Returns:
         Liste des scans planifiés.
@@ -146,6 +151,7 @@ async def list_scheduled_scans_by_user(
     stmt = select(ScheduledScan).where(ScheduledScan.user_id == user_id)
     stmt = apply_url_filter(stmt, ScheduledScan.url, url)
     stmt = apply_scan_type_filter(stmt, ScheduledScan.scan_type, scan_type)
+    stmt = apply_scan_mode_filter(stmt, ScheduledScan.scan_mode, scan_mode)
     stmt = stmt.order_by(ScheduledScan.next_run_at).limit(limit).offset(offset)
     result = await session.execute(stmt)
     return list(result.scalars().all())

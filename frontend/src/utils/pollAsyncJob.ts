@@ -56,6 +56,47 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Parse une réponse HTTP d'erreur (4xx, 5xx) et extrait le message du body JSON.
+ * Utilisé pour afficher des messages clairs (ex. domaine interdit, URL invalide).
+ */
+export async function parseHttpError(res: Response): Promise<AsyncJobError> {
+  let body: Record<string, unknown> = {};
+  try {
+    body = (await res.json()) as Record<string, unknown>;
+  } catch {
+    return { message: `Erreur HTTP ${res.status}`, status_code: res.status };
+  }
+  const detail = body["detail"];
+  const message =
+    typeof detail === "string"
+      ? detail
+      : Array.isArray(detail) && detail.length > 0
+        ? String(detail[0])
+        : String(body["detail"] ?? `Erreur HTTP ${res.status}`);
+  return { message, status_code: res.status };
+}
+
+/**
+ * Parse une réponse 429 et retourne le bon i18nKey selon qu'il s'agit
+ * d'un quota journalier épuisé ou d'un rate limit court terme.
+ */
+export async function parse429Error(res: Response): Promise<AsyncJobError> {
+  let body: Record<string, unknown> = {};
+  try {
+    body = (await res.json()) as Record<string, unknown>;
+  } catch {
+    // body non-JSON : on garde les valeurs par défaut
+  }
+  const isQuota =
+    "remaining" in body && body["remaining"] === 0 && "reset_at" in body;
+  return {
+    message: String(body["detail"] ?? `Erreur HTTP ${res.status}`),
+    status_code: res.status,
+    i18nKey: isQuota ? "scanner.quotaExceeded" : "scanner.rateLimitExceeded",
+  };
+}
+
 export async function pollAsyncJob<TResult>(
   config: PollAsyncJobConfig<TResult>,
 ): Promise<void> {

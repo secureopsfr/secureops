@@ -64,7 +64,7 @@ Sévérités possibles : `critical`, `high`, `medium`, `low`, `info`.
 
 ### 2.1 Créer une clé API
 
-1. Connectez-vous à [SecureOps](https://secureops.io) (ou votre instance)
+1. Connectez-vous à [SecureOps](https://secureops.fr) (ou votre instance)
 2. Allez dans **Mon compte** → **Clés API** (ou **Paramètres** → **Sécurité**)
 3. Créez une clé avec un tag `CI` ou `github-actions`
 4. Copiez la clé **une seule fois** (format `sk_...`) — elle ne sera plus affichée
@@ -118,9 +118,9 @@ inputs:
     description: "Clé API SecureOps (stockée dans GitHub Secrets)"
     required: true
   base_url:
-    description: "URL de base de l'API SecureOps (par défaut https://api.secureops.io)"
+    description: "URL de base de l'API SecureOps (par défaut https://api.secureops.fr)"
     required: false
-    default: 'https://api.secureops.io'
+    default: 'https://api.secureops.fr'
   fail_on_score_below:
     description: "Seuil de score minimal (0-100). Le job échoue si score < seuil. Défaut : 80"
     required: false
@@ -150,7 +150,7 @@ const http = require('http');
 async function main() {
   const url = process.env.INPUT_URL;
   const apiKey = process.env.INPUT_API_KEY;
-  const baseUrl = (process.env.INPUT_BASE_URL || 'https://api.secureops.io').replace(/\/$/, '');
+  const baseUrl = (process.env.INPUT_BASE_URL || 'https://api.secureops.fr').replace(/\/$/, '');
   const failOnScoreBelow = parseInt(process.env.INPUT_FAIL_ON_SCORE_BELOW || '80', 10);
   const failOnCritical = process.env.INPUT_FAIL_ON_CRITICAL !== 'false';
 
@@ -316,7 +316,7 @@ jobs:
         env:
           SCAN_URL: "https://votre-site-staging.example.com"
           API_KEY: ${{ secrets.SECUREOPS_API_KEY }}
-          BASE_URL: "https://api.secureops.io"
+          BASE_URL: "https://api.secureops.fr"
           FAIL_ON_SCORE_BELOW: "80"
           FAIL_ON_CRITICAL: "true"
         run: |
@@ -391,7 +391,7 @@ jobs:
         env:
           SCAN_URL: "https://votre-site-staging.example.com"
           API_KEY: ${{ secrets.SECUREOPS_API_KEY }}
-          BASE_URL: "https://api.secureops.io"
+          BASE_URL: "https://api.secureops.fr"
           FAIL_ON_SCORE_BELOW: "80"
         run: |
           set -e
@@ -515,7 +515,7 @@ Pour tester rapidement que l’API et la clé fonctionnent :
 ```yaml
 - name: Test SecureOps API (async backend scan)
   run: |
-    curl -s -X POST "https://api.secureops.io/scan/api/scan/async" \
+    curl -s -X POST "https://api.secureops.fr/scan/api/scan/async" \
       -H "X-API-Key: ${{ secrets.SECUREOPS_API_KEY }}" \
       -H "Content-Type: application/json" \
       -d '{"url":"https://example.com","scan_type":"backend","input":{}}' | jq .
@@ -552,7 +552,7 @@ Vous pouvez ajouter un badge dans le README de votre projet pour indiquer qu’u
 Si SecureOps expose plus tard un endpoint de statut par projet, vous pourriez utiliser :
 
 ```markdown
-![SecureOps Score](https://img.shields.io/endpoint?url=https://api.secureops.io/badge/score/YOUR_PROJECT_ID)
+![SecureOps Score](https://img.shields.io/endpoint?url=https://api.secureops.fr/badge/score/YOUR_PROJECT_ID)
 ```
 
 ### 7.3 Badge GitHub Actions (statut du workflow)
@@ -568,7 +568,7 @@ Exemple complet dans le README :
 
 [![SecureOps Scan](https://github.com/mon-org/mon-repo/actions/workflows/secureops-scan.yml/badge.svg)](https://github.com/mon-org/mon-repo/actions/workflows/secureops-scan.yml)
 
-Ce projet est scanné par [SecureOps](https://secureops.io) à chaque push sur `main`.
+Ce projet est scanné par [SecureOps](https://secureops.fr) à chaque push sur `main`.
 ```
 
 ---
@@ -578,7 +578,7 @@ Ce projet est scanné par [SecureOps](https://secureops.io) à chaque push sur `
 | Erreur | Cause probable | Solution |
 |--------|----------------|----------|
 | `HTTP 401` | Clé API invalide ou expirée | Vérifier le secret `SECUREOPS_API_KEY`, régénérer une clé |
-| `HTTP 404` | URL de l’API incorrecte | Vérifier `base_url` (ex. `https://api.secureops.io`) |
+| `HTTP 404` | URL de l’API incorrecte | Vérifier `base_url` (ex. `https://api.secureops.fr`) |
 | `Pas d'événement result` | Site cible inaccessible ou timeout | Vérifier que l’URL est joignable depuis GitHub (réseau public) |
 | `Result HTTP ...` | Job non terminé ou erreur API | Poller le statut jusqu’à `completed`, puis appeler `/result` |
 

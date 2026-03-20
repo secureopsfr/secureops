@@ -58,7 +58,7 @@ export async function generateMetadata({
       icon: [
         { url: "/favicon.ico", sizes: "any" },
         { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
-        { url: "/logo.svg", type: "image/svg+xml" },
+        { url: "/logo.png", sizes: "512x512", type: "image/png" },
       ],
       apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
     },
@@ -161,11 +161,11 @@ export default async function LocaleLayout({
     url: SITE_URL,
     logo: `${SITE_URL}/logo.png`,
     description: t("metadata.siteDescription"),
-    email: "contact@secureops.io",
+    email: "contact@secureops.fr",
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
-      email: "contact@secureops.io",
+      email: "contact@secureops.fr",
       availableLanguage: ["French", "English"],
     },
   };

@@ -1,10 +1,10 @@
-"""Tests unitaires pour les vérifications CORS et cross-origin (app.services.cors_cross_origin.checks)."""
+"""Tests unitaires pour les vérifications CORS et cross-origin (passive)."""
 
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.services.cors_cross_origin.checks import CorsCrossOriginCheckResult, run_cors_cross_origin_checks
+from app.services.passive.both.cors_cross_origin.checks import CorsCrossOriginCheckResult, run_cors_cross_origin_checks
 
 
 def _mock_response(

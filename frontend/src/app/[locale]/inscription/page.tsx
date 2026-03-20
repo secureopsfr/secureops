@@ -10,7 +10,6 @@ import {
   showSuccessToast,
 } from "../../../utils/toastNotifications";
 import { debug } from "../../../utils/logger";
-import { GoogleButton } from "../../../components/auth/GoogleButton";
 import { GenericButton } from "../../../components/buttons";
 import { PasswordInput } from "../../../components/inputs";
 import { useLanguage } from "../../../components/LanguageProvider";
@@ -144,16 +143,6 @@ export default function SignUpPage() {
         </div>
 
         <div className="space-y-4 flex-1 overflow-y-auto">
-          <div className="flex justify-center">
-            <GoogleButton />
-          </div>
-
-          <div className="auth-divider">
-            <div className="auth-divider-line"></div>
-            <span className="auth-divider-text">{t("common.or")}</span>
-            <div className="auth-divider-line"></div>
-          </div>
-
           <h2 className="sr-only">{t("auth.register.formSectionTitle")}</h2>
           <form onSubmit={handleSignUp} className="space-y-3">
             <div>

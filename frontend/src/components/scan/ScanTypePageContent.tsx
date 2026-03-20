@@ -13,7 +13,11 @@ import ScanLoader from "./ScanLoader";
 import ScanResults from "./ScanResults";
 import ScanLaunchBubble from "./ScanLaunchBubble";
 import type { ScanHistorySelection } from "../../services/scanHistoryService";
-import { runAsyncScan, type ScanResult } from "../../services/scanService";
+import {
+  runAsyncScan,
+  type AsyncScanMode,
+  type ScanResult,
+} from "../../services/scanService";
 import { normalizeScanUrl } from "../../utils/scanUrl";
 import { useAuthToken } from "../../hooks/useAuthToken";
 
@@ -22,10 +26,10 @@ interface ScanTypePageContentProps {
   titleKey: string;
   /** Clé i18n pour le placeholder/description. */
   placeholderKey: string;
-  /** Slug du document (ex. scan-backend, scans-personnalises). */
-  docSlug: string;
-  /** Type de scan pour filtrer les blocs (backend ou custom). */
-  filterScanType: "backend" | "custom";
+  /** Slug du document (ex. scan-backend). Omit to hide the doc link. */
+  docSlug?: string;
+  /** Type de scan pour filtrer les blocs. */
+  filterScanType: "frontend" | "backend";
 }
 
 export default function ScanTypePageContent({
@@ -37,6 +41,8 @@ export default function ScanTypePageContent({
   const { t, lp } = useLanguage();
   const getToken = useAuthToken(true);
   const [url, setUrl] = useState("");
+  const scanTarget = filterScanType;
+  const scanMode: AsyncScanMode = "passive";
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   const { steps, enqueueStep, resetSteps } = useStepQueue();
@@ -87,9 +93,10 @@ export default function ScanTypePageContent({
           }
         },
         {
-          scanType: filterScanType,
+          scanType: scanTarget,
+          scanMode,
           input: {},
-          logPrefix: `[scan-${filterScanType}-polling]`,
+          logPrefix: `[scan-${scanTarget}-${scanMode}-polling]`,
         },
         getToken,
       );
@@ -124,17 +131,19 @@ export default function ScanTypePageContent({
           <div className="page-header text-center mb-4">
             <h1 className="page-title mb-2">{t(titleKey)}</h1>
             <p className="page-subtitle mt-0">{t(placeholderKey)}</p>
-            <Link
-              href={lp(`/scanner/docs/${docSlug}`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
-            >
-              <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
-                <FileText className="w-4 h-4" />
-                {t("scanner.docsLink")}
-              </span>
-            </Link>
+            {docSlug ? (
+              <Link
+                href={lp(`/scanner/docs/${docSlug}`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
+              >
+                <span className="inline-flex items-center gap-1.5 border-b-2 border-transparent group-hover:border-[rgb(var(--primary))]">
+                  <FileText className="w-4 h-4" />
+                  {t("scanner.docsLink")}
+                </span>
+              </Link>
+            ) : null}
           </div>
         </div>
       </AnimateInView>
@@ -143,6 +152,9 @@ export default function ScanTypePageContent({
         <ScanLaunchBubble
           url={url}
           onUrlChange={setUrl}
+          scanTarget={scanTarget}
+          onScanTargetChange={() => {}}
+          showTargetSelector={false}
           onSubmit={handleSubmit}
           loading={isLoading}
         />
@@ -156,6 +168,7 @@ export default function ScanTypePageContent({
       <ScannerHistoryAlertsSection
         onSelectScan={handleSelectScan}
         filterScanType={filterScanType}
+        filterScanMode={scanMode}
       />
 
       {isLoading &&

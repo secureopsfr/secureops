@@ -1,5 +1,7 @@
 # SecureOps — Scanner de posture sécurité
 
+**Version :** `1.0.0` (voir [VERSION](VERSION) et [CHANGELOG.md](CHANGELOG.md))
+
 **SecureOps** est un scanner de posture sécurité web (non intrusif) destiné aux développeurs débutants et intermédiaires : **URL → scan rapide → score + rapport clair**.
 
 Stack : backend Python/FastAPI, frontend Next.js, authentification Cognito, gateway API, services métier et base PostgreSQL.
@@ -78,7 +80,7 @@ secureops/
 ├── docker-compose.yml          # Stack complète
 ├── launch_dev.sh               # Démarrage dev (Postgres + services locaux)
 ├── .env.example                # Variables d’environnement racine
-├── VERSION                     # Version courante (ex. 0.3.0)
+├── VERSION                     # Version courante (ex. 1.0.0)
 ├── CHANGELOG.md                # Historique des modifications
 └── pytest.ini                  # Config pytest (tests à venir)
 ```
@@ -94,7 +96,8 @@ secureops/
 | [docs/roadmaps/versions/ROADMAP-MVP-0.1.0.md](docs/roadmaps/versions/ROADMAP-MVP-0.1.0.md) | Roadmap MVP 0.1.0 (scanner de posture sécurité) |
 | [docs/roadmaps/versions/ROADMAP-MVP-0.2.0.md](docs/roadmaps/versions/ROADMAP-MVP-0.2.0.md) | Roadmap MVP 0.2.0 (auth, historique, export, API publique) |
 | [docs/roadmaps/versions/ROADMAP-MVP-0.3.0.md](docs/roadmaps/versions/ROADMAP-MVP-0.3.0.md) | Roadmap MVP 0.3.0 (refactoring plateforme, crawler, async, scanner hub) |
-| [docs/roadmaps/versions/ROADMAP-MVP-0.4.0.md](docs/roadmaps/versions/ROADMAP-MVP-0.4.0.md) | Roadmap MVP 0.4.0 (tests actifs, analytics, scan paramétrable, backlog reporté) |
+| [docs/roadmaps/versions/ROADMAP-MVP-1.0.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.0.0.md) | Roadmap MVP 1.0.0 (tests actifs, analytics, scan paramétrable, backlog reporté) |
+| [docs/roadmaps/versions/ROADMAP-MVP-1.1.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.1.0.md) | Roadmap MVP 1.1.0 (intégration, Scanner 2, autorisation, backlog reporté) |
 | [CHANGELOG.md](CHANGELOG.md) | Historique des modifications (Keep a Changelog) |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Lint, pre-commit, conventions de code |
 | [docs/AUDIT-TEMPLATE.md](docs/AUDIT-TEMPLATE.md) | Audit des manques et améliorations prioritaires |
@@ -131,7 +134,7 @@ cd backend/user-service && . venv/bin/activate && alembic upgrade head
 
 ## Version
 
-La version courante est indiquée dans le fichier [VERSION](VERSION). Voir [CHANGELOG.md](CHANGELOG.md) pour l'historique des modifications.
+La version courante est **`1.0.0`**, indiquée dans le fichier [VERSION](VERSION). Voir [CHANGELOG.md](CHANGELOG.md) pour l'historique des modifications. Les roadmaps cibles suivantes sont documentées sous [ROADMAP-MVP-1.0.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.0.0.md) et [ROADMAP-MVP-1.1.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.1.0.md).
 
 ## Licence
 

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.scan import Scan
 from app.models.scheduled_scan import ScheduledScan
 from app.services.scan_repository import count_user_scans
-from app.utils.query_utils import apply_date_filter, apply_scan_type_filter, apply_url_filter
+from app.utils.query_utils import apply_date_filter, apply_scan_mode_filter, apply_scan_type_filter, apply_url_filter
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +45,13 @@ async def get_scan_overview(
     user_id: uuid.UUID,
     url: Optional[str] = None,
     scan_type: Optional[str] = None,
+    scan_mode: Optional[str] = None,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
 ) -> dict[str, Any]:
     """Calcule les KPIs et les données du graphique pour la vue d'ensemble scanner.
 
-    Tous les calculs respectent les filtres (url, scan_type, date_from, date_to).
+    Tous les calculs respectent les filtres (url, scan_type, scan_mode, date_from, date_to).
 
     Returns:
         dict avec:
@@ -61,10 +62,27 @@ async def get_scan_overview(
     base_stmt = select(Scan).where(Scan.user_id == user_id)
     base_stmt = apply_url_filter(base_stmt, Scan.url, url)
     base_stmt = apply_scan_type_filter(base_stmt, Scan.scan_type, scan_type)
+    base_stmt = apply_scan_mode_filter(base_stmt, Scan.scan_mode, scan_mode)
     stmt_filtered = apply_date_filter(base_stmt, Scan.timestamp, date_from, date_to)
 
-    total_scans = await count_user_scans(session, user_id, url=url, scan_type=scan_type, date_from=None, date_to=None)
-    scans_in_period = await count_user_scans(session, user_id, url=url, scan_type=scan_type, date_from=date_from, date_to=date_to)
+    total_scans = await count_user_scans(
+        session,
+        user_id,
+        url=url,
+        scan_type=scan_type,
+        scan_mode=scan_mode,
+        date_from=None,
+        date_to=None,
+    )
+    scans_in_period = await count_user_scans(
+        session,
+        user_id,
+        url=url,
+        scan_type=scan_type,
+        scan_mode=scan_mode,
+        date_from=date_from,
+        date_to=date_to,
+    )
 
     filtered_scans_stmt = stmt_filtered.order_by(Scan.created_at.desc()).limit(5000)
     result_filtered = await session.execute(filtered_scans_stmt)

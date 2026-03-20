@@ -10,10 +10,12 @@ general:
 # Configuration CORS
 # Avec allow_credentials: true, le navigateur refuse "*" ; il faut des origines explicites.
 # Inclure tous les ports utilisés en local (3000, 4000, 3001, etc.).
+# Pour accès réseau WiFi (ex. http://192.168.1.198:3000), ajouter l’origine correspondante.
 cors:
   allow_origins:
     - "http://localhost:3000"
     - "http://127.0.0.1:3000"
+    - "http://192.168.1.198:3000"
     - "http://localhost:4000"
     - "http://127.0.0.1:4000"
   allow_methods: ["*"]
@@ -62,6 +64,19 @@ services:
 timeouts:
   request_timeout: 20.0  # Timeout en secondes pour les requêtes HTTP
   crawl_timeout: 90.0    # Timeout pour POST /crawl/api/crawl (crawl SPA peut prendre 60s+)
+
+# Rate limiting court terme (fenêtre glissante) pour scan/crawl async
+# (limit, window_seconds) par type d'authentification
+rate_limits:
+  user:
+    limit: 10
+    window_seconds: 60
+  api_key:
+    limit: 10
+    window_seconds: 60
+  anon:
+    limit: 3
+    window_seconds: 60
 
 # Configuration des headers
 headers:

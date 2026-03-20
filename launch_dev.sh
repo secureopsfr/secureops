@@ -267,13 +267,15 @@ launch_service() {
         fi
 
         # Installer/mettre à jour les dépendances (+ package commun partagé)
+        # Utiliser venv/bin/python -m pip explicitement pour éviter le pip système (PEP 668 / externally-managed-environment)
         echo -e "${YELLOW}Installation/mise à jour des dépendances pour ${service_name}...${NC}"
         if [ -f "${service_dir}/venv/bin/activate" ]; then
             (
-                cd "$service_dir" && . venv/bin/activate && pip install -e ../common && pip install -r requirements.txt
+                cd "$service_dir" && . venv/bin/activate && \
+                ./venv/bin/python -m pip install -e ../common && ./venv/bin/python -m pip install -r requirements.txt && \
                 if [ -f "requirements-dev.txt" ]; then
                     echo -e "${BLUE}requirements-dev.txt détecté pour ${service_name}, installation des dépendances de dev...${NC}"
-                    pip install -r requirements-dev.txt
+                    ./venv/bin/python -m pip install -r requirements-dev.txt
                 fi
                 deactivate
             )
@@ -309,29 +311,30 @@ if $IS_WINDOWS; then
     exit 0
 else
     # Sur Linux/Mac, lancer normalement les services
+    # Utiliser venv/bin/python -m uvicorn explicitement (évite "uvicorn: command not found" si PATH incorrect)
     # Lancer le service gateway
-    launch_service "gateway" ". venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload" "$SCRIPT_DIR/backend/gateway"
+    launch_service "gateway" "./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload" "$SCRIPT_DIR/backend/gateway"
 
     # Lancer le service admin-service
-    launch_service "admin-service" ". venv/bin/activate && export DATABASE_URL=\"$ADMIN_DATABASE_URL\" ADMIN_METRICS_API_KEY=\"$ADMIN_METRICS_API_KEY\" && uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload" "$SCRIPT_DIR/backend/admin-service"
+    launch_service "admin-service" "export DATABASE_URL=\"$ADMIN_DATABASE_URL\" ADMIN_METRICS_API_KEY=\"$ADMIN_METRICS_API_KEY\" && ./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload" "$SCRIPT_DIR/backend/admin-service"
 
     # Lancer le service user-service
-    launch_service "user-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" && uvicorn app.main:app --host 0.0.0.0 --port 8011 --reload" "$SCRIPT_DIR/backend/user-service"
+    launch_service "user-service" "export DATABASE_URL=\"$DATABASE_URL\" && ./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8011 --reload" "$SCRIPT_DIR/backend/user-service"
 
     # Lancer le service scan-service (IS_PROD=false pour autoriser localhost/ports libres en dev)
-    launch_service "scan-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" IS_PROD=false PDF_SERVICE_URL=http://localhost:8013 ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && uvicorn app.main:app --host 0.0.0.0 --port 8012 --reload" "$SCRIPT_DIR/backend/scan-service"
+    launch_service "scan-service" "export DATABASE_URL=\"$DATABASE_URL\" IS_PROD=false PDF_SERVICE_URL=http://localhost:8013 ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && ./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8012 --reload" "$SCRIPT_DIR/backend/scan-service"
 
     # Lancer le worker scan-service
-    launch_service "scan-worker" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && python -m app.workers.async_scan_worker" "$SCRIPT_DIR/backend/scan-service"
+    launch_service "scan-worker" "export DATABASE_URL=\"$DATABASE_URL\" ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && ./venv/bin/python -m app.workers.async_scan_worker" "$SCRIPT_DIR/backend/scan-service"
 
     # Lancer le service crawl-service (IS_PROD=false pour autoriser localhost)
-    launch_service "crawl-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" IS_PROD=false ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && uvicorn app.main:app --host 0.0.0.0 --port 8014 --reload" "$SCRIPT_DIR/backend/crawl-service"
+    launch_service "crawl-service" "export DATABASE_URL=\"$DATABASE_URL\" IS_PROD=false ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && ./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8014 --reload" "$SCRIPT_DIR/backend/crawl-service"
 
     # Lancer le worker crawl-service
-    launch_service "crawl-worker" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && python -m app.workers.async_crawl_worker" "$SCRIPT_DIR/backend/crawl-service"
+    launch_service "crawl-worker" "export DATABASE_URL=\"$DATABASE_URL\" ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && ./venv/bin/python -m app.workers.async_crawl_worker" "$SCRIPT_DIR/backend/crawl-service"
 
     # Lancer le service pdf-service
-    launch_service "pdf-service" ". venv/bin/activate && export DATABASE_URL=\"$DATABASE_URL\" && uvicorn app.main:app --host 0.0.0.0 --port 8013 --reload" "$SCRIPT_DIR/backend/pdf-service"
+    launch_service "pdf-service" "export DATABASE_URL=\"$DATABASE_URL\" && ./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8013 --reload" "$SCRIPT_DIR/backend/pdf-service"
 
     # Lancer le frontend (Next.js)
     echo -e "${YELLOW}Démarrage du frontend Next.js (cela peut prendre jusqu'à 2-3 minutes si les packages sont déjà installés, sinon 5-15 minutes). Si ça ne marche pas, faire le clean install de npm et relancer le script.${NC}"

@@ -9,7 +9,7 @@ from sqlalchemy import delete, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scan import Scan
-from app.utils.query_utils import apply_date_filter, apply_scan_type_filter, apply_url_filter
+from app.utils.query_utils import apply_date_filter, apply_scan_mode_filter, apply_scan_type_filter, apply_url_filter
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ async def create_scan(
     findings: List[dict[str, Any]],
     timestamp: str,
     duration: float,
+    scan_mode: str = "passive",
     result_mode: str = "single",
     category_summaries: Optional[List[dict[str, Any]]] = None,
     page_results: Optional[List[dict[str, Any]]] = None,
@@ -61,6 +62,7 @@ async def create_scan(
         user_id=user_id,
         url=url,
         scan_type=scan_type,
+        scan_mode=scan_mode,
         result_mode=result_mode,
         status=status,
         score=score,
@@ -119,6 +121,7 @@ async def list_scans_by_user_id(
     offset: int = 0,
     url: Optional[str] = None,
     scan_type: Optional[str] = None,
+    scan_mode: Optional[str] = None,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
 ) -> List[Scan]:
@@ -130,7 +133,8 @@ async def list_scans_by_user_id(
         limit: Nombre max d'éléments.
         offset: Décalage pour pagination.
         url: Filtre optionnel par URL exacte.
-        scan_type: Filtre optionnel (frontend, backend, custom).
+        scan_type: Filtre optionnel (frontend, backend, both).
+        scan_mode: Filtre optionnel (passive, intrusive, destructive, custom).
         date_from: Filtre optionnel date de début (timestamp du scan).
         date_to: Filtre optionnel date de fin (timestamp du scan).
 
@@ -140,6 +144,7 @@ async def list_scans_by_user_id(
     stmt = select(Scan).where(Scan.user_id == user_id)
     stmt = apply_url_filter(stmt, Scan.url, url)
     stmt = apply_scan_type_filter(stmt, Scan.scan_type, scan_type)
+    stmt = apply_scan_mode_filter(stmt, Scan.scan_mode, scan_mode)
     stmt = apply_date_filter(stmt, Scan.timestamp, date_from, date_to)
     stmt = stmt.order_by(desc(Scan.created_at)).limit(limit).offset(offset)
     result = await session.execute(stmt)
@@ -151,6 +156,7 @@ async def count_user_scans(
     user_id: uuid.UUID,
     url: Optional[str] = None,
     scan_type: Optional[str] = None,
+    scan_mode: Optional[str] = None,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
 ) -> int:
@@ -160,7 +166,8 @@ async def count_user_scans(
         session: Session de base de données.
         user_id: UUID de l'utilisateur.
         url: Filtre optionnel par URL exacte.
-        scan_type: Filtre optionnel (frontend, backend, custom).
+        scan_type: Filtre optionnel (frontend, backend, both).
+        scan_mode: Filtre optionnel (passive, intrusive, destructive, custom).
         date_from: Filtre optionnel date de début (timestamp du scan).
         date_to: Filtre optionnel date de fin (timestamp du scan).
 
@@ -170,6 +177,7 @@ async def count_user_scans(
     stmt = select(func.count(Scan.id)).where(Scan.user_id == user_id)
     stmt = apply_url_filter(stmt, Scan.url, url)
     stmt = apply_scan_type_filter(stmt, Scan.scan_type, scan_type)
+    stmt = apply_scan_mode_filter(stmt, Scan.scan_mode, scan_mode)
     stmt = apply_date_filter(stmt, Scan.timestamp, date_from, date_to)
     result = await session.execute(stmt)
     return result.scalar() or 0

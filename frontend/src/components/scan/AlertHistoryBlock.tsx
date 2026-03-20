@@ -23,8 +23,10 @@ import {
 interface AlertHistoryBlockProps {
   /** Filtre optionnel par URL (alertes limitées à cette URL). */
   filterUrl?: string | null;
-  /** Filtre optionnel par type de scan (frontend, backend, custom). */
+  /** Filtre optionnel par type de scan (frontend, backend, both). */
   filterScanType?: string | null;
+  /** Filtre optionnel par mode de scan (passive, intrusive, destructive, custom). */
+  filterScanMode?: string | null;
   /** Filtre optionnel date de début (ISO string). */
   filterDateFrom?: string | null;
   /** Filtre optionnel date de fin (ISO string). */
@@ -34,6 +36,7 @@ interface AlertHistoryBlockProps {
 export default function AlertHistoryBlock({
   filterUrl,
   filterScanType,
+  filterScanMode,
   filterDateFrom,
   filterDateTo,
 }: AlertHistoryBlockProps) {
@@ -51,12 +54,13 @@ export default function AlertHistoryBlock({
           perPage,
           filterUrl ?? undefined,
           filterScanType ?? undefined,
+          filterScanMode ?? undefined,
           filterDateFrom ?? undefined,
           filterDateTo ?? undefined,
         ),
       perPage: 10,
       onError,
-      refreshTrigger: `${filterUrl ?? ""}_${filterScanType ?? ""}_${filterDateFrom ?? ""}_${filterDateTo ?? ""}`,
+      refreshTrigger: `${filterUrl ?? ""}_${filterScanType ?? ""}_${filterScanMode ?? ""}_${filterDateFrom ?? ""}_${filterDateTo ?? ""}`,
     });
 
   const handleDeleteConfirm = useCallback(
@@ -92,8 +96,14 @@ export default function AlertHistoryBlock({
 
   const getScanTypeLabel = (scanType: string) => {
     if (scanType === "backend") return t("scanner.scanTypeBackend");
-    if (scanType === "custom") return t("scanner.scanTypeCustom");
     return t("scanner.scanTypeFrontend");
+  };
+
+  const getScanModeLabel = (scanMode?: string) => {
+    if (scanMode === "intrusive") return t("scanner.modeIntrusive");
+    if (scanMode === "destructive") return t("scanner.modeDestructive");
+    if (scanMode === "custom") return t("scanner.modeCustom");
+    return t("scanner.modePassive");
   };
 
   return (
@@ -121,6 +131,11 @@ export default function AlertHistoryBlock({
                       {formatUrlDisplay(item.url)}
                     </span>
                     <span className="text-xs text-[var(--muted)]">
+                      {!filterScanMode && (
+                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(16,185,129,0.18)] text-[rgb(16,185,129)] mr-1">
+                          {getScanModeLabel(item.scan_mode)}
+                        </span>
+                      )}
                       {!filterScanType && (
                         <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))] mr-1">
                           {getScanTypeLabel(item.scan_type ?? "frontend")}

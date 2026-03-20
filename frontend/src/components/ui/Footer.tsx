@@ -4,7 +4,7 @@ import { getTranslation } from "../../i18n/server";
 import CopyEmailButton from "../CopyEmailButton";
 import AnimateInView from "../AnimateInView";
 
-const CONTACT_EMAIL = "contact@secureops.io";
+const CONTACT_EMAIL = "contact@secureops.fr";
 
 export default function Footer({ locale }: { locale: string }) {
   const t = getTranslation(locale as Locale);

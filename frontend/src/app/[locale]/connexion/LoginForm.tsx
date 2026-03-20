@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { GoogleButton } from "../../../components/auth/GoogleButton";
 import { GenericButton } from "../../../components/buttons";
 import { PasswordInput } from "../../../components/inputs";
 import { useLanguage } from "../../../components/LanguageProvider";
@@ -45,16 +44,6 @@ export default function LoginForm({
         </div>
 
         <div className="space-y-4 flex-1 overflow-y-auto">
-          <div className="flex justify-center">
-            <GoogleButton />
-          </div>
-
-          <div className="auth-divider">
-            <div className="auth-divider-line"></div>
-            <span className="auth-divider-text">{t("common.or")}</span>
-            <div className="auth-divider-line"></div>
-          </div>
-
           <form onSubmit={onSubmit} className="space-y-3">
             <div>
               <label htmlFor="email" className="label-form">

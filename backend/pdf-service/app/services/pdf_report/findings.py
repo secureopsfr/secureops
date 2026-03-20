@@ -129,7 +129,13 @@ def build_finding_block(
         </div>
         """
 
-    badge_html = f'<span class="finding-badge" style="background:{badge_bg};color:{badge_text}">{escape(severity_display)}</span>'
+    owasp_cats = getattr(f, "owasp_categories", None) or []
+    owasp_html = ""
+    if owasp_cats:
+        owasp_str = ", ".join(owasp_cats)
+        owasp_label = t("owasp", lang)
+        owasp_html = f' <span class="finding-owasp" title="{owasp_label}">{escape(owasp_str)}</span>'
+    badge_html = f'<span class="finding-badge" style="background:{badge_bg};color:{badge_text}">{escape(severity_display)}</span>{owasp_html}'
     block = f"""
     <div class="finding-block" id="finding-{section_num}-{finding_idx}">
         <h3 class="finding-title-row">

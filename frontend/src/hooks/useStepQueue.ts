@@ -10,6 +10,10 @@
  * Exception : les steps de progression de crawl (_crawl_progress) mettent à
  * jour une position existante — ils bypassent la queue pour ne pas accumuler
  * de retard quand le crawler émet de nombreux updates.
+ *
+ * Avant chaque step en bypass, on vide la file de manière synchrone : sinon
+ * robots.txt / sitemap (en file avec délai) s'afficheraient après les updates
+ * de crawl déjà appliquées immédiatement.
  */
 
 import { useState, useCallback, useRef } from "react";
@@ -42,7 +46,18 @@ export function useStepQueue(revealDelayMs = 120) {
   const enqueueStep = useCallback(
     (step: ScanStep) => {
       if (BYPASS_QUEUE_STEPS.has(step.step)) {
-        setSteps((prev) => updateStepsOnEvent(prev, step));
+        const pending = queueRef.current.splice(0, queueRef.current.length);
+        if (timerRef.current !== null) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+        setSteps((prev) => {
+          let acc = prev;
+          for (const s of pending) {
+            acc = updateStepsOnEvent(acc, s);
+          }
+          return updateStepsOnEvent(acc, step);
+        });
         return;
       }
       queueRef.current.push(step);

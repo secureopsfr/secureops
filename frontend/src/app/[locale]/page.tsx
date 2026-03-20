@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Header from "../../components/ui/Header";
 import Footer from "../../components/ui/Footer";
-import OAuthCallbackHandler from "../../components/OAuthCallbackHandler";
 import HomeContent from "../../components/HomeContent";
 import { getTranslation } from "../../i18n/server";
 import {
@@ -65,7 +64,7 @@ export default async function HomePage({
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
-      email: "contact@secureops.io",
+      email: "contact@secureops.fr",
       url: `${SITE_URL}/${locale}/${SLUG_MAP[locale as Locale].contact}`,
       availableLanguage: ["French", "English"],
     },
@@ -97,14 +96,6 @@ export default async function HomePage({
     operatingSystem: "Web",
     description: t("metadata.homeDescription"),
     url: `${SITE_URL}/${locale}`,
-    offers: {
-      "@type": "AggregateOffer",
-      priceCurrency: "EUR",
-      lowPrice: "23",
-      highPrice: "79",
-      offerCount: 3,
-      url: `${SITE_URL}/${locale}/${SLUG_MAP[locale as Locale].tarifs}`,
-    },
   };
 
   return (
@@ -127,7 +118,6 @@ export default async function HomePage({
           __html: JSON.stringify(softwareJsonLd),
         }}
       />
-      <OAuthCallbackHandler />
       <Header />
       <main id="main">
         <HomeContent locale={locale} />

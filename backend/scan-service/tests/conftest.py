@@ -9,15 +9,15 @@ from fastapi.testclient import TestClient
 
 from app.errors.fetch_errors import FetchResult
 from app.main import app
-from app.services.cors_cross_origin.checks import CorsCrossOriginCheckResult
-from app.services.directory_listing import DirectoryListingCheckResult
-from app.services.exposed_files import ExposedFilesCheckResult
-from app.services.information_disclosure.checks import InformationDisclosureCheckResult
-from app.services.integrity import IntegrityCheckResult
-from app.services.robots_txt import RobotsTxtCheckResult
-from app.services.sitemap import SitemapCheckResult
-from app.services.tech_fingerprinting.checks import TechFingerprintingCheckResult
-from app.services.tls.checks import TlsCheckResult
+from app.services.passive.both.cors_cross_origin.checks import CorsCrossOriginCheckResult
+from app.services.passive.both.directory_listing import DirectoryListingCheckResult
+from app.services.passive.both.exposed_files import ExposedFilesCheckResult
+from app.services.passive.both.information_disclosure.checks import InformationDisclosureCheckResult
+from app.services.passive.both.tech_fingerprinting.checks import TechFingerprintingCheckResult
+from app.services.passive.both.tls.checks import TlsCheckResult
+from app.services.passive.frontend.integrity import IntegrityCheckResult
+from app.services.passive.frontend.robots_txt import RobotsTxtCheckResult
+from app.services.passive.frontend.sitemap import SitemapCheckResult
 
 
 @contextmanager
@@ -90,43 +90,43 @@ def patch_scan_checks(**overrides):
         details=None,
     )
     with (
-        patch("app.services.scan_runner.check_ssrf", new_callable=AsyncMock),
-        patch("app.services.scan_runner.scan_client", _fake_scan_client),
-        patch("app.services.scan_runner.get_with_client_or_error", new_callable=AsyncMock, return_value=fetch_result_ok),
-        patch("app.services._scan_core.run_tls_checks", new_callable=AsyncMock, return_value=tls_result),
-        patch("app.services._scan_core.run_exposed_files_checks", new_callable=AsyncMock, return_value=exposed_result),
+        patch("app.services.passive.scan_stream.check_ssrf", new_callable=AsyncMock),
+        patch("app.services.passive.scan_stream.scan_client", _fake_scan_client),
+        patch("app.services.passive.scan_stream.get_with_client_or_error", new_callable=AsyncMock, return_value=fetch_result_ok),
+        patch("app.services.passive._scan_core.run_tls_checks", new_callable=AsyncMock, return_value=tls_result),
+        patch("app.services.passive._scan_core.run_exposed_files_checks", new_callable=AsyncMock, return_value=exposed_result),
         patch(
-            "app.services._scan_core.run_directory_listing_checks",
+            "app.services.passive._scan_core.run_directory_listing_checks",
             new_callable=AsyncMock,
             return_value=directory_listing_result,
         ),
         patch(
-            "app.services._scan_core.run_robots_txt_checks",
+            "app.services.passive._scan_core.run_robots_txt_checks",
             new_callable=AsyncMock,
             return_value=robots_txt_result,
         ),
         patch(
-            "app.services._scan_core.run_sitemap_checks",
+            "app.services.passive._scan_core.run_sitemap_checks",
             new_callable=AsyncMock,
             return_value=sitemap_result,
         ),
         patch(
-            "app.services._scan_core.check_tech_fingerprinting_from_response",
+            "app.services.passive._scan_core.check_tech_fingerprinting_from_response",
             new_callable=MagicMock,
             return_value=tech_fingerprinting_result,
         ),
         patch(
-            "app.services._scan_core.check_information_disclosure_from_response",
+            "app.services.passive._scan_core.check_information_disclosure_from_response",
             new_callable=MagicMock,
             return_value=information_disclosure_result,
         ),
         patch(
-            "app.services._scan_core.check_integrity_from_response",
+            "app.services.passive._scan_core.check_integrity_from_response",
             new_callable=MagicMock,
             return_value=integrity_result,
         ),
         patch(
-            "app.services._scan_core.run_cors_cross_origin_checks",
+            "app.services.passive._scan_core.run_cors_cross_origin_checks",
             new_callable=AsyncMock,
             return_value=cors_cross_origin_result,
         ),

@@ -335,6 +335,62 @@
     "gravite": "Significative",
     "vraisemblance": "Forte"
   },
+  "methodes-http-dangerous-methods": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "methodes-http-trace-enabled": {
+    "gravite": "Significative",
+    "vraisemblance": "Faible"
+  },
+  "methodes-http-head-unsupported": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "methodes-http-redirect-chain-excessive": {
+    "gravite": "Mineure",
+    "vraisemblance": "Faible"
+  },
+  "methodes-http-redirect-301-302-form": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "methodes-http-generic": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "api-graphql-introspection": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "api-swagger-exposed": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "api-rest-unpaginated": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "formats-content-type-wrong": {
+    "gravite": "Significative",
+    "vraisemblance": "Moyenne"
+  },
+  "formats-xcto-missing": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "formats-no-compression": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
+  "api-generic": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "formats-generic": {
+    "gravite": "Mineure",
+    "vraisemblance": "Forte"
+  },
   "integrity-sri-external-missing": {
     "gravite": "Importante",
     "vraisemblance": "Faible"

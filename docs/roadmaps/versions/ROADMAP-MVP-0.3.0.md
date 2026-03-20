@@ -292,13 +292,13 @@ Quotas, rate limiting et réponse 429 sont reportés à plus tard. Voir [A-PENSE
 
 ## 2) Tests d’intégration pour la pipeline de scan
 
-> **Reporté en v0.4.0 :** toute la partie non faite de cette section (environnement de test, scénarios d’intégration, CI, observabilité/maintenance) a été déplacée dans `ROADMAP-MVP-0.4.0.md` pour centraliser le backlog tests.
+> **Reporté en v1.0.0 :** toute la partie non faite de cette section (environnement de test, scénarios d’intégration, CI, observabilité/maintenance) a été déplacée dans `ROADMAP-MVP-1.0.0.md` pour centraliser le backlog tests.
 
 ---
 
 ## 3) Intégration CI/CD (GitHub Action SecureOps)
 
-> **Reporté en v0.4.0 :** toute la partie non faite de cette section (création de l’action, comportement de scan, documentation README/badge) a été déplacée dans `ROADMAP-MVP-0.4.0.md`.
+> **Reporté en v1.0.0 :** toute la partie non faite de cette section (création de l’action, comportement de scan, documentation README/badge) a été déplacée dans `ROADMAP-MVP-1.0.0.md`.
 
 ---
 
@@ -369,8 +369,8 @@ Quotas, rate limiting et limites crawler sont reportés. Voir [A-PENSER-PLUS-TAR
 
 - [x] Documenter dans `docs/verifications/crawler.md` : objectif, limites, respect robots.txt, impact sur le scan, choix techniques.
 - [x] Documenter le **contrat API crawler** (option A synchrone, payload, format de la liste, codes erreur) dans la doc.
-- [ ] Tests unitaires : parsing HTML → liste d’URLs attendue ; respect Disallow ; limites (profondeur, max URLs). *(reporté en v0.4.0)*
-- [ ] Test d’intégration : crawl d’une page de test (ex. `bad_crawl_server` ou fixture HTML) → vérifier la sortie et l’absence de fuite hors domaine. *(reporté en v0.4.0)*
+- [ ] Tests unitaires : parsing HTML → liste d’URLs attendue ; respect Disallow ; limites (profondeur, max URLs). *(reporté en v1.0.0)*
+- [ ] Test d’intégration : crawl d’une page de test (ex. `bad_crawl_server` ou fixture HTML) → vérifier la sortie et l’absence de fuite hors domaine. *(reporté en v1.0.0)*
 
 ### 7.6 Gestion des URLs, limites et prévention des abus
 
@@ -379,7 +379,7 @@ Quotas, rate limiting et limites crawler sont reportés. Voir [A-PENSER-PLUS-TAR
 
 - [x] **URLs interdites / SSRF** :
   - [x] Bloquer localhost, IP privées (RFC 1918), IP de bouclage pour l'**URL de départ** (`check_ssrf`) et les **URLs découvertes** (`is_hostname_blocked`). Réutilisation de la logique SSRF du scan-service.
-  - Le reste (liste noire configurable, modération et quotas/rate limiting/429) est **reporté en v0.4.0**.
+  - Le reste (liste noire configurable, modération et quotas/rate limiting/429) est **reporté en v1.0.0**.
 
 ---
 
@@ -423,10 +423,10 @@ Quotas, rate limiting et limites crawler sont reportés. Voir [A-PENSER-PLUS-TAR
   - [x] **Scans planifiés** : création, modification, pause des scans récurrents.
   - [x] **Lien vers la gestion des clés API** : accès à la page « Clés API » (création, révocation, doc). Card dédiée sur le hub.
   - [x] **KPIs tableau de bord** : Total scans, Score moyen, Anomalies critiques, Planifiés actifs, Dernier scan. **Données réelles** via l’endpoint overview, mises à jour lors des changements de filtres (URL, type, période).
-  - Le reste (rapports/exports, alertes et préférences) est **reporté en v0.4.0**.
+  - Le reste (rapports/exports, alertes et préférences) est **reporté en v1.0.0**.
 - [x] **Card « Documentation »** : section sur la home du hub Scanner qui renvoie vers la documentation (scanners, API, etc.).
   > **Fait :** Card → `/scanner/docs` (page placeholder). Cards additionnelles : Crawlers, Scan backend (placeholders).
-  - Le reste (page doc consolidée et doc contextuelle par page scanner/API) est **reporté en v0.4.0**.
+  - Le reste (page doc consolidée et doc contextuelle par page scanner/API) est **reporté en v1.0.0**.
 
 #### Structure des routes (plusieurs pages)
 
@@ -450,7 +450,7 @@ Quotas, rate limiting et limites crawler sont reportés. Voir [A-PENSER-PLUS-TAR
 **Objectif :** Lors du chargement ou de l’affichage des résultats du scan, ne pas utiliser le vert pour les points qui correspondent à une **anomalie détectée** ; indiquer clairement qu’**on a trouvé quelque chose** (alerte / attention), pour que l’utilisateur distingue immédiatement « vérification OK » vs « problème détecté ».
 
 - [x] **Réservoir le vert aux vérifications OK** : afficher en vert uniquement les points pour lesquels **aucune anomalie** n’a été trouvée (vérification passée).
-- **Anomalies = « on a trouvé quelque chose »** : finalisation (icône dédiée + libellé explicite « Anomalie détectée »/« Trouvé ») **reportée en v0.4.0**.
+- **Anomalies = « on a trouvé quelque chose »** : finalisation (icône dédiée + libellé explicite « Anomalie détectée »/« Trouvé ») **reportée en v1.0.0**.
 - [x] **S’appliquer à toutes les anomalies sauf « info »** : ce comportement vaut pour tous les niveaux de sévérité d’anomalie (critique, haute, moyenne, basse). Le niveau **info** peut rester avec un traitement distinct (neutre ou informatif), sans être affiché comme « validé » en vert.
 - [x] Cohérence sur l’écran de chargement / progression et sur la page de résultats : même logique (vert = OK, pas d’anomalie ; autre traitement = quelque chose a été trouvé, pour toutes les anomalies hors info).
 

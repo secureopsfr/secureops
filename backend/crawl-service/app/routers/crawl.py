@@ -4,9 +4,11 @@ import os
 import uuid
 
 from common.async_jobs import generate_job_token, hash_job_token
+from common.blacklist import check_blacklist
+from common.url_utils import URLValidationError
 from fastapi import APIRouter, Header, HTTPException
 
-from app.config_loader import get_async_jobs_settings
+from app.config_loader import get_async_jobs_settings, get_blacklist_settings
 from app.db import get_async_session
 from app.schemas.async_job import CrawlAsyncCreateRequest, CrawlAsyncCreateResponse, CrawlAsyncStatusResponse
 from app.services.async_job_repository import create_job, get_job_by_id
@@ -14,12 +16,11 @@ from app.use_cases.async_job_access import (
     JobAccessDeniedError,
     JobNotFoundError,
     JobResultNotReadyError,
-    NonFrontendAuthRequiredError,
     require_completed_job,
     require_existing_job,
     require_job_access,
-    require_user_for_non_frontend,
 )
+from app.utils.url_validator import validate_and_normalize_url
 
 router = APIRouter(prefix="/api", tags=["crawl"])
 _X_AUTHENTICATED_USER_ID = Header(default=None, alias="X-Authenticated-User-Id")
@@ -35,9 +36,10 @@ async def create_crawl_async_job(
 ) -> CrawlAsyncCreateResponse:
     """Crée un job async crawl."""
     try:
-        require_user_for_non_frontend(body.scan_type, authenticated_user_id)
-    except NonFrontendAuthRequiredError as exc:
-        raise HTTPException(status_code=401, detail=str(exc))
+        normalized_url = validate_and_normalize_url(body.url)
+        await check_blacklist(normalized_url, get_blacklist_settings())
+    except URLValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     raw_job_token: str | None = None
     token_hash: str | None = None
     if not authenticated_user_id:
@@ -47,8 +49,7 @@ async def create_crawl_async_job(
         async with get_async_session() as session:
             job = await create_job(
                 session,
-                url=body.url,
-                scan_type=body.scan_type,
+                url=normalized_url,
                 input_json=body.input,
                 user_id=authenticated_user_id,
                 job_token_hash=token_hash,
@@ -59,7 +60,7 @@ async def create_crawl_async_job(
     return CrawlAsyncCreateResponse(
         job_id=str(job.id),
         status="pending",
-        scan_type=body.scan_type,
+        scan_type="frontend",
         job_token=raw_job_token,
     )
 
@@ -86,7 +87,7 @@ async def get_crawl_async_job_status(
             )
             return CrawlAsyncStatusResponse(
                 job_id=str(job.id),
-                scan_type=job.scan_type,  # type: ignore[arg-type]
+                scan_type="frontend",
                 status=job.status,  # type: ignore[arg-type]
                 attempt_count=int(job.attempt_count or 0),
                 created_at=job.created_at,
