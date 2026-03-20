@@ -11,6 +11,7 @@ general:
 # Avec allow_credentials: true, le navigateur refuse "*" ; il faut des origines explicites.
 # Inclure tous les ports utilisés en local (3000, 4000, 3001, etc.).
 # Pour accès réseau WiFi (ex. http://192.168.1.198:3000), ajouter l’origine correspondante.
+# Production : inclure chaque origine exacte du frontend (schéma + host + port). www et apex sont distincts.
 cors:
   allow_origins:
     - "http://localhost:3000"
@@ -18,6 +19,10 @@ cors:
     - "http://192.168.1.198:3000"
     - "http://localhost:4000"
     - "http://127.0.0.1:4000"
+    - "https://secureops.fr"
+    - "https://www.secureops.fr"
+    # AWS Amplify (branche / preview) — origine = schéma + host uniquement (pas de chemin).
+    - "https://master.d3oa05zyybe8fp.amplifyapp.com"
   allow_methods: ["*"]
   allow_headers: ["*"]
   allow_credentials: true
