@@ -13,8 +13,6 @@ general:
 # Pour accès réseau WiFi (ex. http://192.168.1.198:3000), ajouter l’origine correspondante.
 # Production : inclure chaque origine exacte du frontend (schéma + host + port). www et apex sont distincts.
 cors:
-  # Toutes les branches de l’app Amplify (remplacer d3oa05zyybe8fp par ton app ID si différent).
-  allow_origin_regex: "^https://[a-z0-9][a-z0-9-]*\\.d3oa05zyybe8fp\\.amplifyapp\\.com$"
   allow_origins:
     - "http://localhost:3000"
     - "http://127.0.0.1:3000"
@@ -23,7 +21,8 @@ cors:
     - "http://127.0.0.1:4000"
     - "https://secureops.fr"
     - "https://www.secureops.fr"
-    # Amplify : couvert par allow_origin_regex (toutes les branches du même app ID).
+    # AWS Amplify (branche / preview) — origine = schéma + host uniquement (pas de chemin).
+    - "https://master.d3oa05zyybe8fp.amplifyapp.com"
   allow_methods: ["*"]
   allow_headers: ["*"]
   allow_credentials: true
