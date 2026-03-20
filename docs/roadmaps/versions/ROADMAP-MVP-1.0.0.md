@@ -1,4 +1,4 @@
-# SecureOps — Roadmap MVP 0.4.0
+# SecureOps — Roadmap MVP 1.0.0
 
 Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **introduire les tests actifs** (premiers pas), **rapports et analytics** (tendances, export, tableau de bord), **scan paramétrable** (ex. mode critical uniquement) et **explication du scoring** dans le frontend.
 
@@ -8,7 +8,7 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 
 ## Sommaire
 
-**Ordre recommandé :** 0 (architecture) → 1 (passif + backlog) → [2, 3, 5, 6 reportés en 0.5.0](ROADMAP-MVP-0.5.0.md) → 4 (rapports/analytics) → 7 (release).
+**Ordre recommandé :** 0 (architecture) → 1 (passif + backlog) → [2, 3, 5, 6 reportés en 1.1.0](ROADMAP-MVP-1.1.0.md) → 4 (rapports/analytics) → 7 (release).
 
 - [0) Architecture : deux scanners](#0-architecture--deux-scanners)
   - [0.1 Rappel : passif vs actif](#01-rappel--passif-vs-actif)
@@ -17,17 +17,17 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
   - [1.2 Intégrité et sous-ressources](#12-intégrité-et-sous-ressources-56--restant-roadmap-020)
   - [1.3 APIs et formats](#13-apis-et-formats-ex-roadmap-57-voir-a-penser-plus-tard)
   - [1.4 Tests passifs complémentaires](#14-tests-passifs-complémentaires)
-  - [1.5 Backlog tests reporté — déplacé en 0.5.0](#15-backlog-tests-reporté--déplacé-en-roadmap-050)
+  - [1.5 Backlog tests reporté — déplacé en 1.1.0](#15-backlog-tests-reporté--déplacé-en-roadmap-110)
   - [1.6 Backlog reporté depuis la roadmap 0.3.0 (hors section tests)](#16-backlog-reporté-depuis-la-roadmap-030-hors-section-tests)
   - [1.7 Adaptation des tests passifs pour scan_type backend](#17-adaptation-des-tests-passifs-pour-scan_type-backend)
-- [2) Vérification d'autorisation — déplacé en 0.5.0](#2-vérification-dautorisation--déplacé-en-roadmap-050)
-- [3) Introduire les tests actifs — déplacé en 0.5.0](#3-introduire-les-tests-actifs--déplacé-en-roadmap-050)
+- [2) Vérification d'autorisation — déplacé en 1.1.0](#2-vérification-dautorisation--déplacé-en-roadmap-110)
+- [3) Introduire les tests actifs — déplacé en 1.1.0](#3-introduire-les-tests-actifs--déplacé-en-roadmap-110)
 - [4) Rapports et analytics](#4-rapports-et-analytics)
-- [5) Scan paramétrable — déplacé en 0.5.0](#5-scan-paramétrable--déplacé-en-roadmap-050)
-- [6) Infra et qualité — déplacé en 0.5.0](#6-infra-et-qualité--déplacé-en-roadmap-050)
-- [7) Release MVP v0.4.0](#7-release-mvp-v040)
+- [5) Scan paramétrable — déplacé en 1.1.0](#5-scan-paramétrable--déplacé-en-roadmap-110)
+- [6) Infra et qualité — déplacé en 1.1.0](#6-infra-et-qualité--déplacé-en-roadmap-110)
+- [7) Release MVP v1.0.0](#7-release-mvp-v100)
 - [Synthèse](#synthèse)
-- [Notes importantes (MVP 0.4.0)](#notes-importantes-mvp-040)
+- [Notes importantes (MVP 1.0.0)](#notes-importantes-mvp-100)
 - [Périmètre des tests : URL frontend vs backend](#périmètre-des-tests--url-frontend-vs-backend)
 
 ---
@@ -153,16 +153,16 @@ Objectif : **finaliser tous les tests passifs** (section 5 de la v0.2.0), **intr
 
 ---
 
-### 1.5 Backlog tests reporté — déplacé en roadmap 0.5.0
+### 1.5 Backlog tests reporté — déplacé en roadmap 1.1.0
 
-> **Reporté :** [ROADMAP-MVP-0.5.0.md](ROADMAP-MVP-0.5.0.md) §1 — Tests d'intégration : Docker Compose, serveurs de démo, scénarios, CI.
+> **Reporté :** [ROADMAP-MVP-1.1.0.md](ROADMAP-MVP-1.1.0.md) §1 — Tests d'intégration : Docker Compose, serveurs de démo, scénarios, CI.
 
 ---
 
 ### 1.6 Backlog reporté depuis la roadmap 0.3.0 (hors section tests)
 *Périmètre : **backend** (GitHub Action, gouvernance crawler) ; **frontend** (docs/UX, affichage anomalies)*
 
-Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 liés à l’intégration CI/CD, au crawler, à la doc/UX scanner et au rendu d’anomalies.
+Objectif : centraliser dans la v1.0.0 les éléments non faits de la v0.3.0 liés à l’intégration CI/CD, au crawler, à la doc/UX scanner et au rendu d’anomalies.
 
 #### 1.6.1 GitHub Action SecureOps (ex-section 3 de la v0.3.0)
 
@@ -179,13 +179,13 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 - [x] **Liste noire configurable** — *Fait :* section `blacklist.domains` dans `settings.yml` (scan-service, crawl-service) ; blocage scan/crawl si hostname exact ou sous-domaine (ex. `secureops.fr` bloque `www.secureops.fr`). Par défaut : `secureops.fr`. Voir `common/blacklist.py`, `common/config_base.py`.
 - [x] **Quotas et rate limiting** — *Fait :* rate limiting court terme (10 req/60s user, 3 req/60s anon) et quota journalier fusionné (50 scans+crawls/jour par user) sur `scan/async` et `crawl/async` ; réponses 429 + `Retry-After` ; scans planifiés consomment le quota ; affichage `X / 50` dans le hub Scanner. Voir `docs/RATE-LIMITING.md`.
 
-#### 1.6.3 Scanner hub: docs/UX — déplacé en roadmap 0.5.0
+#### 1.6.3 Scanner hub: docs/UX — déplacé en roadmap 1.1.0
 
-> **Reporté :** [ROADMAP-MVP-0.5.0.md](ROADMAP-MVP-0.5.0.md) §2.
+> **Reporté :** [ROADMAP-MVP-1.1.0.md](ROADMAP-MVP-1.1.0.md) §2.
 
-#### 1.6.4 Affichage anomalies — déplacé en roadmap 0.5.0
+#### 1.6.4 Affichage anomalies — déplacé en roadmap 1.1.0
 
-> **Reporté :** [ROADMAP-MVP-0.5.0.md](ROADMAP-MVP-0.5.0.md) §3.
+> **Reporté :** [ROADMAP-MVP-1.1.0.md](ROADMAP-MVP-1.1.0.md) §3.
 
 ---
 
@@ -244,15 +244,15 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 
 ---
 
-## 2) Vérification d'autorisation — déplacé en roadmap 0.5.0
+## 2) Vérification d'autorisation — déplacé en roadmap 1.1.0
 
-> **Reporté :** [ROADMAP-MVP-0.5.0.md](ROADMAP-MVP-0.5.0.md) §4 (vérification DNS) et §5 (import doc API).
+> **Reporté :** [ROADMAP-MVP-1.1.0.md](ROADMAP-MVP-1.1.0.md) §4 (vérification DNS) et §5 (import doc API).
 
 ---
 
-## 3) Introduire les tests actifs — déplacé en roadmap 0.5.0
+## 3) Introduire les tests actifs — déplacé en roadmap 1.1.0
 
-> **Reporté :** [ROADMAP-MVP-0.5.0.md](ROADMAP-MVP-0.5.0.md) §6.
+> **Reporté :** [ROADMAP-MVP-1.1.0.md](ROADMAP-MVP-1.1.0.md) §6.
 
 ---
 
@@ -282,21 +282,21 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 
 ---
 
-## 5) Scan paramétrable — déplacé en roadmap 0.5.0
+## 5) Scan paramétrable — déplacé en roadmap 1.1.0
 
-> **Reporté :** [ROADMAP-MVP-0.5.0.md](ROADMAP-MVP-0.5.0.md) §7.
-
----
-
-## 6) Infra et qualité — déplacé en roadmap 0.5.0
-
-> **Reporté :** [ROADMAP-MVP-0.5.0.md](ROADMAP-MVP-0.5.0.md) §8. *Fait (tests passifs) :* suite pytest existante pour checks TLS, headers, cookies, CORS, integrity, etc.
+> **Reporté :** [ROADMAP-MVP-1.1.0.md](ROADMAP-MVP-1.1.0.md) §7.
 
 ---
 
-## 7) Release MVP v0.4.0
+## 6) Infra et qualité — déplacé en roadmap 1.1.0
 
-- [ ] Tag `v0.4.0`
+> **Reporté :** [ROADMAP-MVP-1.1.0.md](ROADMAP-MVP-1.1.0.md) §8. *Fait (tests passifs) :* suite pytest existante pour checks TLS, headers, cookies, CORS, integrity, etc.
+
+---
+
+## 7) Release MVP v1.0.0
+
+- [ ] Tag `v1.0.0`
 - [ ] Release notes : tests passifs complets + premiers tests actifs + rapports et analytics + scan paramétrable + explication du scoring + rate limiting et quotas (scan/crawl/planifiés)
 - [ ] Mise à jour du disclaimer (tests actifs)
 
@@ -306,11 +306,11 @@ Objectif : centraliser dans la v0.4.0 les éléments non faits de la v0.3.0 lié
 |---------|-------|
 | **0.1.0** | Tests passifs de base (TLS, headers, cookies, fichiers, directory listing, robots, fingerprinting) |
 | **0.2.0** | Améliorations + nouveaux tests passifs (5.1–5.7 partiels) + API publique, export, monitoring |
-| **0.4.0** | **Scanner 1 (passif)** : tous les tests passifs finalisés, toute URL. **Scanner 2 (actif)** : tests passifs (optionnel, défaut oui) + premiers tests actifs, **uniquement URLs vérifiées** (DNS). **Rate limiting et quotas** : limite court terme + quota 50 scans+crawls/jour (UI, API, scans planifiés cumulés), affichage dans le hub. **Rapports et analytics** : tendances, export CSV/JSON, tableau de bord. **Scan paramétrable** : mode par gravité (ex. critical uniquement). **Scoring** : explication dans le frontend. |
+| **1.0.0** | **Scanner 1 (passif)** : tous les tests passifs finalisés, toute URL. **Scanner 2 (actif)** : tests passifs (optionnel, défaut oui) + premiers tests actifs, **uniquement URLs vérifiées** (DNS). **Rate limiting et quotas** : limite court terme + quota 50 scans+crawls/jour (UI, API, scans planifiés cumulés), affichage dans le hub. **Rapports et analytics** : tendances, export CSV/JSON, tableau de bord. **Scan paramétrable** : mode par gravité (ex. critical uniquement). **Scoring** : explication dans le frontend. |
 
 ---
 
-# Notes importantes (MVP 0.4.0)
+# Notes importantes (MVP 1.0.0)
 
 - **Rate limiting et quotas** : implémentés (voir `docs/RATE-LIMITING.md`) — rate limit court terme + quota journalier 50 scans/crawls (scans manuels, API, scans planifiés cumulés), affichage dans le hub Scanner.
 - Les tests actifs envoient des requêtes **craftées**. Le disclaimer « usage autorisé uniquement » doit être explicite.
@@ -333,4 +333,4 @@ Certains tests (exposition fichiers, API docs, directory listing, etc.) s'exécu
 2. **URL backend optionnelle** : proposer à l'utilisateur de saisir une **URL backend** en option lors du scan. Si fournie, exécuter ces tests sur les deux URLs (frontend + backend).
 3. **Autres tests concernés** : exposition fichiers, directory listing, endpoints API docs (Swagger, GraphQL), information disclosure (stack traces, headers debug), éventuellement CORS et méthodes HTTP sur les endpoints API.
 
-**Recommandation :** À court terme, documenter cette limitation dans l'interface (tooltip ou notice). À moyen terme, implémenter l'option « URL backend optionnelle » pour étendre la couverture des tests. Voir [ROADMAP-MVP-0.5.0 §5](ROADMAP-MVP-0.5.0.md#5-import-documentation-api-backend) pour l'option backend et l'import de documentation API.
+**Recommandation :** À court terme, documenter cette limitation dans l'interface (tooltip ou notice). À moyen terme, implémenter l'option « URL backend optionnelle » pour étendre la couverture des tests. Voir [ROADMAP-MVP-1.1.0 §5](ROADMAP-MVP-1.1.0.md#5-import-documentation-api-backend) pour l'option backend et l'import de documentation API.

@@ -32,7 +32,7 @@ Identifier des signaux de fragilité (absence de rate limiting, timeouts trop pe
 - une seule source scanner ;
 - aucun comportement DDoS.
 
-### Principe (MVP 0.4.0)
+### Principe (MVP 1.0.0)
 
 1. burst court (ex. 5-10 req/s, fenêtre brève) ;
 2. observation des codes (`429`, `503`), latence et erreurs ;

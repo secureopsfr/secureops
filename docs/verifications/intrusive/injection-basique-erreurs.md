@@ -10,7 +10,7 @@ Ce document décrit les vérifications actives légères de détection d'injecti
 
 Détecter des signes d'injection potentielle (principalement SQL) sans exploitation. Le scanner déclenche des erreurs contrôlées et observe la robustesse de la gestion d'erreur.
 
-### Principe (actif léger, MVP 0.4.0)
+### Principe (actif léger, MVP 1.0.0)
 
 Le scanner teste des paramètres fréquents (`id`, `search`, `q`, etc.) avec des caractères simples :
 

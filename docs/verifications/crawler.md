@@ -213,7 +213,7 @@ Les domaines `www.example.com` et `example.com` sont traités comme le **même s
 ### 1.12 Cible frontend vs backend
 
 - **Cible frontend** : le crawler agit comme décrit ci-dessus. La checkbox « Scanner uniquement cette page » contrôle l'exécution ou non du crawler.
-- **Cible backend** : le crawler **ne s'applique pas** (une API ne se parcourt pas comme un site HTML). La checkbox change de libellé (« Scanner uniquement cet endpoint ») et de sens : si décochée, l'utilisateur fournit une **documentation API** (fichier OpenAPI/GraphQL/Postman ou URL de spec) pour obtenir une liste d'endpoints à scanner. Pas de découverte automatique (bruteforce de chemins de doc) pour l'instant. Voir roadmap 0.4.0 §2.4.
+- **Cible backend** : le crawler **ne s'applique pas** (une API ne se parcourt pas comme un site HTML). La checkbox change de libellé (« Scanner uniquement cet endpoint ») et de sens : si décochée, l'utilisateur fournit une **documentation API** (fichier OpenAPI/GraphQL/Postman ou URL de spec) pour obtenir une liste d'endpoints à scanner. Pas de découverte automatique (bruteforce de chemins de doc) pour l'instant. Voir roadmap 1.0.0 §2.4.
 
 ---
 

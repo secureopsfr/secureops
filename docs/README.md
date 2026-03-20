@@ -14,6 +14,8 @@ Index de la documentation du projet.
 
 - [**DEPLOIEMENT.md**](DEPLOIEMENT.md) — Variables d’environnement, build et exécution avec Docker, migrations Alembic, healthchecks, déploiement du frontend, bonnes pratiques et dépannage.
 
+- [**DEPLOIEMENT-AWS.md**](DEPLOIEMENT-AWS.md) — Guide pas à pas détaillé : domaine `.fr`, DNS (`secureops.fr`, `api.secureops.fr`), Amplify (frontend), Cognito, **EC2 unique** (Docker : gateway + microservices + **PostgreSQL/PostGIS**), TLS, CORS, emails (Microsoft Graph / SES), Cloudflare, sauvegardes EBS/`pg_dump`, secrets et ordre de déploiement ; option **RDS** en évolution.
+
 - [**VARIABLES-ENVIRONNEMENT.md**](VARIABLES-ENVIRONNEMENT.md) — Référence détaillée des variables d’environnement (racine et frontend).
 
 - [**RATE-LIMITING.md**](RATE-LIMITING.md) — Guide complet de protection anti-abus : stratégie de rate limiting, réponses 429, architecture Redis, observabilité et plan de déploiement progressif.
@@ -26,7 +28,9 @@ Index de la documentation du projet.
 
 - [**ROADMAP-MVP-0.3.0.md**](roadmaps/versions/ROADMAP-MVP-0.3.0.md) — Roadmap MVP 0.3.0 : refactoring plateforme, crawler indépendant, mode async scan/crawl, hub scanner.
 
-- [**ROADMAP-MVP-0.4.0.md**](roadmaps/versions/ROADMAP-MVP-0.4.0.md) — Roadmap MVP 0.4.0 : finalisation tests passifs restants, premiers tests actifs, analytics et backlog reporté.
+- [**ROADMAP-MVP-1.0.0.md**](roadmaps/versions/ROADMAP-MVP-1.0.0.md) — Roadmap MVP 1.0.0 : finalisation tests passifs restants, premiers tests actifs, analytics et backlog reporté.
+
+- [**ROADMAP-MVP-1.1.0.md**](roadmaps/versions/ROADMAP-MVP-1.1.0.md) — Roadmap MVP 1.1.0 : tests d’intégration, Scanner 2, vérification d’autorisation, backlog reporté depuis la 1.0.0.
 
 - [**CHANGELOG.md**](../CHANGELOG.md) — Historique des modifications (format Keep a Changelog). Version courante dans [VERSION](../VERSION).
 

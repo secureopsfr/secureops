@@ -36,12 +36,12 @@ et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ### Modifié
 
-- **Architecture documentaire** et roadmaps : backlog non terminé de la v0.3.0 explicitement reporté dans la roadmap v0.4.0
+- **Architecture documentaire** et roadmaps : backlog non terminé de la v0.3.0 explicitement reporté dans la roadmap MVP 1.0.0
 - **Pipeline scan-service** : unification du noyau d’exécution et homogénéisation des payloads (SSE + endpoint interne)
 
 ### Limites connues (MVP 0.3.0)
 
-- Backlog d’intégration (tests E2E/CI), GitHub Action SecureOps, compléments docs/UX et gouvernance crawler reportés en v0.4.0
+- Backlog d’intégration (tests E2E/CI), GitHub Action SecureOps, compléments docs/UX et gouvernance crawler reportés en roadmap MVP 1.0.0
 - Alertes configurées, exports avancés et finalisation complète du rendu “anomalie détectée” restent à terminer
 
 ---
@@ -100,7 +100,7 @@ et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 #### Documentation
 
 - Fichiers de vérification par catégorie dans `docs/verifications/` (tls-https, security-headers, cookies, exposition-fichiers, directory-listing, robots-txt, sitemap, tech-fingerprinting, information-disclosure, cache-et-performances, cors-et-cross-origin, integrite-et-sous-ressources, etc.)
-- Roadmaps déplacées dans `docs/roadmaps/`, création roadmaps MVP 0.3.0 et 0.4.0
+- Roadmaps déplacées dans `docs/roadmaps/`, création roadmaps MVP 0.3.0 et 1.0.0
 
 ### Modifié
 

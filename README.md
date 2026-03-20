@@ -94,7 +94,8 @@ secureops/
 | [docs/roadmaps/versions/ROADMAP-MVP-0.1.0.md](docs/roadmaps/versions/ROADMAP-MVP-0.1.0.md) | Roadmap MVP 0.1.0 (scanner de posture sécurité) |
 | [docs/roadmaps/versions/ROADMAP-MVP-0.2.0.md](docs/roadmaps/versions/ROADMAP-MVP-0.2.0.md) | Roadmap MVP 0.2.0 (auth, historique, export, API publique) |
 | [docs/roadmaps/versions/ROADMAP-MVP-0.3.0.md](docs/roadmaps/versions/ROADMAP-MVP-0.3.0.md) | Roadmap MVP 0.3.0 (refactoring plateforme, crawler, async, scanner hub) |
-| [docs/roadmaps/versions/ROADMAP-MVP-0.4.0.md](docs/roadmaps/versions/ROADMAP-MVP-0.4.0.md) | Roadmap MVP 0.4.0 (tests actifs, analytics, scan paramétrable, backlog reporté) |
+| [docs/roadmaps/versions/ROADMAP-MVP-1.0.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.0.0.md) | Roadmap MVP 1.0.0 (tests actifs, analytics, scan paramétrable, backlog reporté) |
+| [docs/roadmaps/versions/ROADMAP-MVP-1.1.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.1.0.md) | Roadmap MVP 1.1.0 (intégration, Scanner 2, autorisation, backlog reporté) |
 | [CHANGELOG.md](CHANGELOG.md) | Historique des modifications (Keep a Changelog) |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Lint, pre-commit, conventions de code |
 | [docs/AUDIT-TEMPLATE.md](docs/AUDIT-TEMPLATE.md) | Audit des manques et améliorations prioritaires |

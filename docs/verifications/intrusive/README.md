@@ -1,6 +1,6 @@
 # Vérifications intrusives (tests actifs)
 
-Ce dossier regroupe la documentation des vérifications **actives/intrusives** du Scanner 2 (MVP 0.4.0).
+Ce dossier regroupe la documentation des vérifications **actives/intrusives** du Scanner 2 (MVP 1.0.0).
 
 ## Cadre
 
