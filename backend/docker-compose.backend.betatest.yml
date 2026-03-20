@@ -113,6 +113,7 @@ services:
       - IS_DOCKER=true
       - IS_PROD=true
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - GATEWAY_URL=http://gateway:8000
       - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
       - PDF_SERVICE_URL=http://pdf-service:8013
       - PDF_SERVICE_INTERNAL_API_KEY=${PDF_SERVICE_INTERNAL_API_KEY:-}
