@@ -1,24 +1,37 @@
 "use client";
 
+import "../[slug]/scanner-doc.css";
 import { useParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import Header from "../../../../../components/ui/Header";
 import Footer from "../../../../../components/ui/Footer";
 import { useLanguage } from "../../../../../components/LanguageProvider";
 import { FileText } from "lucide-react";
-import Link from "next/link";
-import { localePath, type Locale } from "../../../../../i18n/config";
-import { getApiBaseUrl } from "../../../../../utils/apiClient";
-import AnimateInView from "../../../../../components/AnimateInView";
+import { getDocBySlug } from "../../../../../services/docsService";
+import LoadingScreen from "../../../../../components/LoadingScreen";
+import { useDocBlockReveal } from "../../../../../hooks/useDocBlockReveal";
 
 export default function ScannerApiDocPage() {
   const params = useParams();
   const locale = (params?.locale as string) || "fr";
   const { t } = useLanguage();
-  const lp = (path: string) => localePath(locale as Locale, path);
-  const baseUrl =
-    typeof window !== "undefined"
-      ? getApiBaseUrl()
-      : process.env.NEXT_PUBLIC_GATEWAY_URL || "https://api.secureops.fr";
+  const [content, setContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const articleRef = useRef<HTMLElement>(null);
+  useDocBlockReveal(articleRef, content);
+
+  useEffect(() => {
+    getDocBySlug("api")
+      .then((doc) => {
+        setContent(doc.content);
+        if (doc.title && typeof document !== "undefined") {
+          document.title = `${doc.title} – SecureOps`;
+        }
+      })
+      .catch(() => setError("Page introuvable"))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <>
@@ -28,82 +41,25 @@ export default function ScannerApiDocPage() {
         className="min-h-screen py-6 w-full flex justify-center scanner-page"
       >
         <div className="w-full max-w-[1400px] px-8">
-          <AnimateInView
-            initialOnly
-            delay={80}
-            className="page-section landing-reveal-page"
-            as="section"
-            aria-label={t("scanner.ariaHeader")}
-          >
-            <div className="page-container">
-              <div className="page-header text-center mb-4">
-                <h1 className="page-title mb-2">
-                  {t("scanner.docsApi.title")}
-                </h1>
-                <p className="page-subtitle mt-0 max-w-2xl mx-auto">
-                  {t("scanner.docsApi.intro")}
-                </p>
-              </div>
+          {loading ? (
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
+              <LoadingScreen
+                variant="section"
+                message={t("scanner.docs.loading")}
+              />
             </div>
-          </AnimateInView>
-          <div className="scanner-doc-content space-y-8">
-            <section>
-              <h2 className="text-xl font-semibold text-[var(--text)] mb-4">
-                {t("scanner.docsApi.authTitle")}
-              </h2>
-              <p className="text-[var(--color-text-muted)] mb-4">
-                {t("scanner.docsApi.authDesc")}
-              </p>
-              <ul className="list-disc list-inside text-[var(--color-text-muted)] space-y-2 mb-4">
-                <li>
-                  <code className="bg-[var(--color-surface)] px-1.5 py-0.5 rounded text-sm">
-                    X-API-Key: sk_xxx...
-                  </code>
-                </li>
-                <li>
-                  <code className="bg-[var(--color-surface)] px-1.5 py-0.5 rounded text-sm">
-                    Authorization: Bearer sk_xxx...
-                  </code>
-                </li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold text-[var(--text)] mb-4">
-                {t("scanner.docsApi.scanFakeTitle")}
-              </h2>
-              <p className="text-[var(--color-text-muted)] mb-4">
-                {t("scanner.docsApi.scanFakeDesc")}
-              </p>
-              <pre className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 overflow-x-auto text-sm font-mono">
-                <code>
-                  {`curl -X POST "${baseUrl}/scan/api/scan/async" \\
-  -H "X-API-Key: YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{"url":"https://example.com","scan_type":"backend","input":{}}'`}
-                </code>
-              </pre>
-              <p className="text-sm text-[var(--color-text-muted)] mt-2">
-                {t("scanner.docsApi.scanFakeResponse")}
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold text-[var(--text)] mb-4">
-                {t("scanner.docsApi.keysTitle")}
-              </h2>
-              <p className="text-[var(--color-text-muted)] mb-4">
-                {t("scanner.docsApi.keysDesc")}
-              </p>
-              <Link
-                href={lp("/scanner/cles-api")}
-                className="inline-flex items-center gap-2 text-[rgb(var(--primary))] hover:underline"
-              >
-                <FileText className="w-4 h-4" />
-                {t("scanner.clesApi.title")}
-              </Link>
-            </section>
-          </div>
+          ) : error ? (
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-12 text-center">
+              <FileText className="w-12 h-12 text-[var(--muted)] mx-auto mb-4 opacity-40" />
+              <p className="text-[rgb(var(--danger))]">{error}</p>
+            </div>
+          ) : content ? (
+            <article
+              ref={articleRef}
+              className="scanner-doc-content"
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
+          ) : null}
         </div>
       </main>
       <Footer locale={locale} />
