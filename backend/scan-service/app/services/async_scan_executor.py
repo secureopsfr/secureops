@@ -9,6 +9,7 @@ from typing import Any
 
 from common.async_jobs import parse_sse_chunk
 
+from app.catalogue.recommendations import get_detail, get_evidence, get_recommendation, get_title
 from app.services.custom.multi_scan_orchestrator import run_multi_scan as run_custom_multi_scan
 from app.services.custom.multi_scan_orchestrator import validate_multi_scan_urls as validate_custom_multi_scan_urls
 from app.services.custom.scan_stream import scan_stream_generator as custom_scan_stream_generator
@@ -24,6 +25,51 @@ from app.services.passive.scan_stream import scan_stream_generator as passive_sc
 from app.utils.url_validator import URLValidationError
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_lang(value: Any) -> str:
+    return "en" if str(value or "").lower() == "en" else "fr"
+
+
+def _localize_finding_dict(finding: dict[str, Any], lang: str) -> dict[str, Any]:
+    """Localize one finding dict in-place when a catalogue entry exists."""
+    slug = str(finding.get("id") or "").strip()
+    if not slug:
+        return finding
+
+    title = get_title(slug, lang)
+    evidence = get_evidence(slug, lang)
+    recommendation = get_recommendation(slug, lang)
+    detail = get_detail(slug, lang)
+
+    if title:
+        finding["title"] = title
+    if evidence:
+        finding["evidence"] = evidence
+    if recommendation:
+        finding["recommendation"] = recommendation
+    if detail:
+        finding["detail"] = detail
+
+    return finding
+
+
+def _localize_result_payload(payload: dict[str, Any], lang: str) -> dict[str, Any]:
+    """Localize findings recursively for single and multi payload shapes."""
+    if lang != "en":
+        return payload
+
+    findings = payload.get("findings")
+    if isinstance(findings, list):
+        payload["findings"] = [_localize_finding_dict(f, lang) if isinstance(f, dict) else f for f in findings]
+
+    page_results = payload.get("page_results")
+    if isinstance(page_results, list):
+        for page in page_results:
+            if isinstance(page, dict):
+                _localize_result_payload(page, lang)
+
+    return payload
 
 
 async def _handle_step_event(
@@ -83,8 +129,11 @@ async def execute_scan_job(
             error_payload = data
 
     if result_payload is not None:
+        lang = _normalize_lang((input_json or {}).get("lang"))
+        result_payload = _localize_result_payload(result_payload, lang)
         result_payload["scan_type"] = scan_type
         result_payload["scan_mode"] = scan_mode
+        result_payload["lang"] = lang
 
     return result_payload, error_payload
 
@@ -94,6 +143,7 @@ async def execute_multi_scan_job(
     urls: list[str],
     scan_type: str,
     scan_mode: str = "passive",
+    input_json: dict[str, Any] | None = None,
     on_progress: Callable[..., Awaitable[None]] | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Exécute un job de scan multi-URL et retourne (result, error).
@@ -133,8 +183,11 @@ async def execute_multi_scan_job(
         validated_urls = await validate_multi_scan_urls(urls)
         result = await run_multi_scan(validated_urls, on_progress=_progress, scan_type=scan_type)
         payload = result.to_dict()
+        lang = _normalize_lang((input_json or {}).get("lang"))
+        payload = _localize_result_payload(payload, lang)
         payload["scan_type"] = scan_type
         payload["scan_mode"] = scan_mode
+        payload["lang"] = lang
         return payload, None
     except URLValidationError as exc:
         return None, {"message": str(exc), "status_code": 400, "error_type": "validation_error"}

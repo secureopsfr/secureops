@@ -97,6 +97,7 @@ async def _execute_claimed_job(session: Any, job: Any) -> None:
                 urls=urls,
                 scan_type=job.scan_type,
                 scan_mode=scan_mode,
+                input_json=input_data,
                 on_progress=progress.on_progress,
             )
         else:
