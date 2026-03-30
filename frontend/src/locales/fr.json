@@ -669,7 +669,6 @@
       "loadingBtn": "Connexion...",
       "noAccount": "Pas encore de compte ?",
       "signUpLink": "S'inscrire",
-      "continueWithGoogle": "Continuer avec Google",
       "successToast": "Connexion réussie !",
       "errorToast": "Erreur lors de la connexion. Veuillez réessayer.",
       "accountNotVerified": "Votre compte n'est pas encore vérifié. Veuillez vérifier votre email et confirmer votre compte.",
@@ -697,8 +696,7 @@
       "loadingBtn": "Inscription...",
       "hasAccount": "Déjà un compte ?",
       "signInLink": "Se connecter",
-      "confirmationCodeSent": "Un code de confirmation a été envoyé à votre adresse email.",
-      "continueWithGoogle": "Continuer avec Google"
+      "confirmationCodeSent": "Un code de confirmation a été envoyé à votre adresse email."
     },
     "forgotPassword": {
       "title": "Mot de passe oublié",
@@ -755,8 +753,7 @@
       "codeExpired": "Le code de vérification a expiré. Veuillez en demander un nouveau.",
       "limitExceeded": "Trop de tentatives. Veuillez réessayer plus tard.",
       "defaultResetError": "Erreur lors de la réinitialisation.",
-      "defaultConfirmError": "Erreur lors de la confirmation.",
-      "googleSignInError": "Erreur lors de la connexion avec Google."
+      "defaultConfirmError": "Erreur lors de la confirmation."
     }
   },
   "contact": {
@@ -939,7 +936,6 @@
   "security": {
     "title": "Sécurité & connexion",
     "authMethod": "Méthode de connexion",
-    "google": "Google",
     "emailPassword": "Email + Mot de passe",
     "changePassword": "Changer le mot de passe",
     "currentPassword": "Mot de passe actuel",
@@ -1059,7 +1055,6 @@
       "Identité (nom, prénom)",
       "Adresse email",
       "Mot de passe (chiffré via bcrypt, si inscription email/mot de passe)",
-      "Données Google OAuth (si connexion via Google : email, nom, identifiant Google)",
       "Historique d'utilisation du service"
     ],
     "section2_1dTitle": "D. Données de scan et d'analyse",
@@ -1127,7 +1122,7 @@
       "Limitation stricte des accès internes",
       "Hachage des mots de passe (bcrypt) — les mots de passe en clair ne sont jamais stockés",
       "Hachage des clés API (sk_...) — les valeurs brutes ne sont jamais conservées",
-      "Gestion des identités via AWS Cognito (OAuth 2.0, MFA, Google SSO)",
+      "Gestion des identités via AWS Cognito (authentification email/mot de passe, MFA)",
       "Journalisation technique minimale (sans conservation d'adresse IP)",
       "Authentification renforcée disponible (MFA par application ou SMS)"
     ],

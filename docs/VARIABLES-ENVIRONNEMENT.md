@@ -50,7 +50,6 @@ Toutes les variables exposées au navigateur doivent avoir le préfixe **`NEXT_P
 | `NEXT_PUBLIC_AWS_REGION` | Pour Cognito | Région Cognito | `eu-west-3` |
 | `NEXT_PUBLIC_AWS_USER_POOL_ID` | Pour Cognito | User Pool ID | — |
 | `NEXT_PUBLIC_AWS_CLIENT_ID` | Pour Cognito | Client ID | — |
-| `NEXT_PUBLIC_AWS_COGNITO_DOMAIN` | Pour Cognito | Domaine Cognito (Hosted UI) | `https://xxx.auth.eu-west-3.amazoncognito.com` |
 | `NEXT_PUBLIC_IS_BETA_TEST` | Optionnel | Flag bêta | `true` / `false` |
 | `NEXT_PUBLIC_IS_PROD` | Optionnel | Flag production | `false` (dev), `true` (prod) |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Optionnel | Clé site Cloudflare Turnstile (formulaire contact) | — |

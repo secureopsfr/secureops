@@ -10,7 +10,7 @@ Ce document décrit les vérifications actives liées aux redirections : objecti
 
 Détecter les cas d'**open redirect** sur les paramètres de navigation (`redirect`, `next`, `url`, etc.) permettant de renvoyer l'utilisateur vers un domaine tiers non autorisé.
 
-### Principe (actif léger, MVP 0.4.0)
+### Principe (actif léger, MVP 1.0.0)
 
 Le scanner envoie des requêtes ciblées avec des valeurs de redirection externes puis vérifie :
 

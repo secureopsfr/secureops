@@ -7,6 +7,58 @@ et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [1.0.0] - 2026-03-19
+
+Cette version **1.0.0** marque l’alignement de la version produit et de la documentation sur les jalons MVP. Ci-dessous : **synthèse de tout ce qui a été ajouté et consolidé depuis la [0.1.0]** (le détail inchangé par release reste dans les sections [0.3.0], [0.2.0] et [0.1.0] ci-dessous).
+
+### Ajouté
+
+#### Depuis [0.1.0] — MVP scanner (fondations)
+
+- **Sécurité cible** : validation d’URL stricte, protection **SSRF** (localhost, IP privées, résolution DNS contrôlée), timeouts configurables
+- **Tests passifs initiaux** : **TLS/HTTPS**, **security headers** (CSP, HSTS, XFO, XCTO, etc.), **cookies** (Secure, HttpOnly, SameSite), **exposition de fichiers** sensibles, **directory listing**, **robots.txt**, **tech fingerprinting**
+- **Modèles** : findings typés, résultat de scan, **scoring** /100 avec pondération par catégorie
+- **API** : `POST /scan/api/scan` en **SSE**, gestion d’erreurs structurée, logging avec `request_id`
+- **Frontend** : landing, page résultats (score, catégories, recommandations), états de chargement, gate post-scan + sessionStorage, favicon du site scanné
+- **Infra** : gateway exposant le scan, premières docs de vérifications
+
+#### Depuis [0.2.0] — Compte, historique et scanner enrichi
+
+- **Persistance** : table `scans`, API historique (création, liste paginée, suppression), affichage dans Mon compte, sauvegarde auto fin de scan si utilisateur connecté
+- **Export** : **PDF** (WeasyPrint, i18n fr/en, page de garde, synthèse, findings)
+- **Scans planifiés** : modèle `scheduled_scans`, scheduler user-service, API CRUD, alertes (régression, critical), UI sur le scanner
+- **Tests passifs étendus** : TLS (posture, chaîne, expiration), headers (CSP avancé, COEP/COOP, etc.), cookies (__Host-, CHIPS, etc.), fichiers et listing élargis, robots/sitemap, fingerprinting (CPE/CVE, HTML), **information disclosure**, **cache**, **CORS / mixed content**, **SRI** et intégrité HTML (formulaires, meta, etc.)
+- **UX** : résumés sur la page résultats, design chargement/scan, gestion durée de vie de l’historique
+- **Documentation** : fiches par catégorie dans `docs/verifications/`, roadmaps versionnées dans `docs/roadmaps/`
+
+#### Depuis [0.3.0] — Plateforme, PDF service et hub scanner
+
+- **Socle commun** : package **`backend/common`** (config, JWT, middleware, health, validation URL, SSRF, schémas, etc.) avec tests et lint
+- **Microservices** : refactoring gateway, admin-service, user-service, scan-service (Docker, deps, auth, async)
+- **PDF** : microservice **`pdf-service`** (`POST /api/report/pdf`), intégration gateway/scan-service via `/pdf/*`
+- **Crawler** : service dédié, découverte d’URLs, limites, robots.txt, validation côté UI avant scan
+- **Async** : files d’attente DB pour **scan** et **crawl** (`/scan/async`, `/crawl/async`), workers, retries, contrôle d’accès aux jobs
+- **API publique** : **clés API** (création, révocation, TTL, tags, restriction IP, usage via gateway)
+- **Frontend** : refonte **landing + hub `/scanner`**, analyses/suivi/docs/clés API, tendances et KPIs, i18n et accessibilité renforcées
+
+#### Spécifique à la release 1.0.0
+
+- **Fichier `VERSION`** à **1.0.0** et **README** mis à jour (version affichée, liens roadmaps 1.0.0 / 1.1.0)
+- **Roadmaps renommées** : anciennes `ROADMAP-MVP-0.4.0.md` → **`ROADMAP-MVP-1.0.0.md`**, `ROADMAP-MVP-0.5.0.md` → **`ROADMAP-MVP-1.1.0.md`** avec harmonisation des titres, liens et références (docs, vérifications intrusives, `ROADMAP-MVP-0.3.0.md`, etc.)
+
+### Modifié
+
+- **CHANGELOG** : cette entrée [1.0.0] regroupe la **vue cumulative** ; les sections [0.3.0] à [0.1.0] conservent le **journal détaillé** par version
+- **Références « roadmap MVP 1.0.0 »** dans l’historique : alignement sur les nouveaux noms de fichiers et jalons (sans changer le fond des livraisons 0.1.0–0.3.0)
+
+### Limites connues (à date 1.0.0)
+
+- Backlog **roadmap MVP 1.0.0** : finalisation de certains tests passifs, premiers tests actifs (Scanner 2), rapports/analytics avancés, scan paramétrable, explication du scoring en UI — voir `docs/roadmaps/versions/ROADMAP-MVP-1.0.0.md`
+- Reporté **roadmap MVP 1.1.0** : tests d’intégration dédiés, GitHub Action, compléments docs/UX scanner, vérification d’autorisation DNS, suite Scanner 2, etc. — voir `docs/roadmaps/versions/ROADMAP-MVP-1.1.0.md`
+- Toujours en cours / partiel : alertes et exports avancés, rendu final « anomalie détectée », tests E2E/CI ciblés intégration scan/crawl
+
+---
+
 ## [0.3.0] - 2026-03-12
 
 ### Ajouté
@@ -36,12 +88,12 @@ et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ### Modifié
 
-- **Architecture documentaire** et roadmaps : backlog non terminé de la v0.3.0 explicitement reporté dans la roadmap v0.4.0
+- **Architecture documentaire** et roadmaps : backlog non terminé de la v0.3.0 explicitement reporté dans la roadmap MVP 1.0.0
 - **Pipeline scan-service** : unification du noyau d’exécution et homogénéisation des payloads (SSE + endpoint interne)
 
 ### Limites connues (MVP 0.3.0)
 
-- Backlog d’intégration (tests E2E/CI), GitHub Action SecureOps, compléments docs/UX et gouvernance crawler reportés en v0.4.0
+- Backlog d’intégration (tests E2E/CI), GitHub Action SecureOps, compléments docs/UX et gouvernance crawler reportés en roadmap MVP 1.0.0
 - Alertes configurées, exports avancés et finalisation complète du rendu “anomalie détectée” restent à terminer
 
 ---
@@ -100,7 +152,7 @@ et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 #### Documentation
 
 - Fichiers de vérification par catégorie dans `docs/verifications/` (tls-https, security-headers, cookies, exposition-fichiers, directory-listing, robots-txt, sitemap, tech-fingerprinting, information-disclosure, cache-et-performances, cors-et-cross-origin, integrite-et-sous-ressources, etc.)
-- Roadmaps déplacées dans `docs/roadmaps/`, création roadmaps MVP 0.3.0 et 0.4.0
+- Roadmaps déplacées dans `docs/roadmaps/`, création roadmaps MVP 0.3.0 et 1.0.0
 
 ### Modifié
 
@@ -170,6 +222,7 @@ et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+[1.0.0]: https://github.com/pierreglerant/secureops/releases/tag/v1.0.0
 [0.3.0]: https://github.com/pierreglerant/secureops/releases/tag/v0.3.0
 [0.2.0]: https://github.com/pierreglerant/secureops/releases/tag/v0.2.0
 [0.1.0]: https://github.com/pierreglerant/secureops/releases/tag/v0.1.0

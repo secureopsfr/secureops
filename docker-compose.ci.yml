@@ -8,7 +8,6 @@ services:
         - NEXT_PUBLIC_AWS_REGION=${NEXT_PUBLIC_AWS_REGION:-eu-west-3}
         - NEXT_PUBLIC_AWS_USER_POOL_ID=${NEXT_PUBLIC_AWS_USER_POOL_ID:-eu-west-3_CIPlaceholder}
         - NEXT_PUBLIC_AWS_CLIENT_ID=${NEXT_PUBLIC_AWS_CLIENT_ID:-cipalaceholder}
-        - NEXT_PUBLIC_AWS_COGNITO_DOMAIN=${NEXT_PUBLIC_AWS_COGNITO_DOMAIN:-placeholder.auth.eu-west-3.amazoncognito.com}
     environment:
       - NEXT_PUBLIC_IS_BETA_TEST=true
       - NEXT_PUBLIC_IS_PROD=false
@@ -26,7 +25,6 @@ services:
         - NEXT_PUBLIC_AWS_REGION=${NEXT_PUBLIC_AWS_REGION:-eu-west-3}
         - NEXT_PUBLIC_AWS_USER_POOL_ID=${NEXT_PUBLIC_AWS_USER_POOL_ID:-eu-west-3_CIPlaceholder}
         - NEXT_PUBLIC_AWS_CLIENT_ID=${NEXT_PUBLIC_AWS_CLIENT_ID:-cipalaceholder}
-        - NEXT_PUBLIC_AWS_COGNITO_DOMAIN=${NEXT_PUBLIC_AWS_COGNITO_DOMAIN:-placeholder.auth.eu-west-3.amazoncognito.com}
     working_dir: /app
     environment:
       - NEXT_PUBLIC_GATEWAY_URL=http://gateway:8000
@@ -58,6 +56,7 @@ services:
       - IS_DOCKER=true
       - ADMIN_METRICS_API_KEY=${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}
       - PDF_SERVICE_INTERNAL_API_KEY=${PDF_SERVICE_INTERNAL_API_KEY:-}
+      - USER_SERVICE_INTERNAL_API_KEY=${USER_SERVICE_INTERNAL_API_KEY:-dev-user-service-internal-key}
       - COGNITO_REGION=${COGNITO_REGION:-eu-west-3}
       - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID:-test-user-pool-id}
     networks: [app-network]
@@ -109,6 +108,7 @@ services:
       - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
       - ADMIN_SERVICE_URL=http://admin-service:8010
       - ADMIN_SERVICE_INTERNAL_API_KEY=${ADMIN_SERVICE_INTERNAL_API_KEY:-}
+      - USER_SERVICE_INTERNAL_API_KEY=${USER_SERVICE_INTERNAL_API_KEY:-dev-user-service-internal-key}
       - SCHEDULED_SCAN_INITIAL_DELAY_SECONDS=${SCHEDULED_SCAN_INITIAL_DELAY_SECONDS:-60}
       - SCHEDULED_SCAN_INTERVAL_SECONDS=${SCHEDULED_SCAN_INTERVAL_SECONDS:-300}
     networks: [app-network]

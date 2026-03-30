@@ -44,6 +44,7 @@ OPTIONAL_AUTH_PUBLIC_PREFIX: tuple[str, ...] = (
 _QUOTA_PATHS: frozenset[str] = frozenset(
     {
         "/scan/api/scan/async",
+        "/scan/api/scan/multi-async",
         "/crawl/api/crawl/async",
     }
 )
@@ -244,10 +245,39 @@ async def _handle_public_route(request: Request, path: str, method: str, call_ne
     return await call_next(request)
 
 
+async def _authenticate_for_scan_crawl_quota(request: Request, path: str) -> Optional[JSONResponse]:
+    """Remplit request.state.user pour le quota (JWT / clé API) sur les POST scan/crawl.
+
+    Utilisé quand DISABLE_AUTH_MIDDLEWARE=true : le reste du middleware est sauté,
+    mais on doit quand même pouvoir incrémenter le quota si l'utilisateur s'authentifie.
+    """
+    if not _has_auth_hint(request):
+        return None
+    if _requires_optional_public_auth(path):
+        _, error_response = await _authenticate(request, require_admin=False)
+        return error_response
+    if path == "/scan/api/scan/multi-async":
+        _, error_response = await _authenticate(request, require_admin=False)
+        return error_response
+    return None
+
+
 async def _handle_protected_route(request: Request, require_admin: bool, call_next) -> Response:
     """Authentifie et autorise l'accès aux routes protégées."""
     _, error_response = await _authenticate(request, require_admin=require_admin)
-    return error_response or await call_next(request)
+    if error_response:
+        return error_response
+
+    path = request.url.path
+    method = request.method
+    # Même logique que les routes publiques « async » : quota + rate limit court terme
+    if method == "POST" and path in _QUOTA_PATHS:
+        if rl_error := _check_short_term_rate_limit(request, path, method):
+            return rl_error
+        if quota_error := await _check_long_term_quota(request):
+            return quota_error
+
+    return await call_next(request)
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -261,13 +291,20 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:
         """Middleware d'authentification pour protéger toutes les routes."""
-        if os.getenv("DISABLE_AUTH_MIDDLEWARE", "false").lower() == "true":
-            return await call_next(request)
-
         path = request.url.path
         method = request.method
 
         if method == "OPTIONS":
+            return await call_next(request)
+
+        if os.getenv("DISABLE_AUTH_MIDDLEWARE", "false").lower() == "true":
+            if method == "POST" and path in _QUOTA_PATHS:
+                if err := await _authenticate_for_scan_crawl_quota(request, path):
+                    return err
+                if rl_error := _check_short_term_rate_limit(request, path, method):
+                    return rl_error
+                if quota_error := await _check_long_term_quota(request):
+                    return quota_error
             return await call_next(request)
 
         if _is_public_route(path, method):

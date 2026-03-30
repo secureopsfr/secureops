@@ -669,7 +669,6 @@
       "loadingBtn": "Signing in...",
       "noAccount": "Don't have an account?",
       "signUpLink": "Sign Up",
-      "continueWithGoogle": "Continue with Google",
       "successToast": "Successfully signed in!",
       "errorToast": "Error during sign in. Please try again.",
       "accountNotVerified": "Your account is not yet verified. Please check your email and confirm your account.",
@@ -697,8 +696,7 @@
       "loadingBtn": "Signing up...",
       "hasAccount": "Already have an account?",
       "signInLink": "Sign In",
-      "confirmationCodeSent": "A confirmation code has been sent to your email address.",
-      "continueWithGoogle": "Continue with Google"
+      "confirmationCodeSent": "A confirmation code has been sent to your email address."
     },
     "forgotPassword": {
       "title": "Forgot password",
@@ -755,8 +753,7 @@
       "codeExpired": "The verification code has expired. Please request a new one.",
       "limitExceeded": "Too many attempts. Please try again later.",
       "defaultResetError": "Error during reset.",
-      "defaultConfirmError": "Error during confirmation.",
-      "googleSignInError": "Error during Google sign in."
+      "defaultConfirmError": "Error during confirmation."
     }
   },
   "contact": {
@@ -939,7 +936,6 @@
   "security": {
     "title": "Security & sign in",
     "authMethod": "Sign in method",
-    "google": "Google",
     "emailPassword": "Email + Password",
     "changePassword": "Change password",
     "currentPassword": "Current password",
@@ -1059,7 +1055,6 @@
       "Identity (name, first name)",
       "Email address",
       "Password (bcrypt-hashed, if email/password sign-up)",
-      "Google OAuth data (if signing in via Google: email, name, Google identifier)",
       "Service usage history"
     ],
     "section2_1dTitle": "D. Scan and analysis data",
@@ -1127,7 +1122,7 @@
       "Strict limitation of internal access",
       "Password hashing (bcrypt) — plaintext passwords are never stored",
       "API key hashing (sk_...) — raw values are never retained",
-      "Identity management via AWS Cognito (OAuth 2.0, MFA, Google SSO)",
+      "Identity management via AWS Cognito (email/password authentication, MFA)",
       "Minimal technical logging (no IP address retention)",
       "Enhanced authentication available (MFA via app or SMS)"
     ],

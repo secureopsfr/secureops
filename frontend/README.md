@@ -10,9 +10,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 npm install
 ```
 
-**Note:** If you encounter an error about `@aws-amplify/ui-react/styles.css`, make sure you have run `npm install` first. The import is currently commented out in `src/components/Providers.tsx` - uncomment it after installing dependencies if you plan to use Amplify UI components.
-
-### Configuration AWS Amplify
+### Configuration AWS Amplify (email / mot de passe)
 
 Create a `.env.local` file in the root directory with the following variables:
 
@@ -20,7 +18,6 @@ Create a `.env.local` file in the root directory with the following variables:
 NEXT_PUBLIC_AWS_REGION=eu-west-3
 NEXT_PUBLIC_AWS_USER_POOL_ID=your-user-pool-id
 NEXT_PUBLIC_AWS_CLIENT_ID=your-client-id
-NEXT_PUBLIC_AWS_COGNITO_DOMAIN=your-cognito-domain.auth.eu-west-3.amazoncognito.com
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_GATEWAY_URL=http://localhost:8000
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=your-turnstile-site-key

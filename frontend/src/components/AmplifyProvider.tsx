@@ -5,10 +5,6 @@
  *
  * Imported from Providers.tsx so that the config runs before any
  * component (Header, useAuthUser, etc.) tries to call getCurrentUser().
- *
- * The OAuth listener (aws-amplify/auth/enable-oauth-listener) is
- * NOT imported here — it's only loaded by OAuthCallbackHandler on
- * pages that handle OAuth redirects, saving ~10-15KB for anonymous visitors.
  */
 
 import { Amplify } from "aws-amplify";

@@ -194,16 +194,6 @@ export const AuthFormSkeleton: React.FC = () => (
 
         {/* Content — espace identique au vrai : space-y-4, flex-1 */}
         <div className="space-y-4 flex-1 overflow-y-auto">
-          {/* Google button — padding 0.75rem, h ≈ 44px = h-11, rounded-lg */}
-          <Skeleton width="w-full" height="h-11" rounded="lg" />
-
-          {/* Divider "ou" — auth-divider : flex, gap 0.75rem */}
-          <div className="flex items-center gap-3">
-            <Skeleton width="w-full" height="h-px" />
-            <Skeleton width="w-8" height="h-3" />
-            <Skeleton width="w-full" height="h-px" />
-          </div>
-
           {/* Form fields — space-y-3 comme le vrai formulaire */}
           <div className="space-y-3">
             {/* Email — label-form (0.75rem, mb-0.25rem) + auth-input */}

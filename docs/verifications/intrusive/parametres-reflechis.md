@@ -10,7 +10,7 @@ Ce document décrit les vérifications actives sur les paramètres réfléchis :
 
 Identifier les paramètres dont la valeur est reflétée dans la réponse HTML. Ce signal n'est pas une preuve d'exploitation XSS, mais un indicateur de surface d'attaque.
 
-### Principe (actif léger, MVP 0.4.0)
+### Principe (actif léger, MVP 1.0.0)
 
 Le scanner injecte une chaîne neutre unique (ex. `SecureOpsTest123`) dans des paramètres courants :
 

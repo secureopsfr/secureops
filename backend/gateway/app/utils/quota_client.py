@@ -67,7 +67,13 @@ async def check_and_increment_quota(
             if resp.status_code == 200:
                 data = resp.json()
                 return data["allowed"], data["remaining"], data.get("reset_at", _next_midnight_utc_iso())
-            logger.warning("Quota check: réponse inattendue %s — passage autorisé", resp.status_code)
+            detail = (resp.text or "")[:200]
+            logger.warning(
+                "Quota check: user-service HTTP %s — quota non incrémenté (fail-open). "
+                "Aligner USER_SERVICE_INTERNAL_API_KEY sur gateway et user-service. Réponse: %s",
+                resp.status_code,
+                detail,
+            )
             return True, limit, _next_midnight_utc_iso()
     except httpx.TimeoutException:
         logger.warning("Quota check timeout — passage autorisé (fail-open)")

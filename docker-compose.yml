@@ -30,6 +30,12 @@ services:
       - IS_DOCKER=true
       - ADMIN_METRICS_API_KEY=${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}
       - PDF_SERVICE_INTERNAL_API_KEY=${PDF_SERVICE_INTERNAL_API_KEY:-}
+      # Quota journalier (gateway → user-service) : même valeur que user-service
+      - USER_SERVICE_INTERNAL_API_KEY=${USER_SERVICE_INTERNAL_API_KEY:-dev-user-service-internal-key}
+      # JWT (obligatoire pour /user/*, /scan/api/scan/multi-async, etc.)
+      - COGNITO_REGION=${COGNITO_REGION:-eu-west-3}
+      - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID:-}
+      - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID:-}
     networks:
       - app-network
     healthcheck:
@@ -63,6 +69,9 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
       - ADMIN_METRICS_API_KEY=${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}
       - ADMIN_SERVICE_INTERNAL_API_KEY=${ADMIN_SERVICE_INTERNAL_API_KEY:-}
+      - COGNITO_REGION=${COGNITO_REGION:-eu-west-3}
+      - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID:-}
+      - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID:-}
     networks:
       - app-network
     healthcheck:
@@ -84,10 +93,16 @@ services:
     environment:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      - COGNITO_REGION=${COGNITO_REGION:-eu-west-3}
+      - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID:-}
+      - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
       - SCAN_SERVICE_URL=http://scan-service:8012
       - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
       - ADMIN_SERVICE_URL=http://admin-service:8010
       - ADMIN_SERVICE_INTERNAL_API_KEY=${ADMIN_SERVICE_INTERNAL_API_KEY:-}
+      - USER_SERVICE_INTERNAL_API_KEY=${USER_SERVICE_INTERNAL_API_KEY:-dev-user-service-internal-key}
       - SCHEDULED_SCAN_INITIAL_DELAY_SECONDS=${SCHEDULED_SCAN_INITIAL_DELAY_SECONDS:-60}
       - SCHEDULED_SCAN_INTERVAL_SECONDS=${SCHEDULED_SCAN_INTERVAL_SECONDS:-300}
     networks:

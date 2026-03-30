@@ -31,7 +31,6 @@ export default function MonComptePage() {
     setProfile,
     subscription,
     userLanguage,
-    authMethod,
     showChangePassword,
     setShowChangePassword,
     passwordData,
@@ -65,7 +64,6 @@ export default function MonComptePage() {
       />
 
       <SecuritySection
-        authMethod={authMethod}
         showChangePassword={showChangePassword}
         setShowChangePassword={setShowChangePassword}
         passwordData={passwordData}

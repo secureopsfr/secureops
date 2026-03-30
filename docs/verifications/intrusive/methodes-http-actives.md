@@ -10,7 +10,7 @@ Ce document décrit les vérifications actives liées aux méthodes HTTP : objec
 
 Mesurer la surface d'attaque exposée par les méthodes HTTP et identifier les configurations risquées : verbes non nécessaires, TRACE activé (XST), incohérences HEAD.
 
-### Principe (actif léger, MVP 0.4.0)
+### Principe (actif léger, MVP 1.0.0)
 
 Le scanner envoie un nombre limité de requêtes :
 

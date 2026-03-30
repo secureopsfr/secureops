@@ -3,6 +3,7 @@
  */
 
 import { getApiBaseUrl } from "../utils/apiClient";
+import { notifyDailyQuotaChanged } from "../utils/quotaEvents";
 import {
   parse429Error,
   parseHttpError,
@@ -127,6 +128,9 @@ export async function runCrawl(
         job_id: data.job_id,
         anonymous: Boolean(data.job_token),
       });
+      if (authHeaders.Authorization) {
+        notifyDailyQuotaChanged();
+      }
       return { job_id: data.job_id, job_token: data.job_token };
     },
     pollUrl: (jobId) => `${base}/crawl/api/crawl/async/${jobId}`,

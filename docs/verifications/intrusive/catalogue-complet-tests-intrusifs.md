@@ -1,6 +1,6 @@
 # Catalogue complet des tests intrusifs — Scanner 2
 
-Référentiel exhaustif des tests actifs du Scanner 2 SecureOps (MVP 0.4.0). Ce document centralise les priorités (P0–P4), les garde-fous, les exigences techniques et la checklist complète.
+Référentiel exhaustif des tests actifs du Scanner 2 SecureOps (MVP 1.0.0). Ce document centralise les priorités (P0–P4), les garde-fous, les exigences techniques et la checklist complète.
 
 ---
 

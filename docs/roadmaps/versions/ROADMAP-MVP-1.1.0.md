@@ -1,8 +1,8 @@
-# SecureOps — Roadmap MVP 0.5.0
+# SecureOps — Roadmap MVP 1.1.0
 
-Objectif : **tests d'intégration**, **docs/UX scanner**, **vérification d'autorisation**, **Scanner 2 (actif)**, **import doc API**, **scan paramétrable** et **infra/qualité** reportés depuis la v0.4.0.
+Objectif : **tests d'intégration**, **docs/UX scanner**, **vérification d'autorisation**, **Scanner 2 (actif)**, **import doc API**, **scan paramétrable** et **infra/qualité** reportés depuis la v1.0.0.
 
-**Prérequis :** MVP 0.4.0 livré (tests passifs complets, rate limiting et quotas, architecture deux scanners).
+**Prérequis :** MVP 1.0.0 livré (tests passifs complets, rate limiting et quotas, architecture deux scanners).
 
 ---
 
@@ -22,7 +22,7 @@ Objectif : **tests d'intégration**, **docs/UX scanner**, **vérification d'auto
 ## 1) Tests d'intégration et environnement
 *Périmètre : **backend** (environnements, CI, scénarios d'intégration scan/crawl)*
 
-Reporté depuis la section 1.5 de la roadmap v0.4.0 (elle-même issue de la section 2 de la v0.3.0).
+Reporté depuis la section 1.5 de la roadmap v1.0.0 (elle-même issue de la section 2 de la v0.3.0).
 
 ### 1.1 Environnements et serveurs de test
 
@@ -64,7 +64,7 @@ Reporté depuis la section 1.5 de la roadmap v0.4.0 (elle-même issue de la sect
 ## 2) Scanner hub : docs et UX
 *Périmètre : **frontend** (rapports, alertes, doc, liens contextuels)*
 
-Reporté depuis la section 1.6.3 de la roadmap v0.4.0.
+Reporté depuis la section 1.6.3 de la roadmap v1.0.0.
 
 - [x] **Rapports et exports** — *Fait :* Accès aux PDF, CSV, JSON, XLSX (ScanResults export modal, endpoint `/api/scan/export/pdf`, `exportScan.ts`, `exportMultiScan.ts`).
 - [x] **Alertes configurées** — *Fait :* Préférence `scan_alerts_enabled` par scan planifié (régression score, finding critique) ; toggle dans ScheduledScansBlock et ScheduleFormSection.
@@ -78,7 +78,7 @@ Reporté depuis la section 1.6.3 de la roadmap v0.4.0.
 ## 3) Affichage anomalies
 *Périmètre : **frontend** (résumé, table, libellés)*
 
-Reporté depuis la section 1.6.4 de la roadmap v0.4.0.
+Reporté depuis la section 1.6.4 de la roadmap v1.0.0.
 
 - [ ] Finaliser le rendu « anomalie détectée » : icône dédiée dans résumé/table + libellé explicite « Anomalie détectée » / « Trouvé ».
 
@@ -157,7 +157,7 @@ Cette section est **requise uniquement pour le Scanner 2 (actif)**. Le Scanner 1
 
 ### 6.2 Tests actifs — Redirections, Méthodes HTTP, CORS, Paramètres, etc.
 
-(Voir sections détaillées 3.2 à 3.21 de la roadmap 0.4.0 pour le catalogue complet des tests actifs P0–P4, garde-fous et ordre de développement.)
+(Voir sections détaillées 3.2 à 3.21 de la roadmap 1.0.0 pour le catalogue complet des tests actifs P0–P4, garde-fous et ordre de développement.)
 
 ---
 
@@ -199,7 +199,7 @@ Cette section est **requise uniquement pour le Scanner 2 (actif)**. Le Scanner 1
 
 ---
 
-## Synthèse MVP 0.5.0
+## Synthèse MVP 1.1.0
 
 | Domaine | Contenu |
 |---------|---------|

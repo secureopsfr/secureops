@@ -10,7 +10,7 @@ Ce document décrit les vérifications actives légères de path traversal : obj
 
 Détecter les endpoints manipulant des chemins/fichiers (`file`, `path`, `document`, `template`, `include`) sans contrôles suffisants.
 
-### Principe (actif léger, MVP 0.4.0)
+### Principe (actif léger, MVP 1.0.0)
 
 Le scanner teste un jeu réduit de payloads :
 

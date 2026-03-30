@@ -14,7 +14,7 @@ Détecter les configurations CORS dangereuses, en particulier :
 - usage des credentials avec origines trop permissives ;
 - incohérences preflight.
 
-### Principe (actif léger, MVP 0.4.0)
+### Principe (actif léger, MVP 1.0.0)
 
 Le scanner envoie des requêtes avec `Origin` contrôlée (ex. `https://evil.test`) et observe :
 
