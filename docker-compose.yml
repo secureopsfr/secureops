@@ -96,8 +96,8 @@ services:
       - COGNITO_REGION=${COGNITO_REGION:-eu-west-3}
       - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID:-}
       - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID:-}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      # Ne pas injecter AWS_ACCESS_KEY_* ici : sur EC2, boto3 doit utiliser le rôle instance
+      # pour Cognito (AdminGetUser). Des clés .env différentes du compte du pool → ResourceNotFoundException.
       - SCAN_SERVICE_URL=http://scan-service:8012
       - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
       - ADMIN_SERVICE_URL=http://admin-service:8010
@@ -126,6 +126,8 @@ services:
     environment:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
+      # PDF export + save historique : appels user-service via le gateway (pas localhost dans le conteneur)
+      - GATEWAY_URL=http://gateway:8000
       - SCAN_SERVICE_INTERNAL_API_KEY=${SCAN_SERVICE_INTERNAL_API_KEY:-}
       - PDF_SERVICE_URL=http://pdf-service:8013
       - PDF_SERVICE_INTERNAL_API_KEY=${PDF_SERVICE_INTERNAL_API_KEY:-}

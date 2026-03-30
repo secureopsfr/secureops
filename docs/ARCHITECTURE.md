@@ -17,28 +17,46 @@ SecureOps est organisé en **microservices** derrière un **API Gateway** unique
                     ┌─────────────────────────────────────────────────────────┐
                     │                     API Gateway                         │
                     │  Port 8000 • Auth JWT + clés API • CORS • Proxy        │
-  │  Routes : /health, /admin/*, /user/*, /scan/*, /crawl/*, /pdf/*   │
+                    │  Routes : /health, /admin/*, /user/*, /scan/*, /crawl/*… │
                     └───┬─────────┬─────────┬─────────┬─────────┬────────────┘
                         │         │         │         │         │
           ┌─────────────┘         │         │         │         └─────────────┐
           ▼                       ▼         ▼         ▼                        ▼
    ┌───────────────┐     ┌───────────────┐ ┌───────────────┐ ┌───────────────────────┐
-   │ admin-service │     │ user-service  │ │ pdf-service   │ │ scan-service          │
+   │ admin-service │     │ user-service  │ │ pdf-service   │ │ scan-service (API)    │
    │ Port 8010     │     │ Port 8011     │ │ Port 8013     │ │ Port 8012             │
-   │ PostgreSQL    │     │ PostgreSQL    │ │ (rapports PDF) │ │ + jobs async scan     │
-   │ Alembic       │     │ Alembic       │ │ WeasyPrint    │ │                       │
+   │ PostgreSQL    │     │ PostgreSQL    │ │ WeasyPrint    │ │ REST : création /     │
+   │ Alembic       │     │ Alembic       │ │               │ │ statut / résultat job │
    └───────┬───────┘     └──────┬───────┘ └───────────────┘ └───────────┬───────────┘
-           │                    │
-           └────────┬───────────┐
-                    │           │
-                    ▼           ▼
+           │                    │                                       │
+           │                    │                                       ▼
+           │                    │                            ┌───────────────────────┐
+           │                    │                            │ scan-worker           │
+           │                    │                            │ pas de port HTTP      │
+           │                    │                            │ poll + exécution jobs │
+           │                    │                            └───────────┬───────────┘
+           │                    │                                        │
+           └────────────────────┴────────────────────────────────────────┘
+                                │
+                                ▼
            ┌────────────────────┐  ┌───────────────────────┐
-           │     PostgreSQL     │  │ crawl-service (8014)  │
-           │  (PostGIS 15/17)   │  │ + jobs async crawl    │
-           │  template_db       │  │ (crawler HTTP/SPA)    │
-           │  Port 5433 (host)  │  └───────────────────────┘
-           └────────────────────┘
+           │     PostgreSQL     │  │ crawl-service (API)   │
+           │  (PostGIS 15/17)   │  │ Port 8014             │
+           │  template_db       │  │ REST : création /     │
+           │  tables file       │  │ statut / résultat job │
+           │  d’attente async   │  └───────────┬───────────┘
+           │  Port 5433 (host)  │              │
+           └─────────┬──────────┘              ▼
+                     │                ┌───────────────────────┐
+                     │                │ crawl-worker          │
+                     │                │ pas de port HTTP      │
+                     │                │ poll + exécution jobs │
+                     │                └───────────┬───────────┘
+                     │                            │
+                     └────────────────────────────┘
 ```
+
+Les jobs asynchrones ne passent pas par une file Redis séparée : l’**API** enregistre une ligne en base (`scan_async_jobs`, `crawl_async_jobs`, etc.), et le **worker** dédié réclame puis exécute le travail (boucle de polling). Sous Docker Compose, **scan-worker** et **crawl-worker** sont des **conteneurs distincts**, même image Docker que l’API du service, avec une commande du type `python -m app.workers.async_scan_worker` / `async_crawl_worker`.
 
 ## Rôle des services
 
@@ -48,10 +66,12 @@ SecureOps est organisé en **microservices** derrière un **API Gateway** unique
 | **admin-service** | 8010 | Administration : contacts, newsletter, emails, analytics, KPIs, alerting, gestion utilisateurs, upload d’images. | PostgreSQL (async), Alembic |
 | **user-service** | 8011 | Utilisateurs : profil, préférences, abonnements, favoris, clés API, sécurité, confidentialité. Table `api_keys` pour l’API publique. | PostgreSQL, Alembic |
 | **pdf-service** | 8013 | Génération de rapports PDF (WeasyPrint). Appelé par le scan-service pour l’export PDF ; pas de base de données. | — |
-| **scan-service** | 8012 | Scanner de posture sécurité : TLS/HTTPS, headers, cookies, exposition fichiers, directory listing, robots.txt, fingerprinting. Score /100, findings normalisés. Export PDF via appel HTTP au pdf-service. Mode async (jobs + worker + polling). | PostgreSQL, Alembic |
-| **crawl-service** | 8014 | Crawler HTTP/SPA (html/playwright/both). Mode async (jobs + worker + polling) avec progression persistée. | PostgreSQL, Alembic |
+| **scan-service** | 8012 | Scanner de posture sécurité : TLS/HTTPS, headers, cookies, exposition fichiers, directory listing, robots.txt, fingerprinting. Score /100, findings normalisés. **Appels HTTP internes au gateway** (`GATEWAY_URL`, ex. `http://gateway:8000` en Docker) pour persister l’historique (`POST /user/api/scans/history`) et pour l’export PDF (lecture du détail scan puis `POST` au pdf-service). **API** des jobs async (création, progression, résultat). | PostgreSQL, Alembic |
+| **scan-worker** | — | Processus / conteneur séparé : consomme la file **`scan_async_jobs`** en base (claim, exécution du scan, mise à jour statut / résultat). Pas d’exposition HTTP. | PostgreSQL (même instance) |
+| **crawl-service** | 8014 | Crawler HTTP/SPA (html/playwright/both). **API** des jobs async avec progression persistée. | PostgreSQL, Alembic |
+| **crawl-worker** | — | Processus / conteneur séparé : consomme **`crawl_async_jobs`** en base. Pas d’exposition HTTP. | PostgreSQL (même instance) |
 
-Le **scan-service** expose `POST /api/scan/async`, `GET /api/scan/async/{job_id}`, `GET /api/scan/async/{job_id}/result`, `GET /api/scan/export/pdf` et `/api/health`. Protection SSRF, validation URL stricte, timeouts configurables.
+Le **scan-service** expose `POST /api/scan/async`, `GET /api/scan/async/{job_id}`, `GET /api/scan/async/{job_id}/result`, `GET /api/scan/export/pdf` et `/api/health`. Protection SSRF, validation URL stricte, timeouts configurables. En **Docker**, définir **`GATEWAY_URL=http://gateway:8000`** sur le scan-service : sans cela, `localhost:8000` pointe vers le conteneur lui-même et les appels historique / PDF échouent (`ConnectError`).
 
 Le **crawl-service** expose `POST /api/crawl/async`, `GET /api/crawl/async/{job_id}`, `GET /api/crawl/async/{job_id}/result` et `/api/health`.
 
@@ -84,12 +104,19 @@ Routes **publiques** (sans auth) :
 
 La configuration des URLs des services (Docker vs local) est dans `backend/gateway/config/settings.yml` (clés `services.docker` et `services.local`). Le mode est choisi via la variable d’environnement `IS_DOCKER`.
 
+**CORS** : les origines autorisées (navigateur → gateway) sont dans `backend/gateway/config/settings.yml` (`cors.allow_origins`, optionnel `allow_origin_regex` pour les URL Amplify `*.amplifyapp.com`). Avec `allow_credentials: true`, chaque origine (schéma + host + port) doit être listée ou couverte par la regex. Voir [DEPLOIEMENT-AWS.md](DEPLOIEMENT-AWS.md) § CORS.
+
 ## Flux d’authentification
 
-1. **Frontend** : l’utilisateur se connecte via **AWS Cognito** (Amplify UI : email/mot de passe ou Google OAuth).
-2. **Frontend** : après connexion, le client récupère le **JWT** (idToken) via `fetchAuthSession()` et envoie les requêtes API avec l’en-tête `Authorization: Bearer <token>`.
-3. **Gateway** : le middleware d’auth tente d'abord l'auth par clé API (voir ci-dessous). Sinon, il lit `Authorization` et appelle **common.jwt_verifier.verify_cognito_jwt(token)** (vérification JWKS Cognito, RS256, expiration, issuer, audience). Si la route est sous `/admin/*`, il vérifie en plus la présence du groupe Cognito `admin`.
-4. **Gateway** : il transmet la requête au service backend concerné en repassant les headers (dont `Authorization`). Les services comme **user-service** peuvent à leur tour résoudre l’utilisateur (email depuis le JWT, puis `get_or_create_user` en base).
+1. **Frontend** : l’utilisateur se connecte via **AWS Cognito** (Amplify : email / mot de passe, etc.).
+2. **Frontend** : après connexion, `fetchAuthSession()` fournit **access** et **id** tokens. Le client API (`getBearerToken`) envoie en général l’**access token** en `Authorization: Bearer`, avec repli sur l’**id token** si besoin. Les deux se vérifient avec la même JWKS / issuer Cognito (l’id token porte en plus `aud` = client id).
+3. **Gateway** : le middleware d’auth tente d’abord l’auth par clé API (voir ci-dessous). Sinon, il lit `Authorization` et appelle **common.jwt_verifier.verify_cognito_jwt(token)** (JWKS, RS256, expiration, issuer, audience si le token porte `aud`). Si la route est sous `/admin/*`, il exige le groupe Cognito **`admin`** dans les claims (`cognito:groups`).
+4. **Page admin (Next.js)** : `AdminGuard` contrôle le groupe `admin` sur le **access token** ; si `cognito:groups` n’y figure pas (selon la config du User Pool), l’utilisateur est renvoyé vers l’accueil **sans erreur visible**. Même contrainte côté API si seul un access token sans groupes est envoyé. Selon Cognito, inclure les groupes sur l’access token, ou faire transiter l’**id token** pour les appels admin et aligner `AdminGuard` sur les deux jetons.
+5. **Gateway** : il transmet la requête au service backend concerné en repassant les headers (dont `Authorization`). Les services comme **user-service** résolvent l’utilisateur (claims JWT + éventuellement **Cognito AdminGetUser** si l’email est absent du token).
+
+### user-service et AWS sur EC2
+
+Pour **AdminGetUser** (email manquant du JWT), boto3 utilise soit le **rôle IAM de l’instance**, soit `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` si les deux sont définis dans l’environnement du conteneur. Des clés d’un **autre compte AWS** que le User Pool provoquent une erreur du type *User pool does not exist* alors que le pool est correct. Sur EC2 avec rôle dédié, le **docker-compose** du dépôt **n’injecte pas** ces clés dans le user-service pour forcer l’usage du rôle. Voir [VARIABLES-ENVIRONNEMENT.md](VARIABLES-ENVIRONNEMENT.md).
 
 ### Auth clé API (intégrations, CI/CD)
 
@@ -135,7 +162,7 @@ Le répertoire **backend/common** est un package Python installé en mode édita
 - **Next.js 16** avec App Router, **i18n** (fr/en) et slugs localisés (ex. `/en/pricing` → route interne `/tarifs`).
 - **AWS Amplify** (Cognito) pour l’auth ; formulaire de contact protégé par **Cloudflare Turnstile**.
 - **Tailwind CSS** avec thème clair/sombre et variables CSS (design system).
-- Appels API via un client qui envoie le Bearer token (refresh sur 401).
+- Appels API via un client qui envoie le Bearer (access token en priorité, repli sur id token ; refresh sur 401).
 - Pages : accueil, tarifs, contact, connexion, inscription, mot de passe oublié, confirmation, mon compte, admin (réservé aux utilisateurs du groupe `admin`), politique de confidentialité. Section **Scanner** : hub, scan, historique, clés API (`/scanner/cles-api`), documentation API publique (`/scanner/docs/api`).
 
 Pour plus de détails sur les pages et la config Amplify, voir [frontend/README.md](../frontend/README.md).
