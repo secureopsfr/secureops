@@ -104,7 +104,7 @@ else
     echo -e "${YELLOW}Démarrage du conteneur PostgreSQL...${NC}"
     docker run -d --name postgres \
         --network app-network \
-        -p 5433:5432 \
+        -p 5434:5432 \
         -e POSTGRES_DB="${POSTGRES_DB}" \
         -e POSTGRES_USER="${POSTGRES_USER}" \
         -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD}" \
@@ -145,8 +145,8 @@ export IS_DOCKER=false
 export POSTGRES_USER="${POSTGRES_USER:-user}"
 export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-password}"
 export POSTGRES_DB="${POSTGRES_DB:-template_db}"
-export DATABASE_URL="${DATABASE_URL:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5433/${POSTGRES_DB}}"
-export ADMIN_DATABASE_URL="${ADMIN_DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5433/${POSTGRES_DB}}"
+export DATABASE_URL="${DATABASE_URL:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5434/${POSTGRES_DB}}"
+export ADMIN_DATABASE_URL="${ADMIN_DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5434/${POSTGRES_DB}}"
 export ADMIN_METRICS_API_KEY="${ADMIN_METRICS_API_KEY:-dev-admin-metrics-key}"
 export ASYNC_JOB_TOKEN_SECRET="${ASYNC_JOB_TOKEN_SECRET:-dev-async-job-secret}"
 # Auth gateway doit rester active pour propager X-Authenticated-User-Id
@@ -181,11 +181,11 @@ start_manual_services() {
 
     echo -e "${GREEN}6. Démarrer le worker scan-service:${NC}"
     echo -e "   Ouvrez un nouveau terminal et exécutez:"
-    echo -e "   cd $SCRIPT_DIR/backend/scan-service && venv\\Scripts\\activate && set DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5433/${POSTGRES_DB} && python -m app.workers.async_scan_worker"
+    echo -e "   cd $SCRIPT_DIR/backend/scan-service && venv\\Scripts\\activate && set DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5434/${POSTGRES_DB} && python -m app.workers.async_scan_worker"
 
     echo -e "${GREEN}7. Démarrer le worker crawl-service:${NC}"
     echo -e "   Ouvrez un nouveau terminal et exécutez:"
-    echo -e "   cd $SCRIPT_DIR/backend/crawl-service && venv\\Scripts\\activate && set DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5433/${POSTGRES_DB} && python -m app.workers.async_crawl_worker"
+    echo -e "   cd $SCRIPT_DIR/backend/crawl-service && venv\\Scripts\\activate && set DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5434/${POSTGRES_DB} && python -m app.workers.async_crawl_worker"
 
     echo -e "${GREEN}8. Démarrer le service pdf-service:${NC}"
     echo -e "   Ouvrez un nouveau terminal et exécutez:"
@@ -319,7 +319,7 @@ else
     launch_service "admin-service" "export DATABASE_URL=\"$ADMIN_DATABASE_URL\" ADMIN_METRICS_API_KEY=\"$ADMIN_METRICS_API_KEY\" && ./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload" "$SCRIPT_DIR/backend/admin-service"
 
     # Lancer le service user-service
-    launch_service "user-service" "export DATABASE_URL=\"$DATABASE_URL\" && ./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8011 --reload" "$SCRIPT_DIR/backend/user-service"
+    launch_service "user-service" "export DATABASE_URL=\"$DATABASE_URL\" COGNITO_REGION=\"${COGNITO_REGION:-eu-west-3}\" COGNITO_USER_POOL_ID=\"${COGNITO_USER_POOL_ID:-eu-west-3_nfOrTFaMU}\" COGNITO_CLIENT_ID=\"${COGNITO_CLIENT_ID:-5hevj26i4rf1u043e5452f3uqd}\" && ./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8011 --reload" "$SCRIPT_DIR/backend/user-service"
 
     # Lancer le service scan-service (IS_PROD=false pour autoriser localhost/ports libres en dev)
     launch_service "scan-service" "export DATABASE_URL=\"$DATABASE_URL\" IS_PROD=false PDF_SERVICE_URL=http://localhost:8013 ASYNC_JOB_TOKEN_SECRET=\"$ASYNC_JOB_TOKEN_SECRET\" && ./venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8012 --reload" "$SCRIPT_DIR/backend/scan-service"
