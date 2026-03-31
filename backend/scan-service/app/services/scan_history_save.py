@@ -43,6 +43,7 @@ async def save_multi_scan_to_history(
     body = {
         "url": payload.get("base_url", ""),
         "scan_type": payload.get("scan_type", "frontend"),
+        "scan_mode": payload.get("scan_mode", "passive"),
         "status": "success",
         "score": payload.get("score_global", 0),
         "findings": [],
@@ -88,15 +89,18 @@ async def save_scan_to_history(
         Exception: Si la sauvegarde échoue (pour émettre save_failed).
     """
     url = f"{GATEWAY_URL.rstrip('/')}/user/api/scans/history"
-    body = {
+    body: dict[str, Any] = {
         "url": payload["url"],
-        "scan_type": payload["scan_type"],
+        "scan_type": payload.get("scan_type", "frontend"),
+        "scan_mode": payload.get("scan_mode", "passive"),
         "status": "success",
         "score": payload["score"],
         "findings": payload["findings"],
         "timestamp": payload["timestamp"],
         "duration": payload["duration"],
     }
+    if payload.get("result_mode") and payload["result_mode"] != "single":
+        body["result_mode"] = payload["result_mode"]
     if "category_summaries" in payload and payload["category_summaries"]:
         body["category_summaries"] = payload["category_summaries"]
     headers = {

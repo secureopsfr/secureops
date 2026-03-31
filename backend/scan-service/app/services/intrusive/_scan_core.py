@@ -7,21 +7,21 @@ import time
 from app.models.finding import Finding
 from app.models.scan_result import ScanResult
 from app.services.mode_category_summaries import build_intrusive_category_summaries, count_total_tests
-from app.services.scoring import compute_score
+from app.services.scoring import compute_intrusive_score
 
 
-def build_result_payload(url: str, findings: list[Finding], start_time: float) -> dict:
+def build_result_payload(url: str, findings: list[Finding], start_time: float, scan_type: str = "frontend") -> dict:
     """Build final intrusive payload aligned with passive response shape."""
     duration = time.monotonic() - start_time
     result = ScanResult(
         url=url,
         timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         duration=duration,
-        score=compute_score(findings),
+        score=compute_intrusive_score(findings),
         findings=tuple(findings),
     )
     payload = result.to_dict()
     payload["status"] = "success"
-    payload["category_summaries"] = build_intrusive_category_summaries(findings)
+    payload["category_summaries"] = build_intrusive_category_summaries(findings, scan_type=scan_type)
     payload["total_tests_count"] = count_total_tests(payload["category_summaries"])
     return payload

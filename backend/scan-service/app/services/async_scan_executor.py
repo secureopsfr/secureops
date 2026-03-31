@@ -10,6 +10,7 @@ from typing import Any
 from common.async_jobs import parse_sse_chunk
 
 from app.catalogue.recommendations import get_detail, get_evidence, get_recommendation, get_title
+from app.schemas.async_job import ScanCredentials
 from app.services.custom.multi_scan_orchestrator import run_multi_scan as run_custom_multi_scan
 from app.services.custom.multi_scan_orchestrator import validate_multi_scan_urls as validate_custom_multi_scan_urls
 from app.services.custom.scan_stream import scan_stream_generator as custom_scan_stream_generator
@@ -93,6 +94,7 @@ async def execute_scan_job(
     url: str,
     scan_type: str,
     scan_mode: str = "passive",
+    credentials: ScanCredentials | None = None,
     input_json: dict[str, Any] | None = None,
     on_progress: Callable[..., Awaitable[None]] | None = None,
     flush_fn: Callable[[], Awaitable[None]] | None = None,
@@ -100,6 +102,7 @@ async def execute_scan_job(
     """Exécute un job de scan single-URL et retourne (result, error).
 
     Args:
+        credentials: Credentials optionnels de l'application cible (intrusif/destructif/custom).
         flush_fn: Optionnel — appelé après chaque événement _check pour forcer
                   l'écriture en DB avant l'exécution du step. Permet au frontend
                   de voir l'état loading pendant que le step tourne.
@@ -114,7 +117,7 @@ async def execute_scan_job(
     stream = (
         passive_scan_stream_generator(url, authorization=None, scan_type=scan_type)
         if stream_factory is passive_scan_stream_generator
-        else stream_factory(url, authorization=None)
+        else stream_factory(url, authorization=None, scan_type=scan_type, credentials=credentials, input_json=input_json)
     )
     async for chunk in stream:
         parsed = parse_sse_chunk(chunk)
@@ -143,6 +146,7 @@ async def execute_multi_scan_job(
     urls: list[str],
     scan_type: str,
     scan_mode: str = "passive",
+    credentials: ScanCredentials | None = None,
     input_json: dict[str, Any] | None = None,
     on_progress: Callable[..., Awaitable[None]] | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
@@ -181,7 +185,7 @@ async def execute_multi_scan_job(
 
     try:
         validated_urls = await validate_multi_scan_urls(urls)
-        result = await run_multi_scan(validated_urls, on_progress=_progress, scan_type=scan_type)
+        result = await run_multi_scan(validated_urls, on_progress=_progress, scan_type=scan_type, credentials=credentials)
         payload = result.to_dict()
         lang = _normalize_lang((input_json or {}).get("lang"))
         payload = _localize_result_payload(payload, lang)
