@@ -138,12 +138,10 @@ async def check_and_send_scan_alerts(
         return
 
     alerts_to_send: list[dict[str, str]] = []
-    if alert_on_regression:
-        if reg := _build_regression_alert(data, last_scan, url, threshold=alert_score_threshold):
-            alerts_to_send.append(reg)
-    if alert_on_critical_finding:
-        if crit := _build_critical_finding_alert(data, url):
-            alerts_to_send.append(crit)
+    if alert_on_regression and (reg := _build_regression_alert(data, last_scan, url, threshold=alert_score_threshold)):
+        alerts_to_send.append(reg)
+    if alert_on_critical_finding and (crit := _build_critical_finding_alert(data, url)):
+        alerts_to_send.append(crit)
 
     for alert in alerts_to_send:
         email_sent = await _send_alert(alert, user_email, url)

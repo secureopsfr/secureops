@@ -18,13 +18,18 @@ router = APIRouter(prefix="/api/user", tags=["user – profil"])
 
 
 class InitUserRequest(BaseModel):
+    """Payload optionnel pour /init (ex. email quand Cognito admin indisponible)."""
+
     email: Optional[str] = None
+
+
+_DEFAULT_INIT_USER_BODY = InitUserRequest()
 
 
 @router.post("/init")
 async def init_user(
     current_user: Annotated[Dict, Depends(require_jwt_user)],
-    body: InitUserRequest = InitUserRequest(),
+    body: InitUserRequest = _DEFAULT_INIT_USER_BODY,
 ) -> Dict:
     """Initialise l'utilisateur en base de données (lazy creation).
 

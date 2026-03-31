@@ -17,21 +17,29 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute("""
+    """Add alert-related columns to scheduled_scans."""
+    op.execute(
+        """
         ALTER TABLE scheduled_scans
         ADD COLUMN IF NOT EXISTS alert_on_regression BOOLEAN NOT NULL DEFAULT true
-        """)
-    op.execute("""
+        """
+    )
+    op.execute(
+        """
         ALTER TABLE scheduled_scans
         ADD COLUMN IF NOT EXISTS alert_on_critical_finding BOOLEAN NOT NULL DEFAULT true
-        """)
-    op.execute("""
+        """
+    )
+    op.execute(
+        """
         ALTER TABLE scheduled_scans
         ADD COLUMN IF NOT EXISTS alert_score_threshold INTEGER NULL
-        """)
+        """
+    )
 
 
 def downgrade() -> None:
+    """Drop alert-related columns from scheduled_scans."""
     op.execute("ALTER TABLE scheduled_scans DROP COLUMN IF EXISTS alert_score_threshold")
     op.execute("ALTER TABLE scheduled_scans DROP COLUMN IF EXISTS alert_on_critical_finding")
     op.execute("ALTER TABLE scheduled_scans DROP COLUMN IF EXISTS alert_on_regression")
