@@ -14,6 +14,13 @@ from app.utils.query_utils import apply_scan_mode_filter, apply_scan_type_filter
 logger = logging.getLogger(__name__)
 
 
+def _apply_optional_scheduled_scan_fields(scan: ScheduledScan, fields: dict[str, object]) -> None:
+    """Assigne sur `scan` uniquement les entrées dont la valeur n'est pas None."""
+    for attr, value in fields.items():
+        if value is not None:
+            setattr(scan, attr, value)
+
+
 async def create_scheduled_scan(
     session: AsyncSession,
     user_id: uuid.UUID,
@@ -29,6 +36,9 @@ async def create_scheduled_scan(
     schedule_day_of_month: Optional[int] = None,
     timezone_name: Optional[str] = None,
     scan_alerts_enabled: bool = True,
+    alert_on_regression: bool = True,
+    alert_on_critical_finding: bool = True,
+    alert_score_threshold: Optional[int] = None,
 ) -> ScheduledScan:
     """Crée un scan planifié.
 
@@ -74,6 +84,9 @@ async def create_scheduled_scan(
         next_run_at=next_run_at,
         enabled=True,
         scan_alerts_enabled=scan_alerts_enabled,
+        alert_on_regression=alert_on_regression,
+        alert_on_critical_finding=alert_on_critical_finding,
+        alert_score_threshold=alert_score_threshold,
     )
     session.add(scan)
     await session.commit()
@@ -191,6 +204,9 @@ async def update_scheduled_scan(
     timezone_name: Optional[str] = None,
     enabled: Optional[bool] = None,
     scan_alerts_enabled: Optional[bool] = None,
+    alert_on_regression: Optional[bool] = None,
+    alert_on_critical_finding: Optional[bool] = None,
+    alert_score_threshold: Optional[int] = None,
 ) -> Optional[ScheduledScan]:
     """Met à jour un scan planifié.
 
@@ -212,22 +228,22 @@ async def update_scheduled_scan(
     if not scan:
         return None
 
-    if frequency is not None:
-        scan.frequency = frequency
-    if schedule_hour is not None:
-        scan.schedule_hour = schedule_hour
-    if schedule_minute is not None:
-        scan.schedule_minute = schedule_minute
-    if schedule_day_of_week is not None:
-        scan.schedule_day_of_week = schedule_day_of_week
-    if schedule_day_of_month is not None:
-        scan.schedule_day_of_month = schedule_day_of_month
-    if timezone_name is not None:
-        scan.timezone = timezone_name
-    if enabled is not None:
-        scan.enabled = enabled
-    if scan_alerts_enabled is not None:
-        scan.scan_alerts_enabled = scan_alerts_enabled
+    _apply_optional_scheduled_scan_fields(
+        scan,
+        {
+            "frequency": frequency,
+            "schedule_hour": schedule_hour,
+            "schedule_minute": schedule_minute,
+            "schedule_day_of_week": schedule_day_of_week,
+            "schedule_day_of_month": schedule_day_of_month,
+            "timezone": timezone_name,
+            "enabled": enabled,
+            "scan_alerts_enabled": scan_alerts_enabled,
+            "alert_on_regression": alert_on_regression,
+            "alert_on_critical_finding": alert_on_critical_finding,
+            "alert_score_threshold": alert_score_threshold,
+        },
+    )
 
     scan.updated_at = datetime.now(UTC)
     await session.commit()

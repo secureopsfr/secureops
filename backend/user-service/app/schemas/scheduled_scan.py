@@ -32,6 +32,14 @@ class ScheduledScanCreateRequest(BaseModel):
     schedule_day_of_month: Optional[int] = Field(None, ge=1, le=31, description="Jour du mois pour monthly (1-31)")
     timezone: Optional[str] = Field(None, description="Fuseau utilisateur (ex. Europe/Paris). Si null, UTC.")
     scan_alerts_enabled: bool = Field(True, description="Recevoir des emails en cas de régression ou finding critique")
+    alert_on_regression: bool = Field(True, description="Alerter en cas de régression du score")
+    alert_on_critical_finding: bool = Field(True, description="Alerter en cas de finding critique")
+    alert_score_threshold: Optional[int] = Field(
+        None,
+        ge=1,
+        le=100,
+        description="Seuil de chute de score déclenchant l'alerte (1-100 pts). NULL = valeur par défaut serveur (10 pts)",
+    )
 
     @field_validator("url")
     @classmethod
@@ -87,6 +95,14 @@ class ScheduledScanUpdateRequest(BaseModel):
     timezone: Optional[str] = Field(None, description="Fuseau utilisateur (ex. Europe/Paris)")
     enabled: Optional[bool] = Field(None, description="Actif ou en pause")
     scan_alerts_enabled: Optional[bool] = Field(None, description="Alertes email régression/finding critique")
+    alert_on_regression: Optional[bool] = Field(None, description="Alerter en cas de régression du score")
+    alert_on_critical_finding: Optional[bool] = Field(None, description="Alerter en cas de finding critique")
+    alert_score_threshold: Optional[int] = Field(
+        None,
+        ge=1,
+        le=100,
+        description="Seuil de régression (1-100 pts). NULL = valeur par défaut serveur",
+    )
 
 
 class ScheduledScanListResponse(BaseModel):
@@ -117,6 +133,9 @@ class ScheduledScanResponse(BaseModel):
     next_run_at: datetime = Field(..., description="Prochaine exécution planifiée")
     enabled: bool = Field(..., description="Scan actif ou en pause")
     scan_alerts_enabled: bool = Field(True, description="Alertes email régression/finding critique")
+    alert_on_regression: bool = Field(True, description="Alerter en cas de régression du score")
+    alert_on_critical_finding: bool = Field(True, description="Alerter en cas de finding critique")
+    alert_score_threshold: Optional[int] = Field(None, description="Seuil de régression (pts). NULL = valeur par défaut serveur")
     created_at: datetime = Field(..., description="Date de création")
 
 

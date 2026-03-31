@@ -34,13 +34,18 @@ def _build_headers() -> dict:
     return headers
 
 
-def _build_regression_alert(data: dict, last_scan, url: str) -> dict | None:
-    """Construit l'alerte de régression si le score a chuté au-delà du seuil."""
+def _build_regression_alert(data: dict, last_scan, url: str, threshold: int | None = None) -> dict | None:
+    """Construit l'alerte de régression si le score a chuté au-delà du seuil.
+
+    Args:
+        threshold: Seuil personnalisé (pts). None = valeur par défaut serveur.
+    """
     score_actuel = data.get("score")
     if score_actuel is None or not last_scan or last_scan.score is None:
         return None
+    effective_threshold = threshold if threshold is not None else SCAN_ALERT_REGRESSION_THRESHOLD
     delta = last_scan.score - score_actuel
-    if delta < SCAN_ALERT_REGRESSION_THRESHOLD:
+    if delta < effective_threshold:
         return None
     return {
         "subject": f"[SecureOps] Régression score sur {url[:50]}...",
@@ -107,6 +112,9 @@ async def check_and_send_scan_alerts(
     scan_type: str = "frontend",
     scan_mode: str = "passive",
     scheduled_scan_id: uuid.UUID | None = None,
+    alert_on_regression: bool = True,
+    alert_on_critical_finding: bool = True,
+    alert_score_threshold: int | None = None,
 ) -> None:
     """Vérifie les conditions d'alerte, envoie les emails et persiste l'historique.
 
@@ -118,6 +126,9 @@ async def check_and_send_scan_alerts(
         last_scan: Dernier scan pour cette URL (ou None).
         scan_alerts_enabled: Si l'utilisateur a activé les alertes.
         scheduled_scan_id: UUID du scan planifié (optionnel).
+        alert_on_regression: Déclencher une alerte sur régression de score.
+        alert_on_critical_finding: Déclencher une alerte sur finding critique.
+        alert_score_threshold: Seuil de chute de score (pts). None = valeur serveur.
     """
     if not scan_alerts_enabled or not user_email or not user_email.strip():
         return
@@ -127,10 +138,12 @@ async def check_and_send_scan_alerts(
         return
 
     alerts_to_send: list[dict[str, str]] = []
-    if reg := _build_regression_alert(data, last_scan, url):
-        alerts_to_send.append(reg)
-    if crit := _build_critical_finding_alert(data, url):
-        alerts_to_send.append(crit)
+    if alert_on_regression:
+        if reg := _build_regression_alert(data, last_scan, url, threshold=alert_score_threshold):
+            alerts_to_send.append(reg)
+    if alert_on_critical_finding:
+        if crit := _build_critical_finding_alert(data, url):
+            alerts_to_send.append(crit)
 
     for alert in alerts_to_send:
         email_sent = await _send_alert(alert, user_email, url)

@@ -1,13 +1,14 @@
 """Endpoints liés au profil utilisateur (init, me, update)."""
 
 import logging
-from typing import Annotated, Dict
+from typing import Annotated, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
 from app.db import get_async_session
 from app.schemas.user import ProfileUpdateRequest, ProfileUpdateResponse
-from app.services.user_repository import get_user_by_cognito_sub
+from app.services.user_repository import get_or_create_user, get_user_by_cognito_sub
 from app.services.user_service import update_user_profile
 from app.utils.auth import require_jwt_user
 
@@ -16,35 +17,50 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/user", tags=["user – profil"])
 
 
+class InitUserRequest(BaseModel):
+    email: Optional[str] = None
+
+
 @router.post("/init")
 async def init_user(
     current_user: Annotated[Dict, Depends(require_jwt_user)],
+    body: InitUserRequest = InitUserRequest(),
 ) -> Dict:
     """Initialise l'utilisateur en base de données (lazy creation).
 
     Doit être appelé après la connexion pour créer l'utilisateur
-    en base de données s'il n'existe pas encore.
+    en base de données s'il n'existe pas encore. L'email peut être
+    fourni dans le body (extrait de l'ID token côté frontend) pour
+    les environnements dev sans accès à l'API Cognito admin.
     """
     dark_mode = True
     language = "fr"
+    is_new_user = False
     try:
         cognito_sub = current_user.get("sub")
         if cognito_sub:
             async with get_async_session() as session:
                 user = await get_user_by_cognito_sub(session, cognito_sub)
+                if not user and body.email:
+                    # Fallback: create user directly with email from request body
+                    logger.info(
+                        "Création directe de l'utilisateur via email du body: sub=%s",
+                        cognito_sub,
+                    )
+                    user, is_new_user = await get_or_create_user(session, cognito_sub, body.email)
                 if user:
                     dark_mode = user.dark_mode if user.dark_mode is not None else True
                     language = user.language if user.language else "fr"
     except Exception as e:
-        logger.warning("Impossible de récupérer les préférences utilisateur: %s", e)
+        logger.warning("Impossible de récupérer/créer l'utilisateur: %s", e)
 
     return {
         "success": True,
         "sub": current_user.get("sub"),
         "username": current_user.get("username"),
-        "email": current_user.get("email"),
+        "email": current_user.get("email") or body.email,
         "groups": current_user.get("cognito:groups", []),
-        "is_new_user": current_user.get("is_new_user", False),
+        "is_new_user": current_user.get("is_new_user", False) or is_new_user,
         "dark_mode": dark_mode,
         "language": language,
     }

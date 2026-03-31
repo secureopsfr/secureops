@@ -87,6 +87,25 @@ class ScheduledScan(Base):
         comment="Alertes email pour régression score ou finding critical (ce scan)",
     )
 
+    alert_on_regression = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+        comment="Envoyer une alerte en cas de régression du score",
+    )
+    alert_on_critical_finding = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+        comment="Envoyer une alerte en cas de finding critique",
+    )
+    alert_score_threshold = Column(
+        Integer,
+        nullable=True,
+        default=None,
+        comment="Seuil de régression (pts). NULL = valeur par défaut serveur (10 pts)",
+    )
+
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, comment="Date de création")
     updated_at = Column(
         DateTime(timezone=True),
