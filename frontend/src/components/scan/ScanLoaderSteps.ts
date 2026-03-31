@@ -60,13 +60,84 @@ export const STEP_I18N_KEYS: Record<string, string> = {
   formats_done: "scanner.formatsDone",
   api_page_check: "scanner.apiPageCheck",
   api_page_done: "scanner.apiPageDone",
-  // Intrusive fake probe steps
+  // Intrusive fake probe steps (legacy)
   intrusive_reflected_xss_check: "scanner.intrusiveReflectedXssCheck",
   intrusive_reflected_xss_done: "scanner.intrusiveReflectedXssDone",
   intrusive_sql_injection_check: "scanner.intrusiveSqlInjectionCheck",
   intrusive_sql_injection_done: "scanner.intrusiveSqlInjectionDone",
   intrusive_authz_bypass_check: "scanner.intrusiveAuthzBypassCheck",
   intrusive_authz_bypass_done: "scanner.intrusiveAuthzBypassDone",
+  // Intrusive Phase A — P0
+  open_redirect_check: "scanner.openRedirectCheck",
+  open_redirect_done: "scanner.openRedirectDone",
+  methodes_http_check: "scanner.intrusiveMethodesHttpCheck",
+  methodes_http_done: "scanner.intrusiveMethodesHttpDone",
+  cors_actif_check: "scanner.corsActifCheck",
+  cors_actif_done: "scanner.corsActifDone",
+  parametres_reflechis_check: "scanner.parametresReflechisCheck",
+  parametres_reflechis_done: "scanner.parametresReflechisDone",
+  sqli_check: "scanner.sqliCheck",
+  sqli_done: "scanner.sqliDone",
+  path_traversal_check: "scanner.pathTraversalCheck",
+  path_traversal_done: "scanner.pathTraversalDone",
+  csrf_check: "scanner.csrfCheck",
+  csrf_done: "scanner.csrfDone",
+  idor_check: "scanner.idorCheck",
+  idor_done: "scanner.idorDone",
+  command_injection_check: "scanner.commandInjectionCheck",
+  command_injection_done: "scanner.commandInjectionDone",
+  nosqli_check: "scanner.nosqliCheck",
+  nosqli_done: "scanner.nosqliDone",
+  dos_p0_check: "scanner.dosP0Check",
+  dos_p0_done: "scanner.dosP0Done",
+  // Intrusive Phase B — P0 suite + P1
+  auth_bruteforce_check: "scanner.authBruteforceCheck",
+  auth_bruteforce_done: "scanner.authBruteforceDone",
+  session_fixation_check: "scanner.sessionFixationCheck",
+  session_fixation_done: "scanner.sessionFixationDone",
+  upload_abuse_check: "scanner.uploadAbuseCheck",
+  upload_abuse_done: "scanner.uploadAbuseDone",
+  idor_complet_check: "scanner.idorCompletCheck",
+  idor_complet_done: "scanner.idorCompletDone",
+  mass_assignment_check: "scanner.massAssignmentCheck",
+  mass_assignment_done: "scanner.massAssignmentDone",
+  graphql_abuse_check: "scanner.graphqlAbuseCheck",
+  graphql_abuse_done: "scanner.graphqlAbuseDone",
+  api_schema_abuse_check: "scanner.apiSchemaAbuseCheck",
+  api_schema_abuse_done: "scanner.apiSchemaAbuseDone",
+  ssrf_intrusive_check: "scanner.ssrfIntrusiveCheck",
+  ssrf_intrusive_done: "scanner.ssrfIntrusiveDone",
+  xxe_check: "scanner.xxeCheck",
+  xxe_done: "scanner.xxeDone",
+  ssti_check: "scanner.sstiCheck",
+  ssti_done: "scanner.sstiDone",
+  insecure_deserialization_check: "scanner.insecureDeserializationCheck",
+  insecure_deserialization_done: "scanner.insecureDeserializationDone",
+  lfi_rfi_check: "scanner.lfiRfiCheck",
+  lfi_rfi_done: "scanner.lfiRfiDone",
+  // Intrusive Phase C — P2 + P3
+  host_header_check: "scanner.hostHeaderCheck",
+  host_header_done: "scanner.hostHeaderDone",
+  cache_poisoning_check: "scanner.cachePoisoningCheck",
+  cache_poisoning_done: "scanner.cachePoisoningDone",
+  request_smuggling_check: "scanner.requestSmugglingCheck",
+  request_smuggling_done: "scanner.requestSmugglingDone",
+  race_conditions_check: "scanner.raceConditionsCheck",
+  race_conditions_done: "scanner.raceConditionsDone",
+  business_logic_check: "scanner.businessLogicCheck",
+  business_logic_done: "scanner.businessLogicDone",
+  websocket_authz_check: "scanner.websocketAuthzCheck",
+  websocket_authz_done: "scanner.websocketAuthzDone",
+  oauth_oidc_check: "scanner.oauthOidcCheck",
+  oauth_oidc_done: "scanner.oauthOidcDone",
+  object_storage_check: "scanner.objectStorageCheck",
+  object_storage_done: "scanner.objectStorageDone",
+  service_mesh_check: "scanner.serviceMeshCheck",
+  service_mesh_done: "scanner.serviceMeshDone",
+  graphql_subscriptions_check: "scanner.graphqlSubscriptionsCheck",
+  graphql_subscriptions_done: "scanner.graphqlSubscriptionsDone",
+  grpc_abuse_check: "scanner.grpcAbuseCheck",
+  grpc_abuse_done: "scanner.grpcAbuseDone",
   // Custom fake probe steps
   custom_strategy_check: "scanner.customStrategyCheck",
   custom_strategy_done: "scanner.customStrategyDone",
@@ -226,7 +297,19 @@ export function buildTimelineSteps(
           s.step === "destructive_safety_done" ||
           s.step === "custom_plan_done" ||
           s.step === "destructive_plan_done" ||
-          s.step === "fake_scan_done",
+          s.step === "fake_scan_done" ||
+          // Intrusive Phase C terminal steps
+          s.step === "grpc_abuse_done" ||
+          s.step === "graphql_subscriptions_done" ||
+          s.step === "service_mesh_done" ||
+          s.step === "object_storage_done" ||
+          s.step === "oauth_oidc_done" ||
+          s.step === "websocket_authz_done" ||
+          s.step === "business_logic_done" ||
+          s.step === "race_conditions_done" ||
+          s.step === "request_smuggling_done" ||
+          s.step === "cache_poisoning_done" ||
+          s.step === "host_header_done",
       )
     ) {
       timeline.push({ step: "scan_score_compute", message: "", done: true });

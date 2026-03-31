@@ -42,6 +42,9 @@ export interface ScheduleFormState {
   dayOfWeek: number;
   dayOfMonth: number;
   scanAlertsEnabled: boolean;
+  alertOnRegression: boolean;
+  alertOnCriticalFinding: boolean;
+  alertScoreThreshold: number | null;
 }
 
 export interface ScheduleFormActions {
@@ -50,6 +53,9 @@ export interface ScheduleFormActions {
   setDayOfWeek: (v: number) => void;
   setDayOfMonth: (v: number) => void;
   setScanAlertsEnabled: (v: boolean) => void;
+  setAlertOnRegression: (v: boolean) => void;
+  setAlertOnCriticalFinding: (v: boolean) => void;
+  setAlertScoreThreshold: (v: number | null) => void;
 }
 
 export function useScheduleForm(t: (key: string) => string): {
@@ -66,6 +72,9 @@ export function useScheduleForm(t: (key: string) => string): {
       | "schedule_day_of_month"
       | "timezone"
       | "scan_alerts_enabled"
+      | "alert_on_regression"
+      | "alert_on_critical_finding"
+      | "alert_score_threshold"
     >,
   ) => Promise<boolean>;
 } {
@@ -74,6 +83,11 @@ export function useScheduleForm(t: (key: string) => string): {
   const [dayOfWeek, setDayOfWeek] = useState(0);
   const [dayOfMonth, setDayOfMonth] = useState(15);
   const [scanAlertsEnabled, setScanAlertsEnabled] = useState(true);
+  const [alertOnRegression, setAlertOnRegression] = useState(true);
+  const [alertOnCriticalFinding, setAlertOnCriticalFinding] = useState(true);
+  const [alertScoreThreshold, setAlertScoreThreshold] = useState<number | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
 
   const submitSchedule = useCallback(
@@ -87,6 +101,9 @@ export function useScheduleForm(t: (key: string) => string): {
         | "schedule_day_of_month"
         | "timezone"
         | "scan_alerts_enabled"
+        | "alert_on_regression"
+        | "alert_on_critical_finding"
+        | "alert_score_threshold"
       >,
     ): Promise<boolean> => {
       const { hour, minute } = parseTimeToHourMinute(time);
@@ -102,6 +119,9 @@ export function useScheduleForm(t: (key: string) => string): {
             frequency === "monthly" ? dayOfMonth : undefined,
           timezone: getUserTimezone(),
           scan_alerts_enabled: scanAlertsEnabled,
+          alert_on_regression: alertOnRegression,
+          alert_on_critical_finding: alertOnCriticalFinding,
+          alert_score_threshold: alertScoreThreshold,
         });
         showSuccessToast(t("scheduledScans.createSuccess"));
         return true;
@@ -114,17 +134,39 @@ export function useScheduleForm(t: (key: string) => string): {
         setSaving(false);
       }
     },
-    [frequency, time, dayOfWeek, dayOfMonth, scanAlertsEnabled, t],
+    [
+      frequency,
+      time,
+      dayOfWeek,
+      dayOfMonth,
+      scanAlertsEnabled,
+      alertOnRegression,
+      alertOnCriticalFinding,
+      alertScoreThreshold,
+      t,
+    ],
   );
 
   return {
-    form: { frequency, time, dayOfWeek, dayOfMonth, scanAlertsEnabled },
+    form: {
+      frequency,
+      time,
+      dayOfWeek,
+      dayOfMonth,
+      scanAlertsEnabled,
+      alertOnRegression,
+      alertOnCriticalFinding,
+      alertScoreThreshold,
+    },
     actions: {
       setFrequency,
       setTime,
       setDayOfWeek,
       setDayOfMonth,
       setScanAlertsEnabled,
+      setAlertOnRegression,
+      setAlertOnCriticalFinding,
+      setAlertScoreThreshold,
     },
     saving,
     submitSchedule,

@@ -27,6 +27,9 @@ export interface ScheduledScan {
   next_run_at: string;
   enabled: boolean;
   scan_alerts_enabled: boolean;
+  alert_on_regression: boolean;
+  alert_on_critical_finding: boolean;
+  alert_score_threshold: number | null;
   created_at: string;
 }
 
@@ -55,6 +58,12 @@ export interface CreateScheduledScanInput {
   timezone?: string;
   /** Recevoir des emails en cas de régression ou finding critique (défaut true). */
   scan_alerts_enabled?: boolean;
+  /** Déclencher une alerte en cas de régression du score (défaut true). */
+  alert_on_regression?: boolean;
+  /** Déclencher une alerte en cas de finding critique (défaut true). */
+  alert_on_critical_finding?: boolean;
+  /** Seuil de chute de score en points déclenchant l'alerte (1-100). null = défaut serveur (10 pts). */
+  alert_score_threshold?: number | null;
 }
 
 /** Retourne le fuseau horaire du navigateur (ex. Europe/Paris). */
@@ -74,6 +83,9 @@ export interface UpdateScheduledScanInput {
   schedule_day_of_month?: number;
   enabled?: boolean;
   scan_alerts_enabled?: boolean;
+  alert_on_regression?: boolean;
+  alert_on_critical_finding?: boolean;
+  alert_score_threshold?: number | null;
 }
 
 export async function createScheduledScan(
@@ -96,6 +108,9 @@ export async function createScheduledScan(
         schedule_day_of_month: input.schedule_day_of_month ?? null,
         timezone: input.timezone ?? getUserTimezone(),
         scan_alerts_enabled: input.scan_alerts_enabled ?? true,
+        alert_on_regression: input.alert_on_regression ?? true,
+        alert_on_critical_finding: input.alert_on_critical_finding ?? true,
+        alert_score_threshold: input.alert_score_threshold ?? null,
       }),
     },
     "Erreur lors de la création du scan planifié",
@@ -136,6 +151,12 @@ export async function updateScheduledScan(
   if (input.enabled !== undefined) body.enabled = input.enabled;
   if (input.scan_alerts_enabled !== undefined)
     body.scan_alerts_enabled = input.scan_alerts_enabled;
+  if (input.alert_on_regression !== undefined)
+    body.alert_on_regression = input.alert_on_regression;
+  if (input.alert_on_critical_finding !== undefined)
+    body.alert_on_critical_finding = input.alert_on_critical_finding;
+  if (input.alert_score_threshold !== undefined)
+    body.alert_score_threshold = input.alert_score_threshold;
 
   return fetchJsonWithAuth<ScheduledScan>(
     `${getApiBaseUrl()}/user/api/scans/schedule/${id}`,

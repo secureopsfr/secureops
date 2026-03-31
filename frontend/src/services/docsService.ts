@@ -26,17 +26,24 @@ export interface DocPageContent {
   updated_at: string;
 }
 
-export async function getDocsList(): Promise<DocPagesResponse> {
+export async function getDocsList(
+  lang: string = "fr",
+): Promise<DocPagesResponse> {
+  const params = new URLSearchParams({ lang: lang.slice(0, 2) });
   return fetchJson(
-    `${getApiBaseUrl()}/admin/api/docs`,
+    `${getApiBaseUrl()}/admin/api/docs?${params}`,
     {},
     "Impossible de charger la documentation",
   );
 }
 
-export async function getDocBySlug(slug: string): Promise<DocPageContent> {
+export async function getDocBySlug(
+  slug: string,
+  lang: string = "fr",
+): Promise<DocPageContent> {
+  const params = new URLSearchParams({ lang: lang.slice(0, 2) });
   return fetchJson(
-    `${getApiBaseUrl()}/admin/api/docs/${encodeURIComponent(slug)}`,
+    `${getApiBaseUrl()}/admin/api/docs/${encodeURIComponent(slug)}?${params}`,
     {},
     "Page de documentation introuvable",
   );

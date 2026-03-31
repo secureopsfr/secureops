@@ -107,6 +107,35 @@ export default function ScanSummarySection({
     {},
   );
 
+  /**
+   * Pour les macro-catégories intrusives, les findings gardent leur catégorie granulaire
+   * (ex. "sql_injection") mais les summaries sont regroupées (ex. "injections").
+   * On construit une map category → ensemble des catégories granulaires couvertes.
+   */
+  const granularSetByMacro = summaries.reduce<Record<string, Set<string>>>(
+    (acc, entry) => {
+      if (entry.granular_categories?.length) {
+        acc[entry.category] = new Set(entry.granular_categories);
+      }
+      return acc;
+    },
+    {},
+  );
+
+  const _countForCat = (
+    countMap: Record<string, number>,
+    cat: string,
+  ): number => {
+    const granularSet = granularSetByMacro[cat];
+    if (granularSet) {
+      return Array.from(granularSet).reduce(
+        (sum, g) => sum + (countMap[g] ?? 0),
+        0,
+      );
+    }
+    return countMap[cat] ?? 0;
+  };
+
   const totalTestsCount =
     total_tests_count ??
     displayCategories.reduce(
@@ -149,13 +178,15 @@ export default function ScanSummarySection({
             </thead>
             <tbody>
               {displayCategories.map((cat) => {
-                const count = byCategory[cat] ?? 0;
+                const count = _countForCat(byCategory, cat);
                 const nbChecks = checksCountByCategory[cat] ?? 0;
                 const summaryEntry = summariesByCategory[cat];
                 const label =
                   (language === "en"
                     ? summaryEntry?.label_en
                     : summaryEntry?.label_fr) || t(getCategoryKey(cat));
+                const catAnomalies = _countForCat(byCategoryAnomalies, cat);
+                const catInfos = _countForCat(byCategoryInfos, cat);
                 return (
                   <tr
                     key={cat}
@@ -172,7 +203,7 @@ export default function ScanSummarySection({
                         </span>
                       ) : (
                         <span className="flex flex-wrap justify-end gap-x-2 gap-y-1">
-                          {(byCategoryAnomalies[cat] ?? 0) > 0 && (
+                          {catAnomalies > 0 && (
                             <a
                               href={`#${anchorPrefix}anomalies-section`}
                               onClick={(e) => {
@@ -185,15 +216,15 @@ export default function ScanSummarySection({
                               }}
                               className="font-medium text-[rgb(var(--warning))] hover:underline cursor-pointer"
                             >
-                              {byCategoryAnomalies[cat]}{" "}
+                              {catAnomalies}{" "}
                               {t(
-                                byCategoryAnomalies[cat] === 1
+                                catAnomalies === 1
                                   ? "scanner.anomalies_one"
                                   : "scanner.anomalies",
                               )}
                             </a>
                           )}
-                          {(byCategoryInfos[cat] ?? 0) > 0 && (
+                          {catInfos > 0 && (
                             <a
                               href={`#${anchorPrefix}infos-section`}
                               onClick={(e) => {
@@ -206,9 +237,9 @@ export default function ScanSummarySection({
                               }}
                               className="font-medium text-[rgb(var(--primary))] hover:underline cursor-pointer"
                             >
-                              {byCategoryInfos[cat]}{" "}
+                              {catInfos}{" "}
                               {t(
-                                byCategoryInfos[cat] === 1
+                                catInfos === 1
                                   ? "scanner.infos_one"
                                   : "scanner.infos",
                               )}
@@ -240,8 +271,11 @@ export default function ScanSummarySection({
                 t(getCategoryKey(entry.category));
               const shortSummary =
                 desc || t(getCategorySummaryOkKey(entry.category));
-              const anomalyCount = byCategoryAnomalies[entry.category] ?? 0;
-              const infoCount = byCategoryInfos[entry.category] ?? 0;
+              const anomalyCount = _countForCat(
+                byCategoryAnomalies,
+                entry.category,
+              );
+              const infoCount = _countForCat(byCategoryInfos, entry.category);
               const hasAnomalies = anomalyCount > 0;
               const hasInfos = infoCount > 0;
               const hasAny = hasAnomalies || hasInfos;
@@ -350,29 +384,27 @@ export default function ScanSummarySection({
                                 ? t("scanner.summaryOneAnomalyBold")
                                 : `${anomalyCount} ${t("scanner.anomalies")}`}
                             </strong>
-                            {t(
-                              anomalyCount === 1
-                                ? "scanner.summaryOneAnomalyAfter"
-                                : "scanner.summaryAnomaliesCountAfter",
-                              anomalyCount === 1
-                                ? {
-                                    titles: anomalyFindings
-                                      .filter(
-                                        (f) => f.category === entry.category,
-                                      )
-                                      .map((f) => f.title)
-                                      .join(", "),
-                                  }
-                                : {
-                                    count: anomalyCount,
-                                    titles: anomalyFindings
-                                      .filter(
-                                        (f) => f.category === entry.category,
-                                      )
-                                      .map((f) => f.title)
-                                      .join(", "),
-                                  },
-                            )}
+                            {(() => {
+                              const granularSet =
+                                granularSetByMacro[entry.category];
+                              const matchFn = granularSet
+                                ? (f: ScanFinding) =>
+                                    granularSet.has(f.category)
+                                : (f: ScanFinding) =>
+                                    f.category === entry.category;
+                              const titles = anomalyFindings
+                                .filter(matchFn)
+                                .map((f) => f.title)
+                                .join(", ");
+                              return t(
+                                anomalyCount === 1
+                                  ? "scanner.summaryOneAnomalyAfter"
+                                  : "scanner.summaryAnomaliesCountAfter",
+                                anomalyCount === 1
+                                  ? { titles }
+                                  : { count: anomalyCount, titles },
+                              );
+                            })()}
                             {hasInfos && " "}
                           </>
                         )}
@@ -383,28 +415,25 @@ export default function ScanSummarySection({
                                 ? t("scanner.summaryOneInfoBold")
                                 : `${infoCount} ${t("scanner.infos")}`}
                             </strong>
-                            {t(
-                              infoCount === 1
-                                ? "scanner.summaryOneInfoAfter"
-                                : "scanner.summaryInfosCountAfter",
-                              infoCount === 1
-                                ? {
-                                    titles: infoFindings
-                                      .filter(
-                                        (f) => f.category === entry.category,
-                                      )
-                                      .map((f) => f.title)
-                                      .join(", "),
-                                  }
-                                : {
-                                    titles: infoFindings
-                                      .filter(
-                                        (f) => f.category === entry.category,
-                                      )
-                                      .map((f) => f.title)
-                                      .join(", "),
-                                  },
-                            )}
+                            {(() => {
+                              const granularSet =
+                                granularSetByMacro[entry.category];
+                              const matchFn = granularSet
+                                ? (f: ScanFinding) =>
+                                    granularSet.has(f.category)
+                                : (f: ScanFinding) =>
+                                    f.category === entry.category;
+                              const titles = infoFindings
+                                .filter(matchFn)
+                                .map((f) => f.title)
+                                .join(", ");
+                              return t(
+                                infoCount === 1
+                                  ? "scanner.summaryOneInfoAfter"
+                                  : "scanner.summaryInfosCountAfter",
+                                infoCount === 1 ? { titles } : { titles },
+                              );
+                            })()}
                           </>
                         )}
                       </>
