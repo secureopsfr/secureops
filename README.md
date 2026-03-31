@@ -2,6 +2,8 @@
 
 **Version :** `1.0.0` (voir [VERSION](VERSION) et [CHANGELOG.md](CHANGELOG.md))
 
+**Licence :** GNU General Public License v3.0 — voir le fichier [LICENSE](LICENSE).
+
 **SecureOps** est un scanner de posture sécurité web (non intrusif) destiné aux développeurs débutants et intermédiaires : **URL → scan rapide → score + rapport clair**.
 
 Stack : backend Python/FastAPI, frontend Next.js, authentification Cognito, gateway API, services métier et base PostgreSQL.
