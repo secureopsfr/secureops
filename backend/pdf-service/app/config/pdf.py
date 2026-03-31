@@ -44,6 +44,52 @@ class PdfSettings:
     footer_url: str
     render: PdfRenderSettings
     categories: PdfCategoryConfig
+    intrusive_categories: PdfCategoryConfig
+
+
+# Mapping catégorie-check → macro-catégorie pour les scans intrusifs
+INTRUSIVE_CATEGORY_MAPPING: dict[str, str] = {
+    # injections
+    "sql_injection": "injections",
+    "nosql_injection": "injections",
+    "command_injection": "injections",
+    "ssti": "injections",
+    "xxe": "injections",
+    "lfi_rfi": "injections",
+    "path_traversal": "injections",
+    # access_control
+    "cors_actif": "access_control",
+    "csrf": "access_control",
+    "host_header": "access_control",
+    "open_redirect": "access_control",
+    "ssrf": "access_control",
+    "methodes_http": "access_control",
+    # auth_sessions
+    "auth_bruteforce": "auth_sessions",
+    "session_fixation": "auth_sessions",
+    "oauth_oidc": "auth_sessions",
+    "idor": "auth_sessions",
+    # client_injection
+    "parametres_reflechis": "client_injection",
+    # business_data
+    "business_logic": "business_data",
+    "race_conditions": "business_data",
+    "dos_rate_limit": "business_data",
+    "upload_abuse": "business_data",
+    "insecure_deserialization": "business_data",
+    "mass_assignment": "business_data",
+    # api_protocols
+    "graphql_abuse": "api_protocols",
+    "graphql_subscriptions": "api_protocols",
+    "api_schema_abuse": "api_protocols",
+    "grpc_abuse": "api_protocols",
+    "websocket_authz": "api_protocols",
+    # infra_cache
+    "cache_poisoning": "infra_cache",
+    "request_smuggling": "infra_cache",
+    "service_mesh": "infra_cache",
+    "object_storage": "infra_cache",
+}
 
 
 _DEFAULT_RENDER = PdfRenderSettings(
@@ -74,6 +120,46 @@ _DEFAULT_RENDER = PdfRenderSettings(
         ("#f97316", "#ef4444", "#ef4444", "#ef4444"),
     ),
 )
+_DEFAULT_INTRUSIVE_ORDER = (
+    "injections",
+    "access_control",
+    "auth_sessions",
+    "client_injection",
+    "business_data",
+    "api_protocols",
+    "infra_cache",
+    "other",
+)
+_DEFAULT_INTRUSIVE_CHECKED = (
+    "injections",
+    "access_control",
+    "auth_sessions",
+    "client_injection",
+    "business_data",
+    "api_protocols",
+    "infra_cache",
+)
+_DEFAULT_INTRUSIVE_LABELS_FR = {
+    "injections": "Injections",
+    "access_control": "Contrôle d'accès",
+    "auth_sessions": "Authentification & Sessions",
+    "client_injection": "Injections côté client",
+    "business_data": "Logique métier & Données",
+    "api_protocols": "APIs & Protocoles modernes",
+    "infra_cache": "Infrastructure & Cache",
+    "other": "Autres",
+}
+_DEFAULT_INTRUSIVE_LABELS_EN = {
+    "injections": "Injections",
+    "access_control": "Access Control",
+    "auth_sessions": "Authentication & Sessions",
+    "client_injection": "Client-side Injections",
+    "business_data": "Business Logic & Data",
+    "api_protocols": "APIs & Modern Protocols",
+    "infra_cache": "Infrastructure & Cache",
+    "other": "Other",
+}
+
 _DEFAULT_ORDER = (
     "tls",
     "headers",
@@ -176,6 +262,13 @@ def get_pdf_settings() -> PdfSettings:
     checked = tuple(cats.get("checked") or _DEFAULT_CHECKED)
     labels_fr = dict(cats.get("labels_fr") or _DEFAULT_LABELS_FR)
     labels_en = dict(cats.get("labels_en") or _DEFAULT_LABELS_EN)
+
+    icats = p.get("intrusive_categories") or {}
+    intrusive_order = tuple(icats.get("order") or _DEFAULT_INTRUSIVE_ORDER)
+    intrusive_checked = tuple(icats.get("checked") or _DEFAULT_INTRUSIVE_CHECKED)
+    intrusive_labels_fr = dict(icats.get("labels_fr") or _DEFAULT_INTRUSIVE_LABELS_FR)
+    intrusive_labels_en = dict(icats.get("labels_en") or _DEFAULT_INTRUSIVE_LABELS_EN)
+
     return PdfSettings(
         footer_url=footer_url,
         render=render,
@@ -185,10 +278,23 @@ def get_pdf_settings() -> PdfSettings:
             labels_fr=labels_fr,
             labels_en=labels_en,
         ),
+        intrusive_categories=PdfCategoryConfig(
+            order=intrusive_order,
+            checked=intrusive_checked,
+            labels_fr=intrusive_labels_fr,
+            labels_en=intrusive_labels_en,
+        ),
     )
 
 
-def get_category_labels(lang: str) -> dict[str, str]:
-    """Retourne les libellés de catégories pour la langue donnée."""
+def get_category_labels(lang: str, scan_mode: str = "passive") -> dict[str, str]:
+    """Retourne les libellés de catégories pour la langue et le mode donnés."""
     settings = get_pdf_settings()
-    return settings.categories.labels_en if lang == "en" else settings.categories.labels_fr
+    cat_config = settings.intrusive_categories if scan_mode == "intrusive" else settings.categories
+    return cat_config.labels_en if lang == "en" else cat_config.labels_fr
+
+
+def get_category_config(scan_mode: str = "passive") -> PdfCategoryConfig:
+    """Retourne la config catégories selon le mode de scan."""
+    settings = get_pdf_settings()
+    return settings.intrusive_categories if scan_mode == "intrusive" else settings.categories

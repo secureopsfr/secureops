@@ -38,12 +38,21 @@ def _get_logo_data_uri() -> str | None:
         return None
 
 
+_SCAN_MODE_BADGE: dict[str, dict[str, str]] = {
+    "passive": {"fr": "Scan passif", "en": "Passive scan", "color": "#0ea5e9"},
+    "intrusive": {"fr": "Scan intrusif", "en": "Intrusive scan", "color": "#f97316"},
+    "custom": {"fr": "Scan personnalisé", "en": "Custom scan", "color": "#8b5cf6"},
+    "destructive": {"fr": "Scan destructif", "en": "Destructive scan", "color": "#ef4444"},
+}
+
+
 def build_cover_page(
     url: str,
     date_str: str,
     lang: str,
     report_title: str,
     subtitle: str,
+    scan_mode: str = "passive",
 ) -> str:
     """Construit le HTML de la page de garde."""
     render = get_pdf_settings().render
@@ -60,6 +69,15 @@ def build_cover_page(
         if logo_data
         else f'<span class="cover-logo-svg">{logo_svg_fallback}</span>'
     )
+    badge_info = _SCAN_MODE_BADGE.get(scan_mode, _SCAN_MODE_BADGE["passive"])
+    badge_label = badge_info.get(lang, badge_info.get("fr", scan_mode))
+    badge_color = badge_info["color"]
+    mode_badge_html = (
+        f'<span class="cover-mode-badge" style="background:{badge_color};color:#fff;'
+        f"padding:4px 14px;border-radius:99px;font-size:0.85em;font-weight:600;"
+        f'letter-spacing:0.03em;display:inline-block;margin-top:8px;">'
+        f"{escape(badge_label)}</span>"
+    )
     return f"""
     <div class="cover-page" style="page-break-after:always">
         <div class="cover-content">
@@ -68,6 +86,7 @@ def build_cover_page(
                 <span class="cover-logo">SecureOps</span>
                 <span class="cover-tagline">{subtitle}</span>
             </div>
+            <div style="text-align:center;margin-bottom:12px;">{mode_badge_html}</div>
             <h1 class="cover-title">{report_title}</h1>
             <div class="cover-meta">
                 <div class="cover-meta-row cover-meta-inline">

@@ -7,7 +7,7 @@ from html import escape
 from app.catalogue.category_summaries import get_category_description, get_checks_count
 from app.catalogue.recommendations import get_detail, get_evidence, get_recommendation, get_title
 from app.catalogue.risk_matrix import get_gravite, get_vraisemblance
-from app.config.pdf import get_category_labels, get_pdf_settings
+from app.config.pdf import INTRUSIVE_CATEGORY_MAPPING, get_category_config, get_category_labels, get_pdf_settings
 from app.schemas.finding import Finding
 from app.services.pdf_report.constants import severity_index
 from app.services.pdf_report.links import build_inline_ref_links, build_ref_links
@@ -55,15 +55,18 @@ def _truncate(text: str, max_len: int, label: str, slug: str) -> str:
 def _group_findings_by_category(
     findings: list[Finding],
     lang: str,
+    scan_mode: str = "passive",
 ) -> tuple[dict[str, list[Finding]], list[str]]:
-    """Groupe les findings par catégorie et retourne l'ordre des catégories."""
-    settings = get_pdf_settings()
-    order = list(settings.categories.order)
+    """Groupe les findings par catégorie (ou macro-catégorie pour intrusif)."""
+    cat_config = get_category_config(scan_mode)
+    order = list(cat_config.order)
     by_category: dict[str, list[Finding]] = {}
     for f in findings:
-        if f.category not in by_category:
-            by_category[f.category] = []
-        by_category[f.category].append(f)
+        # Pour les scans intrusifs, remapper vers la macro-catégorie
+        effective_cat = INTRUSIVE_CATEGORY_MAPPING.get(f.category, "other") if scan_mode == "intrusive" else f.category
+        if effective_cat not in by_category:
+            by_category[effective_cat] = []
+        by_category[effective_cat].append(f)
     ordered_cats = list(order) + [c for c in by_category if c not in order]
     return by_category, ordered_cats
 
@@ -253,21 +256,12 @@ def build_category_sections(
     ordered_cats: list[str],
     include_matrices: bool,
     lang: str,
+    scan_mode: str = "passive",
 ) -> tuple[list[str], int]:
-    """Construit les sections HTML pour les catégories avec anomalies.
-
-    Args:
-        by_category: Findings groupés par catégorie.
-        ordered_cats: Ordre des catégories.
-        include_matrices: Inclure les matrices.
-        lang: Code langue (fr/en).
-
-    Returns:
-        tuple[list[str], int]: (fragments HTML, numéro de section suivant).
-    """
-    settings = get_pdf_settings()
-    checked_cats = [c for c in settings.categories.checked if c in settings.categories.order] or list(settings.categories.order)
-    category_labels = get_category_labels(lang)
+    """Construit les sections HTML pour les catégories avec anomalies."""
+    cat_config = get_category_config(scan_mode)
+    checked_cats = [c for c in cat_config.checked if c in cat_config.order] or list(cat_config.order)
+    category_labels = get_category_labels(lang, scan_mode=scan_mode)
     sections_html: list[str] = []
     section_num = 2
     for cat in checked_cats:
@@ -291,20 +285,12 @@ def build_other_tests_section(
     by_category: dict[str, list[Finding]],
     section_num: int,
     lang: str,
+    scan_mode: str = "passive",
 ) -> tuple[str, int]:
-    """Construit la section « Autres tests effectués » (catégories sans anomalie).
-
-    Args:
-        by_category: Findings groupés par catégorie.
-        section_num: Numéro de section à utiliser.
-        lang: Code langue (fr/en).
-
-    Returns:
-        tuple[str, int]: (HTML de la section ou chaîne vide, numéro suivant).
-    """
-    settings = get_pdf_settings()
-    checked_cats = [c for c in settings.categories.checked if c in settings.categories.order] or list(settings.categories.order)
-    category_labels = get_category_labels(lang)
+    """Construit la section « Autres tests effectués » (catégories sans anomalie)."""
+    cat_config = get_category_config(scan_mode)
+    checked_cats = [c for c in cat_config.checked if c in cat_config.order] or list(cat_config.order)
+    category_labels = get_category_labels(lang, scan_mode=scan_mode)
     ok_cats = [c for c in checked_cats if len(by_category.get(c, [])) == 0]
     if not ok_cats:
         return "", section_num
@@ -326,14 +312,12 @@ def build_other_tests_section(
         ok_tests_label=ok_tests_label,
     )
     subsections_html: list[str] = []
-    subsections_html.append(
-        f"""
+    subsections_html.append(f"""
     <div class="category-intro" id="sect-other-tests-intro">
         <h3 class="category-intro-title">{section_num}.1 {escape(summary_label)}</h3>
         <p class="category-intro-summary">{summary_text}</p>
     </div>
-    """
-    )
+    """)
     for sub_num, cat in enumerate(ok_cats, start=2):
         cat_label = category_labels.get(cat, cat)
         subsections_html.append(_build_ok_category_subsection(section_num, sub_num, cat, cat_label, lang))

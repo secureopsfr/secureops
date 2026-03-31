@@ -21,6 +21,7 @@ def generate_pdf(
     page_results: list[dict] | None = None,
     include_matrices: bool = True,
     lang: str = "fr",
+    scan_mode: str = "passive",
 ) -> bytes:
     """Génère le PDF du rapport de scan.
 
@@ -34,6 +35,7 @@ def generate_pdf(
         page_results: Résultats par page en mode multi, optionnel.
         include_matrices: Inclure les matrices gravité/vraisemblance par finding.
         lang: Code langue (fr/en).
+        scan_mode: Mode de scan (passive, intrusive, custom).
 
     Returns:
         bytes: Contenu binaire du PDF.
@@ -48,6 +50,7 @@ def generate_pdf(
         page_results=page_results,
         include_matrices=include_matrices,
         lang=lang,
+        scan_mode=scan_mode,
     )
     buffer = io.BytesIO()
     HTML(string=html_content).write_pdf(buffer)
