@@ -28,6 +28,7 @@ DOCS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "docs")
 
 _SUPPORTED_LANGS: frozenset[str] = frozenset({"fr", "en"})
 _DEFAULT_LANG = "fr"
+_LANG_QUERY = Query(default=_DEFAULT_LANG, max_length=2)
 
 router = APIRouter()
 
@@ -217,7 +218,7 @@ def _list_docs(lang: str = _DEFAULT_LANG) -> List[Dict]:
 
 
 @router.get("/docs")
-async def list_docs(lang: str = Query(default=_DEFAULT_LANG, max_length=2)) -> Dict:
+async def list_docs(lang: str = _LANG_QUERY) -> Dict:
     """Liste les pages de documentation (public).
 
     - lang : code ISO 639-1 de la langue souhaitée (fr, en). Défaut : fr.
@@ -230,7 +231,7 @@ async def list_docs(lang: str = Query(default=_DEFAULT_LANG, max_length=2)) -> D
 @router.get("/docs/{slug}")
 async def get_doc(
     slug: str,
-    lang: str = Query(default=_DEFAULT_LANG, max_length=2),
+    lang: str = _LANG_QUERY,
 ) -> DocPageContent:
     """Récupère le contenu d'une page doc dans la langue demandée.
 
@@ -258,7 +259,7 @@ async def get_doc(
 async def update_doc(
     slug: str,
     body: DocPageUpdateRequest,
-    lang: str = Query(default=_DEFAULT_LANG, max_length=2),
+    lang: str = _LANG_QUERY,
     _: dict = _require_admin,
 ) -> Dict:
     """Met à jour une page doc dans la langue spécifiée (admin)."""
@@ -274,7 +275,7 @@ async def update_doc(
 @router.post("/docs")
 async def create_doc(
     body: DocPageCreateRequest,
-    lang: str = Query(default=_DEFAULT_LANG, max_length=2),
+    lang: str = _LANG_QUERY,
     _: dict = _require_admin,
 ) -> Dict:
     """Crée une nouvelle page doc dans la langue spécifiée (admin).
@@ -327,7 +328,7 @@ async def create_doc(
 @router.delete("/docs/{slug}")
 async def delete_doc(
     slug: str,
-    lang: str = Query(default=_DEFAULT_LANG, max_length=2),
+    lang: str = _LANG_QUERY,
     _: dict = _require_admin,
 ) -> Dict:
     """Supprime une page doc dans la langue spécifiée (admin).
