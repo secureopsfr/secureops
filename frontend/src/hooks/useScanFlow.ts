@@ -11,6 +11,7 @@ import {
   runMultiScan,
   type AsyncScanMode,
   type AsyncScanType,
+  type ScanCredentials,
   type ScanResult,
   type MultiScanResult,
   type ScanError,
@@ -53,6 +54,7 @@ export function useScanFlow({
   const [url, setUrl] = useState("");
   const [scanTarget, setScanTarget] = useState<AsyncScanType>("frontend");
   const [scanMode, setScanMode] = useState<AsyncScanMode>("passive");
+  const [credentials, setCredentials] = useState<ScanCredentials>({});
   const [scanOnlyThisPage, setScanOnlyThisPage] = useState(true);
   const [state, setState] = useState<ScanState>("idle");
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -138,6 +140,11 @@ export function useScanFlow({
           scanMode: mode,
           input: {},
           logPrefix: `[scan-${target}-${mode}-polling]`,
+          credentials:
+            mode === "intrusive" &&
+            (credentials.cookie || credentials.bearer_token)
+              ? credentials
+              : undefined,
         },
         getToken,
       ).catch((err) => {
@@ -158,6 +165,7 @@ export function useScanFlow({
       enqueueStep,
       scanTarget,
       scanMode,
+      credentials,
     ],
   );
 
@@ -200,6 +208,11 @@ export function useScanFlow({
         {
           scanType: target,
           scanMode: mode,
+          credentials:
+            mode === "intrusive" &&
+            (credentials.cookie || credentials.bearer_token)
+              ? credentials
+              : undefined,
         },
       ).catch((err) => {
         setError({
@@ -219,6 +232,7 @@ export function useScanFlow({
       enqueueStep,
       scanTarget,
       scanMode,
+      credentials,
     ],
   );
 
@@ -353,6 +367,8 @@ export function useScanFlow({
     scanMode,
     setScanTarget,
     setScanMode,
+    credentials,
+    setCredentials,
     runScanOnUrl,
     runMultiScanOnUrls,
     handleSubmit,

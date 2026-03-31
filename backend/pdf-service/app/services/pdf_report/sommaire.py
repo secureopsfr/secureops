@@ -2,7 +2,7 @@
 
 from html import escape
 
-from app.config.pdf import get_category_labels
+from app.config.pdf import get_category_config, get_category_labels
 from app.schemas.finding import Finding
 from app.services.pdf_report.constants import severity_index
 from app.services.pdf_report.pdf_i18n import t
@@ -12,16 +12,15 @@ def build_sommaire(
     by_category: dict[str, list[Finding]],
     ordered_cats: list[str],
     lang: str,
+    scan_mode: str = "passive",
 ) -> str:
     """Construit le HTML du sommaire (sections et sous-parties 2.1, 2.2, etc.)."""
-    from app.config.pdf import get_pdf_settings
-
     sommaire_label = t("sommaire", lang)
     synthese_label = t("synthese", lang)
     references_label = t("references_section", lang)
-    category_labels = get_category_labels(lang)
-    settings = get_pdf_settings()
-    cats_to_toc = [c for c in settings.categories.checked if c in settings.categories.order] or list(settings.categories.order)
+    category_labels = get_category_labels(lang, scan_mode=scan_mode)
+    cat_config = get_category_config(scan_mode)
+    cats_to_toc = [c for c in cat_config.checked if c in cat_config.order] or list(cat_config.order)
 
     other_tests_label = t("other_tests_section", lang)
 

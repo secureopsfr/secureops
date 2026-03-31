@@ -212,7 +212,11 @@ async def create_scan_async_job(
     if not authenticated_user_id:
         raw_job_token = generate_job_token()
         token_hash = hash_job_token(raw_job_token, ASYNC_JOB_TOKEN_SECRET)
-    job_input = {"scan_mode": body.scan_mode, **(body.input or {})}
+    job_input = {
+        "scan_mode": body.scan_mode,
+        **(body.input or {}),
+        **({"credentials": body.credentials.model_dump()} if body.credentials else {}),
+    }
     try:
         async with get_async_session() as session:
             job = await create_job(
@@ -258,7 +262,12 @@ async def create_multi_scan_async_job(
         raise HTTPException(status_code=400, detail=str(exc))
 
     try:
-        job_input = {"scan_mode": body.scan_mode, "urls": normalized_urls, **(body.input or {})}
+        job_input = {
+            "scan_mode": body.scan_mode,
+            "urls": normalized_urls,
+            **(body.input or {}),
+            **({"credentials": body.credentials.model_dump()} if body.credentials else {}),
+        }
         async with get_async_session() as session:
             job = await create_job(
                 session,

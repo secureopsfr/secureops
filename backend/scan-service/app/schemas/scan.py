@@ -28,3 +28,4 @@ class ScanForPdfSchema(BaseModel):
     timestamp: str = ""
     duration: float = 0.0
     findings: list[dict] = Field(default_factory=list)
+    scan_mode: str = "passive"

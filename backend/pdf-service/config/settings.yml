@@ -134,3 +134,41 @@ pdf:
       methodes_http_et_redirections: "HTTP methods and redirects"
       apis_et_formats: "APIs and formats"
       other: "Other"
+
+  # Macro-catégories pour les rapports de scan intrusif (8 groupes)
+  intrusive_categories:
+    order:
+      - injections
+      - access_control
+      - auth_sessions
+      - client_injection
+      - business_data
+      - api_protocols
+      - infra_cache
+      - other
+    checked:
+      - injections
+      - access_control
+      - auth_sessions
+      - client_injection
+      - business_data
+      - api_protocols
+      - infra_cache
+    labels_fr:
+      injections: "Injections"
+      access_control: "Contrôle d'accès"
+      auth_sessions: "Authentification & Sessions"
+      client_injection: "Injections côté client"
+      business_data: "Logique métier & Données"
+      api_protocols: "APIs & Protocoles modernes"
+      infra_cache: "Infrastructure & Cache"
+      other: "Autres"
+    labels_en:
+      injections: "Injections"
+      access_control: "Access Control"
+      auth_sessions: "Authentication & Sessions"
+      client_injection: "Client-side Injections"
+      business_data: "Business Logic & Data"
+      api_protocols: "APIs & Modern Protocols"
+      infra_cache: "Infrastructure & Cache"
+      other: "Other"

@@ -73,7 +73,7 @@ export default function ScannerHub() {
       bodyKey: "scanner.hub.cardScanIntrusiveBody",
       href: lp("/scanner/analyses?mode=intrusive"),
       icon: Bug,
-      comingSoon: true,
+      comingSoon: false,
     },
     {
       id: "scan-destructeur",

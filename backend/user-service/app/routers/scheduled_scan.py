@@ -51,6 +51,9 @@ def _to_response(scan) -> ScheduledScanResponse:
         next_run_at=scan.next_run_at,
         enabled=scan.enabled,
         scan_alerts_enabled=getattr(scan, "scan_alerts_enabled", True),
+        alert_on_regression=getattr(scan, "alert_on_regression", True),
+        alert_on_critical_finding=getattr(scan, "alert_on_critical_finding", True),
+        alert_score_threshold=getattr(scan, "alert_score_threshold", None),
         created_at=scan.created_at,
     )
 
@@ -78,6 +81,9 @@ async def create_scheduled_scan_entry(
                 schedule_day_of_month=body.schedule_day_of_month,
                 timezone_name=body.timezone,
                 scan_alerts_enabled=body.scan_alerts_enabled,
+                alert_on_regression=body.alert_on_regression,
+                alert_on_critical_finding=body.alert_on_critical_finding,
+                alert_score_threshold=body.alert_score_threshold,
             )
             return _to_response(scan)
     except HTTPException:
@@ -169,6 +175,9 @@ async def patch_scheduled_scan(
                 timezone_name=body.timezone,
                 enabled=body.enabled,
                 scan_alerts_enabled=body.scan_alerts_enabled,
+                alert_on_regression=body.alert_on_regression,
+                alert_on_critical_finding=body.alert_on_critical_finding,
+                alert_score_threshold=body.alert_score_threshold,
             )
             if not scan:
                 raise HTTPException(

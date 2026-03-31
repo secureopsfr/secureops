@@ -291,6 +291,9 @@ async def _process_due_scan(scan, now: datetime) -> bool:
         scan_type=getattr(scan, "scan_type", "frontend"),
         scan_mode=getattr(scan, "scan_mode", "passive"),
         scheduled_scan_id=scan.id,
+        alert_on_regression=getattr(scan, "alert_on_regression", True),
+        alert_on_critical_finding=getattr(scan, "alert_on_critical_finding", True),
+        alert_score_threshold=getattr(scan, "alert_score_threshold", None),
     )
     await _persist_result_and_schedule_next(scan, data, now)
     logger.info(

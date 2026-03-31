@@ -14,7 +14,7 @@ logging:
 
 async_jobs:
   worker_poll_interval_seconds: 2
-  job_timeout_seconds: 300
+  job_timeout_seconds: 600  # 10 min — doit être > scan_global pour ne pas tuer le worker avant la fin
   max_attempts: 3
   progress_batch_window_seconds: 0.2
 
@@ -411,7 +411,7 @@ multi_scan:
 timeouts:
   connection: 3    # secondes pour établir la connexion
   read: 10         # secondes pour lire la réponse
-  scan_global: 60  # secondes max pour l'ensemble du scan (ex: 60–120)
+  scan_global: 480 # secondes max pour l'ensemble du scan (8 min — couvre les scans intrusifs)
 
 # Scoring (roadmap §5) : pondération par catégorie et pénalités par sévérité.
 scoring:
@@ -436,6 +436,61 @@ scoring:
     medium: 25
     low: 10
     info: 0
+
+# Scanner 2 — configuration du scan intrusif.
+intrusive_scan:
+  max_requests_per_param: 3      # budget payloads par paramètre
+  budget_per_category: 30        # requêtes max par catégorie
+  probe_timeout: 8.0             # timeout secondes par probe
+  time_based_threshold_ms: 900.0 # seuil détection time-based (ms)
+  time_based_confirmations: 2    # confirmations requises avant finding
+  jitter_min_ms: 50              # délai min entre requêtes (ms)
+  jitter_max_ms: 250             # délai max entre requêtes (ms)
+  dos_burst_count: 20                # requêtes burst DoS P0 (sans sleep — burst réel)
+  dos_burst_duration_s: 3.0          # durée cap burst DoS P0 (secondes)
+  dos_min_requests_for_finding: 15   # seuil min de réponses sans 429 avant de signaler
+  destructive_mode_enabled: false
+  scoring:
+    category_weights:
+      open_redirect: 3
+      methodes_http: 2
+      cors_actif: 5
+      parametres_reflechis: 6
+      sql_injection: 10
+      path_traversal: 7
+      csrf: 5
+      idor: 8
+      command_injection: 10
+      nosql_injection: 7
+      dos_rate_limit: 3
+      auth_bruteforce: 7
+      session_fixation: 6
+      upload_abuse: 7
+      mass_assignment: 5
+      graphql_abuse: 4
+      api_schema_abuse: 3
+      ssrf: 8
+      xxe: 7
+      ssti: 8
+      insecure_deserialization: 7
+      lfi_rfi: 7
+      host_header: 5
+      cache_poisoning: 4
+      request_smuggling: 6
+      race_conditions: 4
+      business_logic: 5
+      websocket_authz: 4
+      graphql_subscriptions: 3
+      oauth_oidc: 6
+      grpc_abuse: 3
+      object_storage: 4
+      service_mesh: 4
+    severity_penalties:
+      critical: 100
+      high: 50
+      medium: 25
+      low: 10
+      info: 0
 
 # Labels catégories: source de vérité prioritaire pour category_summaries.
 category_labels:

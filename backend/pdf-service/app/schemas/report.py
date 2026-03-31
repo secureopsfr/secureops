@@ -18,3 +18,7 @@ class ReportPdfBody(BaseModel):
         default=None,
         description="Résultats par page (scan multi) pour afficher le tableau de comparaison",
     )
+    scan_mode: str = Field(
+        default="passive",
+        description="Mode de scan: passive, intrusive, custom",
+    )

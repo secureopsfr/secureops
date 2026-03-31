@@ -426,5 +426,201 @@
   "integrity-generic": {
     "gravite": "Significative",
     "vraisemblance": "Faible"
+  },
+  "intrusive-sqli-error-based": {
+    "gravite": "Majeure",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-sqli-time-based": {
+    "gravite": "Majeure",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-nosqli-operator-injection": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-nosqli-auth-bypass": {
+    "gravite": "Majeure",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-command-injection": {
+    "gravite": "Majeure",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-ssti": {
+    "gravite": "Majeure",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-ssti-error": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-xxe-inband": {
+    "gravite": "Majeure",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-lfi": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-lfi-php-wrapper": {
+    "gravite": "Majeure",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-path-traversal": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-cors-reflection-with-credentials": {
+    "gravite": "Majeure",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-cors-reflection-no-credentials": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-cors-wildcard": {
+    "gravite": "Significative",
+    "vraisemblance": "Très forte"
+  },
+  "intrusive-csrf-token-not-enforced": {
+    "gravite": "Importante",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-csrf-samesite-absent": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-host-header-injection": {
+    "gravite": "Importante",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-open-redirect": {
+    "gravite": "Significative",
+    "vraisemblance": "Très forte"
+  },
+  "intrusive-ssrf-inband": {
+    "gravite": "Majeure",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-trace-enabled": {
+    "gravite": "Significative",
+    "vraisemblance": "Très forte"
+  },
+  "intrusive-dangerous-methods-allowed": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-auth-no-lockout": {
+    "gravite": "Importante",
+    "vraisemblance": "Très forte"
+  },
+  "intrusive-session-not-invalidated": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-jwt-no-expiration": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-oauth-missing-state": {
+    "gravite": "Importante",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-oauth-open-redirect-uri": {
+    "gravite": "Importante",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-idor-sequential-id": {
+    "gravite": "Importante",
+    "vraisemblance": "Très forte"
+  },
+  "intrusive-idor-admin-route-exposed": {
+    "gravite": "Majeure",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-idor-privilege-escalation": {
+    "gravite": "Majeure",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-parametres-reflechis": {
+    "gravite": "Importante",
+    "vraisemblance": "Très forte"
+  },
+  "intrusive-business-logic-negative-amount": {
+    "gravite": "Importante",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-business-logic-state-manipulation": {
+    "gravite": "Importante",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-race-condition": {
+    "gravite": "Importante",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-no-rate-limiting": {
+    "gravite": "Significative",
+    "vraisemblance": "Très forte"
+  },
+  "intrusive-upload-file-accessible": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-insecure-deserialization": {
+    "gravite": "Majeure",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-mass-assignment": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-graphql-introspection-enabled": {
+    "gravite": "Significative",
+    "vraisemblance": "Très forte"
+  },
+  "intrusive-graphql-depth-abuse": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-graphql-subscription-no-auth": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-grpc-reflection-exposed": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-websocket-no-auth": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-api-schema-no-validation": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-api-schema-unlimited-list": {
+    "gravite": "Significative",
+    "vraisemblance": "Forte"
+  },
+  "intrusive-cache-poisoning": {
+    "gravite": "Importante",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-web-cache-deception": {
+    "gravite": "Importante",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-request-smuggling": {
+    "gravite": "Majeure",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-internal-endpoint-exposed": {
+    "gravite": "Importante",
+    "vraisemblance": "Significative"
+  },
+  "intrusive-object-storage-public-listing": {
+    "gravite": "Importante",
+    "vraisemblance": "Forte"
   }
 }

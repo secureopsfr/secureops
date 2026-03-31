@@ -94,6 +94,7 @@ def _build_pdf_payload_from_history_scan(
     lang: str,
 ) -> dict:
     result_mode = data.get("result_mode", "single")
+    scan_mode = str(data.get("scan_mode") or "passive")
     if result_mode != "multi":
         return {
             "url": data.get("url"),
@@ -101,6 +102,7 @@ def _build_pdf_payload_from_history_scan(
             "timestamp": data.get("timestamp", ""),
             "duration": data.get("duration", 0.0),
             "findings": data.get("findings", []),
+            "scan_mode": scan_mode,
         }
 
     page_results = data.get("page_results")
@@ -120,6 +122,7 @@ def _build_pdf_payload_from_history_scan(
         "findings": findings,
         "result_mode": "multi",
         "page_results": page_results,
+        "scan_mode": scan_mode,
     }
 
 
@@ -190,6 +193,7 @@ async def export_scan_pdf_bytes(
         "findings": scan_data.findings,
         "result_mode": payload_data.get("result_mode"),
         "page_results": payload_data.get("page_results"),
+        "scan_mode": scan_data.scan_mode,
     }
 
     async with httpx.AsyncClient(timeout=pdf_request_timeout) as client:

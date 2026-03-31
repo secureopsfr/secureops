@@ -4,6 +4,15 @@ Ce document décrit les vérifications actives CSRF : presence des mecanismes an
 
 ---
 
+## Périmètre selon scan_type
+
+| scan_type | Comportement |
+|-----------|--------------|
+| `frontend` | ✓ **Check complet** — détection formulaires POST, replay sans token CSRF, vérification `SameSite` |
+| `backend` | **Partiel** — **skip total si auth Bearer/API key détectée** (CSRF ne s'applique pas sans cookies). Si l'API utilise des cookies de session : vérification `SameSite` uniquement |
+
+---
+
 ## Contexte et méthodologie
 
 ### Objectif

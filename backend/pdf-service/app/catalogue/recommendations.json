@@ -22,14 +22,18 @@
     "recommendation_en": "Renew TLS certificate before expiration. Use Let's Encrypt or a recognized CA.",
     "title_fr": "Certificat expiré",
     "title_en": "Certificate expired",
-    "references": ["https://letsencrypt.org/"]
+    "references": [
+      "https://letsencrypt.org/"
+    ]
   },
   "tls-cert-self-signed": {
     "recommendation": "Remplacer le certificat auto-signé par un certificat émis par une CA reconnue (Let's Encrypt, etc.).",
     "recommendation_en": "Replace self-signed certificate with one from a recognized CA (Let's Encrypt, etc.).",
     "title_fr": "Certificat auto-signé",
     "title_en": "Self-signed certificate",
-    "references": ["https://letsencrypt.org/"]
+    "references": [
+      "https://letsencrypt.org/"
+    ]
   },
   "tls-cert-not-yet-valid": {
     "recommendation": "Vérifier la date et l'heure du serveur. Le certificat n'est pas encore valide (notBefore dans le futur).",
@@ -43,7 +47,9 @@
     "recommendation_en": "Renew TLS certificate before expiration. Automate renewal (Let's Encrypt, Certbot).",
     "title_fr": "Certificat expire bientôt",
     "title_en": "Certificate expires soon",
-    "references": ["https://letsencrypt.org/"]
+    "references": [
+      "https://letsencrypt.org/"
+    ]
   },
   "tls-chain-incomplete": {
     "recommendation": "Configurer le serveur pour envoyer la chaîne complète (certificat feuille + intermédiaires). Nginx : ssl_certificate ; Apache : SSLCertificateChainFile.",
@@ -433,7 +439,9 @@
     "recommendation_en": "Protect Swagger/OpenAPI with authentication or disable in production.",
     "title_fr": "Swagger/OpenAPI exposé",
     "title_en": "Swagger/OpenAPI exposed",
-    "references": ["https://swagger.io/docs/specification/about/"]
+    "references": [
+      "https://swagger.io/docs/specification/about/"
+    ]
   },
   "exposed_files-swagger-json": {
     "recommendation": "Protéger swagger.json par authentification ou le désactiver en production.",
@@ -461,7 +469,9 @@
     "recommendation_en": "Disable GraphQL introspection in production or protect the endpoint.",
     "title_fr": "Endpoint GraphQL exposé",
     "title_en": "GraphQL endpoint exposed",
-    "references": ["https://graphql.org/learn/introspection/"]
+    "references": [
+      "https://graphql.org/learn/introspection/"
+    ]
   },
   "directory_listing-uploads": {
     "recommendation": "Désactiver le directory listing sur /uploads/. Configurer Options -Indexes (Apache) ou autoindex off (Nginx).",
@@ -621,21 +631,27 @@
     "recommendation_en": "Create an XML sitemap and declare it in robots.txt via Sitemap: <URL>.",
     "title_fr": "Sitemap non trouvé",
     "title_en": "Sitemap not found",
-    "references": ["https://www.sitemaps.org/"]
+    "references": [
+      "https://www.sitemaps.org/"
+    ]
   },
   "sitemap-undeclared": {
     "recommendation": "Ajouter la directive Sitemap: dans robots.txt pour indiquer l'emplacement du sitemap aux moteurs de recherche.",
     "recommendation_en": "Add the Sitemap: directive in robots.txt to indicate the sitemap location to search engines.",
     "title_fr": "Sitemap présent mais non déclaré dans robots.txt",
     "title_en": "Sitemap present but not declared in robots.txt",
-    "references": ["https://www.sitemaps.org/"]
+    "references": [
+      "https://www.sitemaps.org/"
+    ]
   },
   "sitemap-sensitive-url": {
     "recommendation": "Exclure les URLs sensibles (admin, api, config, etc.) du sitemap. Ces chemins ne doivent pas être proposés à l'indexation.",
     "recommendation_en": "Exclude sensitive URLs (admin, api, config, etc.) from the sitemap. These paths should not be offered for indexing.",
     "title_fr": "URL sensible exposée dans le sitemap",
     "title_en": "Sensitive URL exposed in sitemap",
-    "references": ["https://www.sitemaps.org/"]
+    "references": [
+      "https://www.sitemaps.org/"
+    ]
   },
   "tech_fingerprinting-connection-failed": {
     "recommendation": "Vérifier la connectivité. Impossible d'analyser les en-têtes.",
@@ -670,7 +686,9 @@
     "recommendation_en": "Update to the recommended minimum version or newer. Check known CVEs for this product.",
     "title_fr": "Version potentiellement vulnérable",
     "title_en": "Potentially vulnerable version",
-    "references": ["https://nvd.nist.gov/"]
+    "references": [
+      "https://nvd.nist.gov/"
+    ]
   },
   "tech_fingerprinting-stack-unknown": {
     "recommendation": "Information : stack non identifiée ou masquée. Pas d'action requise.",
@@ -688,35 +706,47 @@
     "recommendation_en": "Disable stack trace display in production. Configure the framework for generic error pages and log traces server-side only.",
     "title_fr": "Stack trace dans la réponse",
     "title_en": "Stack trace in response",
-    "references": ["https://owasp.org/www-community/Improper_Error_Handling", "https://cwe.mitre.org/data/definitions/209.html"]
+    "references": [
+      "https://owasp.org/www-community/Improper_Error_Handling",
+      "https://cwe.mitre.org/data/definitions/209.html"
+    ]
   },
   "info-disclosure-debug-mode": {
     "recommendation": "Désactiver explicitement le mode debug en production (DEBUG=False, NODE_ENV=production). Ne pas exposer de pages de diagnostic sur l'internet public.",
     "recommendation_en": "Explicitly disable debug mode in production (DEBUG=False, NODE_ENV=production). Do not expose diagnostic pages on the public internet.",
     "title_fr": "Mode debug exposé",
     "title_en": "Debug mode exposed",
-    "references": ["https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html"]
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html"
+    ]
   },
   "info-disclosure-secret": {
     "recommendation": "Ne jamais hardcoder de secrets dans le code ou les templates. Utiliser des variables d'environnement ou un secret manager. Révoquer immédiatement tout secret exposé.",
     "recommendation_en": "Never hardcode secrets in code or templates. Use environment variables or a secret manager. Revoke any exposed secret immediately.",
     "title_fr": "Secret potentiel dans la réponse",
     "title_en": "Potential secret in response",
-    "references": ["https://owasp.org/www-project-top-ten/2017/A3_2017-Sensitive_Data_Exposure", "https://cwe.mitre.org/data/definitions/798.html"]
+    "references": [
+      "https://owasp.org/www-project-top-ten/2017/A3_2017-Sensitive_Data_Exposure",
+      "https://cwe.mitre.org/data/definitions/798.html"
+    ]
   },
   "info-disclosure-debug-headers": {
     "recommendation": "Désactiver les outils de debug (Symfony Profiler, Xdebug, etc.) en production. Ne pas exposer les en-têtes X-Debug, X-Debug-Token, X-Runtime sur les sites publics.",
     "recommendation_en": "Disable debug tools (Symfony Profiler, Xdebug, etc.) in production. Do not expose X-Debug, X-Debug-Token, X-Runtime headers on public sites.",
     "title_fr": "En-têtes de débogage exposés",
     "title_en": "Debug headers exposed",
-    "references": ["https://cwe.mitre.org/data/definitions/489.html"]
+    "references": [
+      "https://cwe.mitre.org/data/definitions/489.html"
+    ]
   },
   "info-disclosure-server-version": {
     "recommendation": "Masquer ou simplifier l'en-tête Server (server_tokens off pour Nginx, ServerTokens Prod pour Apache). Ne pas exposer de version précise.",
     "recommendation_en": "Hide or simplify the Server header (server_tokens off for Nginx, ServerTokens Prod for Apache). Do not expose exact version.",
     "title_fr": "Version serveur exposée",
     "title_en": "Server version exposed",
-    "references": ["https://owasp.org/www-project-top-ten/2017/A6_2017-Security_Misconfiguration"]
+    "references": [
+      "https://owasp.org/www-project-top-ten/2017/A6_2017-Security_Misconfiguration"
+    ]
   },
   "info-disclosure-powered-by-version": {
     "recommendation": "Masquer ou supprimer l'en-tête X-Powered-By (ou ne pas exposer de version précise) pour limiter le fingerprinting et le ciblage d'exploits.",
@@ -737,7 +767,9 @@
     "recommendation_en": "Disable or hide custom headers that reveal the stack (X-Generator, X-Version, etc.) in production.",
     "title_fr": "En-tête custom révélant la stack",
     "title_en": "Custom header revealing stack",
-    "references": ["https://owasp.org/www-community/controls/Fingerprinting"]
+    "references": [
+      "https://owasp.org/www-community/controls/Fingerprinting"
+    ]
   },
   "info-disclosure-connection-failed": {
     "recommendation": "Vérifier que la réponse HTTPS est accessible pour permettre l'analyse des fuites d'information.",
@@ -751,7 +783,9 @@
     "recommendation_en": "Fix the identified information leak: do not expose sensitive data, stack traces or technical details in production.",
     "title_fr": "Fuite d'information",
     "title_en": "Information disclosure",
-    "references": ["https://cwe.mitre.org/data/definitions/200.html"]
+    "references": [
+      "https://cwe.mitre.org/data/definitions/200.html"
+    ]
   },
   "cors-connection-failed": {
     "recommendation": "Vérifier que la réponse HTTPS est accessible pour permettre l'analyse CORS et cross-origin.",
@@ -765,98 +799,127 @@
     "recommendation_en": "Restrict Access-Control-Allow-Origin to a whitelist of trusted origins. Never use * for sensitive endpoints (API, auth, user data).",
     "title_fr": "Access-Control-Allow-Origin: * sur endpoint sensible",
     "title_en": "Access-Control-Allow-Origin: * on sensitive endpoint",
-    "references": ["https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing", "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"]
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing",
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"
+    ]
   },
   "cors-credentials-origin-star": {
     "recommendation": "Avec Access-Control-Allow-Credentials: true, le serveur ne peut pas renvoyer Access-Control-Allow-Origin: *. Refléter l'origine uniquement si elle figure dans une liste blanche validée.",
     "recommendation_en": "With Access-Control-Allow-Credentials: true, the server cannot return Access-Control-Allow-Origin: *. Reflect the origin only if it is in a validated whitelist.",
     "title_fr": "Incohérence CORS (Credentials + Allow-Origin: *)",
     "title_en": "CORS inconsistency (Credentials + Allow-Origin: *)",
-    "references": ["https://portswigger.net/web-security/cors"]
+    "references": [
+      "https://portswigger.net/web-security/cors"
+    ]
   },
   "cors-credentials-origin-reflection": {
     "recommendation": "Valider strictement l'origine : n'accepter que les domaines de confiance dans une liste blanche. Ne jamais refléter l'origine sans validation.",
     "recommendation_en": "Strictly validate the origin: only accept trusted domains in a whitelist. Never reflect the origin without validation.",
     "title_fr": "Réflexion d'origine non validée (CORS)",
     "title_en": "Unvalidated origin reflection (CORS)",
-    "references": ["https://portswigger.net/web-security/cors"]
+    "references": [
+      "https://portswigger.net/web-security/cors"
+    ]
   },
   "cors-allow-methods-dangerous": {
     "recommendation": "N'autoriser en CORS que les méthodes réellement utilisées par l'API. Réviser régulièrement la liste Access-Control-Allow-Methods.",
     "recommendation_en": "Only allow CORS methods that are actually used by the API. Regularly review the Access-Control-Allow-Methods list.",
     "title_fr": "Méthodes CORS dangereuses exposées (PUT/DELETE/PATCH)",
     "title_en": "Dangerous CORS methods exposed (PUT/DELETE/PATCH)",
-    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods"]
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods"
+    ]
   },
   "cors-expose-headers-sensitive": {
     "recommendation": "Ne pas exposer d'en-têtes contenant des tokens ou des informations sensibles dans Access-Control-Expose-Headers.",
     "recommendation_en": "Do not expose headers containing tokens or sensitive information in Access-Control-Expose-Headers.",
     "title_fr": "En-tête sensible exposé (Access-Control-Expose-Headers)",
     "title_en": "Sensitive header exposed (Access-Control-Expose-Headers)",
-    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers"]
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers"
+    ]
   },
   "corp-missing": {
     "recommendation": "Utiliser Cross-Origin-Resource-Policy (same-origin ou same-site) pour les APIs sensibles ; cross-origin uniquement si nécessaire.",
     "recommendation_en": "Use Cross-Origin-Resource-Policy (same-origin or same-site) for sensitive APIs; cross-origin only if needed.",
     "title_fr": "Cross-Origin-Resource-Policy manquant",
     "title_en": "Cross-Origin-Resource-Policy missing",
-    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Resource-Policy"]
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Resource-Policy"
+    ]
   },
   "corp-missing-main": {
     "recommendation": "Ajouter Cross-Origin-Resource-Policy sur la page principale pour renforcer l'isolation (same-origin ou same-site selon le cas).",
     "recommendation_en": "Add Cross-Origin-Resource-Policy on the main page to strengthen isolation (same-origin or same-site as appropriate).",
     "title_fr": "Cross-Origin-Resource-Policy manquant (page principale)",
     "title_en": "Cross-Origin-Resource-Policy missing (main page)",
-    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Resource-Policy"]
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Resource-Policy"
+    ]
   },
   "mixed-content-http-on-https": {
     "recommendation": "Utiliser des URLs relatives ou HTTPS pour toutes les ressources (scripts, CSS, images). Configurer les redirections HTTP vers HTTPS côté CDN et serveurs.",
     "recommendation_en": "Use relative or HTTPS URLs for all resources (scripts, CSS, images). Configure HTTP to HTTPS redirects on CDN and servers.",
     "title_fr": "Mixed content (HTTP sur page HTTPS)",
     "title_en": "Mixed content (HTTP on HTTPS page)",
-    "references": ["https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content"]
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/Security/Mixed_content"
+    ]
   },
   "cors-generic": {
     "recommendation": "Consulter la documentation CORS et cross-origin (OWASP, MDN) pour corriger la configuration.",
     "recommendation_en": "Consult CORS and cross-origin documentation (OWASP, MDN) to fix the configuration.",
     "title_fr": "Problème CORS ou cross-origin",
     "title_en": "CORS or cross-origin issue",
-    "references": ["https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing"]
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/HTML5_Security_Cheat_Sheet.html#cross-origin-resource-sharing"
+    ]
   },
   "methodes-http-dangerous-methods": {
     "recommendation": "N'exposer que les méthodes HTTP réellement nécessaires. Protéger PUT/DELETE/PATCH par authentification et autorisation.",
     "recommendation_en": "Only expose HTTP methods that are actually needed. Protect PUT/DELETE/PATCH with authentication and authorization.",
     "title_fr": "Méthodes PUT/DELETE/PATCH exposées",
     "title_en": "PUT/DELETE/PATCH methods exposed",
-    "references": ["https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/03-Testing_for_HTTP_Verb_Tampering"]
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/03-Testing_for_HTTP_Verb_Tampering"
+    ]
   },
   "methodes-http-trace-enabled": {
     "recommendation": "Désactiver la méthode TRACE sur le serveur web (TraceEnable Off sur Apache, pas de support TRACE sur Nginx).",
     "recommendation_en": "Disable TRACE method on the web server (TraceEnable Off on Apache, no TRACE support on Nginx).",
     "title_fr": "TRACE activé (risque XST)",
     "title_en": "TRACE enabled (XST risk)",
-    "references": ["https://owasp.org/www-community/attacks/Cross_Site_Tracing"]
+    "references": [
+      "https://owasp.org/www-community/attacks/Cross_Site_Tracing"
+    ]
   },
   "methodes-http-head-unsupported": {
     "recommendation": "Implémenter la méthode HEAD pour permettre la validation de cache (ETag, Last-Modified) sans télécharger le corps.",
     "recommendation_en": "Implement HEAD method to allow cache validation (ETag, Last-Modified) without downloading the body.",
     "title_fr": "HEAD non supporté",
     "title_en": "HEAD not supported",
-    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/HEAD"]
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/HEAD"
+    ]
   },
   "methodes-http-redirect-chain-excessive": {
     "recommendation": "Simplifier la chaîne de redirections ; éviter les boucles ou les redirects inutiles.",
     "recommendation_en": "Simplify the redirect chain; avoid loops or unnecessary redirects.",
     "title_fr": "Chaîne de redirection excessive",
     "title_en": "Excessive redirect chain",
-    "references": ["https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html"]
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html"
+    ]
   },
   "methodes-http-redirect-301-302-form": {
     "recommendation": "Utiliser 307 ou 308 pour les redirections de formulaires afin de préserver la méthode HTTP (POST reste POST).",
     "recommendation_en": "Use 307 or 308 for form redirects to preserve the HTTP method (POST stays POST).",
     "title_fr": "Redirection 301/302 sur formulaire sensible",
     "title_en": "301/302 redirect on sensitive form",
-    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections"]
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections"
+    ]
   },
   "methodes-http-generic": {
     "recommendation": "Consulter la documentation sur les méthodes HTTP et les redirections.",
@@ -880,14 +943,18 @@
     "recommendation_en": "Deploy a strict Content-Security-Policy (CSP) to control script execution and strengthen XSS protection.",
     "title_fr": "CSP absente : tests avancés non appliqués",
     "title_en": "CSP missing: advanced checks not applied",
-    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP"]
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP"
+    ]
   },
   "integrity-script-inline-no-nonce": {
     "recommendation": "Éviter les scripts inline ou leur associer un nonce/hash cohérent avec la CSP (`script-src 'nonce-xxx'` ou `script-src 'sha256-...'`). Supprimer l'usage de `unsafe-inline`.",
     "recommendation_en": "Avoid inline scripts or associate them with a nonce/hash consistent with CSP (`script-src 'nonce-xxx'` or `script-src 'sha256-...'`). Remove the use of `unsafe-inline`.",
     "title_fr": "Scripts inline sans nonce avec CSP",
     "title_en": "Inline scripts without nonce with CSP",
-    "references": ["https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#nonce"]
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#nonce"
+    ]
   },
   "integrity-form-password-autocomplete": {
     "recommendation": "Configurer l'attribut autocomplete sur les champs password (`current-password`, `new-password` ou `off`) en fonction du contexte (login, changement de mot de passe, etc.).",
@@ -914,14 +981,18 @@
     "recommendation_en": "Add a `robots` meta tag with `noindex` on sensitive pages (login, admin, API) that should not appear in search engines.",
     "title_fr": "Meta robots absente sur page sensible",
     "title_en": "robots meta missing on sensitive page",
-    "references": ["https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag"]
+    "references": [
+      "https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag"
+    ]
   },
   "integrity-meta-robots-no-noindex": {
     "recommendation": "Compléter la meta `robots` existante avec la directive `noindex` sur les pages sensibles lorsque l'indexation n'est pas souhaitée.",
     "recommendation_en": "Extend the existing `robots` meta tag with the `noindex` directive on sensitive pages when indexing is not desired.",
     "title_fr": "Meta robots sans noindex sur page sensible",
     "title_en": "robots meta without noindex on sensitive page",
-    "references": ["https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag"]
+    "references": [
+      "https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag"
+    ]
   },
   "integrity-connection-failed": {
     "recommendation": "Vérifier que la page principale est accessible en HTTPS et que son contenu HTML peut être chargé pour permettre les vérifications d'intégrité.",
@@ -935,6 +1006,531 @@
     "recommendation_en": "Review the frontend configuration (HTML, scripts, forms, links) to fix the identified integrity and subresource issues.",
     "title_fr": "Problème d'intégrité ou de sous-ressources",
     "title_en": "Integrity or subresources issue",
+    "references": []
+  },
+  "intrusive-open-redirect": {
+    "recommendation": "Valider et restreindre les paramètres de redirection à une liste blanche de domaines autorisés. Ne jamais utiliser directement une valeur fournie par l'utilisateur comme URL de redirection.",
+    "recommendation_en": "Validate and restrict redirect parameters to a whitelist of allowed domains. Never use user-supplied values directly as redirect URLs.",
+    "title_fr": "Open Redirect",
+    "title_en": "Open Redirect",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html",
+      "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/04-Testing_for_Client-side_URL_Redirect"
+    ]
+  },
+  "intrusive-trace-enabled": {
+    "recommendation": "Désactiver la méthode HTTP TRACE sur le serveur web (prévenez les attaques XST). Apache : TraceEnable Off. Nginx : aucun support natif, filtrer via ModSecurity.",
+    "recommendation_en": "Disable the HTTP TRACE method on the web server to prevent XST attacks. Apache: TraceEnable Off. Nginx: no native support, filter via ModSecurity.",
+    "title_fr": "Méthode TRACE activée (XST)",
+    "title_en": "TRACE method enabled (XST)",
+    "references": [
+      "https://owasp.org/www-community/attacks/Cross_Site_Tracing"
+    ]
+  },
+  "intrusive-dangerous-methods-allowed": {
+    "recommendation": "Désactiver les méthodes HTTP inutilisées (PUT, DELETE, CONNECT) via la configuration du serveur web ou du reverse proxy.",
+    "recommendation_en": "Disable unused HTTP methods (PUT, DELETE, CONNECT) via web server or reverse proxy configuration.",
+    "title_fr": "Méthodes HTTP dangereuses autorisées",
+    "title_en": "Dangerous HTTP methods allowed",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/06-Test_HTTP_Methods"
+    ]
+  },
+  "intrusive-cors-reflection-with-credentials": {
+    "recommendation": "Ne jamais combiner Access-Control-Allow-Credentials: true avec une réflexion dynamique de l'Origin. Utiliser une liste blanche d'origines autorisées.",
+    "recommendation_en": "Never combine Access-Control-Allow-Credentials: true with dynamic Origin reflection. Use an explicit allowlist of trusted origins.",
+    "title_fr": "CORS : réflexion d'origine + credentials autorisés",
+    "title_en": "CORS: origin reflection with credentials",
+    "references": [
+      "https://portswigger.net/web-security/cors",
+      "https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html#access-control-allow-origin"
+    ]
+  },
+  "intrusive-cors-reflection-no-credentials": {
+    "recommendation": "Utiliser une liste blanche statique d'origines autorisées plutôt que de refléter l'Origin de la requête.",
+    "recommendation_en": "Use a static whitelist of allowed origins rather than reflecting the request Origin.",
+    "title_fr": "CORS : réflexion d'origine arbitraire",
+    "title_en": "CORS: arbitrary origin reflection",
+    "references": [
+      "https://portswigger.net/web-security/cors"
+    ]
+  },
+  "intrusive-cors-wildcard": {
+    "recommendation": "Remplacer le wildcard '*' par une liste blanche d'origines autorisées si des données sensibles sont exposées.",
+    "recommendation_en": "Replace the '*' wildcard with a whitelist of allowed origins if sensitive data is exposed.",
+    "title_fr": "CORS : wildcard Access-Control-Allow-Origin",
+    "title_en": "CORS: wildcard Access-Control-Allow-Origin",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"
+    ]
+  },
+  "intrusive-reflected-param-in-script": {
+    "recommendation": "Encoder toutes les données utilisateur avant insertion dans le DOM. Utiliser une CSP stricte et des fonctions d'échappement adaptées au contexte (HTML, JS, attributs).",
+    "recommendation_en": "Encode all user data before DOM insertion. Use a strict CSP and context-appropriate escaping functions (HTML, JS, attributes).",
+    "title_fr": "XSS réfléchi — paramètre dans contexte script",
+    "title_en": "Reflected XSS — parameter in script context",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-reflected-param-in-attr": {
+    "recommendation": "Encoder les valeurs utilisateur insérées dans les attributs HTML (utiliser htmlspecialchars, DOMParser, etc.).",
+    "recommendation_en": "Encode user-supplied values inserted into HTML attributes.",
+    "title_fr": "XSS réfléchi — paramètre dans attribut HTML",
+    "title_en": "Reflected XSS — parameter in HTML attribute",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-reflected-param-in-text": {
+    "recommendation": "Encoder les données utilisateur insérées dans le texte HTML (htmlspecialchars ou équivalent).",
+    "recommendation_en": "Encode user-supplied data inserted into HTML text nodes.",
+    "title_fr": "XSS réfléchi — paramètre dans texte HTML",
+    "title_en": "Reflected XSS — parameter in HTML text",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-reflected-param": {
+    "recommendation": "Encoder toutes les données utilisateur avant insertion dans les réponses HTML.",
+    "recommendation_en": "Encode all user-supplied data before inserting into HTML responses.",
+    "title_fr": "Paramètre réfléchi non encodé",
+    "title_en": "Unencoded reflected parameter",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-sqli-error-based": {
+    "recommendation": "Utiliser des requêtes paramétrées (prepared statements) ou un ORM. Ne jamais concaténer des entrées utilisateur dans des requêtes SQL.",
+    "recommendation_en": "Use parameterized queries (prepared statements) or an ORM. Never concatenate user input into SQL queries.",
+    "title_fr": "Injection SQL (error-based)",
+    "title_en": "SQL Injection (error-based)",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-sqli-time-based": {
+    "recommendation": "Utiliser des requêtes paramétrées. Implémenter des timeouts applicatifs et surveiller les requêtes lentes.",
+    "recommendation_en": "Use parameterized queries. Implement application-level timeouts and monitor slow queries.",
+    "title_fr": "Injection SQL suspectée (time-based)",
+    "title_en": "SQL Injection suspected (time-based)",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-path-traversal": {
+    "recommendation": "Valider et normaliser tous les chemins de fichiers. Utiliser des chemins absolus résolus et refuser tout accès en dehors du répertoire autorisé.",
+    "recommendation_en": "Validate and normalize all file paths. Use resolved absolute paths and deny access outside the allowed directory.",
+    "title_fr": "Path traversal",
+    "title_en": "Path traversal",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html",
+      "https://owasp.org/www-community/attacks/Path_Traversal"
+    ]
+  },
+  "intrusive-csrf-token-not-enforced": {
+    "recommendation": "Implémenter un token CSRF dans tous les formulaires POST et le valider côté serveur. Utiliser SameSite=Strict ou Lax sur les cookies de session.",
+    "recommendation_en": "Implement a CSRF token in all POST forms and validate it server-side. Set SameSite=Strict or Lax on session cookies.",
+    "title_fr": "CSRF : token non enforced",
+    "title_en": "CSRF: token not enforced",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-csrf-samesite-absent": {
+    "recommendation": "Ajouter l'attribut SameSite=Lax ou SameSite=Strict sur les cookies de session.",
+    "recommendation_en": "Add SameSite=Lax or SameSite=Strict to session cookies.",
+    "title_fr": "CSRF : attribut SameSite absent",
+    "title_en": "CSRF: SameSite attribute missing",
+    "references": [
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite"
+    ]
+  },
+  "intrusive-idor-sequential-id": {
+    "recommendation": "Vérifier l'autorisation de l'utilisateur pour chaque ressource (contrôle d'accès au niveau des objets). Utiliser des UUIDs au lieu d'IDs séquentiels.",
+    "recommendation_en": "Verify user authorization for each resource (object-level access control). Use UUIDs instead of sequential IDs.",
+    "title_fr": "IDOR : accès par ID séquentiel",
+    "title_en": "IDOR: sequential ID access",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-idor-admin-route-exposed": {
+    "recommendation": "Protéger toutes les routes d'administration par une vérification de rôle côté serveur. Ne pas se fier uniquement à l'obscurité des URLs.",
+    "recommendation_en": "Protect all admin routes with server-side role verification. Do not rely solely on URL obscurity.",
+    "title_fr": "Route admin exposée sans authentification",
+    "title_en": "Admin route exposed without authentication",
+    "references": [
+      "https://owasp.org/www-project-top-ten/2017/A05_2017-Broken_Access_Control"
+    ]
+  },
+  "intrusive-idor-privilege-escalation": {
+    "recommendation": "Implémenter un contrôle d'accès basé sur les rôles (RBAC) côté serveur. Vérifier les permissions pour chaque action sensible.",
+    "recommendation_en": "Implement server-side role-based access control (RBAC). Verify permissions for every sensitive action.",
+    "title_fr": "IDOR : escalade de privilèges",
+    "title_en": "IDOR: privilege escalation",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-command-injection": {
+    "recommendation": "Éviter l'utilisation de fonctions d'exécution de commandes shell avec des entrées utilisateur. Utiliser des APIs système ou des libraries sûres.",
+    "recommendation_en": "Avoid using shell command execution functions with user input. Use system APIs or safe libraries.",
+    "title_fr": "Injection de commande système",
+    "title_en": "OS Command injection",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/OS_Command_Injection_Defense_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-nosqli-operator-injection": {
+    "recommendation": "Valider et typer strictement les entrées utilisateur. Ne jamais passer des objets JSON directement dans les requêtes MongoDB sans validation de schéma.",
+    "recommendation_en": "Strictly validate and type user input. Never pass raw JSON objects directly into MongoDB queries without schema validation.",
+    "title_fr": "Injection NoSQL (opérateur MongoDB)",
+    "title_en": "NoSQL Injection (MongoDB operator)",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/05.6-Testing_for_NoSQL_Injection"
+    ]
+  },
+  "intrusive-nosqli-auth-bypass": {
+    "recommendation": "Valider le type et la structure des entrées d'authentification. Utiliser un schéma strict pour les credentials.",
+    "recommendation_en": "Validate the type and structure of authentication inputs. Use a strict schema for credentials.",
+    "title_fr": "Injection NoSQL : bypass d'authentification",
+    "title_en": "NoSQL Injection: authentication bypass",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/05.6-Testing_for_NoSQL_Injection"
+    ]
+  },
+  "intrusive-no-rate-limiting": {
+    "recommendation": "Implémenter un rate limiting sur tous les endpoints exposés (ex: nginx limit_req, API Gateway throttling, middleware applicatif).",
+    "recommendation_en": "Implement rate limiting on all exposed endpoints (e.g., nginx limit_req, API Gateway throttling, application middleware).",
+    "title_fr": "Absence de rate limiting",
+    "title_en": "No rate limiting",
+    "references": [
+      "https://owasp.org/www-project-top-ten/2021/A05_2021-Security_Misconfiguration"
+    ]
+  },
+  "intrusive-auth-no-lockout": {
+    "recommendation": "Implémenter un lockout progressif (CAPTCHA, délai exponentiel, blocage temporaire) après N tentatives échouées.",
+    "recommendation_en": "Implement progressive lockout (CAPTCHA, exponential delay, temporary block) after N failed attempts.",
+    "title_fr": "Absence de protection bruteforce",
+    "title_en": "No bruteforce protection",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#account-lockout"
+    ]
+  },
+  "intrusive-session-not-invalidated": {
+    "recommendation": "Invalider la session côté serveur lors du logout. Révoquer les tokens JWT et cookies de session.",
+    "recommendation_en": "Invalidate the session server-side on logout. Revoke JWT tokens and session cookies.",
+    "title_fr": "Session non invalidée après logout",
+    "title_en": "Session not invalidated after logout",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-jwt-no-expiration": {
+    "recommendation": "Ajouter un claim 'exp' à tous les JWT. Utiliser des durées courtes et implémenter un mécanisme de refresh token.",
+    "recommendation_en": "Add an 'exp' claim to all JWTs. Use short durations and implement a refresh token mechanism.",
+    "title_fr": "JWT sans expiration",
+    "title_en": "JWT without expiration",
+    "references": [
+      "https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4",
+      "https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-upload-file-accessible": {
+    "recommendation": "Stocker les fichiers uploadés hors du répertoire web. Vérifier le type MIME côté serveur et générer un nom aléatoire.",
+    "recommendation_en": "Store uploaded files outside the web root. Verify the MIME type server-side and generate a random filename.",
+    "title_fr": "Fichier uploadé accessible directement",
+    "title_en": "Uploaded file directly accessible",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-mass-assignment": {
+    "recommendation": "Utiliser une liste blanche (whitelist) des champs acceptés dans les endpoints REST. Filtrer les champs sensibles avant de les persister.",
+    "recommendation_en": "Use an explicit whitelist of accepted fields in REST endpoints. Filter sensitive fields before persisting.",
+    "title_fr": "Mass assignment",
+    "title_en": "Mass assignment",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Mass_Assignment_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-graphql-introspection-enabled": {
+    "recommendation": "Désactiver l'introspection GraphQL en production. Si nécessaire, restreindre à des IPs de confiance.",
+    "recommendation_en": "Disable GraphQL introspection in production. If necessary, restrict to trusted IPs.",
+    "title_fr": "GraphQL : introspection activée",
+    "title_en": "GraphQL: introspection enabled",
+    "references": [
+      "https://owasp.org/www-project-graphql-security/"
+    ]
+  },
+  "intrusive-graphql-depth-abuse": {
+    "recommendation": "Implémenter une limite de profondeur et de complexité sur les requêtes GraphQL.",
+    "recommendation_en": "Implement depth and complexity limits on GraphQL queries.",
+    "title_fr": "GraphQL : requête profonde sans limite",
+    "title_en": "GraphQL: deep query without limit",
+    "references": [
+      "https://owasp.org/www-project-graphql-security/"
+    ]
+  },
+  "intrusive-graphql-subscription-no-auth": {
+    "recommendation": "Authentifier et autoriser les souscriptions GraphQL comme les requêtes classiques.",
+    "recommendation_en": "Authenticate and authorize GraphQL subscriptions like regular queries.",
+    "title_fr": "GraphQL : souscription sans authentification",
+    "title_en": "GraphQL: subscription without authentication",
+    "references": [
+      "https://owasp.org/www-project-graphql-security/"
+    ]
+  },
+  "intrusive-api-schema-no-validation": {
+    "recommendation": "Valider strictement les types et structures d'entrée (ex: JSON Schema validation, Pydantic, Joi).",
+    "recommendation_en": "Strictly validate input types and structures (e.g., JSON Schema validation, Pydantic, Joi).",
+    "title_fr": "API : absence de validation du schéma",
+    "title_en": "API: missing schema validation",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-api-schema-unlimited-list": {
+    "recommendation": "Implémenter une pagination côté serveur avec un maximum de résultats par page (ex: max 100).",
+    "recommendation_en": "Implement server-side pagination with a maximum results per page (e.g., max 100).",
+    "title_fr": "API : liste illimitée",
+    "title_en": "API: unlimited list",
+    "references": [
+      "https://owasp.org/www-project-api-security/"
+    ]
+  },
+  "intrusive-ssrf-inband": {
+    "recommendation": "Valider et restreindre les URLs fournis par l'utilisateur. Bloquer les requêtes vers les plages IP internes et les services de metadata cloud.",
+    "recommendation_en": "Validate and restrict user-supplied URLs. Block requests to internal IP ranges and cloud metadata services.",
+    "title_fr": "SSRF détectée (in-band)",
+    "title_en": "SSRF detected (in-band)",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-xxe-inband": {
+    "recommendation": "Désactiver le traitement des entités externes dans le parseur XML (DTD disabled). Utiliser des parseurs XML sécurisés.",
+    "recommendation_en": "Disable external entity processing in the XML parser (DTD disabled). Use secure XML parsers.",
+    "title_fr": "XXE détectée (in-band)",
+    "title_en": "XXE detected (in-band)",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-ssti": {
+    "recommendation": "Ne jamais passer des données utilisateur directement dans des templates. Utiliser les fonctions d'échappement du moteur de template.",
+    "recommendation_en": "Never pass user data directly into templates. Use the template engine's escaping functions.",
+    "title_fr": "SSTI — injection de template côté serveur",
+    "title_en": "SSTI — server-side template injection",
+    "references": [
+      "https://portswigger.net/research/server-side-template-injection"
+    ]
+  },
+  "intrusive-ssti-error": {
+    "recommendation": "Masquer les erreurs de template en production. Ne jamais exposer les traces de stack ou les messages d'erreur internes.",
+    "recommendation_en": "Hide template errors in production. Never expose stack traces or internal error messages.",
+    "title_fr": "SSTI — erreur de moteur de template révélée",
+    "title_en": "SSTI — template engine error exposed",
+    "references": [
+      "https://portswigger.net/research/server-side-template-injection"
+    ]
+  },
+  "intrusive-insecure-deserialization": {
+    "recommendation": "Ne pas désérialiser des données provenant de sources non fiables. Utiliser des formats de sérialisation sûrs (JSON, protobuf) et valider le contenu.",
+    "recommendation_en": "Do not deserialize data from untrusted sources. Use safe serialization formats (JSON, protobuf) and validate content.",
+    "title_fr": "Désérialisation non sécurisée",
+    "title_en": "Insecure deserialization",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Deserialization_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-lfi": {
+    "recommendation": "Valider et normaliser les chemins de fichiers. Refuser toute séquence de traversal (../) et restreindre aux chemins absolus autorisés.",
+    "recommendation_en": "Validate and normalize file paths. Reject any traversal sequences (../) and restrict to allowed absolute paths.",
+    "title_fr": "LFI — inclusion de fichier local",
+    "title_en": "LFI — local file inclusion",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/11.1-Testing_for_Local_File_Inclusion"
+    ]
+  },
+  "intrusive-lfi-php-wrapper": {
+    "recommendation": "Désactiver les wrappers PHP (php://filter, php://input) si non nécessaires. Valider les paramètres de fichier.",
+    "recommendation_en": "Disable PHP wrappers (php://filter, php://input) if not needed. Validate file parameters.",
+    "title_fr": "LFI via PHP filter — source PHP exposée",
+    "title_en": "LFI via PHP filter — PHP source exposed",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/11.1-Testing_for_Local_File_Inclusion"
+    ]
+  },
+  "intrusive-host-header-injection": {
+    "recommendation": "Configurer une liste blanche de valeurs Host autorisées. Utiliser des URLs absolus dans les emails/réinitialisations de mot de passe.",
+    "recommendation_en": "Configure a whitelist of allowed Host values. Use absolute URLs in emails/password resets.",
+    "title_fr": "Host Header Injection",
+    "title_en": "Host Header Injection",
+    "references": [
+      "https://portswigger.net/web-security/host-header"
+    ]
+  },
+  "intrusive-cache-poisoning": {
+    "recommendation": "Configurer le cache pour ignorer les headers non standards (X-Forwarded-Host). Utiliser Vary: Origin si CORS est activé.",
+    "recommendation_en": "Configure the cache to ignore non-standard headers (X-Forwarded-Host). Use Vary: Origin if CORS is enabled.",
+    "title_fr": "Cache poisoning",
+    "title_en": "Cache poisoning",
+    "references": [
+      "https://portswigger.net/research/practical-web-cache-poisoning"
+    ]
+  },
+  "intrusive-web-cache-deception": {
+    "recommendation": "Configurer le cache pour ne pas mettre en cache les réponses authentifiées. Vérifier les règles de cache selon le type de contenu.",
+    "recommendation_en": "Configure the cache not to cache authenticated responses. Verify cache rules based on content type.",
+    "title_fr": "Web Cache Deception",
+    "title_en": "Web Cache Deception",
+    "references": [
+      "https://portswigger.net/web-security/web-cache-deception"
+    ]
+  },
+  "intrusive-request-smuggling": {
+    "recommendation": "Normaliser le traitement des headers Content-Length et Transfer-Encoding sur tous les proxies et serveurs. Utiliser HTTP/2 de bout en bout.",
+    "recommendation_en": "Normalize handling of Content-Length and Transfer-Encoding headers across all proxies and servers. Use end-to-end HTTP/2.",
+    "title_fr": "HTTP Request Smuggling",
+    "title_en": "HTTP Request Smuggling",
+    "references": [
+      "https://portswigger.net/web-security/request-smuggling"
+    ]
+  },
+  "intrusive-race-condition": {
+    "recommendation": "Utiliser des verrous (mutex) ou des transactions atomiques sur les opérations sensibles. Implémenter l'idempotence via des clés d'idempotence.",
+    "recommendation_en": "Use locks (mutex) or atomic transactions on sensitive operations. Implement idempotency via idempotency keys.",
+    "title_fr": "Race condition",
+    "title_en": "Race condition",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/10-Business_Logic_Testing/09-Test_Upload_of_Malicious_Files"
+    ]
+  },
+  "intrusive-business-logic-negative-amount": {
+    "recommendation": "Valider les contraintes métier côté serveur : montants > 0, quantités positives, états valides.",
+    "recommendation_en": "Validate business constraints server-side: amounts > 0, positive quantities, valid states.",
+    "title_fr": "Business Logic : montant négatif accepté",
+    "title_en": "Business Logic: negative amount accepted",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/10-Business_Logic_Testing/"
+    ]
+  },
+  "intrusive-business-logic-state-manipulation": {
+    "recommendation": "Implémenter une machine à états côté serveur. Vérifier les transitions d'état autorisées pour chaque ressource.",
+    "recommendation_en": "Implement a server-side state machine. Verify allowed state transitions for each resource.",
+    "title_fr": "Business Logic : manipulation d'état",
+    "title_en": "Business Logic: state manipulation",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/10-Business_Logic_Testing/"
+    ]
+  },
+  "intrusive-websocket-no-auth": {
+    "recommendation": "Authentifier les connexions WebSocket lors du handshake HTTP. Vérifier les tokens/cookies avant d'autoriser le upgrade.",
+    "recommendation_en": "Authenticate WebSocket connections during the HTTP handshake. Verify tokens/cookies before allowing the upgrade.",
+    "title_fr": "WebSocket : upgrade sans authentification",
+    "title_en": "WebSocket: upgrade without authentication",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/11-Client-side_Testing/10-Testing_WebSockets"
+    ]
+  },
+  "intrusive-oauth-open-redirect-uri": {
+    "recommendation": "Valider le paramètre redirect_uri contre une liste blanche d'URLs enregistrées lors de l'enregistrement du client OAuth.",
+    "recommendation_en": "Validate the redirect_uri parameter against a whitelist of registered URLs during OAuth client registration.",
+    "title_fr": "OAuth : redirect_uri non validé",
+    "title_en": "OAuth: unvalidated redirect_uri",
+    "references": [
+      "https://datatracker.ietf.org/doc/html/rfc6749#section-10.6",
+      "https://portswigger.net/web-security/oauth"
+    ]
+  },
+  "intrusive-oauth-missing-state": {
+    "recommendation": "Inclure un paramètre state aléatoire et non prévisible dans toutes les requêtes d'autorisation OAuth.",
+    "recommendation_en": "Include a random, unpredictable state parameter in all OAuth authorization requests.",
+    "title_fr": "OAuth : paramètre state absent",
+    "title_en": "OAuth: missing state parameter",
+    "references": [
+      "https://datatracker.ietf.org/doc/html/rfc6749#section-10.12"
+    ]
+  },
+  "intrusive-grpc-reflection-exposed": {
+    "recommendation": "Désactiver gRPC Server Reflection en production ou restreindre l'accès à des IPs de confiance.",
+    "recommendation_en": "Disable gRPC Server Reflection in production or restrict access to trusted IPs.",
+    "title_fr": "gRPC Reflection exposé",
+    "title_en": "gRPC Reflection exposed",
+    "references": [
+      "https://grpc.io/docs/guides/reflection/"
+    ]
+  },
+  "intrusive-object-storage-public-listing": {
+    "recommendation": "Désactiver le listing public des buckets S3/GCS/Azure Blob. Utiliser des ACLs restrictives et des presigned URLs.",
+    "recommendation_en": "Disable public listing of S3/GCS/Azure Blob buckets. Use restrictive ACLs and presigned URLs.",
+    "title_fr": "Bucket cloud : listing public activé",
+    "title_en": "Cloud bucket: public listing enabled",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Secure_Cloud_Architecture_Cheat_Sheet.html"
+    ]
+  },
+  "intrusive-internal-endpoint-exposed": {
+    "recommendation": "Désactiver ou protéger les endpoints internes (actuator, debug, health) avec une authentification. Utiliser un réseau isolé pour les services internes.",
+    "recommendation_en": "Disable or protect internal endpoints (actuator, debug, health) with authentication. Use an isolated network for internal services.",
+    "title_fr": "Endpoint interne exposé",
+    "title_en": "Internal endpoint exposed",
+    "references": [
+      "https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html#actuator.security"
+    ]
+  },
+  "intrusive-dos-no-rate-limit-aggressive": {
+    "recommendation": "Implémenter un rate limiting agressif, des circuit breakers et des timeouts applicatifs.",
+    "recommendation_en": "Implement aggressive rate limiting, circuit breakers, and application timeouts.",
+    "title_fr": "DoS P4 : absence de rate limiting sous burst agressif",
+    "title_en": "DoS P4: no rate limiting under aggressive burst",
+    "references": [
+      "https://owasp.org/www-project-top-ten/2021/A05_2021-Security_Misconfiguration"
+    ]
+  },
+  "intrusive-http2-no-stream-limit": {
+    "recommendation": "Configurer les limites de streams HTTP/2 sur le serveur (SETTINGS_MAX_CONCURRENT_STREAMS).",
+    "recommendation_en": "Configure HTTP/2 stream limits on the server (SETTINGS_MAX_CONCURRENT_STREAMS).",
+    "title_fr": "HTTP/2 : aucune limite de streams parallèles",
+    "title_en": "HTTP/2: no parallel stream limit",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc7540#section-6.5.2"
+    ]
+  },
+  "intrusive-unicode-auth-bypass": {
+    "recommendation": "Normaliser les chemins URL (NFC/NFKC) avant de les comparer aux règles d'autorisation.",
+    "recommendation_en": "Normalize URL paths (NFC/NFKC) before comparing them against authorization rules.",
+    "title_fr": "Unicode confusion — bypass d'autorisation",
+    "title_en": "Unicode confusion — authorization bypass",
+    "references": [
+      "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/12-Testing_for_HTTP_Splitting_Smuggling"
+    ]
+  },
+  "intrusive-dns-rebinding-host-not-validated": {
+    "recommendation": "Valider le header Host contre une liste blanche d'hôtes autorisés.",
+    "recommendation_en": "Validate the Host header against a whitelist of allowed hosts.",
+    "title_fr": "DNS Rebinding : Host non validé",
+    "title_en": "DNS Rebinding: Host not validated",
+    "references": [
+      "https://portswigger.net/web-security/host-header"
+    ]
+  },
+  "intrusive-parser-differential-path-confusion": {
+    "recommendation": "Normaliser les chemins URL avant de les router. Utiliser des proxies configurés de façon cohérente.",
+    "recommendation_en": "Normalize URL paths before routing. Use consistently configured proxies.",
+    "title_fr": "Parser differential : confusion de chemin",
+    "title_en": "Parser differential: path confusion",
+    "references": [
+      "https://portswigger.net/web-security/request-smuggling/advanced"
+    ]
+  },
+  "intrusive-destructive-disabled": {
+    "recommendation": "Le mode destructif est désactivé par configuration. Activez DESTRUCTIVE_MODE_ENABLED=true et fournissez opt_in=True pour l'utiliser.",
+    "recommendation_en": "Destructive mode is disabled by configuration. Set DESTRUCTIVE_MODE_ENABLED=true and provide opt_in=True to use it.",
+    "title_fr": "Mode destructif désactivé",
+    "title_en": "Destructive mode disabled",
     "references": []
   }
 }

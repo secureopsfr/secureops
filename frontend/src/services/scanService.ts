@@ -52,6 +52,12 @@ export interface CategorySummary {
   anomaly_count: number;
   /** Nombre de tests effectués dans cette catégorie (calculé par le backend). */
   checks_count?: number;
+  /**
+   * Catégories granulaires regroupées dans cette macro-catégorie.
+   * Présent uniquement pour les scans intrusifs où les findings gardent leur catégorie
+   * fine (ex. "sql_injection") mais les summaries sont regroupées en macro-groupes.
+   */
+  granular_categories?: string[];
   /** Posture TLS (catégorie tls uniquement) : ok, warning, critical. */
   tls_posture?: "ok" | "warning" | "critical";
   /** Version TLS négociée (catégorie tls uniquement), ex. "TLS 1.2", "TLS 1.3". */
@@ -128,6 +134,14 @@ export type ScanEventHandler =
 export type AsyncScanType = "frontend" | "backend";
 export type AsyncScanMode = "passive" | "intrusive" | "destructive" | "custom";
 
+/** Credentials de l'application cible (pour les scans intrusifs). */
+export interface ScanCredentials {
+  /** Valeur du header Cookie, ex. "session=abc; csrftoken=xyz". */
+  cookie?: string;
+  /** Token Bearer, ex. "eyJhbGci...". */
+  bearer_token?: string;
+}
+
 interface AsyncScanCreateResponse {
   job_id: string;
   status: string;
@@ -169,6 +183,7 @@ export async function runAsyncScan(
     scanMode?: AsyncScanMode;
     input?: Record<string, unknown>;
     logPrefix?: string;
+    credentials?: ScanCredentials;
   },
   getToken?: () => Promise<string | null>,
 ): Promise<void> {
@@ -202,6 +217,7 @@ export async function runAsyncScan(
           scan_type: options.scanType,
           scan_mode: options.scanMode ?? "passive",
           input: options.input ?? {},
+          ...(options.credentials ? { credentials: options.credentials } : {}),
         }),
       });
       if (!res.ok) {
@@ -265,7 +281,11 @@ export async function runMultiScan(
   urls: string[],
   onEvent: (ev: MultiScanEventHandler) => void,
   getToken: () => Promise<string | null>,
-  options?: { scanType?: AsyncScanType; scanMode?: AsyncScanMode },
+  options?: {
+    scanType?: AsyncScanType;
+    scanMode?: AsyncScanMode;
+    credentials?: ScanCredentials;
+  },
 ): Promise<void> {
   const logPrefix = "[multi-scan-polling]";
   const base = getApiBaseUrl().replace(/\/$/, "");
@@ -303,6 +323,7 @@ export async function runMultiScan(
           urls,
           scan_type: options?.scanType ?? "frontend",
           scan_mode: options?.scanMode ?? "passive",
+          ...(options?.credentials ? { credentials: options.credentials } : {}),
         }),
       });
       if (!res.ok) {

@@ -4,7 +4,7 @@ from html import escape
 from urllib.parse import urlparse
 
 from app.catalogue.category_summaries import get_checks_count
-from app.config.pdf import get_category_labels, get_pdf_settings
+from app.config.pdf import get_category_config, get_category_labels
 from app.schemas.finding import Finding
 from app.services.pdf_report.pdf_i18n import t
 
@@ -215,6 +215,7 @@ def build_synthese(
     base_url: str = "",
     result_mode: str | None = None,
     page_results: list[dict] | None = None,
+    scan_mode: str = "passive",
 ) -> str:
     """Construit le HTML de la section Synthèse."""
     synthese_label = t("synthese", lang)
@@ -229,9 +230,9 @@ def build_synthese(
     anomalies_label = t("anomalies_detected", lang)
     anomaly_label = t("anomaly_detected", lang)
 
-    settings = get_pdf_settings()
-    checked_cats = settings.categories.checked
-    category_labels = get_category_labels(lang)
+    cat_config = get_category_config(scan_mode)
+    checked_cats = cat_config.checked
+    category_labels = get_category_labels(lang, scan_mode=scan_mode)
 
     synthese_rows = _build_single_summary_rows(
         by_category=by_category,

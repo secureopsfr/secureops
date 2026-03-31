@@ -5,9 +5,19 @@ _PDF_STRINGS: dict[str, dict[str, str]] = {
     "cover_url_label": {"fr": "URL scannée", "en": "Scanned URL"},
     "cover_date_label": {"fr": "Date", "en": "Date"},
     "report_title": {"fr": "Rapport de scan de posture sécurité", "en": "Security Posture Scan Report"},
+    "report_title_intrusive": {"fr": "Rapport de scan intrusif", "en": "Intrusive Security Scan Report"},
+    "report_title_custom": {"fr": "Rapport de scan personnalisé", "en": "Custom Security Scan Report"},
     "subtitle": {
         "fr": "Analyse non intrusive — TLS, headers, cookies, exposition",
         "en": "Non-intrusive analysis — TLS, headers, cookies, exposure",
+    },
+    "subtitle_intrusive": {
+        "fr": "Analyse intrusive — Injections, contrôle d'accès, authentification, API",
+        "en": "Intrusive analysis — Injections, access control, authentication, APIs",
+    },
+    "subtitle_custom": {
+        "fr": "Analyse personnalisée — Scénario défini par l'utilisateur",
+        "en": "Custom analysis — User-defined scenario",
     },
     "page_title": {"fr": "Rapport de scan", "en": "Scan report"},
     "disclaimer": {

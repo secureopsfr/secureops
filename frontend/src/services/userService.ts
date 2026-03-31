@@ -3,6 +3,7 @@
  * Adapté pour Next.js TypeScript
  */
 
+import { fetchAuthSession } from "aws-amplify/auth";
 import { fetchWithAuth, getApiBaseUrl } from "../utils/apiClient";
 import { showErrorToast } from "../utils/toastNotifications";
 import { log, error } from "../utils/logger";
@@ -114,9 +115,23 @@ class UserService {
 
     this._initUserPromise = (async () => {
       try {
+        // Extract email from the ID token (access token doesn't carry email)
+        let email: string | undefined;
+        try {
+          const session = await fetchAuthSession();
+          const payload = session.tokens?.idToken?.payload;
+          email = (payload?.email as string) ?? undefined;
+        } catch {
+          // Non-blocking — user creation will fall back to Cognito AdminGetUser
+        }
+
         const response = await fetchWithAuth(
           `${getApiBaseUrl()}/user/api/user/init`,
-          { method: "POST" },
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(email ? { email } : {}),
+          },
         );
         const data = await response.json();
 

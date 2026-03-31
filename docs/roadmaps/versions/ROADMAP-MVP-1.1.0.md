@@ -1,213 +1,148 @@
-# SecureOps — Roadmap MVP 1.1.0
+# SecureOps — Roadmap MVP 1.1.0 (Scanner 2 — tests intrusifs)
 
-Objectif : **tests d'intégration**, **docs/UX scanner**, **vérification d'autorisation**, **Scanner 2 (actif)**, **import doc API**, **scan paramétrable** et **infra/qualité** reportés depuis la v1.0.0.
+**Périmètre v1.1.0 :** mise en œuvre complète du **scan intrusif** (Scanner 2), avec socle technique, lib mutualisée, **34 checks réels**, scoring, PDF / exports, UX scanner et documentation — **hors vérification DNS** du domaine (prévue en **1.2.0**).
 
-**Prérequis :** MVP 1.0.0 livré (tests passifs complets, rate limiting et quotas, architecture deux scanners).
+**Prérequis :** [ROADMAP-MVP-1.0.0.md](./ROADMAP-MVP-1.0.0.md) livré (passif, quotas, hub scanner de base).
+
+**Référence catalogue :** [catalogue-complet-tests-intrusifs.md](../../verifications/intrusive/catalogue-complet-tests-intrusifs.md)
 
 ---
 
 ## Sommaire
 
-- [1) Tests d'intégration et environnement](#1-tests-dintégration-et-environnement)
-- [2) Scanner hub : docs et UX](#2-scanner-hub--docs-et-ux)
-- [3) Affichage anomalies](#3-affichage-anomalies)
-- [4) Vérification d'autorisation](#4-vérification-dautorisation)
-- [5) Import documentation API (backend)](#5-import-documentation-api-backend)
-- [6) Introduire les tests actifs (Scanner 2)](#6-introduire-les-tests-actifs-scanner-2)
-- [7) Scan paramétrable](#7-scan-paramétrable)
-- [8) Infra et qualité](#8-infra-et-qualité)
+- [0.3 Adaptation des tests intrusifs (frontend / backend)](#03-adaptation-des-tests-intrusifs-frontend--backend)
+- [Bloc 0 — Socle](#bloc-0--socle)
+- [Bloc 1 — Composants mutualisables (`lib/`)](#bloc-1--composants-mutualisables-lib)
+- [Bloc 2 — Phase A (P0)](#bloc-2--phase-a-p0)
+- [Bloc 3 — Phase B (P0–P1)](#bloc-3--phase-b-p0p1)
+- [Bloc 4 — Phase C (P2–P3)](#bloc-4--phase-c-p2p3)
+- [Bloc 5 — Modes destructif + custom](#bloc-5--modes-destructif--custom)
+- [Bloc 6 — Finalisation produit](#bloc-6--finalisation-produit)
+- [7) Scoring des findings intrusifs](#7-scoring-des-findings-intrusifs)
+- [8) Configuration intrusive](#8-configuration-intrusive)
+- [Reporté en 1.2.0 ou hors périmètre 1.1.0](#reporté-en-120-ou-hors-périmètre-110)
+- [Limitations connues (MVP 1.1.0)](#limitations-connues-mvp-110)
+- [Synthèse](#synthèse-mvp-110)
 
 ---
 
-## 1) Tests d'intégration et environnement
-*Périmètre : **backend** (environnements, CI, scénarios d'intégration scan/crawl)*
+## 0.3 Adaptation des tests intrusifs (frontend / backend)
 
-Reporté depuis la section 1.5 de la roadmap v1.0.0 (elle-même issue de la section 2 de la v0.3.0).
-
-### 1.1 Environnements et serveurs de test
-
-- [ ] Définir un environnement de test dédié au scan (Docker Compose minimal : scan-service + Postgres si nécessaire).
-- [ ] Ajouter un ou plusieurs **serveurs cibles de démo** :
-  - [ ] Serveur HTTP simple (cache/headers/cookies) — ex. `bad_cache_server.py`.
-  - [ ] Serveur simulant des headers de sécurité variés (bonnes pratiques / mauvaises pratiques).
-  - [ ] Serveur avec fichiers exposés / directory listing / robots.txt / sitemap de test.
-  - [ ] **Serveur avec pages liées (même domaine)** pour les tests crawler : plusieurs pages HTML avec liens internes, pour valider le scénario crawl → liste → scan sur N URLs (voir 1.2).
-  - [ ] (Optionnel) Serveur d'API de démo (Swagger/GraphQL/Content-Type).
-
-### 1.2 Scénarios de tests d'intégration
-
-- [ ] Scénario « happy path » : URL valide → scan complet → score cohérent → findings attendus.
-- [ ] Scénarios d'erreur : DNS KO, timeout, TLS cassé, redirections excessives.
-- [ ] Scénarios SSRF : URLs internes / localhost / IP privées bloquées en mode prod (`IS_PROD=true`).
-- [ ] Scénarios de ports : ports non autorisés rejetés en prod, autorisés en dev (`IS_PROD=false` via `launch_dev.sh`).
-- [ ] **Scénario crawler → liste → scan sur N URLs** : serveur de test avec pages liées (même domaine) ; lancer le crawler depuis une URL de départ, récupérer la liste d'URLs, lancer le scan sur un sous-ensemble ; vérifier agrégation des findings.
-- [ ] Vérification des catégories de checks : TLS, headers, cookies, exposition fichiers, directory listing, robots/sitemap, cache, CORS, intégrité, info disclosure, methodes_http_et_redirections, apis_et_formats, etc.
-- [ ] Vérification de l'écriture en historique (user-service) et de la génération PDF.
-- [ ] Crawler — tests unitaires : parsing HTML → liste d'URLs attendue ; respect Disallow ; limites.
-- [ ] Crawler — test d'intégration : crawl d'une page de test → vérifier la sortie et l'absence de fuite hors domaine.
-
-### 1.3 Intégration dans la CI
-
-- [ ] Ajouter un job **tests d'intégration scan-service** dans la pipeline (GitHub Actions).
-- [ ] Démarrer les services nécessaires via Docker Compose dans le job.
-- [ ] Lancer la suite de tests d'intégration (`pytest -m integration` ou répertoire dédié).
-- [ ] Marquer le job comme requis pour les PR affectant le scan-service / gateway.
-
-### 1.4 Observabilité et maintenance
-
-- [ ] Logs clairs pour chaque scénario.
-- [ ] Documentation dans `docs/` pour lancer les tests d'intégration en local.
-- [ ] Stratégie de maintenance : couvrir les cas critiques (TLS, SSRF, cache, exposition fichiers, CORS, crawler + scan multi-URLs).
+- [x] **Gestion `scan_type` (`frontend` / `backend`)** — *Fait :* skips explicites (`_INTRUSIVE_FRONTEND_ONLY_STEPS`, `_INTRUSIVE_BACKEND_ONLY_STEPS`), même logique en multi-URL (`multi_scan_orchestrator`).
+- [x] **Credentials cible (`ScanCredentials`)** — *Fait :* cookie / bearer propagés dans le pipeline ; **non persistés** (y compris scans planifiés : limitation connue).
+- [x] **Cohérence UX** — *Fait :* formulaire scanner, modes, imports API, résultats et exports alignés sur le flux passif où pertinent.
 
 ---
 
-## 2) Scanner hub : docs et UX
-*Périmètre : **frontend** (rapports, alertes, doc, liens contextuels)*
+## Bloc 0 — Socle
 
-Reporté depuis la section 1.6.3 de la roadmap v1.0.0.
-
-- [x] **Rapports et exports** — *Fait :* Accès aux PDF, CSV, JSON, XLSX (ScanResults export modal, endpoint `/api/scan/export/pdf`, `exportScan.ts`, `exportMultiScan.ts`).
-- [x] **Alertes configurées** — *Fait :* Préférence `scan_alerts_enabled` par scan planifié (régression score, finding critique) ; toggle dans ScheduledScansBlock et ScheduleFormSection.
-- [ ] Page/section doc regroupant : scan de posture (vérifications, crawling, interprétation), autres scanners, API publique (endpoints, clés API, exemples curl, CI/CD).
-
-  > *Fait partiel :* Page `/scanner/docs` et `/scanner/docs/api` existent (auth, scan fake, gestion clés) ; contenu principal en placeholder « sera complétée prochainement ».
-- [ ] Documentation contextuelle : lien doc depuis chaque page concernée (`/scanner/analyses/...`, `/scanner/cles-api`, etc.).
+- [x] **Schéma `ScanCredentials` + propagation** — *Fait :* `async_job`, exécuteur async, `scan_stream` / orchestrateur multi.
+- [x] **Auth SecureOps pour modes actifs** — *Fait :* accès intrusif / custom protégé (gateway + JWT comme le reste du hub).
+- [x] **`compute_intrusive_score()`** — *Fait :* `scoring.py`, poids / pénalités dans `config` + `settings.yml` (`intrusive_scan`).
+- [x] **Budgets, timeouts, jitter** — *Fait :* `intrusive_scan.py` / `settings.yml`, alignés avec le worker async.
+- [x] **Domaine / page split** — *Fait :* `domain_page_split.py`, orchestration cohérente multi-URL.
 
 ---
 
-## 3) Affichage anomalies
-*Périmètre : **frontend** (résumé, table, libellés)*
+## Bloc 1 — Composants mutualisables (`lib/`)
 
-Reporté depuis la section 1.6.4 de la roadmap v1.0.0.
-
-- [ ] Finaliser le rendu « anomalie détectée » : icône dédiée dans résumé/table + libellé explicite « Anomalie détectée » / « Trouvé ».
-
-  > *Fait partiel :* Terminologie « anomalies » utilisée (ScanResultHeroCard, ScanSummarySection, locales `anomalies`/`anomalies_one`, `summaryNoAnomaliesBold`). Affinements possibles sur icône et libellé.
-
----
-
-## 4) Vérification d'autorisation
-*Périmètre : **backend** (vérification DNS, cache) ; **frontend** (flux utilisateur)*
-
-> **Document dédié :** voir [VERIFICATION-AUTORISATION.md](../../VERIFICATION-AUTORISATION.md) pour la spécification complète.
-
-Cette section est **requise uniquement pour le Scanner 2 (actif)**. Le Scanner 1 (passif) n'en a pas besoin.
-
-- [ ] La vérification est **activée uniquement en production** (désactivée en dev/local)
-- [ ] Seuls les domaines **vérifiés** par l'utilisateur peuvent être scannés avec le Scanner 2
-
-### 4.1 Méthode : vérification DNS
-
-- [ ] **Génération :** Token unique par domaine (`secureops-verify-abc123xyz`)
-- [ ] **Enregistrement attendu :** `_secureops-verify.<domaine> TXT "secureops-verify-abc123xyz"`
-- [ ] **Vérification :** Résolution TXT avant scan actif
-- [ ] **Cache :** Stockage domaine + user_id + date (validité ex. 90 jours)
-- [ ] **Environnement :** `AUTHORIZATION_CHECK_ENABLED=true` (production)
-
-### 4.2 Flux utilisateur (Scanner 2 uniquement)
-
-1. Utilisateur choisit Scanner 2 et saisit l'URL
-2. Si domaine non vérifié : afficher « Ajoutez cet enregistrement DNS : `_secureops-verify.example.com TXT "votre-token"` »
-3. Utilisateur ajoute l'enregistrement DNS
-4. Clic « Vérifier » → résolution DNS → scan autorisé
-5. Si domaine déjà vérifié (cache) : scan direct
-
-### 4.3 Cas particuliers
-
-- [ ] **Fallback :** En dev ou si DNS échoue : case à cocher + avertissement
-- [ ] **API publique :** Domaine pré-vérifié ou acceptation préalable (doc + CGU)
+- [x] **Client HTTP intrusif** — *Fait :* `lib/http_client.py` (credentials, probes).
+- [x] **Extraction paramètres** — *Fait :* `lib/param_extractor.py`.
+- [x] **Moteur de payloads** — *Fait :* `lib/payload_engine.py`.
+- [x] **Détecteurs (SQL, NoSQL, SSTI, etc.)** — *Fait :* `lib/detector.py`.
+- [x] **Redirections / signatures** — *Fait :* modules dédiés dans `lib/` selon besoins des checks.
 
 ---
 
-## 5) Import documentation API (backend)
-*Périmètre : **frontend** (formulaire, case à cocher, upload) ; **backend** (parsing spec)*
+## Bloc 2 — Phase A (P0)
 
-> **Prérequis avant le développement des tests actifs backend.**
+Checks réels (ordre pipeline) : `open_redirect`, `methodes_http`, `cors_actif`, `parametres_reflechis` (frontend), `sqli`, `path_traversal`, `csrf`, `idor`, `command_injection`, `nosqli`, `dos_p0`.
 
-### Comportement attendu (UI)
-
-- [x] **Scan type backend** — *Fait :* Libellé « Scanner uniquement cet endpoint » (ScanTypeSelector, `scanOnlyThisEndpoint`).
-- [x] **Section import doc** — *Fait :* Quand décoché (backend, multi-endpoints) : ApiDocImportZone avec drag-and-drop.
-- [x] **Parsing OpenAPI / Postman** — *Fait :* parseApiDoc.ts (OpenAPI 2/3, Postman) ; extraction endpoints ; `.json`, `.yaml`, `.yml`.
-- [x] **Flux parse → endpoints → validation** — *Fait :* EditableUrlList pour ajout/suppression ; base URL pour override ; envoi liste d'URLs au backend.
-- [x] **Limite endpoints** — *Fait :* MAX_ENDPOINTS = 200 (parseApiDoc.ts).
-- [ ] (Optionnel) Récupération spec par URL (GET `/openapi.json`, `/swagger.json`) — *Hors périmètre actuel.*
-
-### Formats acceptés
-
-| Format | Support | Source |
-|--------|---------|--------|
-| OpenAPI / Swagger | Fichier | Drag-and-drop `.json` ou `.yaml` |
-| Postman Collection | Fichier | Drag-and-drop `.json` (v2.0, v2.1) |
+- [x] Implémentation par module sous `checks/frontend/`, `checks/backend/`, `checks/both/`.
+- [x] Catalogue / résumés / OWASP : fichiers JSON côté scan-service + pdf-service (macro-catégories rapport).
+- [x] **Tests unitaires** — *Fait :* `test_intrusive_*.py` (détecteur, payloads, params, scoring, checks, domain/page split).
 
 ---
 
-## 6) Introduire les tests actifs (Scanner 2)
-*Périmètre : selon le type — voir détail par sous-section*
+## Bloc 3 — Phase B (P0–P1)
 
-> **Scanner 2 :** Ne fonctionne que pour les URLs dont le domaine a été vérifié (section 4). Option : inclure les tests passifs avant (défaut : oui).
+`auth_bruteforce`, `session_fixation`, `upload_abuse`, `idor_complet`, `mass_assignment`, `graphql_abuse`, `api_schema_abuse`, `ssrf`, `xxe`, `ssti`, `insecure_deserialization`, `lfi_rfi`.
 
-### 6.1 Cadre et sécurité
-
-- [ ] Choix utilisateur : tests passifs avant actifs (défaut : oui)
-- [ ] Section « Tests actifs » dans le disclaimer
-- [ ] Documenter chaque requête dans le rapport
-- [ ] Rate limiting renforcé
-- [ ] Contrôle d'accès : Scanner 2 refuse les URLs non vérifiées
-
-### 6.2 Tests actifs — Redirections, Méthodes HTTP, CORS, Paramètres, etc.
-
-(Voir sections détaillées 3.2 à 3.21 de la roadmap 1.0.0 pour le catalogue complet des tests actifs P0–P4, garde-fous et ordre de développement.)
+- [x] Même structure que bloc 2 (modules + intégration pipeline + tests).
 
 ---
 
-## 7) Scan paramétrable
-*Périmètre : **les deux** (frontend : UI ; backend : logique)*
+## Bloc 4 — Phase C (P2–P3)
 
-### 7.1 Filtrage par gravité
+`host_header`, `cache_poisoning`, `request_smuggling`, `race_conditions`, `business_logic`, `websocket_authz`, `oauth_oidc`, `object_storage`, `service_mesh`, `graphql_subscriptions`, `grpc_abuse`.
 
-- [ ] Mode « Uniquement critical »
-- [ ] Mode « Critical + high »
-- [ ] Mode « Complet » (défaut)
-- [ ] Interface : sélecteur de mode avant lancement
-
-### 7.2 Autres options (optionnel)
-
-- [ ] Désactiver des catégories de tests
-- [ ] Profondeur limitée (ex. uniquement passif)
-- [ ] Préférences sauvegardées par utilisateur
+- [x] Même structure ; **34 checks** au total dans `INTRUSIVE_STEPS`.
 
 ---
 
-## 8) Infra et qualité
-*Périmètre : **backend** (config, tests unitaires)*
+## Bloc 5 — Modes destructif + custom
 
-### 8.1 Mode asynchrone (optionnel)
+- [x] **Mode `destructive`** — *Fait :* retiré / neutralisé pour cette branche ; contenu reporté (pas de checks destructifs actifs en prod pour l’instant).
+- [x] **Mode `custom`** — *Fait :* moteur de scénarios (`scenario_engine.py`) pour enchaînement contrôlé via config JSON.
 
-- [ ] Si les tests actifs allongent le scan (> 30s), envisager le mode async
+---
 
-### 8.2 Tests unitaires
+## Bloc 6 — Finalisation produit
 
-- [x] **Tests passifs** — *Fait :* Suite pytest existante pour checks TLS, headers, cookies, CORS, integrity, exposed files, directory listing, robots, sitemap, SSRF, scoring, etc. (backend/scan-service/tests/, backend/gateway/tests/, etc.)
-- [ ] Tests pour chaque nouveau check actif
-- [ ] Mocks des réponses HTTP pour les tests actifs
+- [x] **PDF** — *Fait :* rapport intrusif, macro-catégories, badge mode, textes i18n PDF ; regroupement des catégories fines.
+- [x] **Frontend résultats** — *Fait :* répartition par macro-catégories (alignée PDF), cartes findings, exports (CSV, JSON, XLSX, PDF).
+- [x] **Scanner hub / doc** — *Fait :* pages `/scanner/docs`, doc statique intrusif/passif (admin CMS + `lang`), lien contextuel depuis le formulaire selon le mode.
+- [x] **Affichage anomalies** — *Fait :* icônes + libellés cohérents (cartes / résumé ; i18n).
+- [x] **Import documentation API (OpenAPI / Postman)** — *Fait :* côté frontend (parse, liste d’URLs, limite endpoints) ; voir aussi § reporté pour « fetch URL » optionnel.
 
-### 8.3 Configuration
+---
 
-- [ ] Option `active_scan_enabled` (défaut : true)
-- [ ] Option `active_scan_max_requests_per_param`
+## 7) Scoring des findings intrusifs
+
+- [x] Pénalités par sévérité et poids par catégorie — *Fait :* `compute_intrusive_score()`, configuration centralisée.
+- [x] Bornes score 0–100 et comportement sur corpus vide / findings inconnus — *Fait :* couvert par tests.
+
+---
+
+## 8) Configuration intrusive
+
+- [x] **DoS / rate limit** — *Fait :* paramètres dédiés (burst, limites) dans la config intrusive ; pas d’abus hors budget.
+- [x] **Timeouts globaux** — *Fait :* `scan_global` + timeout job worker alignés.
+- [x] **Alertes scan planifié (user-service)** — *Fait :* emails régression / finding critique ; **seuil et options par scan** (BDD + API + UI) en complément du toggle principal.
+
+---
+
+## Reporté en 1.2.0 ou hors périmètre 1.1.0
+
+| Sujet | Statut |
+|--------|--------|
+| **Vérification d’autorisation DNS (Scanner 2)** | Reporté — spécification dans [VERIFICATION-AUTORISATION.md](../../VERIFICATION-AUTORISATION.md), non bloquant pour l’implémentation intrusive en dev. |
+| **Détection out-of-band (OOB)** | Reporté — callback serveur dédié, hors MVP 1.1.0. |
+| **Tests d’intégration CI** (compose, serveurs démo, `pytest -m integration`) | À renforcer — voir ancienne §1 roadmap générique. |
+| **Scan paramétrable par gravité** (critical only, etc.) | Non livré en 1.1.0 — piste produit. |
+| **Fetch spec OpenAPI par URL** | Optionnel / reporté. |
+| **Credentials sur scan planifié** | Non persistés par design ; pas d’injection creds automatique sur run schedulé. |
+
+---
+
+## Limitations connues (MVP 1.1.0)
+
+- **DNS / preuve de propriété** : non appliqué dans cette version ; à activer en prod via roadmap 1.2.0.
+- **OOB** : pas de corrélations blindées (burp collaborator équivalent) sans infrastructure dédiée.
+- **Scans planifiés intrusifs** : le scheduler peut passer le `scan_mode`, pas les secrets cible — scans authentifiés réservés au lancement manuel (ou évolution future).
+- **Faux positifs / bruit** : certains checks restent heuristiques ; affinage continu hors scope « roadmap close ».
 
 ---
 
 ## Synthèse MVP 1.1.0
 
-| Domaine | Contenu |
-|---------|---------|
-| **Tests d'intégration** | Docker Compose, serveurs démo, scénarios scan/crawl, CI |
-| **Docs/UX** | Rapports, alertes (déjà faits) ; doc complète et liens contextuels |
-| **Affichage** | Finalisation libellé/icône « anomalie détectée » |
-| **Vérification** | DNS TXT, cache, flux Scanner 2 |
-| **Import API** | Déjà fait (drag-drop, OpenAPI/Postman, 200 endpoints) |
-| **Tests actifs** | Cadre, redirections, méthodes HTTP, CORS, paramètres, path traversal, injection, DoS, etc. |
-| **Scan paramétrable** | Mode par gravité (critical, critical+high, complet) |
-| **Infra** | Tests unitaires passifs (faits) ; config et tests actifs |
+| Domaine | État |
+|--------|------|
+| **Pipeline intrusif** | 34 checks réels, Phases A/B/C, `scan_type`, credentials éphémères |
+| **Lib mutualisée** | HTTP, params, payloads, détection, split domaine/page |
+| **Scoring** | Dédié intrusif, configurable |
+| **PDF & exports** | Macro-catégories, FR/EN docs utilisateur |
+| **Frontend** | Hub, doc contextuelle, résultats macro-catégories, formulaire complet |
+| **Qualité** | Suite unitaire intrusive étendue |
+| **Alertes planifiées** | Email + options utilisateur (seuil régression, types d’alerte) |
+| **Hors scope** | DNS proof, OOB, destructif actif, filtre gravité scan |

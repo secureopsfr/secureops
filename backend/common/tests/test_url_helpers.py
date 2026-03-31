@@ -1,11 +1,6 @@
 """Tests pour common.url_helpers."""
 
-from common.url_helpers import (
-    build_url_with_path,
-    extract_host_from_url,
-    extract_port_from_url,
-    get_host_from_url,
-)
+from common.url_helpers import build_url_with_path, extract_host_from_url, extract_port_from_url, get_host_from_url
 
 
 def test_extract_host_from_url() -> None:

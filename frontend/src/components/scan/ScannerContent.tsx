@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { AlertTriangle, FileText, Globe } from "lucide-react";
+import { AlertTriangle, FileText, Globe, ShieldAlert } from "lucide-react";
 import { useLanguage } from "../LanguageProvider";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import { useAuthToken } from "../../hooks/useAuthToken";
@@ -42,6 +42,8 @@ export default function ScannerContent() {
     setScanTarget,
     scanMode,
     setScanMode,
+    credentials,
+    setCredentials,
     scanOnlyThisPage,
     setScanOnlyThisPage,
     state,
@@ -146,7 +148,11 @@ export default function ScannerContent() {
               <h1 className="page-title mb-2">{t("scanner.title")}</h1>
               <p className="page-subtitle mt-0">{t("scanner.subtitle")}</p>
               <Link
-                href={lp("/scanner/docs/scan-passif")}
+                href={lp(
+                  scanMode === "intrusive"
+                    ? "/scanner/docs/scan-intrusif"
+                    : "/scanner/docs/scan-passif",
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group mt-2 inline-flex text-sm text-[rgb(var(--primary))] no-underline"
@@ -170,13 +176,32 @@ export default function ScannerContent() {
           {showScannerForm && (
             <div className="w-full">
               <Card disableHover>
-                <div className="flex items-center gap-3 mb-4 -mt-2">
-                  <Globe className="w-6 h-6 text-[rgb(var(--primary))]" />
-                  <h2 className="section-title !text-left !mb-0">
+                <div className="flex items-center gap-3 mb-4 -mt-2 flex-wrap">
+                  <Globe className="w-6 h-6 text-[rgb(var(--primary))] shrink-0" />
+                  <h2 className="section-title !text-left !mb-0 flex-1">
                     {t("scheduledScans.newScheduledScanTitle")}
                   </h2>
+                  {scanMode !== "passive" && scanMode !== "intrusive" && (
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        scanMode === "destructive"
+                          ? "bg-[rgba(var(--danger),0.12)] text-[rgb(var(--danger))]"
+                          : "bg-[rgba(var(--primary),0.12)] text-[rgb(var(--primary))]"
+                      }`}
+                    >
+                      {t(
+                        `scanner.mode${scanMode.charAt(0).toUpperCase() + scanMode.slice(1)}`,
+                      )}
+                    </span>
+                  )}
                 </div>
                 <div className="space-y-4">
+                  {scanMode === "intrusive" && (
+                    <div className="flex items-start gap-3 rounded-lg border border-[rgb(var(--warning),0.4)] bg-[rgba(var(--warning),0.08)] px-4 py-3 text-sm text-[var(--text)]">
+                      <ShieldAlert className="mt-0.5 w-4 h-4 shrink-0 text-[rgb(var(--warning))]" />
+                      <span>{t("scanner.intrusiveWarning")}</span>
+                    </div>
+                  )}
                   <form
                     onSubmit={handleSubmit}
                     aria-label={t("scanner.ariaForm")}
@@ -220,6 +245,64 @@ export default function ScannerContent() {
                         width="100%"
                       />
                     </div>
+                    {scanMode === "intrusive" && (
+                      <div className="space-y-3">
+                        <label className="block text-sm font-medium text-[var(--text)]">
+                          {t("scanner.credentialsLabel")}
+                          <span className="ml-1.5 text-xs font-normal text-[var(--muted)]">
+                            ({t("scanner.credentialsOptional")})
+                          </span>
+                        </label>
+                        <div>
+                          <label
+                            htmlFor="intrusive-cookie"
+                            className="block text-xs text-[var(--muted)] mb-1"
+                          >
+                            {t("scanner.credentialsCookie")}
+                          </label>
+                          <input
+                            id="intrusive-cookie"
+                            type="text"
+                            value={credentials.cookie ?? ""}
+                            onChange={(e) =>
+                              setCredentials((prev) => ({
+                                ...prev,
+                                cookie: e.target.value || undefined,
+                              }))
+                            }
+                            placeholder={t(
+                              "scanner.credentialsCookiePlaceholder",
+                            )}
+                            className="auth-input w-full font-mono text-sm"
+                            autoComplete="off"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor="intrusive-bearer"
+                            className="block text-xs text-[var(--muted)] mb-1"
+                          >
+                            {t("scanner.credentialsBearer")}
+                          </label>
+                          <input
+                            id="intrusive-bearer"
+                            type="password"
+                            value={credentials.bearer_token ?? ""}
+                            onChange={(e) =>
+                              setCredentials((prev) => ({
+                                ...prev,
+                                bearer_token: e.target.value || undefined,
+                              }))
+                            }
+                            placeholder={t(
+                              "scanner.credentialsBearerPlaceholder",
+                            )}
+                            className="auth-input w-full font-mono text-sm"
+                            autoComplete="off"
+                          />
+                        </div>
+                      </div>
+                    )}
                     <ScanTypeSelector
                       scanOnlyThisPage={scanOnlyThisPage}
                       onScanOnlyThisPageChange={(checked) => {
@@ -397,8 +480,6 @@ export default function ScannerContent() {
               <ScannerHistoryAlertsSection
                 className="mt-6"
                 onSelectScan={handleSelectScan}
-                filterScanType={scanTarget}
-                filterScanMode={scanMode}
               />
             )}
 

@@ -4,6 +4,17 @@ Ce document décrit les vérifications actives liées aux redirections : objecti
 
 ---
 
+## Périmètre selon scan_type
+
+| scan_type | Comportement |
+|-----------|--------------|
+| `frontend` | ✓ Paramètres de redirection découverts via liens HTML (`<a href>`), formulaires et query string |
+| `backend` | ✓ Paramètres découverts via query string et body JSON uniquement — pas de parsing HTML |
+
+La logique de test (payloads, détection domaine externe) est **identique** dans les deux cas. Seule la phase de découverte des paramètres diffère.
+
+---
+
 ## Contexte et méthodologie
 
 ### Objectif

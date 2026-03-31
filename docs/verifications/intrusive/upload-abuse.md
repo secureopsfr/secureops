@@ -4,6 +4,17 @@ Ce document décrit les vérifications actives d'upload : type, extension, execu
 
 ---
 
+## Périmètre selon scan_type
+
+| scan_type | Comportement |
+|-----------|--------------|
+| `frontend` | ✓ Détection des endpoints via `<input type="file">` dans le HTML, puis vérifications MIME/extension/exécution |
+| `backend` | ✓ Détection directe via patterns URL (`/upload`, `/api/files`, `/api/media`, `/import`) — pas de parsing HTML |
+
+La logique de test (MIME spoof, double extension, traversal, exécution) est **identique** dans les deux cas. Seule la phase de détection de l'endpoint diffère.
+
+---
+
 ## Contexte et méthodologie
 
 ### Objectif
