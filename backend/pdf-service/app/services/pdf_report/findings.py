@@ -312,12 +312,14 @@ def build_other_tests_section(
         ok_tests_label=ok_tests_label,
     )
     subsections_html: list[str] = []
-    subsections_html.append(f"""
+    subsections_html.append(
+        f"""
     <div class="category-intro" id="sect-other-tests-intro">
         <h3 class="category-intro-title">{section_num}.1 {escape(summary_label)}</h3>
         <p class="category-intro-summary">{summary_text}</p>
     </div>
-    """)
+    """
+    )
     for sub_num, cat in enumerate(ok_cats, start=2):
         cat_label = category_labels.get(cat, cat)
         subsections_html.append(_build_ok_category_subsection(section_num, sub_num, cat, cat_label, lang))
