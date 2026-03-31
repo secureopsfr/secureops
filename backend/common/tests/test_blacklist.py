@@ -39,7 +39,7 @@ def test_is_domain_blacklisted_none_host() -> None:
     assert is_domain_blacklisted(None, settings) is False
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_check_blacklist_raises() -> None:
     """check_blacklist lève URLValidationError pour domaine interdit."""
     from common.blacklist import check_blacklist
@@ -50,7 +50,7 @@ async def test_check_blacklist_raises() -> None:
         await check_blacklist("https://www.secureops.fr/", settings)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_check_blacklist_accepts() -> None:
     """check_blacklist n'élève pas pour domaine autorisé."""
     from common.blacklist import check_blacklist
