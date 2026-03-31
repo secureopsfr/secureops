@@ -4,6 +4,17 @@ Ce document décrit les vérifications actives liées aux méthodes HTTP : objec
 
 ---
 
+## Périmètre selon scan_type
+
+| scan_type | Comportement |
+|-----------|--------------|
+| `frontend` | ✓ Exécution identique — sévérité méthodes dangereuses (PUT/DELETE/PATCH non nécessaires) = **Low** |
+| `backend` | ✓ Exécution identique — sévérité méthodes dangereuses = **Info** (une API expose ces verbes plus légitimement) |
+
+TRACE (XST) et HEAD conservent la même sévérité dans les deux cas.
+
+---
+
 ## Contexte et méthodologie
 
 ### Objectif

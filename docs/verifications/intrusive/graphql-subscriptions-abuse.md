@@ -4,6 +4,15 @@ Ce document décrit les vérifications actives d'abus sur subscriptions GraphQL 
 
 ---
 
+## Périmètre selon scan_type
+
+| scan_type | Comportement |
+|-----------|--------------|
+| `frontend` | ✗ **Skip total** — GraphQL subscriptions sont un endpoint backend |
+| `backend` | ✓ **Check complet** — si endpoint GraphQL avec subscriptions détecté |
+
+---
+
 ## Contexte et méthodologie
 
 ### Objectif

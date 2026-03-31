@@ -4,6 +4,15 @@ Ce document décrit les vérifications actives de validation schema API : confus
 
 ---
 
+## Périmètre selon scan_type
+
+| scan_type | Comportement |
+|-----------|--------------|
+| `frontend` | ✗ **Skip total** — la validation de schéma est un concept JSON/REST API |
+| `backend` | ✓ **Check complet** — type confusion, champs inattendus, arrays excessifs |
+
+---
+
 ## Contexte et méthodologie
 
 ### Objectif

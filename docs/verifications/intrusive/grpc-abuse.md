@@ -4,6 +4,15 @@ Ce document décrit les vérifications actives de methodes gRPC exposees sans co
 
 ---
 
+## Périmètre selon scan_type
+
+| scan_type | Comportement |
+|-----------|--------------|
+| `frontend` | ✗ **Skip total** — gRPC est un protocole backend |
+| `backend` | ✓ **Check complet** — si service gRPC détecté (reflection service, port gRPC) |
+
+---
+
 ## Contexte et méthodologie
 
 ### Objectif

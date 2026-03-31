@@ -4,6 +4,15 @@ Ce document décrit les vérifications actives GraphQL : introspection, profonde
 
 ---
 
+## Périmètre selon scan_type
+
+| scan_type | Comportement |
+|-----------|--------------|
+| `frontend` | ✗ **Skip total** — GraphQL est un endpoint backend |
+| `backend` | ✓ **Check complet** — si endpoint GraphQL détecté (`/graphql`, `/api/graphql`, etc.) |
+
+---
+
 ## Contexte et méthodologie
 
 ### Objectif
