@@ -127,7 +127,7 @@ def test_internal_run_scan_forwards_scan_type_and_mode(client):
     assert resp.status_code == 200
     assert resp.json()["score"] == 99
     mocked_execute.assert_awaited_once_with(
-        url="https://example.com",
+        url="https://example.com/",
         scan_type="backend",
         scan_mode="intrusive",
     )
@@ -147,7 +147,7 @@ def test_internal_run_scan_uses_default_scan_type_and_mode(client):
     assert resp.status_code == 200
     assert resp.json()["score"] == 100
     mocked_execute.assert_awaited_once_with(
-        url="https://example.com",
+        url="https://example.com/",
         scan_type="frontend",
         scan_mode="passive",
     )

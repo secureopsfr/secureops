@@ -8,6 +8,7 @@ Requires-Dist: PyJWT>=2.10.0
 Requires-Dist: cryptography>=43.0.0
 Requires-Dist: python-dotenv>=1.0.0
 Requires-Dist: PyYAML>=6.0.0
+Requires-Dist: tldextract>=5.0.0
 Provides-Extra: dev
 Requires-Dist: pytest>=7.4.0; extra == "dev"
 Requires-Dist: pytest-asyncio>=0.23.0; extra == "dev"
