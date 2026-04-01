@@ -23,11 +23,11 @@ export default function ScannerDocsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getDocsList()
+    getDocsList(locale)
       .then((res) => setDocs(res.docs))
       .catch(() => setError("Impossible de charger la documentation"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [locale]);
 
   return (
     <>
@@ -76,13 +76,20 @@ export default function ScannerDocsPage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {docs.map((doc) => {
+                  const PUBLISHED_SLUGS = [
+                    "scan-passif",
+                    "scan-intrusif",
+                    "api",
+                    "crawler",
+                  ];
                   const isComingSoon =
-                    /intrusif|intrusive|destructeur|destructive|personnalise|personnalises|custom/i.test(
+                    !PUBLISHED_SLUGS.includes(doc.slug) &&
+                    (/destructeur|destructive|personnalise|personnalises|custom/i.test(
                       doc.slug,
                     ) ||
-                    /intrusif|intrusive|destructeur|destructive|personnalise|personnalises|custom/i.test(
-                      doc.title,
-                    );
+                      /destructeur|destructive|personnalise|personnalises|custom/i.test(
+                        doc.title,
+                      ));
                   return isComingSoon ? (
                     <div
                       key={doc.slug}

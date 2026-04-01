@@ -34,6 +34,11 @@ Référence des variables utilisées par le template (racine et frontend).
 | `IS_PROD` | Oui (scan-service) | Flag environnement pour le scan-service. Si `1`, `true` ou `yes` (valeur par défaut si non défini), les protections strictes sont activées : blocage localhost/127.0.0.1/::1 et IP privées, ports limités aux ports autorisés. Si `false`, localhost et les ports libres sont autorisés pour les tests locaux (ex. `bad_cache_server.py` sur 127.0.0.1:8001). | `false` en dev (forcé par `launch_dev.sh`), non défini ou `true` en prod |
 | `PDF_SERVICE_URL` | scan-service | URL du pdf-service pour l’export PDF (scan-service appelle ce service en HTTP). | `http://localhost:8013` (dev), `http://pdf-service:8013` (Docker) |
 | `PDF_SERVICE_INTERNAL_API_KEY` | Optionnel (prod) | Clé partagée pour les appels au pdf-service. Si définie : le **gateway** l’ajoute en header `X-Internal-Api-Key` lors du proxy vers `/pdf/*` ; le **scan-service** l’envoie lors de l’appel au pdf-service ; le **pdf-service** exige ce header. En dev (non définie), aucun contrôle. | En prod : une valeur secrète commune aux trois services |
+| `AUTHORIZATION_CHECK_ENABLED` | Optionnel | Si `true` / `1` / `yes` : le **scan-service** refuse les scans dont le mode n’est pas `passive` sans preuve DNS (appel interne au **user-service**). Le **user-service** utilise la même variable pour les scans planifiés. | `false` en dev (défaut compose), `true` en prod cible |
+| `USER_SERVICE_URL` | scan-service (si garde-fou DNS activé) | URL HTTP du user-service pour `POST /api/internal/domain-verifications/assert`. | `http://localhost:8011` (local), `http://user-service:8011` (Docker) |
+| `USER_SERVICE_INTERNAL_API_KEY` | scan-service (si garde-fou DNS) | Même clé que celle attendue par le user-service sur les routes internes ; envoyée en `X-Internal-Api-Key`. | Alignée sur gateway / user-service |
+| `DOMAIN_VERIFICATION_CHALLENGE_TTL_DAYS` | user-service | Durée de vie d’un challenge TXT en attente (jours). | `7` |
+| `DOMAIN_VERIFICATION_VALIDITY_DAYS` | user-service | Durée de validité après vérification réussie (jours). | `90` |
 
 En Docker, `DATABASE_URL` et `ADMIN_DATABASE_URL` sont construites à partir de `POSTGRES_*` dans le `docker-compose.yml`.
 

@@ -15,12 +15,25 @@ ScanMode = Literal["passive", "intrusive", "destructive", "custom"]
 JobStatus = Literal["pending", "running", "completed", "failed"]
 
 
+class ScanCredentials(BaseModel):
+    """Credentials de l'application cible pour les scans intrusifs.
+
+    Ces credentials sont injectés dans chaque requête envoyée à la cible.
+    Ils ne sont jamais stockés après la fin du scan.
+    Au moins un des deux champs doit être fourni si l'objet est présent.
+    """
+
+    cookie: str | None = Field(None, description="Valeur brute du header Cookie (ex: session=abc123; csrf_token=xyz)")
+    bearer_token: str | None = Field(None, description="Token Bearer pour le header Authorization")
+
+
 class ScanAsyncCreateRequest(BaseModel):
     """Corps de création de job scan async (single URL)."""
 
     url: str = Field(..., min_length=1)
     scan_type: ScanType = "frontend"
     scan_mode: ScanMode = "passive"
+    credentials: ScanCredentials | None = None
     input: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -31,12 +44,14 @@ class ScanAsyncMultiCreateRequest(BaseModel):
         urls: Liste d'URLs à scanner. Toutes doivent appartenir au même domaine.
               Minimum 2, maximum défini par multi_scan.max_urls dans settings.yml.
         scan_type: Type de scan (uniquement "frontend" en V1).
+        credentials: Credentials optionnels de l'application cible (intrusif seulement).
         input: Paramètres additionnels (réservé pour extensions futures).
     """
 
     urls: list[str] = Field(..., min_length=2)
     scan_type: ScanType = "frontend"
     scan_mode: ScanMode = "passive"
+    credentials: ScanCredentials | None = None
     input: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")

@@ -7,6 +7,68 @@ et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ---
 
+## [1.1.0] - 2026-03-31
+
+Version **Scanner 2** : scans **intrusifs** (tests actifs) depuis le hub, avec scoring et rapports dédiés. Référence produit : [ROADMAP-MVP-1.1.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.1.0.md). La **vérification DNS** des domaines pour les modes non passifs est suivie sous **[1.2.0](docs/roadmaps/versions/ROADMAP-MVP-1.2.0.md)**.
+
+### Ajouté
+
+- **Scan intrusif** : pipeline sous `intrusive/` avec **34 checks** (phases P0–P3), modes **intrusif**, **personnalisé** et **destructif** ; distinction cible **frontend** / **backend** ; credentials optionnels (cookie / bearer), **non persistés** pour les scans planifiés
+- **Socle** : client HTTP intrusif, extraction de paramètres, moteur de payloads, détecteurs, budgets et timeouts configurables (`intrusive_scan` / `settings.yml`)
+- **Scoring intrusif** : `compute_intrusive_score()`, intégration PDF et macro-catégories côté `pdf-service`
+- **Qualité** : tests unitaires ciblés (`test_intrusive_*.py`, scoring, split domaine/page, orchestrateur multi-URL)
+- **Documentation** : guides hub (scan intrusif, passif, crawler, API, vérification DNS utilisateur), référentiel [catalogue-complet-tests-intrusifs.md](docs/verifications/intrusive/catalogue-complet-tests-intrusifs.md)
+
+### Modifié
+
+- Hub **Scanner** : sélecteur de modes, flux async, résultats et exports alignés sur les scans actifs
+
+### Limites connues (à date 1.1.0)
+
+- Prévu en **1.2.0** : preuve DNS / contrôle d’autorisation domaine pour les modes non passifs — voir [ROADMAP-MVP-1.2.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.2.0.md)
+
+---
+
+## [1.0.5] - 2026-03-29
+
+### Modifié
+
+- **Internationalisation** : correctifs et compléments de traductions (hotfix)
+
+---
+
+## [1.0.4] - 2026-03-20
+
+### Modifié
+
+- **pdf-service** : variable d’environnement d’URL gateway pour la génération correcte des rapports PDF
+
+---
+
+## [1.0.3] - 2026-03-20
+
+### Modifié
+
+- **Gateway — CORS** : ajustement complémentaire des origines autorisées (environnements de production)
+
+---
+
+## [1.0.2] - 2026-03-20
+
+### Modifié
+
+- **Gateway — CORS** : prise en charge des URLs de production dans la configuration CORS
+
+---
+
+## [1.0.1] - 2026-03-20
+
+### Corrigé
+
+- **Docker Compose** : correction du healthcheck du service backend
+
+---
+
 ## [1.0.0] - 2026-03-19
 
 Cette version **1.0.0** marque l’alignement de la version produit et de la documentation sur les jalons MVP. Ci-dessous : **synthèse de tout ce qui a été ajouté et consolidé depuis la [0.1.0]** (le détail inchangé par release reste dans les sections [0.3.0], [0.2.0] et [0.1.0] ci-dessous).
@@ -222,6 +284,12 @@ Cette version **1.0.0** marque l’alignement de la version produit et de la doc
 
 ---
 
+[1.1.0]: https://github.com/pierreglerant/secureops/releases/tag/v1.1.0
+[1.0.5]: https://github.com/pierreglerant/secureops/releases/tag/v1.0.5
+[1.0.4]: https://github.com/pierreglerant/secureops/releases/tag/v1.0.4
+[1.0.3]: https://github.com/pierreglerant/secureops/releases/tag/v1.0.3
+[1.0.2]: https://github.com/pierreglerant/secureops/releases/tag/v1.0.2
+[1.0.1]: https://github.com/pierreglerant/secureops/releases/tag/v1.0.1
 [1.0.0]: https://github.com/pierreglerant/secureops/releases/tag/v1.0.0
 [0.3.0]: https://github.com/pierreglerant/secureops/releases/tag/v0.3.0
 [0.2.0]: https://github.com/pierreglerant/secureops/releases/tag/v0.2.0

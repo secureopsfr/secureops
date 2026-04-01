@@ -24,7 +24,7 @@ export default function ScannerDocDetailPage() {
 
   useEffect(() => {
     if (!slug) return;
-    getDocBySlug(slug)
+    getDocBySlug(slug, locale)
       .then((doc) => {
         setContent(doc.content);
         if (doc.title && typeof document !== "undefined") {
@@ -33,7 +33,7 @@ export default function ScannerDocDetailPage() {
       })
       .catch(() => setError("Page introuvable"))
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [slug, locale]);
 
   return (
     <>

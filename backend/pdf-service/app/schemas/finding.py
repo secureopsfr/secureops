@@ -16,6 +16,10 @@ class Finding(BaseModel):
     recommendation: str = ""
     references: list[str] = []
     owasp_categories: list[str] = []
+    # Champs techniques (scans intrusifs)
+    request_url: str | None = None
+    request_method: str | None = None
+    raw_evidence: str | None = None
 
     @field_validator("severity", mode="before")
     @classmethod

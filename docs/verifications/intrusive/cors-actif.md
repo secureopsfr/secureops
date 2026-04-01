@@ -4,6 +4,15 @@ Ce document décrit les vérifications actives CORS : objectif, méthodologie, r
 
 ---
 
+## Périmètre selon scan_type
+
+| scan_type | Comportement |
+|-----------|--------------|
+| `frontend` | ✓ Check sur la page principale |
+| `backend` | ✓ Check sur chaque endpoint API découvert — **sévérité et priorité plus élevées** (les données d'une API sont typiquement plus sensibles qu'une page HTML publique) |
+
+---
+
 ## Contexte et méthodologie
 
 ### Objectif

@@ -11,6 +11,7 @@ from common.async_jobs import ProgressBatcher, utc_now
 
 from app.config_loader import get_async_jobs_settings
 from app.db import get_async_session, init_db
+from app.schemas.async_job import ScanCredentials
 from app.services.async_job_repository import append_job_progress_batch, claim_next_job, mark_completed, mark_failed, mark_failed_timeout
 from app.services.async_scan_executor import execute_multi_scan_job, execute_scan_job
 
@@ -89,23 +90,26 @@ async def _execute_claimed_job(session: Any, job: Any) -> None:
     )
     try:
         result_mode = getattr(job, "result_mode", "single") or "single"
+        input_data = job.input_json or {}
+        raw_creds = input_data.get("credentials")
+        credentials = ScanCredentials(**raw_creds) if isinstance(raw_creds, dict) else None
         if result_mode == "multi":
-            input_data = job.input_json or {}
             urls = input_data.get("urls") or [job.url]
             scan_mode = str(input_data.get("scan_mode") or "passive")
             result, error = await execute_multi_scan_job(
                 urls=urls,
                 scan_type=job.scan_type,
                 scan_mode=scan_mode,
+                credentials=credentials,
                 input_json=input_data,
                 on_progress=progress.on_progress,
             )
         else:
-            input_data = job.input_json or {}
             result, error = await execute_scan_job(
                 url=job.url,
                 scan_type=job.scan_type,
                 scan_mode=str(input_data.get("scan_mode") or "passive"),
+                credentials=credentials,
                 input_json=input_data,
                 on_progress=progress.on_progress,
                 flush_fn=lambda: progress.flush(force=True),

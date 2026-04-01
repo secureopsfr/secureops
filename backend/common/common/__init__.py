@@ -26,13 +26,7 @@ from common.error_handlers import register_exception_handlers
 from common.health import create_health_router
 from common.logging_config import get_logger, mask_email, setup_logging
 from common.middleware import CorrelationIdMiddleware
-from common.schemas import (
-    DeleteResponse,
-    ErrorResponse,
-    PaginatedResponse,
-    SuccessResponse,
-    make_pagination_meta,
-)
+from common.schemas import DeleteResponse, ErrorResponse, PaginatedResponse, SuccessResponse, make_pagination_meta
 from common.ssrf import check_ssrf, is_hostname_blocked, is_ip_blocked
 from common.url_helpers import (
     build_http_url,

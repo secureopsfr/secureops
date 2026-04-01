@@ -59,6 +59,7 @@ def report_pdf(
         page_results=body.page_results,
         include_matrices=include_matrices,
         lang=lang,
+        scan_mode=body.scan_mode,
     )
     host = body.url.replace("https://", "").replace("http://", "").split("/")[0][:30]
     filename = f"scan-{host}-{body.timestamp[:10]}.pdf".replace(":", "-")

@@ -18,6 +18,7 @@ from app.config import (
     ExternalServicesSettings,
     InformationDisclosureSettings,
     IntegritySettings,
+    IntrusiveScanSettings,
     MethodesHttpEtRedirectionsSettings,
     MultiScanSettings,
     PathCheckConfig,
@@ -44,6 +45,7 @@ from app.config import (
     get_information_disclosure_max_body,
     get_information_disclosure_settings,
     get_integrity_settings,
+    get_intrusive_scan_settings,
     get_methodes_http_et_redirections_settings,
     get_multi_scan_settings,
     get_robots_txt_settings,
@@ -60,6 +62,8 @@ settings = create_simple_settings("scan-service", default_port=8012, caller_file
 
 __all__ = [
     "ApisEtFormatsSettings",
+    "IntrusiveScanSettings",
+    "get_intrusive_scan_settings",
     "BlacklistSettings",
     "AsyncJobsSettings",
     "CacheSettings",

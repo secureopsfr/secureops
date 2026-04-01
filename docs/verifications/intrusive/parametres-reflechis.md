@@ -4,6 +4,15 @@ Ce document décrit les vérifications actives sur les paramètres réfléchis :
 
 ---
 
+## Périmètre selon scan_type
+
+| scan_type | Comportement |
+|-----------|--------------|
+| `frontend` | ✓ **Check complet** — réflexion recherchée dans le HTML, les attributs et les scripts inline |
+| `backend` | ✗ **Skip total** — pas de contexte HTML de rendu ; la réflexion dans un body JSON ne constitue pas un vecteur XSS |
+
+---
+
 ## Contexte et méthodologie
 
 ### Objectif

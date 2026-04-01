@@ -12,11 +12,12 @@ from app.config_loader import get_scan_timeouts
 from app.errors.fetch_errors import build_sse_error_payload, build_timeout_global_error_payload
 from app.models.finding import Finding
 from app.models.scan_result import ScanResult
+from app.schemas.async_job import ScanCredentials
 from app.services.destructive._fake_security_checks import DESTRUCTIVE_STEPS
 from app.services.mode_category_summaries import build_destructive_category_summaries, count_total_tests
 from app.services.scan_preflight_common import emit_events, has_error_event, run_single_preflight
 from app.services.scan_stream_common import emit_save_events, stream_with_standard_error_events
-from app.services.scoring import compute_score
+from app.services.scoring import compute_intrusive_score
 from app.utils.http_fetch import get_with_client_or_error, log_http_metrics, scan_client
 from app.utils.sse import sse_message
 from app.utils.url_helpers import get_scan_base_url
@@ -31,6 +32,10 @@ def _timeout_error_message() -> str:
 async def _perform_destructive_checks(
     normalized_url: str,
     over_global: Callable[[], bool],
+    scan_type: str = "frontend",
+    credentials: ScanCredentials | None = None,
+    opt_in: bool = False,
+    user_id: str = "unknown",
 ) -> tuple[list[Finding], list[str], bool]:
     https_url = get_scan_base_url(normalized_url)
     findings: list[Finding] = []
@@ -49,15 +54,26 @@ async def _perform_destructive_checks(
                     events.append(_timeout_error_message())
                     return findings, events, True
                 events.append(sse_message("step", {"step": f"{step_name}_check", "message": ""}))
-                result = step_fn(normalized_url)
-                findings.extend(result.findings)
+                import asyncio
+                import inspect
+
+                sig = inspect.signature(step_fn)
+                if "scan_type" in sig.parameters:
+                    step_result = step_fn(normalized_url, scan_type=scan_type, credentials=credentials, opt_in=opt_in, user_id=user_id)
+                    if asyncio.iscoroutine(step_result):
+                        step_result = await step_result
+                    step_findings = step_result if isinstance(step_result, list) else []
+                else:
+                    raw = step_fn(normalized_url)
+                    step_findings = list(getattr(raw, "findings", []))
+                findings.extend(step_findings)
                 events.append(
                     sse_message(
                         "step",
                         {
                             "step": f"{step_name}_done",
                             "message": "",
-                            "anomaly_count": len(result.findings),
+                            "anomaly_count": len(step_findings),
                         },
                     )
                 )
@@ -69,12 +85,15 @@ async def _perform_destructive_checks(
 
 async def _run_pipeline_steps(
     url: str,
-    scan_type: str,
+    scan_type: str = "frontend",
     authorization: str | None = None,
+    credentials: ScanCredentials | None = None,
+    input_json: dict | None = None,
 ) -> AsyncGenerator[str, None]:
     """Run destructive scan and emit step/result events as SSE chunks."""
     start = time.monotonic()
     scan_global = get_scan_timeouts().scan_global
+    opt_in = bool((input_json or {}).get("opt_in", False))
 
     def _over_global() -> bool:
         return (time.monotonic() - start) > scan_global
@@ -91,14 +110,20 @@ async def _run_pipeline_steps(
     if normalized_url is None:
         return
 
-    findings, check_events, should_stop = await _perform_destructive_checks(normalized_url, _over_global)
+    findings, check_events, should_stop = await _perform_destructive_checks(
+        normalized_url,
+        _over_global,
+        scan_type=scan_type,
+        credentials=credentials,
+        opt_in=opt_in,
+    )
     async for chunk in emit_events(check_events):
         yield chunk
     if should_stop:
         return
 
     category_summaries = build_destructive_category_summaries(findings)
-    score = compute_score(findings)
+    score = compute_intrusive_score(findings)
     scan_result = ScanResult(
         url=normalized_url,
         timestamp=utc_now().isoformat(),
@@ -114,7 +139,6 @@ async def _run_pipeline_steps(
             "status": "success",
             "scan_type": scan_type,
             "scan_mode": "destructive",
-            "message": "Fake destructive scan result (V1).",
         }
     )
 
@@ -132,13 +156,19 @@ async def _run_pipeline_steps(
 async def scan_stream_generator(
     url: str,
     authorization: str | None = None,
+    *,
+    scan_type: str = "frontend",
+    credentials: ScanCredentials | None = None,
+    input_json: dict | None = None,
 ) -> AsyncGenerator[str, None]:
     """Stream destructive scan progress and final result through SSE chunks."""
     async for chunk in stream_with_standard_error_events(
         pipeline_factory=lambda: _run_pipeline_steps(
             url=url,
-            scan_type="frontend",
+            scan_type=scan_type,
             authorization=authorization,
+            credentials=credentials,
+            input_json=input_json,
         ),
     ):
         yield chunk

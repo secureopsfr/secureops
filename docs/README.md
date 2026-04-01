@@ -10,6 +10,10 @@ Index de la documentation du projet.
 
 - [**ARCHITECTURE.md**](ARCHITECTURE.md) — Architecture des services (gateway, admin, user, scan), flux d’authentification (Cognito/JWT), bases de données, package commun backend, aperçu du frontend.
 
+- [**VERIFICATION-AUTORISATION.md**](VERIFICATION-AUTORISATION.md) — Spécification de la preuve de propriété DNS (TXT) pour le Scanner 2 ; état d’implémentation et intégration prévue.
+
+- [**verification-dns.md**](verification-dns.md) — Guide utilisateur (FR) : étapes TXT, hub Scanner. Équivalent anglais : [**en/dns-domain-verification.md**](en/dns-domain-verification.md). Les pages d’aide in-app reprennent ce contenu (`/fr|en/scanner/docs/verification-dns`).
+
 ## Déploiement et opérations
 
 - [**DEPLOIEMENT.md**](DEPLOIEMENT.md) — Variables d’environnement, build et exécution avec Docker, migrations Alembic, healthchecks, déploiement du frontend, bonnes pratiques et dépannage.
@@ -30,7 +34,9 @@ Index de la documentation du projet.
 
 - [**ROADMAP-MVP-1.0.0.md**](roadmaps/versions/ROADMAP-MVP-1.0.0.md) — Roadmap MVP 1.0.0 : finalisation tests passifs restants, premiers tests actifs, analytics et backlog reporté.
 
-- [**ROADMAP-MVP-1.1.0.md**](roadmaps/versions/ROADMAP-MVP-1.1.0.md) — Roadmap MVP 1.1.0 : tests d’intégration, Scanner 2, vérification d’autorisation, backlog reporté depuis la 1.0.0.
+- [**ROADMAP-MVP-1.1.0.md**](roadmaps/versions/ROADMAP-MVP-1.1.0.md) — Roadmap MVP 1.1.0 : Scanner 2 (tests intrusifs), finalisation produit.
+
+- [**ROADMAP-MVP-1.2.0.md**](roadmaps/versions/ROADMAP-MVP-1.2.0.md) — Roadmap MVP 1.2.0 : vérification DNS du domaine (modes non passifs), lien avec [VERIFICATION-AUTORISATION.md](VERIFICATION-AUTORISATION.md).
 
 - [**CHANGELOG.md**](../CHANGELOG.md) — Historique des modifications (format Keep a Changelog). Version courante dans [VERSION](../VERSION).
 

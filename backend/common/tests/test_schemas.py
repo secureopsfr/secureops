@@ -1,12 +1,6 @@
 """Tests unitaires pour common.schemas."""
 
-from common.schemas import (
-    DeleteResponse,
-    ErrorResponse,
-    PaginatedResponse,
-    SuccessResponse,
-    make_pagination_meta,
-)
+from common.schemas import DeleteResponse, ErrorResponse, PaginatedResponse, SuccessResponse, make_pagination_meta
 
 
 def test_success_response_defaults() -> None:

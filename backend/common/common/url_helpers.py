@@ -6,7 +6,16 @@ construire des URLs avec chemin, etc.
 
 from urllib.parse import urljoin, urlparse, urlunparse
 
+import tldextract
+
 from common.env_utils import is_prod_env
+
+# Snapshot intégré uniquement (pas de fetch réseau, pas de cache disque).
+_tld_extract = tldextract.TLDExtract(
+    suffix_list_urls=(),
+    fallback_to_snapshot=True,
+    cache_dir=None,
+)
 
 
 def extract_host_from_url(url: str) -> str:
@@ -131,3 +140,40 @@ def location_redirects_to_https(location: str | None) -> bool:
     if not location or not isinstance(location, str):
         return False
     return location.strip().lower().startswith("https://")
+
+
+def registered_domain_from_host(host: str) -> str:
+    """Retourne le domaine enregistrable (eTLD+1) pour un hostname.
+
+    Utilise la public suffix list (tldextract). Pour une IP ou un hostname sans
+    suffixe public connu, retourne l'hôte en minuscules (comportement de secours).
+
+    Args:
+        host: Hostname seul (sans schéma), ex. ``www.example.com`` ou ``example.com:8080``.
+
+    Returns:
+        str: eTLD+1 (ex. ``example.com``, ``shop.co.uk``) ou hôte brut en fallback.
+    """
+    if not host:
+        return ""
+    bare = host.split(":")[0].strip().lower()
+    ext = _tld_extract(bare)
+    if ext.domain and ext.suffix:
+        return f"{ext.domain}.{ext.suffix}"
+    return bare
+
+
+def registered_domain_from_url(url: str) -> str:
+    """Retourne le domaine enregistrable (eTLD+1) pour une URL ou un netloc.
+
+    Args:
+        url: URL complète ou netloc (ex. ``https://blog.example.com/path``).
+
+    Returns:
+        str: eTLD+1, ou chaîne vide si aucun host déductible.
+    """
+    netloc = urlparse(url).netloc or url
+    if not netloc:
+        return ""
+    host = netloc.split(":")[0]
+    return registered_domain_from_host(host)

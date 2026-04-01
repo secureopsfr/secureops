@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import AsyncGenerator, Callable
+from typing import Any
 
 from common.async_jobs import utc_now
 
@@ -132,12 +133,63 @@ async def _run_pipeline_steps(
 async def scan_stream_generator(
     url: str,
     authorization: str | None = None,
+    *,
+    scan_type: str = "frontend",
+    credentials: Any = None,
+    input_json: dict | None = None,
 ) -> AsyncGenerator[str, None]:
-    """Stream custom scan progress and final result through SSE chunks."""
+    """Stream custom scan progress and final result through SSE chunks.
+
+    Args:
+        input_json: Doit contenir input_json["scenario"] si un scénario custom est défini.
+    """
+    scenario = (input_json or {}).get("scenario")
+    if scenario:
+        # Mode scénario custom : déléguer au scenario_engine
+        from app.services.custom.scenario_engine import run_scenario
+
+        async def _scenario_pipeline() -> AsyncGenerator[str, None]:
+            import time as _time
+
+            from common.async_jobs import utc_now
+
+            from app.models.scan_result import ScanResult
+            from app.services.mode_category_summaries import build_custom_category_summaries, count_total_tests
+            from app.services.scoring import compute_intrusive_score
+            from app.utils.sse import sse_message
+
+            start = _time.monotonic()
+            yield sse_message("step", {"step": "custom_scenario_started", "message": ""})
+            creds_obj = credentials if hasattr(credentials, "cookie") else None
+            findings = await run_scenario(scenario, credentials=creds_obj, base_url=url)
+            yield sse_message("step", {"step": "custom_scenario_done", "message": "", "anomaly_count": len(findings)})
+            score = compute_intrusive_score(findings)
+            result = ScanResult(
+                url=url,
+                timestamp=utc_now().isoformat(),
+                duration=_time.monotonic() - start,
+                score=score,
+                findings=tuple(findings),
+            )
+            payload = result.to_dict()
+            payload["status"] = "success"
+            payload["scan_mode"] = "custom"
+            payload["scan_type"] = scan_type
+            summaries = build_custom_category_summaries(findings)
+            payload["category_summaries"] = summaries
+            payload["total_tests_count"] = count_total_tests(summaries)
+            yield sse_message("result", payload)
+
+        async for chunk in stream_with_standard_error_events(
+            pipeline_factory=_scenario_pipeline,
+        ):
+            yield chunk
+        return
+
     async for chunk in stream_with_standard_error_events(
         pipeline_factory=lambda: _run_pipeline_steps(
             url=url,
-            scan_type="frontend",
+            scan_type=scan_type,
             authorization=authorization,
         ),
     ):

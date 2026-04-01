@@ -25,20 +25,20 @@ export default function FindingCard({ finding }: FindingCardProps) {
 
   return (
     <div className="py-4">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
+      <div className="mb-2 space-y-2">
         <h4 className="font-medium">{finding.title}</h4>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={severityVariant}>
             {t(getSeverityKey(finding.severity))}
           </Badge>
-          <span className="text-xs text-muted-theme">
-            {t(getCategoryKey(finding.category))}
-          </span>
           {finding.owasp_categories?.map((code) => (
-            <Badge key={code} variant="default">
+            <Badge key={code} variant="default" className="font-mono text-xs">
               {code}
             </Badge>
           ))}
+          <span className="text-xs text-muted-theme">
+            {t(getCategoryKey(finding.category))}
+          </span>
         </div>
       </div>
       {finding.evidence && (

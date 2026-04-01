@@ -4,6 +4,15 @@ Ce document décrit les vérifications actives de mass assignment sur API.
 
 ---
 
+## Périmètre selon scan_type
+
+| scan_type | Comportement |
+|-----------|--------------|
+| `frontend` | ✗ **Skip total** — les formulaires HTML ne sont pas concernés par la mass assignment |
+| `backend` | ✓ **Check complet** — body JSON/REST uniquement |
+
+---
+
 ## Contexte et méthodologie
 
 ### Objectif

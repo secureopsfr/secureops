@@ -17,6 +17,7 @@ from app.db import get_async_session
 from app.schemas.async_job import ScanAsyncCreateRequest, ScanAsyncCreateResponse, ScanAsyncMultiCreateRequest, ScanAsyncStatusResponse
 from app.services.async_job_repository import create_job, get_job_by_id
 from app.services.async_scan_executor import execute_multi_scan_job, execute_scan_job
+from app.services.domain_authorization import ensure_domain_authorized_for_non_passive_scan
 from app.services.pdf_export_service import PdfExportError, export_scan_pdf_bytes
 from app.use_cases.async_job_access import (
     AnonymousPassiveFrontendOnlyError,
@@ -113,6 +114,10 @@ class InternalScanRequest(BaseModel):
     url: str = Field(..., description="URL à scanner")
     scan_type: str = Field("frontend", description="Type de scan: frontend ou backend")
     scan_mode: str = Field("passive", description="Mode de scan: passive, intrusive, destructive, custom")
+    cognito_sub: str | None = Field(
+        None,
+        description="Sub Cognito (requis si AUTHORIZATION_CHECK_ENABLED et mode non passif)",
+    )
 
 
 class InternalMultiScanRequest(BaseModel):
@@ -121,6 +126,26 @@ class InternalMultiScanRequest(BaseModel):
     urls: list[str] = Field(..., min_length=2, description="Liste d'URLs d'un même domaine")
     scan_type: str = Field("frontend", description="Type de scan: frontend ou backend")
     scan_mode: str = Field("passive", description="Mode de scan: passive, intrusive, destructive, custom")
+    cognito_sub: str | None = Field(
+        None,
+        description="Sub Cognito (requis si AUTHORIZATION_CHECK_ENABLED et mode non passif)",
+    )
+
+
+def _http_exc_to_internal_error(exc: HTTPException) -> dict:
+    detail = exc.detail
+    if isinstance(detail, dict):
+        msg = str(detail.get("message", detail.get("code", exc.detail)))
+        code = str(detail.get("code", "forbidden"))
+    else:
+        msg = str(detail)
+        code = "forbidden"
+    return {
+        "status": "error",
+        "message": msg,
+        "status_code": exc.status_code,
+        "error_type": code,
+    }
 
 
 @router.post(
@@ -134,8 +159,22 @@ async def internal_run_scan(
 ) -> dict:
     """Exécute le scan et retourne le résultat en JSON (pas de SSE)."""
     try:
+        try:
+            normalized_url = validate_and_normalize_url(body.url)
+        except URLValidationError as exc:
+            return {"status": "error", "message": str(exc), "status_code": 400, "error_type": "url_validation"}
+        try:
+            await ensure_domain_authorized_for_non_passive_scan(
+                cognito_sub=body.cognito_sub,
+                normalized_url=normalized_url,
+                scan_mode=body.scan_mode,
+            )
+        except HTTPException as exc:
+            if exc.status_code in (403, 503):
+                return _http_exc_to_internal_error(exc)
+            raise
         result_payload, error_payload = await execute_scan_job(
-            url=body.url,
+            url=normalized_url,
             scan_type=body.scan_type,
             scan_mode=body.scan_mode,
         )
@@ -165,8 +204,22 @@ async def internal_run_multi_scan(
 ) -> dict:
     """Exécute un scan multi et retourne le résultat agrégé en JSON."""
     try:
+        try:
+            normalized_urls = [validate_and_normalize_url(u) for u in body.urls]
+        except URLValidationError as exc:
+            return {"status": "error", "message": str(exc), "status_code": 400, "error_type": "url_validation"}
+        try:
+            await ensure_domain_authorized_for_non_passive_scan(
+                cognito_sub=body.cognito_sub,
+                normalized_url=normalized_urls[0],
+                scan_mode=body.scan_mode,
+            )
+        except HTTPException as exc:
+            if exc.status_code in (403, 503):
+                return _http_exc_to_internal_error(exc)
+            raise
         result_payload, error_payload = await execute_multi_scan_job(
-            urls=body.urls,
+            urls=normalized_urls,
             scan_type=body.scan_type,
             scan_mode=body.scan_mode,
         )
@@ -207,12 +260,21 @@ async def create_scan_async_job(
         await check_blacklist(normalized_url, get_blacklist_settings())
     except URLValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    await ensure_domain_authorized_for_non_passive_scan(
+        cognito_sub=authenticated_user_id,
+        normalized_url=normalized_url,
+        scan_mode=body.scan_mode,
+    )
     raw_job_token: str | None = None
     token_hash: str | None = None
     if not authenticated_user_id:
         raw_job_token = generate_job_token()
         token_hash = hash_job_token(raw_job_token, ASYNC_JOB_TOKEN_SECRET)
-    job_input = {"scan_mode": body.scan_mode, **(body.input or {})}
+    job_input = {
+        "scan_mode": body.scan_mode,
+        **(body.input or {}),
+        **({"credentials": body.credentials.model_dump()} if body.credentials else {}),
+    }
     try:
         async with get_async_session() as session:
             job = await create_job(
@@ -257,8 +319,19 @@ async def create_multi_scan_async_job(
     except URLValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
+    await ensure_domain_authorized_for_non_passive_scan(
+        cognito_sub=authenticated_user_id,
+        normalized_url=normalized_urls[0],
+        scan_mode=body.scan_mode,
+    )
+
     try:
-        job_input = {"scan_mode": body.scan_mode, "urls": normalized_urls, **(body.input or {})}
+        job_input = {
+            "scan_mode": body.scan_mode,
+            "urls": normalized_urls,
+            **(body.input or {}),
+            **({"credentials": body.credentials.model_dump()} if body.credentials else {}),
+        }
         async with get_async_session() as session:
             job = await create_job(
                 session,

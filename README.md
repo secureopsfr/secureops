@@ -1,6 +1,8 @@
 # SecureOps — Scanner de posture sécurité
 
-**Version :** `1.0.0` (voir [VERSION](VERSION) et [CHANGELOG.md](CHANGELOG.md))
+**Version :** `1.1.0` (voir [VERSION](VERSION) et [CHANGELOG.md](CHANGELOG.md))
+
+**Licence :** GNU General Public License v3.0 — voir le fichier [LICENSE](LICENSE).
 
 **SecureOps** est un scanner de posture sécurité web (non intrusif) destiné aux développeurs débutants et intermédiaires : **URL → scan rapide → score + rapport clair**.
 
@@ -80,7 +82,7 @@ secureops/
 ├── docker-compose.yml          # Stack complète
 ├── launch_dev.sh               # Démarrage dev (Postgres + services locaux)
 ├── .env.example                # Variables d’environnement racine
-├── VERSION                     # Version courante (ex. 1.0.0)
+├── VERSION                     # Version courante (ex. 1.1.0)
 ├── CHANGELOG.md                # Historique des modifications
 └── pytest.ini                  # Config pytest (tests à venir)
 ```
@@ -134,7 +136,7 @@ cd backend/user-service && . venv/bin/activate && alembic upgrade head
 
 ## Version
 
-La version courante est **`1.0.0`**, indiquée dans le fichier [VERSION](VERSION). Voir [CHANGELOG.md](CHANGELOG.md) pour l'historique des modifications. Les roadmaps cibles suivantes sont documentées sous [ROADMAP-MVP-1.0.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.0.0.md) et [ROADMAP-MVP-1.1.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.1.0.md).
+La version courante est **`1.1.0`**, indiquée dans le fichier [VERSION](VERSION). Voir [CHANGELOG.md](CHANGELOG.md) pour l'historique des modifications. Les roadmaps cibles suivantes sont documentées sous [ROADMAP-MVP-1.0.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.0.0.md), [ROADMAP-MVP-1.1.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.1.0.md) et [ROADMAP-MVP-1.2.0.md](docs/roadmaps/versions/ROADMAP-MVP-1.2.0.md).
 
 ## Licence
 

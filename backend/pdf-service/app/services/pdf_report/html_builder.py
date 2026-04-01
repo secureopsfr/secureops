@@ -84,6 +84,7 @@ def build_html(
     page_results: list[dict] | None = None,
     include_matrices: bool = True,
     lang: str = "fr",
+    scan_mode: str = "passive",
 ) -> str:
     """Construit le HTML complet du rapport.
 
@@ -97,6 +98,7 @@ def build_html(
         page_results: Résultats par page pour un scan multi, optionnel.
         include_matrices: Inclure les matrices par finding.
         lang: Code langue (fr/en).
+        scan_mode: Mode de scan (passive, intrusive, custom).
 
     Returns:
         str: Document HTML complet.
@@ -106,8 +108,8 @@ def build_html(
 
     title = t("page_title", lang)
     disclaimer = t("disclaimer", lang)
-    report_title = t("report_title", lang)
-    subtitle = t("subtitle", lang)
+    report_title = t(f"report_title_{scan_mode}", lang) if scan_mode != "passive" else t("report_title", lang)
+    subtitle = t(f"subtitle_{scan_mode}", lang) if scan_mode != "passive" else t("subtitle", lang)
 
     try:
         dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
@@ -124,9 +126,9 @@ def build_html(
     else:
         score_color = render.score_color_low
 
-    by_category, ordered_cats = _group_findings_by_category(findings, lang)
-    cover_page = build_cover_page(url, date_str, lang, report_title, subtitle)
-    sommaire_html = build_sommaire(by_category, ordered_cats, lang)
+    by_category, ordered_cats = _group_findings_by_category(findings, lang, scan_mode=scan_mode)
+    cover_page = build_cover_page(url, date_str, lang, report_title, subtitle, scan_mode=scan_mode)
+    sommaire_html = build_sommaire(by_category, ordered_cats, lang, scan_mode=scan_mode)
     synthese_html = build_synthese(
         by_category,
         ordered_cats,
@@ -137,9 +139,10 @@ def build_html(
         base_url=url,
         result_mode=result_mode,
         page_results=page_results,
+        scan_mode=scan_mode,
     )
-    sections_html, next_section_num = build_category_sections(by_category, ordered_cats, include_matrices, lang)
-    other_tests_html, next_section_num = build_other_tests_section(by_category, next_section_num, lang)
+    sections_html, next_section_num = build_category_sections(by_category, ordered_cats, include_matrices, lang, scan_mode=scan_mode)
+    other_tests_html, next_section_num = build_other_tests_section(by_category, next_section_num, lang, scan_mode=scan_mode)
 
     references_html = _build_references_section(findings, next_section_num, lang)
 
