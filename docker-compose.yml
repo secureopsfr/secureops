@@ -103,6 +103,7 @@ services:
       - ADMIN_SERVICE_URL=http://admin-service:8010
       - ADMIN_SERVICE_INTERNAL_API_KEY=${ADMIN_SERVICE_INTERNAL_API_KEY:-}
       - USER_SERVICE_INTERNAL_API_KEY=${USER_SERVICE_INTERNAL_API_KEY:-dev-user-service-internal-key}
+      - AUTHORIZATION_CHECK_ENABLED=${AUTHORIZATION_CHECK_ENABLED:-false}
       - SCHEDULED_SCAN_INITIAL_DELAY_SECONDS=${SCHEDULED_SCAN_INITIAL_DELAY_SECONDS:-60}
       - SCHEDULED_SCAN_INTERVAL_SECONDS=${SCHEDULED_SCAN_INTERVAL_SECONDS:-300}
     networks:
@@ -132,6 +133,9 @@ services:
       - PDF_SERVICE_URL=http://pdf-service:8013
       - PDF_SERVICE_INTERNAL_API_KEY=${PDF_SERVICE_INTERNAL_API_KEY:-}
       - ASYNC_JOB_TOKEN_SECRET=${ASYNC_JOB_TOKEN_SECRET:-dev-async-job-secret}
+      - USER_SERVICE_URL=http://user-service:8011
+      - USER_SERVICE_INTERNAL_API_KEY=${USER_SERVICE_INTERNAL_API_KEY:-dev-user-service-internal-key}
+      - AUTHORIZATION_CHECK_ENABLED=${AUTHORIZATION_CHECK_ENABLED:-false}
     networks:
       - app-network
     healthcheck:
@@ -153,6 +157,9 @@ services:
       - IS_DOCKER=true
       - DATABASE_URL=postgresql://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-template_db}
       - ASYNC_JOB_TOKEN_SECRET=${ASYNC_JOB_TOKEN_SECRET:-dev-async-job-secret}
+      - USER_SERVICE_URL=http://user-service:8011
+      - USER_SERVICE_INTERNAL_API_KEY=${USER_SERVICE_INTERNAL_API_KEY:-dev-user-service-internal-key}
+      - AUTHORIZATION_CHECK_ENABLED=${AUTHORIZATION_CHECK_ENABLED:-false}
     networks:
       - app-network
     depends_on:
