@@ -8,6 +8,7 @@ Create Date: 2026-03-31
 from typing import Optional, Sequence
 
 import sqlalchemy as sa
+from sqlalchemy import inspect
 from sqlalchemy.dialects import postgresql
 
 from alembic import op
@@ -18,8 +19,7 @@ branch_labels: Optional[Sequence[str]] = None
 depends_on: Optional[Sequence[str]] = None
 
 
-def upgrade() -> None:
-    """Create domain_verifications and domain_verification_challenges tables."""
+def _create_domain_verifications_table() -> None:
     op.create_table(
         "domain_verifications",
         sa.Column(
@@ -42,6 +42,8 @@ def upgrade() -> None:
         ["user_id", "domain"],
     )
 
+
+def _create_domain_verification_challenges_table() -> None:
     op.create_table(
         "domain_verification_challenges",
         sa.Column(
@@ -61,10 +63,38 @@ def upgrade() -> None:
     op.create_index("ix_domain_verification_challenges_expires_at", "domain_verification_challenges", ["expires_at"])
 
 
+def upgrade() -> None:
+    """Create domain_verifications and domain_verification_challenges tables (skip if already present)."""
+    bind = op.get_bind()
+    if bind is None:
+        # Offline / SQL generation: assume empty schema.
+        _create_domain_verifications_table()
+        _create_domain_verification_challenges_table()
+        return
+
+    existing = set(inspect(bind).get_table_names())
+    if "domain_verifications" not in existing:
+        _create_domain_verifications_table()
+    if "domain_verification_challenges" not in existing:
+        _create_domain_verification_challenges_table()
+
+
 def downgrade() -> None:
-    """Drop domain verification tables and indexes."""
-    op.drop_index("ix_domain_verification_challenges_expires_at", table_name="domain_verification_challenges")
-    op.drop_table("domain_verification_challenges")
-    op.drop_index("ix_domain_verifications_user_domain", table_name="domain_verifications")
-    op.drop_index("ix_domain_verifications_user_id", table_name="domain_verifications")
-    op.drop_table("domain_verifications")
+    """Drop domain verification tables and indexes (skip if already absent)."""
+    bind = op.get_bind()
+    if bind is None:
+        op.drop_index("ix_domain_verification_challenges_expires_at", table_name="domain_verification_challenges")
+        op.drop_table("domain_verification_challenges")
+        op.drop_index("ix_domain_verifications_user_domain", table_name="domain_verifications")
+        op.drop_index("ix_domain_verifications_user_id", table_name="domain_verifications")
+        op.drop_table("domain_verifications")
+        return
+
+    existing = set(inspect(bind).get_table_names())
+    if "domain_verification_challenges" in existing:
+        op.drop_index("ix_domain_verification_challenges_expires_at", table_name="domain_verification_challenges")
+        op.drop_table("domain_verification_challenges")
+    if "domain_verifications" in existing:
+        op.drop_index("ix_domain_verifications_user_domain", table_name="domain_verifications")
+        op.drop_index("ix_domain_verifications_user_id", table_name="domain_verifications")
+        op.drop_table("domain_verifications")
