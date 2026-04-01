@@ -23,6 +23,7 @@ import ScannerHistoryAlertsSection from "./ScannerHistoryAlertsSection";
 import FakeScanResultsBlurred from "./FakeScanResultsBlurred";
 import ScheduleFormSection from "./ScheduleFormSection";
 import ScanTypeSelector from "./ScanTypeSelector";
+import DomainVerificationSection from "./DomainVerificationSection";
 import { normalizeScanUrl } from "../../utils/scanUrl";
 import { resolveCrawlUrlsToScanUrls } from "../../utils/urlPathParams";
 import { Checkbox } from "../inputs";
@@ -223,6 +224,11 @@ export default function ScannerContent() {
                       required
                       className="auth-input w-full"
                     />
+                    {scanMode !== "passive" &&
+                      isAuthenticated &&
+                      !authLoading && (
+                        <DomainVerificationSection scanUrl={url} t={t} />
+                      )}
                     <div>
                       <label className="block text-sm font-medium text-[var(--text)] mb-2">
                         {t("scanner.targetLabel")}
