@@ -5,7 +5,7 @@ Ce dossier regroupe la documentation des vérifications **actives/intrusives** d
 ## Cadre
 
 - Usage autorisé uniquement (tests sur cibles maîtrisées).
-- Domaine vérifié requis (ownership DNS en production).
+- Domaine vérifié requis (ownership DNS en production) — voir le [guide Vérification DNS](../../verification-dns.md) (résumé utilisateur) et la [spécification technique](../../VERIFICATION-AUTORISATION.md). Version anglaise du guide : [dns-domain-verification.md](../../en/dns-domain-verification.md).
 - Tests actifs légers au MVP (pas de bruteforce, pas de fuzzing massif).
 - Requêtes et charge strictement limitées.
 

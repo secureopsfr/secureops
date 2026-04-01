@@ -9,6 +9,7 @@ from common.logging_config import get_logger
 
 from app.db import get_async_session
 from app.services.daily_quota_repository import check_and_increment_quota
+from app.services.domain_verification_service import scheduled_scan_may_run
 from app.services.scan_alert_service import check_and_send_scan_alerts
 from app.services.scan_repository import create_scan, get_last_scan_by_user_and_url
 from app.services.scheduled_scan_repository import get_scans_due_for_execution, update_next_run_at
@@ -38,7 +39,7 @@ def _build_internal_headers() -> dict:
     return headers
 
 
-async def _call_scan_service_single(url: str, scan_type: str, scan_mode: str) -> dict:
+async def _call_scan_service_single(url: str, scan_type: str, scan_mode: str, cognito_sub: str | None = None) -> dict:
     """Appelle le scan-service (single) et retourne la réponse JSON.
 
     Args:
@@ -50,14 +51,17 @@ async def _call_scan_service_single(url: str, scan_type: str, scan_mode: str) ->
         dict: Réponse JSON du scan-service (ou dict vide si non-JSON).
     """
     headers = _build_internal_headers()
+    payload: dict = {
+        "url": url,
+        "scan_type": scan_type,
+        "scan_mode": scan_mode,
+    }
+    if cognito_sub:
+        payload["cognito_sub"] = cognito_sub
     async with httpx.AsyncClient(timeout=SCAN_TIMEOUT) as client:
         resp = await client.post(
             f"{SCAN_SERVICE_URL.rstrip('/')}/api/internal/scan/run",
-            json={
-                "url": url,
-                "scan_type": scan_type,
-                "scan_mode": scan_mode,
-            },
+            json=payload,
             headers=headers,
         )
     if resp.headers.get("content-type", "").startswith("application/json"):
@@ -65,17 +69,20 @@ async def _call_scan_service_single(url: str, scan_type: str, scan_mode: str) ->
     return {}
 
 
-async def _call_scan_service_multi(urls: list[str], scan_type: str, scan_mode: str) -> dict:
+async def _call_scan_service_multi(urls: list[str], scan_type: str, scan_mode: str, cognito_sub: str | None = None) -> dict:
     """Appelle le scan-service (multi) et retourne la réponse JSON."""
     headers = _build_internal_headers()
+    payload_m: dict = {
+        "urls": urls,
+        "scan_type": scan_type,
+        "scan_mode": scan_mode,
+    }
+    if cognito_sub:
+        payload_m["cognito_sub"] = cognito_sub
     async with httpx.AsyncClient(timeout=SCAN_TIMEOUT) as client:
         resp = await client.post(
             f"{SCAN_SERVICE_URL.rstrip('/')}/api/internal/scan/run-multi",
-            json={
-                "urls": urls,
-                "scan_type": scan_type,
-                "scan_mode": scan_mode,
-            },
+            json=payload_m,
             headers=headers,
         )
     if resp.headers.get("content-type", "").startswith("application/json"):
@@ -168,11 +175,6 @@ async def _execute_multi_due_scan(scan) -> tuple[dict | None, str]:
         logger.warning("Scan multi planifié ignoré (moins de 2 URLs valides): id=%s", scan.id)
         return None, ""
 
-    data = await _call_scan_service_multi(
-        normalized_urls,
-        scan_type=str(getattr(scan, "scan_type", "frontend")),
-        scan_mode=str(getattr(scan, "scan_mode", "passive")),
-    )
     try:
         url_to_scan = normalize_scan_url(scan.url)
     except URLValidationError as e:
@@ -183,6 +185,34 @@ async def _execute_multi_due_scan(scan) -> tuple[dict | None, str]:
             e,
         )
         return None, ""
+
+    scan_mode = str(getattr(scan, "scan_mode", "passive"))
+    cognito_sub: str | None = None
+    async with get_async_session() as session:
+        user = await get_user_by_id(session, scan.user_id)
+        if not user:
+            logger.warning("Scan multi planifié: utilisateur introuvable id=%s", scan.user_id)
+            return None, ""
+        cognito_sub = user.cognito_sub
+        if not await scheduled_scan_may_run(
+            session,
+            cognito_sub=cognito_sub,
+            normalized_url=normalized_urls[0],
+            scan_mode=scan_mode,
+        ):
+            logger.info(
+                "Scan multi planifié ignoré (domaine non vérifié pour mode non passif): id=%s mode=%s",
+                scan.id,
+                scan_mode,
+            )
+            return None, ""
+
+    data = await _call_scan_service_multi(
+        normalized_urls,
+        scan_type=str(getattr(scan, "scan_type", "frontend")),
+        scan_mode=scan_mode,
+        cognito_sub=cognito_sub,
+    )
     return data, url_to_scan
 
 
@@ -199,10 +229,33 @@ async def _execute_single_due_scan(scan) -> tuple[dict | None, str]:
         )
         return None, ""
 
+    scan_mode = str(getattr(scan, "scan_mode", "passive"))
+    cognito_sub: str | None = None
+    async with get_async_session() as session:
+        user = await get_user_by_id(session, scan.user_id)
+        if not user:
+            logger.warning("Scan planifié: utilisateur introuvable id=%s", scan.user_id)
+            return None, ""
+        cognito_sub = user.cognito_sub
+        if not await scheduled_scan_may_run(
+            session,
+            cognito_sub=cognito_sub,
+            normalized_url=url_to_scan,
+            scan_mode=scan_mode,
+        ):
+            logger.info(
+                "Scan planifié ignoré (domaine non vérifié pour mode non passif): id=%s mode=%s url=%s",
+                scan.id,
+                scan_mode,
+                url_to_scan[:50],
+            )
+            return None, ""
+
     data = await _call_scan_service_single(
         url_to_scan,
         scan_type=str(getattr(scan, "scan_type", "frontend")),
-        scan_mode=str(getattr(scan, "scan_mode", "passive")),
+        scan_mode=scan_mode,
+        cognito_sub=cognito_sub,
     )
     return data, url_to_scan
 

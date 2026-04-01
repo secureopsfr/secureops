@@ -65,7 +65,9 @@ def _build_proxied_headers(request: Request, extra_headers: dict[str, str] | Non
         headers["Authorization"] = f"Bearer {request.state.api_key_to_forward}"
     if hasattr(request.state, "user") and request.state.user:
         user = request.state.user
-        user_id = user.get("user_id") or user.get("sub")
+        # scan-service / user-service (assert DNS, jobs async) attendent le cognito_sub, pas l'UUID interne.
+        # Clé API : verify renvoie user_id (UUID) et sub ; il faut privilégier sub.
+        user_id = user.get("sub") or user.get("user_id")
         if user_id:
             headers["X-Authenticated-User-Id"] = str(user_id)
     elif "x-authenticated-user-id" not in {k.lower() for k in headers}:
