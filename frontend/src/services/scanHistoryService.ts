@@ -189,11 +189,21 @@ export async function getScanDetail(id: string): Promise<ScanHistoryDetail> {
 }
 
 export async function deleteScan(id: string): Promise<void> {
-  await fetchJsonWithAuth(
+  const response = await fetchWithAuth(
     `${getApiBaseUrl()}/user/api/scans/history/${id}`,
     { method: "DELETE" },
-    "Erreur lors de la suppression",
   );
+  // Idempotence UX: if scan is already gone, treat as success.
+  if (response.status === 404 || response.status === 204) {
+    return;
+  }
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const detail =
+      (err as { detail?: string | string[] }).detail ??
+      "Erreur lors de la suppression";
+    throw new Error(Array.isArray(detail) ? detail.join(", ") : detail);
+  }
 }
 
 /**
