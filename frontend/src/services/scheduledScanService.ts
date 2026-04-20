@@ -2,7 +2,11 @@
  * Service pour les scans planifiés (monitoring continu).
  */
 
-import { fetchJsonWithAuth, getApiBaseUrl } from "../utils/apiClient";
+import {
+  fetchJsonWithAuth,
+  fetchWithAuth,
+  getApiBaseUrl,
+} from "../utils/apiClient";
 import { buildPaginatedQuery } from "../utils/apiQueryParams";
 import type { PaginatedListResponse } from "../types/api";
 
@@ -166,11 +170,20 @@ export async function updateScheduledScan(
 }
 
 export async function deleteScheduledScan(id: string): Promise<void> {
-  await fetchJsonWithAuth(
+  const response = await fetchWithAuth(
     `${getApiBaseUrl()}/user/api/scans/schedule/${id}`,
     { method: "DELETE" },
-    "Erreur lors de la suppression du scan planifié",
   );
+  if (response.status === 404 || response.status === 204) {
+    return;
+  }
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const detail =
+      (err as { detail?: string | string[] }).detail ??
+      "Erreur lors de la suppression du scan planifié";
+    throw new Error(Array.isArray(detail) ? detail.join(", ") : detail);
+  }
 }
 
 export type ScanAlertHistoryListResponse =
@@ -202,9 +215,18 @@ export async function getScanAlertHistory(
 }
 
 export async function deleteScanAlertEvent(eventId: string): Promise<void> {
-  await fetchJsonWithAuth(
+  const response = await fetchWithAuth(
     `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history/${eventId}`,
     { method: "DELETE" },
-    "Erreur lors de la suppression de l'événement d'alerte",
   );
+  if (response.status === 404 || response.status === 204) {
+    return;
+  }
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const detail =
+      (err as { detail?: string | string[] }).detail ??
+      "Erreur lors de la suppression de l'événement d'alerte";
+    throw new Error(Array.isArray(detail) ? detail.join(", ") : detail);
+  }
 }
