@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNS domain verification</title>
+</head>
+<body>
+
+<div class="doc-intro">
+<h1>DNS domain verification</h1>
+<p>For <strong>non-passive scan modes</strong> (intrusive, custom, destructive, etc.), SecureOps may require <strong>proof that you control the DNS zone</strong> of the target site. You prove this by publishing a unique <strong>TXT</strong> record provided by the app — similar to certificate issuance or search-console verification.</p>
+<p>This page is an end-user overview. The full technical specification (API, database, environment variables) lives in the repository: <code>docs/VERIFICATION-AUTORISATION.md</code>.</p>
+</div>
+
+<div class="doc-toc">
+<h2>Table of contents</h2>
+<ol>
+<li><a href="#pourquoi">Why this check exists</a></li>
+<li><a href="#modes">When it applies</a></li>
+<li><a href="#etapes">Steps in the Scanner hub</a></li>
+<li><a href="#txt">Expected TXT record</a></li>
+<li><a href="#domaine">Which “domain” is used?</a></li>
+<li><a href="#apres">After verification</a></li>
+<li><a href="#limites">Limits and good practices</a></li>
+</ol>
+</div>
+
+<div class="doc-section">
+<h2 id="pourquoi">1. Why this check exists</h2>
+<p>Active scans send requests that resemble offensive testing. Requiring DNS control on the target domain <strong>reduces abuse</strong> against sites the user is not entitled to test.</p>
+<div class="doc-warning">
+<h3>Audit authorisation</h3>
+<p>DNS verification <strong>does not replace</strong> a contractual or legal pentest authorisation: only test applications you are allowed to assess.</p>
+</div>
+</div>
+
+<div class="doc-section">
+<h2 id="modes">2. When it applies</h2>
+<ul>
+<li><strong>Passive scan</strong>: DNS verification is <strong>not required</strong>.</li>
+<li><strong>All other modes</strong> (intrusive, custom, destructive, etc.): it is <strong>mandatory</strong> — the scan cannot start until the domain derived from the URL is verified for your account.</li>
+</ul>
+</div>
+
+<div class="doc-section">
+<h2 id="etapes">3. Steps in the Scanner hub</h2>
+<ol>
+<li>Enter the <strong>URL</strong> to scan for a scan mode other than passive.</li>
+<li>In the <strong>Domain verification (DNS)</strong> section, click <strong>Generate DNS instructions</strong>. A secret and the TXT host to create are shown.</li>
+<li>At your <strong>DNS provider</strong> (registrar, Cloudflare, etc.), create a <strong>TXT</strong> record with exactly the displayed name and value.</li>
+<li>Wait for <strong>propagation</strong> (often a few minutes; sometimes longer).</li>
+<li>Return to SecureOps and click <strong>Verify TXT</strong>. The service queries public DNS: if any returned string matches the expected secret, the domain is recorded for your account.</li>
+</ol>
+<p>You can <strong>retry</strong> verification without regenerating the secret while the pending challenge is still valid.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="txt">4. Expected TXT record</h2>
+<ul>
+<li><strong>Type</strong>: <code>TXT</code></li>
+<li><strong>Name / host</strong>: <code>_secureops-verify</code> as a subdomain of the domain to prove (e.g. <code>_secureops-verify.example.com</code>)</li>
+<li><strong>Value</strong>: the token shown by SecureOps (e.g. prefix <code>secureops-verify-</code> followed by random characters)</li>
+</ul>
+<p>Multiple TXT records on the same name are allowed: verification succeeds if <strong>at least one</strong> value matches the expected token.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="domaine">5. Which “domain” is used?</h2>
+<p>From the URL, the system derives the <strong>registrable domain</strong> (often the <strong>eTLD+1</strong>, e.g. <code>example.com</code> for <code>www.example.com</code>). That is the domain you must verify and that appears in your list of verified domains.</p>
+<p>If policy requires proving a specific <strong>host</strong> (e.g. <code>app.client.com</code>), the TXT name will be <code>_secureops-verify.app.client.com</code> — follow the instructions shown after generation.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="apres">6. After verification</h2>
+<ul>
+<li>Verification is stored with an <strong>expiry date</strong> (renewal may be required depending on configuration).</li>
+<li>A given domain can be tied to <strong>only one account</strong> at a time on the platform.</li>
+<li><strong>Scheduled</strong> non-passive scans may also be skipped or denied if the domain is not verified, under the same rule.</li>
+</ul>
+</div>
+
+<div class="doc-section">
+<h2 id="limites">7. Limits and good practices</h2>
+<ul>
+<li>Public resolvers may take time to see your TXT: on failure, check the zone and retry.</li>
+<li>Do not share the token outside your team authorised to manage DNS.</li>
+<li>For technical integration (internal assert, scan-service, Postgres tables), see the developer documentation in the repository.</li>
+</ul>
+</div>
+
+</body>
+</html>

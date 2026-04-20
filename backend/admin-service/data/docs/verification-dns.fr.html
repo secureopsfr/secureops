@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vérification DNS du domaine</title>
+</head>
+<body>
+
+<div class="doc-intro">
+<h1>Vérification DNS du domaine</h1>
+<p>Pour les <strong>modes de scan non passifs</strong> (intrusif, personnalisé, destructeur, etc.), SecureOps peut exiger une <strong>preuve que vous contrôlez la zone DNS</strong> du site cible. Cette preuve se fait en publiant un enregistrement <strong>TXT</strong> unique fourni par l’application — comme pour d’autres services (certificats, Search Console).</p>
+<p>Cette page résume le fonctionnement côté utilisateur. La spécification technique complète (API, base de données, variables d’environnement) est dans le dépôt : <code>docs/VERIFICATION-AUTORISATION.md</code>.</p>
+</div>
+
+<div class="doc-toc">
+<h2>Sommaire</h2>
+<ol>
+<li><a href="#pourquoi">Pourquoi cette vérification ?</a></li>
+<li><a href="#modes">Quand est-elle exigée ?</a></li>
+<li><a href="#etapes">Étapes dans le hub Scanner</a></li>
+<li><a href="#txt">Enregistrement TXT attendu</a></li>
+<li><a href="#domaine">Quel « domaine » est utilisé ?</a></li>
+<li><a href="#apres">Après la vérification</a></li>
+<li><a href="#limites">Limites et bonnes pratiques</a></li>
+</ol>
+</div>
+
+<div class="doc-section">
+<h2 id="pourquoi">1. Pourquoi cette vérification ?</h2>
+<p>Les scans actifs envoient des requêtes qui peuvent être assimilées à des tests d’intrusion. Limiter ces scans aux personnes capables de publier un enregistrement DNS sur le domaine cible <strong>réduit le risque d’abus</strong> sur des sites dont l’utilisateur n’est pas légitime.</p>
+<div class="doc-warning">
+<h3>Autorisation d’audit</h3>
+<p>Cette vérification DNS <strong>ne remplace pas</strong> une autorisation contractuelle ou légale d’audit : ne testez que des applications que vous êtes autorisé à évaluer.</p>
+</div>
+</div>
+
+<div class="doc-section">
+<h2 id="modes">2. Quand est-elle exigée ?</h2>
+<ul>
+<li><strong>Scan passif</strong> : la vérification DNS <strong>n’est pas demandée</strong>.</li>
+<li><strong>Tous les autres modes</strong> (intrusif, personnalisé, destructeur, etc.) : elle est <strong>obligatoire</strong> — le scan ne peut pas être lancé tant que le domaine dérivé de l’URL n’est pas vérifié pour votre compte.</li>
+</ul>
+</div>
+
+<div class="doc-section">
+<h2 id="etapes">3. Étapes dans le hub Scanner</h2>
+<ol>
+<li>Saisissez l’<strong>URL</strong> à scanner pour un scanner autre que le scanner passif.</li>
+<li>Dans la section <strong>Vérification du domaine (DNS)</strong>, cliquez sur <strong>Générer les instructions DNS</strong>. Un secret et le nom d’hôte TXT à créer s’affichent.</li>
+<li>Chez votre <strong>fournisseur DNS</strong> (registrar, Cloudflare, etc.), créez un enregistrement <strong>TXT</strong> avec exactement le nom et la valeur indiqués.</li>
+<li>Attendez la <strong>propagation</strong> (souvent quelques minutes ; parfois plus).</li>
+<li>Revenez sur SecureOps et cliquez sur <strong>Vérifier le TXT</strong>. Le service interroge le DNS public : si une chaîne correspond au secret attendu, le domaine est enregistré pour votre compte.</li>
+</ol>
+<p>Vous pouvez <strong>réessayer</strong> la vérification sans régénérer le secret tant que la demande (challenge) n’a pas expiré.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="txt">4. Enregistrement TXT attendu</h2>
+<ul>
+<li><strong>Type</strong> : <code>TXT</code></li>
+<li><strong>Nom / hôte</strong> : <code>_secureops-verify</code> comme sous-domaine du domaine à prouver (ex. <code>_secureops-verify.example.com</code>)</li>
+<li><strong>Valeur</strong> : le jeton affiché par SecureOps (ex. préfixe <code>secureops-verify-</code> suivi de caractères aléatoires)</li>
+</ul>
+<p>Plusieurs enregistrements TXT sur le même nom sont possibles : la vérification réussit si <strong>au moins une</strong> valeur correspond au jeton attendu.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="domaine">5. Quel « domaine » est utilisé ?</h2>
+<p>À partir de l’URL, le système calcule le <strong>domaine enregistrable</strong> (souvent l’<strong>eTLD+1</strong>, par ex. <code>example.com</code> pour <code>www.example.com</code>). C’est ce domaine qui doit être vérifié et qui apparaît dans la liste des domaines validés pour votre compte.</p>
+<p>Si votre politique impose de prouver un <strong>hôte</strong> précis (ex. <code>app.client.com</code>), le nom TXT sera <code>_secureops-verify.app.client.com</code> — suivez les instructions affichées après génération.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="apres">6. Après la vérification</h2>
+<ul>
+<li>La vérification est enregistrée avec une <strong>date d’expiration</strong> (renouvellement périodique possible selon la configuration).</li>
+<li>Un même domaine ne peut être associé qu’à <strong>un seul compte</strong> à la fois au sein de la plateforme.</li>
+<li>Les <strong>scans planifiés</strong> non passifs peuvent également être ignorés ou refusés si le domaine n’est pas vérifié, selon la même règle.</li>
+</ul>
+</div>
+
+<div class="doc-section">
+<h2 id="limites">7. Limites et bonnes pratiques</h2>
+<ul>
+<li>Les résolveurs DNS publics peuvent mettre du temps à voir votre TXT : en cas d’échec, vérifiez la zone, puis réessayez.</li>
+<li>Ne partagez pas le jeton hors de votre équipe autorisée à gérer le DNS.</li>
+<li>Pour l’intégration technique (assert interne, scan-service, tables Postgres), voir la documentation développeur dans le dépôt.</li>
+</ul>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API SecureOps</title>
+</head>
+<body>
+
+<div class="doc-intro">
+<h1>API SecureOps</h1>
+<p>Ce guide explique comment utiliser l'<strong>API publique SecureOps</strong> pour automatiser vos scans dans vos pipelines CI/CD, scripts et outils internes.</p>
+<p>Vous trouverez ici les endpoints, les paramètres, les exemples <code>curl</code> et des workflows GitHub Actions prêts à l'emploi.</p>
+</div>
+
+<div class="doc-toc">
+<h2>Sommaire</h2>
+<ol>
+<li><a href="#quickstart">Quick Start</a></li>
+<li><a href="#authentification">Authentification</a></li>
+<li><a href="#endpoints">Endpoints API</a></li>
+<li><a href="#single-scan">Scan async single URL</a></li>
+<li><a href="#multi-scan">Scan async multi URL</a></li>
+<li><a href="#codes-erreur">Codes d'erreur</a></li>
+<li><a href="#ci-github">Intégration GitHub Actions</a></li>
+<li><a href="#bonnes-pratiques">Bonnes pratiques</a></li>
+</ol>
+</div>
+
+<div class="doc-section">
+<h2 id="quickstart">1. Quick Start</h2>
+<p>Exemple minimal pour créer un scan asynchrone:</p>
+<pre><code>curl -X POST "https://api.secureops.fr/scan/api/scan/async" \
+	-H "Content-Type: application/json" \
+	-H "X-API-Key: sk_votre_cle" \
+	-d '{"url":"https://example.com","scan_type":"frontend","input":{"lang":"en"}}'</code></pre>
+<p>Réponse attendue:</p>
+<pre><code>{
+	"job_id": "54738dd7-540e-4288-a367-2951f1a34561",
+	"status": "pending",
+	"scan_type": "frontend",
+	"scan_mode": "passive",
+	"job_token": null
+}</code></pre>
+</div>
+
+<div class="doc-section">
+<h2 id="authentification">2. Authentification</h2>
+<p>Deux modes d'authentification sont supportés :</p>
+<ul>
+<li><strong>X-API-Key</strong> (recommandé en CI/CD)</li>
+<li><strong>Authorization: Bearer ...</strong> (JWT ou clé API selon contexte)</li>
+</ul>
+<p>Exemple header recommandé :</p>
+<pre><code>-H "X-API-Key: sk_votre_cle"</code></pre>
+</div>
+
+<div class="doc-section">
+<h2 id="endpoints">3. Endpoints API</h2>
+<table>
+<thead>
+<tr>
+<th>Méthode</th>
+<th>Endpoint</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/scan/api/scan/async</code></td>
+<td>Crée un job de scan asynchrone single URL</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/scan/api/scan/multi-async</code></td>
+<td>Crée un job multi URL (même domaine)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/scan/api/scan/async/{job_id}</code></td>
+<td>Retourne le statut du job</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/scan/api/scan/async/{job_id}/result</code></td>
+<td>Retourne le résultat final</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="doc-section">
+<h2 id="single-scan">4. Scan async single URL</h2>
+<h3>Requête</h3>
+<pre><code>POST /scan/api/scan/async
+Content-Type: application/json
+X-API-Key: sk_votre_cle
+
+{
+	"url": "https://example.com",
+	"scan_type": "frontend",
+	"scan_mode": "passive",
+	"input": {
+		"lang": "en"
+	}
+}</code></pre>
+<h3>Paramètres</h3>
+<ul>
+<li><code>url</code> : URL cible à scanner</li>
+<li><code>scan_type</code> : <code>frontend</code> ou <code>backend</code></li>
+<li><code>scan_mode</code> : <code>passive</code>, <code>intrusive</code>, <code>destructive</code>, <code>custom</code></li>
+<li><code>input.lang</code> : <code>fr</code> ou <code>en</code> pour les libellés de findings</li>
+</ul>
+<h3>Polling statut</h3>
+<pre><code>curl -H "X-API-Key: sk_votre_cle" \
+	"https://api.secureops.fr/scan/api/scan/async/JOB_ID"</code></pre>
+<h3>Récupération résultat</h3>
+<pre><code>curl -H "X-API-Key: sk_votre_cle" \
+	"https://api.secureops.fr/scan/api/scan/async/JOB_ID/result"</code></pre>
+</div>
+
+<div class="doc-section">
+<h2 id="multi-scan">5. Scan async multi URL</h2>
+<p>Le multi scan permet de scanner plusieurs URLs dans <strong>un seul job</strong>.</p>
+<p><strong>Contrainte importante :</strong> toutes les URLs doivent appartenir au même domaine.</p>
+<h3>Requête</h3>
+<pre><code>POST /scan/api/scan/multi-async
+Content-Type: application/json
+X-API-Key: sk_votre_cle
+
+{
+	"urls": [
+		"https://example.com",
+		"https://example.com/login",
+		"https://example.com/about"
+	],
+	"scan_type": "frontend",
+	"scan_mode": "passive",
+	"input": {
+		"lang": "en"
+	}
+}</code></pre>
+<h3>Résultat</h3>
+<p>Le payload final contient notamment :</p>
+<ul>
+<li><code>score_global</code> : score global agrégé</li>
+<li><code>page_results</code> : détails par URL (score + findings)</li>
+</ul>
+</div>
+
+<div class="doc-section">
+<h2 id="codes-erreur">6. Codes d'erreur fréquents</h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Cause probable</th>
+<th>Action recommandée</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>401</td>
+<td>Clé API absente/invalide</td>
+<td>Vérifier <code>X-API-Key</code></td>
+</tr>
+<tr>
+<td>403</td>
+<td>Accès refusé (ownership/job token)</td>
+<td>Vérifier utilisateur ou token de job</td>
+</tr>
+<tr>
+<td>404</td>
+<td>Endpoint incorrect ou job introuvable</td>
+<td>Vérifier l'URL API et le <code>job_id</code></td>
+</tr>
+<tr>
+<td>409</td>
+<td>Résultat pas encore prêt</td>
+<td>Continuer le polling de statut</td>
+</tr>
+<tr>
+<td>422</td>
+<td>Body JSON invalide/manquant</td>
+<td>Vérifier le payload envoyé</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="doc-section">
+<h2 id="ci-github">7. Intégration GitHub Actions</h2>
+<h3>Single URL</h3>
+<pre><code>name: SecureOps Scan
+
+on:
+	push:
+		branches: [main]
+
+jobs:
+	security:
+		runs-on: ubuntu-latest
+		steps:
+			- uses: actions/checkout@v4
+
+			- name: Run SecureOps scan
+				id: scan
+				uses: secureopsfr/actions-scan@v1
+				with:
+					url: https://example.com
+					api_key: ${{ secrets.SECUREOPS_API_KEY }}
+					fail_on_score_below: "70"
+
+			- name: Print score
+				run: echo "Score = ${{ steps.scan.outputs.score }}"</code></pre>
+
+<h3>Multi URL</h3>
+<pre><code>name: SecureOps Scan Multi
+
+on:
+	workflow_dispatch:
+
+jobs:
+	security-multi:
+		runs-on: ubuntu-latest
+		steps:
+			- uses: actions/checkout@v4
+
+			- name: Run SecureOps scan (multi)
+				id: scan
+				uses: secureopsfr/actions-scan@v1
+				with:
+					api_key: ${{ secrets.SECUREOPS_API_KEY }}
+					urls: |
+						https://example.com
+						https://example.com/login
+						https://example.com/about
+					fail_on_score_below: "70"
+
+			- name: Print score
+				run: echo "Score = ${{ steps.scan.outputs.score }}"</code></pre>
+
+<p>Alternative input <code>urls</code> en JSON :</p>
+<pre><code>urls: '["https://example.com","https://example.com/login","https://example.com/about"]'</code></pre>
+</div>
+
+<div class="doc-section">
+<h2 id="bonnes-pratiques">8. Bonnes pratiques</h2>
+<ul>
+<li>Stockez toujours la clé API dans un secret CI, jamais en clair.</li>
+<li>Commencez avec un seuil raisonnable (<code>fail_on_score_below: "70"</code>), puis augmentez progressivement.</li>
+<li>En multi scan, gardez des URLs du même domaine.</li>
+<li>Utilisez <code>input.lang: en</code> si vous voulez des findings en anglais.</li>
+<li>En cas d'erreur 409, continuez le polling au lieu d'échouer immédiatement.</li>
+</ul>
+</div>
+
+</body>
+</html>
