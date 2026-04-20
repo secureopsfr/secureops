@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intrusive Scan</title>
+</head>
+<body>
+
+<div class="doc-intro">
+<h1>Intrusive Scan</h1>
+<p>The intrusive scan goes beyond passive observation: it <strong>actively tests your defences</strong> by simulating real attacks — injections, authentication bypasses, API abuse, business logic manipulation. This mode is designed for teams that want to know whether their protections hold up, not just whether they are configured. <strong>Run only on applications you are authorised to test.</strong></p>
+</div>
+
+<div class="doc-toc">
+<h2>Table of contents</h2>
+<ol>
+<li><a href="#principe">Principle of the intrusive scan</a></li>
+<li><a href="#prerequis">Prerequisites and authorisations</a></li>
+<li><a href="#verification-dns">DNS domain verification (active modes)</a></li>
+<li><a href="#credentials">Using target credentials</a></li>
+<li><a href="#frontend-backend">Frontend vs backend target</a></li>
+<li><a href="#injections">Injections (SQLi, NoSQLi, commands, SSTI, XXE, LFI, Path Traversal)</a></li>
+<li><a href="#access-control">Access Control (CORS, CSRF, SSRF, Host Header, Redirects)</a></li>
+<li><a href="#auth-sessions">Authentication &amp; Sessions (IDOR, Brute Force, JWT, OAuth)</a></li>
+<li><a href="#client-injection">Client-side Injections (Reflected XSS)</a></li>
+<li><a href="#business-data">Business Logic &amp; Data (Race Conditions, DoS, Upload, Deserialization)</a></li>
+<li><a href="#api-protocols">APIs &amp; Modern Protocols (GraphQL, gRPC, WebSocket, OpenAPI)</a></li>
+<li><a href="#infra-cache">Infrastructure &amp; Cache (Cache Poisoning, Request Smuggling, Object Storage)</a></li>
+<li><a href="#score">Understanding your intrusive score</a></li>
+<li><a href="#limites">Limitations and false positives</a></li>
+<li><a href="#bloquant">What can block or impact the scan</a></li>
+</ol>
+</div>
+
+<div class="doc-section">
+<h2 id="principe">1. Principle of the intrusive scan</h2>
+<p>The intrusive scan sends <strong>deliberately malformed or malicious requests</strong> to observe how your application responds. Unlike the passive scan which reads, the intrusive scan interacts: it injects payloads, manipulates parameters, and forces unintended behaviours.</p>
+<h3>What the intrusive scan detects</h3>
+<ul>
+<li>Injection flaws (SQL, NoSQL, OS command, SSTI, XXE, LFI/RFI, path traversal)</li>
+<li>Access control issues (dangerous CORS, CSRF, SSRF, Host Header injection, open redirects)</li>
+<li>Authentication flaws (IDOR, brute force without lockout, sessions not invalidated, JWT without expiry)</li>
+<li>Client-side vulnerabilities (reflected XSS via parameters)</li>
+<li>Business logic flaws (race conditions, missing rate limiting, upload abuse, mass assignment)</li>
+<li>Modern API weaknesses (GraphQL introspection, gRPC Reflection, WebSocket without auth)</li>
+<li>Infrastructure issues (cache poisoning, request smuggling, exposed internal endpoints, public object storage)</li>
+</ul>
+<h3>What the intrusive scan does NOT do</h3>
+<ul>
+<li>It does not delete, modify or create data in production (payloads are built to observe, not persist)</li>
+<li>It does not test low-level network flaws (port scanning, system exploits)</li>
+<li>It does not break cryptographic protections</li>
+<li>It does not perform out-of-band attacks (DNS callbacks, out-of-band exfiltration) — these are planned for a future version</li>
+</ul>
+<div class="doc-warning">
+<h3>Active scan = traces in logs</h3>
+<p>An intrusive scan leaves traces in your application and server logs (requests with SQL, XSS payloads, etc.). This is normal and expected. If you have security alerts or a WAF, notify your team before launching the scan to avoid false alarms.</p>
+</div>
+</div>
+
+<div class="doc-section">
+<h2 id="prerequis">2. Prerequisites and authorisations</h2>
+<p>The intrusive scan is a professional security testing tool. Its use is governed by strict rules:</p>
+<ul>
+<li><strong>Written authorisation required</strong>: you must own the application or hold explicit authorisation from the owner. Testing an application without authorisation is illegal in most jurisdictions.</li>
+<li><strong>Recommended environment</strong>: prefer running the scan on a staging or pre-production environment. In production, payloads may trigger alerts, fill logs or interact with real workflows.</li>
+<li><strong>Scan report</strong>: the generated PDF report contains proof of detected vulnerabilities. Keep it securely — it documents your application's security posture at a given point in time.</li>
+</ul>
+<div class="doc-warning">
+<h3>Authorised use only</h3>
+<p>SecureOps cannot be used to test third-party applications without authorisation. Any malicious or unauthorised use is the sole responsibility of the user.</p>
+</div>
+<h3 id="verification-dns">DNS domain verification (active modes)</h3>
+<p>In production, <strong>non-passive</strong> scans may require <strong>proof of DNS control</strong> for the target domain: you publish a TXT record provided by SecureOps. For a step-by-step walkthrough (Scanner hub, propagation, good practices), see the <a href="/en/scanner/docs/verification-dns">DNS verification guide</a>.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="credentials">3. Using target credentials (optional)</h2>
+<p>By default, the intrusive scan runs <strong>unauthenticated</strong>: it tests what an external attacker can see and exploit. To go further and test the protected parts of your application, you can provide credentials.</p>
+<h3>Supported credential types</h3>
+<ul>
+<li><strong>Cookie string</strong>: the full value of the <code>Cookie</code> header from an active session. For example: <code>session=abc123; csrf_token=xyz789</code>. Obtain it from browser DevTools (Network tab, headers of any authenticated request).</li>
+<li><strong>Bearer token</strong>: a JWT or OAuth token to include in the <code>Authorization: Bearer &lt;token&gt;</code> header. Useful for REST APIs with token-based authentication.</li>
+</ul>
+<h3>What credentials change</h3>
+<ul>
+<li>Scan requests will automatically include the provided credentials</li>
+<li>Protected pages and endpoints will be accessible, enabling post-login access control testing (IDOR, BOLA, BFLA)</li>
+<li>Session checks (invalidation after logout, JWT expiry) will be more relevant</li>
+</ul>
+<div class="doc-warning">
+<h3>Credentials are not persisted</h3>
+<p>Provided credentials are used only during the scan execution and are never stored. Use a dedicated test account with limited rights — never provide production administrator credentials.</p>
+</div>
+</div>
+
+<div class="doc-section">
+<h2 id="frontend-backend">4. Frontend vs backend target</h2>
+<p>The intrusive scan adapts the checks it runs based on the selected target type:</p>
+<table>
+<thead>
+<tr>
+<th>Target</th>
+<th>Included checks</th>
+<th>Excluded checks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Frontend</strong></td>
+<td>Reflected XSS, CORS, CSRF, open redirects, SSRF, HTTP methods, injections, sessions, upload, business logic, infra</td>
+<td>GraphQL, gRPC, WebSocket, OpenAPI (backend protocols)</td>
+</tr>
+<tr>
+<td><strong>Backend (API)</strong></td>
+<td>All checks including GraphQL, gRPC, WebSocket, OpenAPI</td>
+<td>Reflected parameters (XSS) specific to HTML</td>
+</tr>
+</tbody>
+</table>
+<p>In practice: if your target URL is a regular website (<code>yoursite.com</code>), choose <strong>Frontend</strong>. If it is a REST/GraphQL/gRPC API (<code>api.yoursite.com</code>), choose <strong>Backend</strong>.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="injections">5. Injections</h2>
+<p>Injections are the most critical family of vulnerabilities. An attacker makes your application or its database interpret data as code.</p>
+
+<h3>SQL Injection (SQLi)</h3>
+<p>The scan injects SQL payloads into GET, POST parameters and headers (<code>User-Agent</code>, <code>Referer</code>, <code>X-Forwarded-For</code>). It detects:</p>
+<ul>
+<li><strong>Database errors</strong> in the response (MySQL, PostgreSQL, MSSQL, OracleDB, SQLite messages)</li>
+<li><strong>Time-based injections</strong>: if a <code>SLEEP(1)</code> / <code>pg_sleep(1)</code> payload causes an abnormal response delay, the vulnerability is confirmed</li>
+</ul>
+<p><strong>Severity:</strong> Critical. A SQLi allows reading, modifying or deleting the entire database, or even executing system commands.</p>
+
+<h3>NoSQL Injection (NoSQLi)</h3>
+<p>For JSON APIs, the scan tests MongoDB operators (<code>$gt</code>, <code>$where</code>, <code>$regex</code>) in parameters and request bodies to bypass query filters.</p>
+<p><strong>Severity:</strong> High to critical depending on the achievable bypass.</p>
+
+<h3>OS Command Injection</h3>
+<p>Command separators (<code>;</code>, <code>&amp;&amp;</code>, <code>|</code>, backticks) combined with Unix commands (<code>id</code>, <code>sleep</code>, <code>whoami</code>) are injected into parameters. Detection is based on responses and delays (time-based for non-reflected commands).</p>
+<p><strong>Severity:</strong> Critical. Arbitrary code execution on the server.</p>
+
+<h3>Server-Side Template Injection (SSTI)</h3>
+<p>Template expressions (<code>{{7*7}}</code>, <code>#{7*7}</code>, <code>${7*7}</code>) are injected into parameters. If the response contains <code>49</code> or a template error, the rendering engine is vulnerable (Jinja2, Twig, FreeMarker, etc.).</p>
+<p><strong>Severity:</strong> Critical. SSTI leads directly to server-side code execution.</p>
+
+<h3>XXE (XML External Entity)</h3>
+<p>For endpoints that accept XML, the scan sends an external entity (<code>&amp;xxe;</code>) defined in the DOCTYPE. If the response contains the entity's content or produces a characteristic error, the XML parser is vulnerable.</p>
+<p><strong>Severity:</strong> Critical. Allows reading local server files, triggering SSRF or causing denial of service (billion laughs).</p>
+
+<h3>LFI / RFI (Local / Remote File Inclusion)</h3>
+<p>Directory traversal sequences and system file paths (<code>/etc/passwd</code>, <code>C:\Windows\win.ini</code>) are tested in parameters that appear to reference files. Detection looks for system file signatures in responses.</p>
+<p><strong>Severity:</strong> Critical (LFI can read server secrets) to high (RFI can include remote code).</p>
+
+<h3>Path Traversal</h3>
+<p>Sequences of <code>../</code> encoded in multiple ways are injected into path parameters to attempt access to files outside the web root.</p>
+<p><strong>Severity:</strong> High. Reading configuration files, logs or secrets outside the allowed directory.</p>
+
+<h3>What can skew results</h3>
+<p>An active WAF may block payloads before they reach your application — injections will not appear in results even if the code is vulnerable. A WAF that hides SQL errors without fixing the underlying code can also mask a real vulnerability.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="access-control">6. Access Control</h2>
+
+<h3>Active CORS (reflection + credentials)</h3>
+<p>The scan sends requests with a controlled <code>Origin</code> header to your application and checks the response:</p>
+<ul>
+<li><strong>Origin reflection + credentials</strong>: if the application responds with <code>Access-Control-Allow-Origin: [your-origin]</code> and <code>Access-Control-Allow-Credentials: true</code>, a malicious site can make authenticated requests on behalf of your users and read the responses.</li>
+<li><strong>Wildcard on sensitive endpoint</strong>: <code>Access-Control-Allow-Origin: *</code> on an API route exposes response data to any site.</li>
+</ul>
+<p><strong>Severity:</strong> High to critical depending on the exposed data.</p>
+
+<h3>CSRF (Cross-Site Request Forgery)</h3>
+<p>The scan analyses POST forms on sensitive endpoints (login, password change, payment) looking for:</p>
+<ul>
+<li>Absence of a CSRF token or anti-CSRF header</li>
+<li>Absence of the <code>SameSite</code> attribute on session cookies (which provides partial protection)</li>
+</ul>
+<p>An endpoint vulnerable to CSRF can be triggered without the user's knowledge from any site.</p>
+<p><strong>Severity:</strong> Medium to high depending on the achievable actions.</p>
+
+<h3>SSRF (Server-Side Request Forgery)</h3>
+<p>URLs pointing to internal addresses (<code>http://169.254.169.254/</code> — AWS metadata, <code>http://localhost/</code>, <code>http://192.168.x.x/</code>) are injected into parameters that seem to contain URLs. If the response reveals internal content or a characteristic connection error, the check is positive.</p>
+<p><strong>Severity:</strong> Critical in cloud environments. SSRF allows reaching internal services, cloud metadata (IAM keys, tokens) and non-publicly exposed services.</p>
+
+<h3>Host Header Injection</h3>
+<p>The scan sends requests with a forged <code>Host</code> header. If the response reflects the Host value or generates URLs based on it, the application may be vulnerable to password-reset poisoning attacks (sending reset links pointing to an attacker's domain).</p>
+<p><strong>Severity:</strong> Medium to high depending on usage.</p>
+
+<h3>Open Redirects</h3>
+<p>Redirect parameters (<code>redirect</code>, <code>next</code>, <code>url</code>, <code>return</code>, etc.) are tested with controlled external URLs. If the application redirects to a third-party URL without validation, an attacker can create phishing links on your trusted domain.</p>
+<p><strong>Severity:</strong> Low to medium. Facilitates phishing by abusing trust in your domain.</p>
+
+<h3>Dangerous HTTP methods</h3>
+<p>The scan sends OPTIONS requests then tests PUT, DELETE, TRACE on detected endpoints. TRACE can be exploited to steal cookies via script injection (XST attack). Unprotected PUT/DELETE expose resources to modification or deletion.</p>
+<p><strong>Severity:</strong> Low to medium. Disable if not necessary.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="auth-sessions">7. Authentication &amp; Sessions</h2>
+
+<h3>IDOR / BOLA / BFLA</h3>
+<p>The scan attempts to access resources belonging to other users by modifying numeric identifiers (<code>/api/users/1</code>, <code>/api/orders/42</code>) in URLs. It also checks whether administration endpoints are accessible without privilege escalation.</p>
+<ul>
+<li><strong>IDOR (Insecure Direct Object Reference)</strong>: accessing an object by its ID without rights verification</li>
+<li><strong>BOLA (Broken Object Level Authorization)</strong>: API-first variant of IDOR</li>
+<li><strong>BFLA (Broken Function Level Authorization)</strong>: accessing admin functions without the required rights</li>
+</ul>
+<p><strong>Severity:</strong> High to critical. These flaws represent the top vulnerability category in the OWASP API Security Top 10.</p>
+
+<h3>Brute Force / Account Lockout</h3>
+<p>The scan sends multiple successive login attempts with invalid credentials and checks whether the application blocks or slows down attempts after N failures. The absence of an account lockout mechanism exposes the application to dictionary attacks.</p>
+<p><strong>Severity:</strong> High. Without lockout, an attacker can test thousands of password/login combinations.</p>
+
+<h3>Session Management / JWT</h3>
+<p>The scan checks:</p>
+<ul>
+<li><strong>Session not invalidated</strong>: after a logout call, is the old session cookie still accepted?</li>
+<li><strong>Missing JWT expiry</strong>: JWT tokens without an <code>exp</code> field remain valid indefinitely</li>
+<li><strong>JWT algorithm <code>none</code></strong>: acceptance of unsigned tokens (known vulnerability in misconfigured JWT libraries)</li>
+<li><strong>Session fixation</strong>: does the session identifier change after authentication?</li>
+</ul>
+<p><strong>Severity:</strong> High. A non-invalidated token allows an attacker to continue using a stolen session even after the victim has logged out.</p>
+
+<h3>OAuth / OIDC</h3>
+<p>The scan tests common OAuth flows looking for:</p>
+<ul>
+<li>Absence of <code>state</code> parameter verification (CSRF protection for the OAuth flow)</li>
+<li>Redirect to unregistered URIs (<code>redirect_uri</code> not validated)</li>
+<li>Access tokens exposed in URLs (in logs, browser history)</li>
+</ul>
+<p><strong>Severity:</strong> High. These flaws can allow OAuth access token theft and account compromise.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="client-injection">8. Client-side Injections (Reflected XSS)</h2>
+<p>The scan injects XSS markers (<code>&lt;script&gt;alert(1)&lt;/script&gt;</code>, encoded variants) into GET and POST parameters. It then analyses the HTML response to detect whether the marker is reflected <strong>without encoding</strong>.</p>
+<h3>What is tested</h3>
+<ul>
+<li>Search parameters (<code>?q=</code>, <code>?search=</code>, <code>?keyword=</code>)</li>
+<li>Navigation parameters (<code>?page=</code>, <code>?sort=</code>, <code>?filter=</code>)</li>
+<li>HTML form bodies</li>
+</ul>
+<h3>Why reflected XSS is dangerous</h3>
+<p>A reflected XSS allows an attacker to send a crafted link to a victim. When the victim clicks it, the script executes in their browser with your site's privileges: session cookie theft, redirection to a phishing site, actions executed on their behalf.</p>
+<p><strong>Severity:</strong> High. If session cookies without HttpOnly are present, severity rises to critical.</p>
+<h3>Limitations of the XSS check</h3>
+<p>The scan detects <strong>direct reflection</strong> in HTML responses. It does not detect stored XSS (injected into the database) or DOM-based XSS (client-side JavaScript manipulation). These variants require deeper analysis with a full browser.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="business-data">9. Business Logic &amp; Data</h2>
+
+<h3>Business Logic</h3>
+<p>The scan probes transaction-type endpoints to detect:</p>
+<ul>
+<li><strong>Negative amounts/quantities accepted</strong>: sending <code>quantity=-1</code> or <code>amount=-100</code> in an order may create an unintended credit</li>
+<li><strong>Workflow state manipulation</strong>: direct access to a process step, skipping previous steps</li>
+</ul>
+<p><strong>Severity:</strong> High to critical. These flaws are specific to your application and often invisible to classic automated tools.</p>
+
+<h3>Race Conditions</h3>
+<p>The scan sends requests in parallel to critical endpoints (coupon validation, purchase, transfer) to detect inconsistent behaviours due to unsynchronised concurrent accesses. A race condition may allow spending the same coupon twice or withdrawing more than the balance.</p>
+<p><strong>Severity:</strong> High depending on the affected features.</p>
+
+<h3>DoS / Rate Limiting</h3>
+<p>The scan sends a burst of 20 rapid requests to the target URL to detect the absence of rate abuse protection. The absence of a <code>429 Too Many Requests</code> response after this burst indicates that an attacker can saturate the application or bypass usage limits.</p>
+<p><strong>Severity:</strong> Low to medium. An unrate-limited endpoint can be abused for scraping, enumeration or DoS.</p>
+
+<h3>Upload Abuse</h3>
+<p>The scan tests file upload endpoints with:</p>
+<ul>
+<li>Files whose extension and Content-Type are inconsistent (e.g. a PHP file disguised as an image)</li>
+<li>Large files to test size limits</li>
+<li>Paths with directory traversal in the filename</li>
+</ul>
+<p><strong>Severity:</strong> Critical if a PHP/JSP file can be uploaded and executed — this leads to arbitrary code execution.</p>
+
+<h3>Insecure Deserialization</h3>
+<p>The scan detects endpoints that accept serialised objects (Java, PHP, Python pickle, YAML) and sends known malformed payloads to trigger characteristic errors. Detection remains conservative (rare false positives) — it does not attempt real exploitation.</p>
+<p><strong>Severity:</strong> Critical. Insecure deserialization is one of the most direct paths to server-side code execution.</p>
+
+<h3>Mass Assignment</h3>
+<p>The scan adds extra fields to PUT/PATCH requests (<code>role</code>, <code>is_admin</code>, <code>price</code>, <code>balance</code>) to detect whether the application accepts them without filtering. A framework that directly binds the JSON body to an object's properties is vulnerable if unexpected fields are not explicitly ignored.</p>
+<p><strong>Severity:</strong> High. Allows privilege escalation or manipulation of sensitive data.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="api-protocols">10. APIs &amp; Modern Protocols</h2>
+<p>These checks target API endpoints and advanced protocols. They are enabled for <strong>Backend</strong> targets.</p>
+
+<h3>GraphQL — Exposed Introspection</h3>
+<p>GraphQL introspection allows listing all types, fields and mutations in your schema. The scan detects if it is enabled in production by sending a standard introspection query. An exposed schema is a complete attack guide to your API.</p>
+<p><strong>Severity:</strong> Medium. Disable in production.</p>
+
+<h3>GraphQL — Query Depth Abuse</h3>
+<p>The scan sends deeply nested GraphQL queries to test whether the application limits query depth. Without a limit, a query with 50 nesting levels can cause exponential load (DoS).</p>
+<p><strong>Severity:</strong> Medium.</p>
+
+<h3>GraphQL — Unauthenticated Subscriptions</h3>
+<p>The scan attempts to subscribe to GraphQL subscriptions without providing credentials. If real-time data is accessible anonymously, this may expose sensitive events.</p>
+<p><strong>Severity:</strong> High if user data is exposed.</p>
+
+<h3>gRPC Reflection Exposed</h3>
+<p>The gRPC Reflection service lists all services and methods available on your gRPC server. The scan detects if this service is active in production. Like GraphQL introspection, it is a complete attack guide to your gRPC API.</p>
+<p><strong>Severity:</strong> Medium. Disable in production.</p>
+
+<h3>WebSocket — Authorisation</h3>
+<p>The scan tests whether your WebSocket endpoint accepts connections without checking the <code>Origin</code> header or without authentication, which would allow a malicious site to establish a WebSocket connection on behalf of an authenticated user (WebSocket hijacking).</p>
+<p><strong>Severity:</strong> High depending on the data exchanged on the channel.</p>
+
+<h3>OpenAPI Schema Without Validation</h3>
+<p>The scan retrieves your exposed OpenAPI schema and tests whether documented endpoints accept data that does not conform to the schema (types, formats, constraints). Insufficient validation can allow injections or unintended behaviours.</p>
+<p><strong>Severity:</strong> Variable. The publicly accessible OpenAPI schema is itself an informational finding.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="infra-cache">11. Infrastructure &amp; Cache</h2>
+
+<h3>Cache Poisoning</h3>
+<p>The scan injects proxy headers (<code>X-Forwarded-Host</code>, <code>X-Host</code>, <code>X-Forwarded-Scheme</code>) with controlled values and checks whether the response reflects them. If the cache stores a poisoned response, all users who subsequently access the same page receive the malicious version.</p>
+<p><strong>Severity:</strong> High. Cascading impact on all users served by the cache.</p>
+
+<h3>Web Cache Deception</h3>
+<p>The scan accesses URLs like <code>/profile/fake.css</code> to detect whether your application serves dynamic authenticated pages under static extensions (CSS, JS, PNG) that would be publicly cached. This would allow an attacker to access private pages served from the cache.</p>
+<p><strong>Severity:</strong> High. Exposure of user data via a public cache.</p>
+
+<h3>Request Smuggling (CL/TE and TE/TE)</h3>
+<p>The scan sends requests with ambiguous <code>Content-Length</code> and <code>Transfer-Encoding</code> headers to test whether the front-end proxy and back-end server disagree on request boundaries. A disagreement allows injecting data into another user's request.</p>
+<p><strong>Severity:</strong> Critical. Allows bypassing security protections, injecting malicious requests or stealing other users' sessions.</p>
+
+<h3>Exposed Internal Endpoints</h3>
+<p>The scan probes paths known to expose diagnostic information in production: <code>/actuator</code>, <code>/actuator/env</code>, <code>/actuator/health</code>, <code>/_debug</code>, <code>/debug/vars</code>, <code>/metrics</code>, <code>/__admin</code>. These Spring Boot, Django Debug Toolbar or other framework endpoints often reveal environment variables, internal connections or internal metrics.</p>
+<p><strong>Severity:</strong> High. <code>/actuator/env</code> may contain database passwords, API keys, configuration secrets.</p>
+
+<h3>Public Object Storage (S3 / GCS / Azure Blob)</h3>
+<p>The scan detects storage buckets referenced in responses and attempts to list their contents. A public bucket with listing enabled exposes all files it contains — user documents, exports, backups.</p>
+<p><strong>Severity:</strong> Critical if listing is active. High if the bucket exists but is properly protected.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="score">12. Understanding your intrusive score</h2>
+<h3>Severity levels</h3>
+<p>Identical to the passive scan, severity levels reflect the seriousness of an exploitable vulnerability:</p>
+<table>
+<thead>
+<tr>
+<th>Severity</th>
+<th>Penalty</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr><td><strong>Critical</strong></td><td>100 points</td><td>Direct exploitation: code execution, full database access, account takeover. Fix immediately.</td></tr>
+<tr><td><strong>High</strong></td><td>50 points</td><td>Unauthorised data access, authentication bypass, serious exposure. Priority treatment.</td></tr>
+<tr><td><strong>Medium</strong></td><td>25 points</td><td>Exploitable vulnerability under specific conditions. Plan quickly.</td></tr>
+<tr><td><strong>Low</strong></td><td>10 points</td><td>Enlarged attack surface without obvious direct exploitation. Good practice to fix.</td></tr>
+<tr><td><strong>Info</strong></td><td>0 points</td><td>Security observation, revealing configuration but not directly exploitable.</td></tr>
+</tbody>
+</table>
+<h3>Weighting by macro-category</h3>
+<p>The most critical categories (injections, SSRF, IDOR) have a higher weight in the overall score calculation:</p>
+<table>
+<thead>
+<tr><th>Category</th><th>Checks</th><th>Relative weight</th></tr>
+</thead>
+<tbody>
+<tr><td>Injections (SQLi, NoSQLi, commands, SSTI, XXE, LFI, Path Traversal)</td><td>14 checks</td><td>High</td></tr>
+<tr><td>Authentication &amp; Sessions (IDOR, Brute Force, JWT, OAuth)</td><td>7 checks</td><td>High</td></tr>
+<tr><td>Access Control (CORS, CSRF, SSRF, Host Header, Redirects, HTTP Methods)</td><td>6 checks</td><td>High</td></tr>
+<tr><td>Business Logic &amp; Data (Race, DoS, Upload, Deserialization, Mass Assignment)</td><td>7 checks</td><td>Medium</td></tr>
+<tr><td>Client-side Injections (Reflected XSS)</td><td>1 check</td><td>Medium</td></tr>
+<tr><td>Infrastructure &amp; Cache (Cache Poisoning, Smuggling, Internal Endpoints, Storage)</td><td>5 checks</td><td>Medium</td></tr>
+<tr><td>APIs &amp; Modern Protocols (GraphQL, gRPC, WebSocket, OpenAPI)</td><td>6 checks</td><td>Low to medium</td></tr>
+</tbody>
+</table>
+<h3>Interpreting the score</h3>
+<p>A score of 100 indicates no anomalies were detected by the intrusive scan checks. This is a good signal, not an absolute guarantee: the scan covers vulnerabilities detectable automatically with in-band requests. Complex business logic flaws or out-of-band vulnerabilities may require additional manual assessment.</p>
+<p><strong>Priority:</strong> always fix critical findings first, regardless of their impact on the score. A critical SQL injection is more urgent than a dozen low findings.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="limites">13. Limitations and false positives</h2>
+<h3>What the scan cannot detect</h3>
+<ul>
+<li><strong>Out-of-band vulnerabilities</strong>: payloads that exfiltrate data via DNS or HTTP callbacks are not detected (planned for a future version)</li>
+<li><strong>Stored XSS</strong>: requires a browser to observe execution in the DOM</li>
+<li><strong>Flaws in code not accessible via HTTP</strong>: vulnerabilities in asynchronous jobs, workers, non-exposed processes</li>
+<li><strong>Complex business logic</strong>: the scan can detect common patterns but does not understand the semantics specific to your domain</li>
+<li><strong>Multi-factor authentication</strong>: MFA flows cannot be simulated automatically</li>
+</ul>
+<h3>Managing false positives</h3>
+<p>Some findings may be false positives depending on your context:</p>
+<ul>
+<li><strong>Missing rate limiting</strong>: if you have rate limiting protection at CDN or load balancer level (Cloudflare, Nginx), it may not be visible at the application level and generate a false positive</li>
+<li><strong>Dangerous HTTP methods</strong>: PUT/DELETE are normal and expected on a well-designed REST API — their presence is only a problem if not protected by authentication</li>
+<li><strong>IDOR / BFLA</strong>: checks test access to common sequential IDs. On a system with UUID or opaque token IDs, checks may not cover all cases</li>
+</ul>
+</div>
+
+<div class="doc-section">
+<h2 id="bloquant">14. What can block or impact the scan</h2>
+<h3>WAF and anti-bot protections</h3>
+<p>A Web Application Firewall (Cloudflare, AWS WAF, ModSecurity) can block injection payloads before they reach your application. The scan will receive <code>403</code> responses or challenge pages instead of application responses. In this case:</p>
+<ul>
+<li>Injections will not appear in results even if the code is vulnerable</li>
+<li>This is a sign your WAF is working — but the underlying code still needs fixing</li>
+<li>For a complete test, configure an IP allowlist to bypass the WAF during the scan</li>
+</ul>
+<h3>Timeouts</h3>
+<p>The intrusive scan has a higher time budget than the passive scan (up to 8 minutes). Time-based checks (blind SQLi, command injection) intentionally wait for abnormal delays. On a very slow application, time-based false positives may appear.</p>
+<h3>Environments without parameters</h3>
+<p>Some checks (injections, reflected XSS) need parameters in the URL or HTML forms to have something to test. On a static page without parameters, these checks will run but produce no result (neither positive nor negative).</p>
+<h3>REST-only APIs without documentation</h3>
+<p>On an API without exposed Swagger/OpenAPI, the scanner can only explore the provided URL and paths it attempts to infer. For complete API coverage, use the <strong>API documentation import</strong> feature (OpenAPI/Postman) to provide the list of endpoints to scan.</p>
+</div>
+
+</body>
+</html>

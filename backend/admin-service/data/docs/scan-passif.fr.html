@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scan passif</title>
+</head>
+<body>
+
+<div class="doc-intro">
+<h1>Scan passif</h1>
+<p>Le scan passif analyse la <strong>posture de sécurité de votre site web</strong> en observant ce qu'il expose : chiffrement, configuration, fichiers accessibles, en-têtes HTTP, cookies… Aucune attaque n'est lancée, aucune donnée n'est modifiée. Le scanner écoute et mesure.</p>
+</div>
+
+<div class="doc-toc">
+<h2>Sommaire</h2>
+<ol>
+<li><a href="#principe">Principe du scan passif</a></li>
+<li><a href="#frontend-backend">Scan frontend et scan backend : quelle différence ?</a></li>
+<li><a href="#multipage">Scanner une page ou plusieurs pages</a></li>
+<li><a href="#tls">TLS et HTTPS</a></li>
+<li><a href="#headers">En-têtes de sécurité</a></li>
+<li><a href="#cookies">Cookies</a></li>
+<li><a href="#exposition">Fichiers sensibles exposés</a></li>
+<li><a href="#directory">Listage de répertoires</a></li>
+<li><a href="#robots">robots.txt</a></li>
+<li><a href="#sitemap">Sitemap</a></li>
+<li><a href="#cors">CORS et cross-origin</a></li>
+<li><a href="#methodes">Méthodes HTTP et redirections</a></li>
+<li><a href="#cache">Cache et performances</a></li>
+<li><a href="#integrite">Intégrité des ressources</a></li>
+<li><a href="#tech">Empreinte technologique</a></li>
+<li><a href="#fuites">Fuites d'information</a></li>
+<li><a href="#apis">APIs et formats</a></li>
+<li><a href="#score">Comprendre votre score</a></li>
+<li><a href="#bloquant">Ce qui peut bloquer ou impacter le scan</a></li>
+</ol>
+</div>
+
+<div class="doc-section">
+<h2 id="principe">1. Principe du scan passif</h2>
+<p>Le scan passif est une analyse en <strong>lecture seule</strong>. Il envoie des requêtes HTTP ordinaires — comme le ferait un navigateur ou un moteur de recherche — et examine les réponses : codes de statut, en-têtes, contenu HTML, cookies, certificats. Il ne tente pas d'injection, ne modifie aucune donnée, et ne se connecte jamais à un compte.</p>
+<p>C'est le point de départ recommandé pour toute évaluation de sécurité. Il cartographie ce que votre site révèle de lui-même à n'importe quel visiteur, sans avoir à exploiter quoi que ce soit.</p>
+<h3>Ce que le scan passif détecte</h3>
+<ul>
+<li>Les mauvaises configurations (HTTPS absent, certificat expiré, en-têtes manquants)</li>
+<li>Les fichiers ou répertoires accessibles par erreur</li>
+<li>Les informations que votre serveur révèle sur lui-même (technologies, versions)</li>
+<li>Les politiques trop permissives (CORS ouvert, cookies mal protégés)</li>
+<li>Les ressources chargées de manière non sécurisée</li>
+</ul>
+<h3>Ce que le scan passif ne fait pas</h3>
+<ul>
+<li>Il ne teste pas les injections (SQL, XSS, etc.) — c'est le rôle du scan intrusif</li>
+<li>Il ne se connecte pas à votre application</li>
+<li>Il ne modifie, ne supprime et ne crée aucune donnée</li>
+<li>Il ne peut pas voir les pages protégées par authentification</li>
+</ul>
+</div>
+
+<div class="doc-section">
+<h2 id="frontend-backend">2. Scan frontend et scan backend : quelle différence ?</h2>
+<p>Un site web est composé de deux parties :</p>
+<ul>
+<li><strong>Le frontend</strong> : ce que l'utilisateur voit — les pages HTML, les styles, les scripts, la page d'accueil, les formulaires. C'est ce qui est servi directement au navigateur, souvent sur <code>votresite.com</code>.</li>
+<li><strong>Le backend</strong> : les services qui font tourner l'application — l'API qui répond aux formulaires, la base de données, les endpoints qui renvoient les données. Souvent sur <code>api.votresite.com</code> ou accessible via des routes <code>/api/</code>.</li>
+</ul>
+<p>Le <strong>scan frontend passif</strong> analyse la partie visible de votre site : HTTPS, en-têtes de sécurité, cookies, ressources chargées par les pages, fichiers exposés. C'est ce que voit tout visiteur dès qu'il charge votre site.</p>
+<p>Le <strong>scan backend passif</strong> ciblera vos APIs et services. Il est prévu dans la roadmap SecureOps. En attendant, si votre API est accessible depuis la même URL (ex. <code>/api/</code>), certaines vérifications — CORS, méthodes HTTP, exposition de données — couvrent déjà ces endpoints.</p>
+<div class="doc-warning">
+<h3>Conseil pratique</h3>
+<p>Commencez toujours par le scan frontend. La grande majorité des risques visibles depuis internet — certificat, en-têtes, fichiers exposés, cookies — sont détectés dès ce premier niveau. Le score obtenu est un indicateur fiable de votre exposition publique.</p>
+</div>
+</div>
+
+<div class="doc-section">
+<h2 id="multipage">3. Scanner une page ou plusieurs pages</h2>
+<p>Vous avez deux façons de lancer un scan :</p>
+<h3>Mode « page unique »</h3>
+<p>Cochez <strong>« Scanner uniquement cette page »</strong>. Le scan s'exécute directement sur l'URL que vous avez saisie. C'est le mode le plus rapide, idéal pour tester une page précise (formulaire de connexion, page d'accueil, endpoint API).</p>
+<h3>Mode « multi-pages » (avec découverte)</h3>
+<p>Laissez la case décochée. Avant de lancer le scan, une phase de <strong>découverte</strong> explore votre site pour trouver les pages accessibles. Vous obtenez une liste d'URLs que vous pouvez ajuster, puis vous validez et lancez le scan.</p>
+<p>Ce mode est utile quand vous voulez une vision globale du site : la homepage, les pages produits, le blog, les formulaires — chaque page peut avoir sa propre configuration (cookies, en-têtes, ressources) et mérite d'être analysée.</p>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Mode recommandé</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tester une page précise ou une URL d'API</td>
+<td>Page unique</td>
+</tr>
+<tr>
+<td>Obtenir une vue d'ensemble du site</td>
+<td>Multi-pages avec découverte</td>
+</tr>
+<tr>
+<td>Site en React / Next.js / Vue (liens générés par JavaScript)</td>
+<td>Multi-pages, mode SPA activé</td>
+</tr>
+<tr>
+<td>Site avec peu de pages ou URLs connues</td>
+<td>Page unique, répétez sur chaque URL importante</td>
+</tr>
+</tbody>
+</table>
+<div class="doc-warning">
+<h3>À noter sur le scan multi-pages</h3>
+<p>Actuellement, le scan analyse chaque page de la liste de façon indépendante. Le score final reflète l'URL de départ. Les résultats des pages supplémentaires sont présentés séparément. Cette vue consolidée sera enrichie dans les prochaines versions.</p>
+</div>
+<h3>La découverte respecte votre site</h3>
+<p>La phase de découverte lit le fichier <code>robots.txt</code> de votre site et ne suit pas les chemins marqués <code>Disallow</code>. Elle ne dépasse pas 2 niveaux de profondeur par défaut et reste limitée à votre domaine. Si une page importante n'apparaît pas dans la liste, vous pouvez l'ajouter manuellement avant de lancer le scan.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="tls">4. TLS et HTTPS</h2>
+<h3>Ce qui est vérifié</h3>
+<ul>
+<li><strong>HTTPS activé</strong> : votre site doit être accessible en HTTPS (chiffrement de la connexion).</li>
+<li><strong>Redirection HTTP → HTTPS</strong> : si un visiteur tape <code>http://</code> ou clique sur un lien non sécurisé, il doit être redirigé vers HTTPS automatiquement.</li>
+<li><strong>Certificat valide</strong> : non expiré, non auto-signé, avec une chaîne de certification complète.</li>
+<li><strong>Alerte expiration proche</strong> : si votre certificat expire dans moins de 30 jours, une alerte est remontée.</li>
+<li><strong>Versions TLS obsolètes désactivées</strong> : TLS 1.0 et 1.1 sont dépréciés et ne doivent plus être acceptés par votre serveur.</li>
+</ul>
+<h3>Pourquoi c'est important</h3>
+<p>Sans HTTPS, toutes les données échangées entre votre site et vos visiteurs circulent en clair : mots de passe, données de formulaire, cookies de session. Un attaquant connecté au même réseau peut tout intercepter. Un certificat invalide affiche des avertissements de sécurité dans le navigateur et dégrade la confiance de vos utilisateurs.</p>
+<div class="doc-warning">
+<h3>Ce qui peut bloquer le scan</h3>
+<ul>
+<li><strong>Site accessible uniquement en HTTP</strong> : le scan peut s'exécuter mais signalera un risque critique. Passez en HTTPS en priorité.</li>
+<li><strong>Certificat expiré ou auto-signé</strong> : le scan continue mais remonte des anomalies. Vos utilisateurs voient probablement des avertissements dans leur navigateur.</li>
+</ul>
+</div>
+<h3>Conseils</h3>
+<p>Utilisez un certificat délivré par une autorité reconnue (Let's Encrypt est gratuit). Configurez votre serveur pour rediriger tout le port 80 vers le port 443. Désactivez TLS 1.0 et 1.1 dans la configuration SSL de votre serveur (Nginx, Apache, Caddy).</p>
+</div>
+
+<div class="doc-section">
+<h2 id="headers">5. En-têtes de sécurité</h2>
+<h3>Ce qui est vérifié</h3>
+<ul>
+<li><strong>Content-Security-Policy (CSP)</strong> : définit les sources autorisées pour les scripts, styles, images. Réduit considérablement l'impact des attaques XSS.</li>
+<li><strong>Strict-Transport-Security (HSTS)</strong> : force le navigateur à n'accéder au site qu'en HTTPS pendant une durée définie. Protège contre les attaques de dégradation vers HTTP.</li>
+<li><strong>X-Frame-Options</strong> : empêche votre page d'être intégrée dans une iframe sur un autre site (protection contre le clickjacking, où un attaquant superpose une interface invisible).</li>
+<li><strong>X-Content-Type-Options</strong> : empêche le navigateur de « deviner » le type d'un fichier. Sans cet en-tête, un fichier texte uploadé pourrait être interprété comme un script.</li>
+<li><strong>Referrer-Policy</strong> : contrôle les informations envoyées dans l'en-tête Referer lors de la navigation. Protège contre les fuites d'URLs sensibles vers des sites tiers.</li>
+<li><strong>Permissions-Policy</strong> : restreint l'accès aux fonctionnalités sensibles du navigateur (caméra, micro, géolocalisation, etc.) même pour des scripts tiers éventuellement compromis.</li>
+</ul>
+<h3>Pourquoi c'est important</h3>
+<p>Ces en-têtes sont des couches de défense supplémentaires. Ils ne remplacent pas une application bien écrite, mais ils limitent les dégâts en cas de faille : une CSP stricte rend une attaque XSS inefficace même si une vulnérabilité existe. HSTS empêche un « SSL stripping » qui forcerait une connexion non chiffrée.</p>
+<h3>Ce qui peut bloquer le scan</h3>
+<p>L'absence de ces en-têtes ne bloque pas le scan. Mais chaque en-tête manquant génère un finding. Les plus importants (CSP, HSTS, X-Frame-Options) ont une sévérité modérée à élevée.</p>
+<h3>Conseils</h3>
+<p>Ajoutez ces en-têtes via la configuration de votre serveur ou de votre framework. Commencez par <strong>X-Content-Type-Options: nosniff</strong> et <strong>X-Frame-Options: DENY</strong> (simples à ajouter). Passez ensuite à HSTS, puis à la CSP, qui demande plus de travail mais apporte le plus de valeur.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="cookies">6. Cookies</h2>
+<h3>Ce qui est vérifié</h3>
+<ul>
+<li><strong>Flag Secure</strong> : les cookies doivent être marqués Secure pour n'être transmis qu'en HTTPS. Sans ce flag, un cookie peut circuler en clair.</li>
+<li><strong>Flag HttpOnly</strong> : empêche JavaScript d'accéder au cookie. Protège contre le vol de session en cas de script malveillant injecté dans la page.</li>
+<li><strong>Attribut SameSite</strong> : contrôle l'envoi du cookie lors de requêtes venant d'un autre site. La valeur <code>Strict</code> ou <code>Lax</code> protège contre les attaques CSRF (requêtes forgées).</li>
+<li><strong>Triple protection de session</strong> : les cookies de session doivent cumuler HttpOnly + Secure + SameSite=Strict. Le scan alerte si l'un de ces trois flags est absent.</li>
+<li><strong>Préfixes sécurisés</strong> : les cookies sensibles peuvent utiliser les préfixes <code>__Host-</code> ou <code>__Secure-</code> pour renforcer les garanties de transmission.</li>
+<li><strong>Durée de session</strong> : un cookie de session avec une date d'expiration supérieure à 24h est signalé. Les sessions longues augmentent la fenêtre de risque en cas de vol.</li>
+<li><strong>Cookies tiers (CHIPS)</strong> : les cookies tiers sans l'attribut <code>Partitioned</code> sont signalés conformément aux nouvelles exigences des navigateurs.</li>
+</ul>
+<h3>Pourquoi c'est important</h3>
+<p>Un cookie de session volé permet à un attaquant de se connecter à votre application en se faisant passer pour l'un de vos utilisateurs. Sans HttpOnly, un script injecté suffit à le voler. Sans Secure, il peut être intercepté sur une connexion HTTP. Sans SameSite, un lien piégé sur un autre site peut déclencher des actions à l'insu de votre utilisateur connecté.</p>
+<h3>Conseils</h3>
+<p>Pour tous vos cookies de session et d'authentification, appliquez systématiquement <code>Secure; HttpOnly; SameSite=Strict</code>. Pour les cookies dont vous avez besoin en cross-site (par exemple un cookie de suivi de panier partagé), utilisez <code>SameSite=Lax</code> comme compromis.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="exposition">7. Fichiers sensibles exposés</h2>
+<h3>Ce qui est vérifié</h3>
+<p>Le scan teste une liste de chemins connus pour être exposés accidentellement :</p>
+<ul>
+<li><code>/.env</code> — fichier de configuration contenant mots de passe, clés API, connexions base de données</li>
+<li><code>/.git/config</code> — dépôt Git exposé (accès à l'historique du code source)</li>
+<li><code>/backup.zip</code>, <code>/backup.sql</code>, <code>/config.bak</code>, <code>/.env.bak</code> — sauvegardes</li>
+<li><code>/phpinfo.php</code> — page de diagnostic PHP révélant la configuration serveur</li>
+<li><code>/admin/</code> — interface d'administration accessible publiquement</li>
+<li><code>/.htaccess</code>, <code>/web.config</code> — fichiers de configuration serveur</li>
+<li><code>/composer.json</code>, <code>/package.json</code>, <code>/.npmrc</code> — dépendances du projet exposées</li>
+<li><code>/.DS_Store</code> — métadonnées macOS révélant la structure de fichiers</li>
+<li><code>/.svn/entries</code> — dépôt SVN exposé</li>
+</ul>
+<p>Un fichier est considéré exposé uniquement si la réponse est HTTP 200 <strong>et</strong> que le contenu correspond aux signatures attendues. Le scan évite ainsi les faux positifs liés à des pages 404 personnalisées.</p>
+<h3>Pourquoi c'est important</h3>
+<p>Ces fichiers ne devraient jamais être accessibles depuis internet. Un fichier <code>.env</code> expose directement vos secrets (identifiants de base de données, clés d'API tierces, clés de chiffrement). Un répertoire <code>.git</code> exposé peut révéler l'intégralité de votre code source, y compris l'historique des commits. Une interface <code>/admin/</code> accessible sans authentification est une porte d'entrée directe pour un attaquant.</p>
+<div class="doc-warning">
+<h3>Ces findings sont prioritaires</h3>
+<p>Toute exposition détectée est classée en sévérité <strong>critique ou élevée</strong>. Si vous obtenez ce type de finding, agissez immédiatement : supprimez les fichiers du répertoire web ou configurez votre serveur pour bloquer l'accès (réponse 403 ou 404).</p>
+</div>
+<h3>Conseils</h3>
+<p>Ne placez jamais <code>.env</code>, <code>.git</code>, les backups ou <code>phpinfo.php</code> dans un dossier servi par votre serveur web. Dans Nginx, ajoutez des règles <code>deny all</code> sur ces chemins. Dans Apache, utilisez des directives <code>Require all denied</code> dans <code>.htaccess</code>.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="directory">8. Listage de répertoires</h2>
+<h3>Ce qui est vérifié</h3>
+<p>Le scan teste si des répertoires sensibles affichent leur contenu (liste des fichiers) quand on y accède directement :</p>
+<ul>
+<li><code>/uploads/</code>, <code>/assets/</code>, <code>/static/</code> — ressources publiques</li>
+<li><code>/tmp/</code>, <code>/logs/</code>, <code>/config/</code>, <code>/backup/</code>, <code>/data/</code> — répertoires techniques</li>
+</ul>
+<p>Le scan signale également un <strong>code 403</strong> sur les répertoires sensibles (<code>/config/</code>, <code>/backup/</code>, <code>/logs/</code>, etc.) : même si l'accès est bloqué, le 403 confirme l'existence du répertoire à un attaquant.</p>
+<h3>Pourquoi c'est important</h3>
+<p>Avec le listage activé sur <code>/uploads/</code>, n'importe qui peut voir la liste de tous les fichiers uploadés par vos utilisateurs, y compris des documents confidentiels. Sur <code>/logs/</code>, un attaquant peut lire vos journaux d'application et y trouver des informations d'erreur, des traces de requêtes ou des données personnelles.</p>
+<h3>Conseils</h3>
+<p>Désactivez le directory listing au niveau du serveur (option <code>Indexes</code> dans Apache, <code>autoindex off</code> dans Nginx). Placez un fichier <code>index.html</code> vide dans les répertoires qui doivent être accessibles mais sans afficher leur contenu.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="robots">9. robots.txt</h2>
+<h3>Ce qui est vérifié</h3>
+<ul>
+<li><strong>Présence et lecture</strong> : le scan récupère le fichier <code>/robots.txt</code> et extrait les directives <code>Disallow</code>, <code>Allow</code>, <code>Sitemap</code> et <code>Crawl-delay</code>.</li>
+<li><strong>Chemins sensibles dans Disallow</strong> : si <code>robots.txt</code> mentionne des chemins comme <code>/admin/</code>, <code>/api/</code>, <code>/config/</code>, <code>/backup/</code>, ces chemins sont signalés. Non pas parce qu'ils sont menacés, mais parce que leur existence devient publique.</li>
+</ul>
+<h3>Pourquoi c'est important</h3>
+<p><code>robots.txt</code> n'est <strong>pas une mesure de sécurité</strong>. Il indique aux moteurs de recherche quelles pages ne pas indexer, mais n'importe qui peut lire ce fichier et ignorer ses directives. Mentionner <code>/admin/</code> ou <code>/api/v2/</code> dans Disallow revient à publier un plan de votre site aux attaquants. Ces chemins doivent être protégés par authentification, pas seulement exclus de l'indexation.</p>
+<h3>Sévérité</h3>
+<p>Les findings liés à robots.txt sont de niveau <strong>informatif ou faible</strong>. L'absence de robots.txt n'est pas un problème de sécurité.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="sitemap">10. Sitemap</h2>
+<h3>Ce qui est vérifié</h3>
+<ul>
+<li><strong>Localisation</strong> : le scan cherche le sitemap via <code>robots.txt</code> (directive <code>Sitemap:</code>), puis en fallback à l'emplacement classique <code>/sitemap.xml</code>.</li>
+<li><strong>URLs sensibles dans le sitemap</strong> : si le sitemap référence des chemins sensibles (<code>/admin</code>, <code>/api</code>, <code>/config</code>, etc.), le scan les signale. Ces URLs seraient indexées par les moteurs de recherche et visibles publiquement.</li>
+</ul>
+<h3>Pourquoi c'est important</h3>
+<p>Un sitemap sert à aider Google et les autres moteurs de recherche à découvrir vos pages. Si une page d'administration ou un endpoint API se retrouve dans le sitemap, elle apparaîtra dans les résultats de recherche et sera facilement trouvée. Votre sitemap devrait ne contenir que les pages destinées au grand public.</p>
+<h3>Conseils</h3>
+<p>Ne listez dans votre sitemap que les pages publiques. Excluez <code>/admin/</code>, <code>/api/</code>, les pages de confirmation ou de panier. La plupart des frameworks (WordPress, Next.js, etc.) ont des options pour contrôler ce qui est inclus dans le sitemap.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="cors">11. CORS et cross-origin</h2>
+<h3>Ce qui est vérifié</h3>
+<p>Le scan envoie des requêtes GET et OPTIONS avec un en-tête <code>Origin</code> vers votre page principale et vers des chemins sensibles dérivés (<code>/api/</code>, <code>/user/</code>, <code>/admin/</code>, etc.) pour tester votre configuration CORS (Cross-Origin Resource Sharing).</p>
+<ul>
+<li><strong>CORS ouvert sur endpoint sensible</strong> : si un de vos endpoints répond avec <code>Access-Control-Allow-Origin: *</code>, n'importe quel site peut lire ses réponses depuis le navigateur de vos utilisateurs.</li>
+<li><strong>Réflexion d'origine avec Credentials</strong> : si le serveur répercute l'origine de la requête (<code>Access-Control-Allow-Origin: [origine appelante]</code>) en autorisant les cookies (<code>Access-Control-Allow-Credentials: true</code>), un site malveillant peut effectuer des requêtes authentifiées au nom de vos utilisateurs et lire les données.</li>
+<li><strong>Contenu mixte</strong> : des ressources (images, scripts, styles) chargées en HTTP sur une page HTTPS affaiblissent la sécurité de la page entière. Le navigateur peut bloquer ces ressources ou afficher des avertissements.</li>
+<li><strong>Cross-Origin-Resource-Policy (CORP)</strong> : absence de cet en-tête sur des ressources sensibles, qui permettrait à des sites tiers de les intégrer.</li>
+</ul>
+<h3>Pourquoi c'est important</h3>
+<p>Une mauvaise configuration CORS est l'une des vulnérabilités les plus sous-estimées. Elle peut permettre à un site malveillant de lire les données de votre API au nom d'un utilisateur connecté : emails, informations de compte, historique de commandes. Le contenu mixte dégrade la protection HTTPS de l'ensemble de la page.</p>
+<h3>Conseils</h3>
+<p>Limitez CORS à une liste explicite de domaines de confiance. N'utilisez jamais <code>Access-Control-Allow-Origin: *</code> sur des endpoints qui retournent des données utilisateur ou qui acceptent des cookies. Pour les ressources publiques (images d'un CDN, polices), le wildcard est acceptable.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="methodes">12. Méthodes HTTP et redirections</h2>
+<h3>Ce qui est vérifié</h3>
+<ul>
+<li><strong>Méthodes dangereuses exposées</strong> : si votre serveur autorise PUT, DELETE ou PATCH sans protection, un attaquant peut tenter de modifier ou supprimer des ressources.</li>
+<li><strong>Méthode TRACE activée</strong> : TRACE est une méthode HTTP de diagnostic qui peut être détournée pour voler des cookies ou des tokens d'authentification (attaque XST). Elle ne devrait jamais être activée en production.</li>
+<li><strong>Chaînes de redirection excessives</strong> : plus de 3 redirections successives pour atteindre une page ralentissent le chargement et peuvent masquer des configurations anormales.</li>
+<li><strong>Redirections 301/302 sur formulaires sensibles</strong> : une redirection non permanente (307/308) est préférable pour les formulaires POST, car une redirection 301/302 peut faire perdre les données du formulaire selon les navigateurs.</li>
+</ul>
+<h3>Pourquoi c'est important</h3>
+<p>Les méthodes HTTP non nécessaires agrandissent la surface d'attaque. TRACE activé est considéré comme une mauvaise pratique de sécurité depuis plus de 20 ans. Les chaînes de redirection excessives révèlent souvent des migrations incomplètes ou des configurations désorganisées.</p>
+<h3>Conseils</h3>
+<p>Désactivez TRACE dans la configuration de votre serveur. N'exposez que les méthodes HTTP utiles à chaque endpoint. Pour les formulaires d'authentification, utilisez des redirections 307 ou 308.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="cache">13. Cache et performances</h2>
+<h3>Ce qui est vérifié</h3>
+<ul>
+<li><strong>En-têtes de cache sur la page principale</strong> : présence et cohérence de <code>Cache-Control</code>, <code>Pragma</code>, <code>ETag</code>, <code>Last-Modified</code>, <code>Vary</code>.</li>
+<li><strong>Pages sensibles cacheables publiquement</strong> : une page de connexion, d'administration ou un endpoint API ne doit pas être mise en cache publiquement. Si un proxy ou un CDN cache une telle page, les données d'un utilisateur pourraient être servies à un autre.</li>
+<li><strong>Cache des assets statiques</strong> : le scan vérifie que les fichiers JavaScript, CSS et images avec un hash dans leur URL (ex. <code>main.a3c9f7.js</code>) bénéficient d'un cache long (<code>max-age</code> élevé et <code>immutable</code>). Sans ça, chaque visite retélécharge inutilement ces fichiers.</li>
+</ul>
+<h3>Pourquoi c'est important</h3>
+<p>Un cache mal configuré a deux risques opposés : des pages sensibles trop cacheables (fuite de données entre utilisateurs) et des assets statiques pas assez cacheables (performances dégradées, surcharge serveur). La sécurité et les performances vont ici de pair.</p>
+<h3>Conseils</h3>
+<p>Appliquez <code>Cache-Control: no-store</code> sur les pages de connexion, les pages de compte et les réponses API. Pour les assets avec hash dans l'URL, utilisez <code>Cache-Control: max-age=31536000, immutable</code>.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="integrite">14. Intégrité des ressources</h2>
+<h3>Ce qui est vérifié</h3>
+<ul>
+<li><strong>Subresource Integrity (SRI)</strong> : les scripts et feuilles de style chargés depuis des CDN externes devraient avoir un attribut <code>integrity</code> contenant un hash. Si le CDN est compromis et sert un fichier modifié, le navigateur refusera de l'exécuter.</li>
+<li><strong>Scripts inline et CSP</strong> : si une Content-Security-Policy est définie, les scripts inline doivent utiliser des nonces ou des hashes pour être autorisés. Sans ça, la CSP est contournable.</li>
+<li><strong>Champs mot de passe et autocomplete</strong> : les champs de saisie de mot de passe sur des pages sensibles devraient avoir des attributs <code>autocomplete</code> appropriés pour éviter que le navigateur ne propose d'enregistrer ou de remplir automatiquement des identifiants sur des pages non prévues à cet effet.</li>
+<li><strong>Liens <code>target="_blank"</code> et noopener</strong> : un lien qui ouvre un onglet externe sans <code>rel="noopener"</code> permet à la page cible d'accéder à votre page via <code>window.opener</code> — une faille connue.</li>
+<li><strong>Meta robots sur pages sensibles</strong> : les pages de login, d'administration et les endpoints API devraient avoir une balise <code>meta name="robots" content="noindex, nofollow"</code> pour ne pas être indexées par les moteurs de recherche.</li>
+</ul>
+<h3>Pourquoi c'est important</h3>
+<p>SRI protège contre la compromission de fournisseurs CDN tiers (jQuery, Bootstrap, Google Fonts, etc.). Si un attaquant modifie un fichier JS sur un CDN, sans SRI votre site exécutera du code malveillant. Les liens <code>target="_blank"</code> non protégés permettent des attaques de type reverse tabnapping.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="tech">15. Empreinte technologique</h2>
+<h3>Ce qui est vérifié</h3>
+<ul>
+<li><strong>En-têtes révélateurs</strong> : <code>Server</code> (ex. <code>Apache/2.4.51</code>), <code>X-Powered-By</code> (ex. <code>PHP/8.1</code>), <code>X-Generator</code>.</li>
+<li><strong>Balises HTML</strong> : la balise <code>meta name="generator"</code> utilisée par WordPress, Drupal et autres CMS révèle la technologie et parfois la version.</li>
+<li><strong>Scripts et URLs caractéristiques</strong> : les noms des fichiers JS/CSS, les chemins de ressources, les URLs d'API identifient souvent la stack technique.</li>
+<li><strong>Versions potentiellement vulnérables</strong> : si une version identifiée est connue pour avoir des failles non corrigées, un finding est remonté avec le niveau de risque correspondant.</li>
+</ul>
+<h3>Pourquoi c'est important</h3>
+<p>Exposer vos technologies et versions facilite la reconnaissance pour un attaquant. Il peut chercher directement les CVE (failles connues) associées à votre version de PHP, WordPress ou Apache. En masquant ces informations, vous obligez l'attaquant à faire un travail supplémentaire et à prendre des risques supplémentaires.</p>
+<h3>Conseils</h3>
+<p>Supprimez ou masquez les en-têtes <code>Server</code> et <code>X-Powered-By</code> dans la configuration de votre serveur. Retirez la balise <code>meta generator</code> de votre CMS. Maintenez vos composants à jour : c'est la protection la plus efficace contre les vulnérabilités connues.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="fuites">16. Fuites d'information</h2>
+<h3>Ce qui est vérifié</h3>
+<ul>
+<li><strong>Stack traces et messages d'erreur</strong> : si le corps de la réponse contient des traces d'erreur (ex. <code>Exception in thread "main"</code>, <code>PDOException</code>), c'est que votre application fonctionne en mode debug. Ces messages révèlent la structure interne de votre code à quiconque provoque une erreur.</li>
+<li><strong>Secrets et tokens en clair</strong> : le scan analyse le contenu HTML et les en-têtes pour détecter des patterns ressemblant à des clés API, tokens JWT, ou secrets de configuration exposés involontairement.</li>
+<li><strong>En-têtes de débogage</strong> : des en-têtes comme <code>X-Debug</code>, <code>X-Debug-Token</code>, <code>X-Runtime</code> trahissent un mode de débogage actif en production.</li>
+</ul>
+<h3>Pourquoi c'est important</h3>
+<p>Une stack trace révèle les chemins absolus de vos fichiers, les noms de vos classes, la structure de votre base de données et la version de vos dépendances — autant d'informations utiles pour cibler une attaque. Un token JWT ou une clé API exposée dans le HTML d'une page peut être réutilisé immédiatement par un attaquant.</p>
+<div class="doc-warning">
+<h3>Mode debug en production</h3>
+<p>Si un finding de ce type est détecté, désactivez immédiatement le mode debug. C'est une erreur de configuration fréquente lors des déploiements (variable <code>APP_DEBUG=true</code> dans le .env, <code>DEBUG=True</code> en Django, etc.).</p>
+</div>
+</div>
+
+<div class="doc-section">
+<h2 id="apis">17. APIs et formats</h2>
+<h3>Ce qui est vérifié</h3>
+<ul>
+<li><strong>GraphQL introspection désactivée</strong> : l'introspection GraphQL permet de lister tous les types, champs et mutations disponibles dans votre API. En production, cette fonctionnalité devrait être désactivée pour éviter de livrer le plan complet de votre API aux attaquants.</li>
+<li><strong>Swagger / OpenAPI sans authentification</strong> : une interface Swagger accessible publiquement expose la documentation complète de votre API, y compris les endpoints sensibles. Elle devrait être protégée ou désactivée en production.</li>
+<li><strong>Listes REST non paginées</strong> : un endpoint REST qui retourne une liste sans pagination peut exposer l'intégralité d'une collection de données en une seule requête.</li>
+<li><strong>Content-Type correct</strong> : les réponses API doivent avoir un <code>Content-Type</code> cohérent avec leur contenu pour éviter les erreurs d'interprétation.</li>
+<li><strong>Compression activée</strong> : la vérification que gzip ou brotli est activé sur les réponses de la page principale et des APIs. Pas une faille de sécurité, mais un indicateur de maturité de la configuration serveur.</li>
+</ul>
+<h3>Pourquoi c'est important</h3>
+<p>Une documentation d'API publique (Swagger) est un guide d'attaque gratuit. L'introspection GraphQL ouverte permet à n'importe qui de cartographier votre schéma de données en quelques secondes. Ces problèmes sont fréquents sur des déploiements de staging ou de développement qui ont été accidentellement mis en production.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="score">18. Comprendre votre score</h2>
+<h3>Niveaux de sévérité</h3>
+<p>Chaque finding détecté est classé selon un niveau de gravité. Les niveaux et leur impact sur le score sont les suivants :</p>
+<table>
+<thead>
+<tr>
+<th>Sévérité</th>
+<th>Pénalité</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr><td><strong>Critique</strong></td><td>100 points</td><td>Exposition directe de secrets, accès non autorisé immédiatement possible (fichier .env, dépôt Git exposé, mode debug avec secrets). À corriger avant tout.</td></tr>
+<tr><td><strong>Élevée (high)</strong></td><td>50 points</td><td>Risque majeur de compromission (vol de session, fuite de données, CORS dangereux). Traitement prioritaire.</td></tr>
+<tr><td><strong>Moyenne (medium)</strong></td><td>25 points</td><td>Configuration à risque qui peut être exploitée dans certaines conditions (en-têtes manquants, cookies partiellement protégés). À planifier.</td></tr>
+<tr><td><strong>Faible (low)</strong></td><td>10 points</td><td>Bonne pratique non respectée. Amélioration recommandée mais risque immédiat limité.</td></tr>
+<tr><td><strong>Informatif (info)</strong></td><td>0 point</td><td>Observation utile, pas nécessairement une faille (chemins dans robots.txt, stack technique identifiée). Ne réduit pas le score.</td></tr>
+</tbody>
+</table>
+<h3>Formule de calcul du score</h3>
+<p>Le score global est une <strong>moyenne pondérée</strong> des scores par catégorie :</p>
+<ol>
+<li>Chaque catégorie (TLS, en-têtes, cookies, etc.) reçoit un score de 0 à 100 : <code>score_catégorie = max(0, 100 − somme des pénalités des findings)</code>. Par exemple, deux findings « medium » dans une même catégorie = 100 − 25 − 25 = 50.</li>
+<li>Le score global = <code>somme(score_cat × poids_cat) / somme(poids_cat)</code>, arrondi à l'entier, borné entre 0 et 100.</li>
+<li>Sans aucun finding, le score est 100. Un seul finding « critical » dans une catégorie ramène le score de cette catégorie à 0.</li>
+</ol>
+<h3>Pondération par catégorie</h3>
+<p>Les catégories les plus critiques pour la sécurité ont un poids plus élevé :</p>
+<table>
+<thead>
+<tr><th>Catégorie</th><th>Poids</th></tr>
+</thead>
+<tbody>
+<tr><td>TLS / HTTPS</td><td>25</td></tr>
+<tr><td>En-têtes de sécurité</td><td>25</td></tr>
+<tr><td>Cookies</td><td>20</td></tr>
+<tr><td>Fichiers exposés</td><td>10</td></tr>
+<tr><td>Listage de répertoires</td><td>10</td></tr>
+<tr><td>Cache</td><td>5</td></tr>
+<tr><td>Intégrité des ressources</td><td>5</td></tr>
+<tr><td>robots.txt</td><td>5</td></tr>
+<tr><td>Sitemap</td><td>5</td></tr>
+<tr><td>Empreinte technologique</td><td>5</td></tr>
+<tr><td>Fuites d'information</td><td>5</td></tr>
+<tr><td>CORS / Cross-origin</td><td>5</td></tr>
+<tr><td>Méthodes HTTP et redirections</td><td>5</td></tr>
+<tr><td>APIs et formats</td><td>5</td></tr>
+</tbody>
+</table>
+<p>Un problème dans une catégorie à fort poids (TLS, en-têtes, cookies) impacte davantage le score global qu'un problème dans une catégorie à faible poids.</p>
+<h3>Le score sur 100</h3>
+<p>Un score de 100 signifie qu'aucune anomalie n'a été détectée sur les points vérifiés. Le score est un <strong>indicateur de tendance</strong>, pas un certificat absolu de sécurité — il reflète ce que le scan passif peut observer.</p>
+<p>Priorisez toujours la correction des findings critiques et élevés avant d'optimiser le score global. Un finding critique unique est plus important qu'une dizaine de findings faibles.</p>
+<h3>Score par catégorie dans les résultats</h3>
+<p>Les résultats sont organisés par catégorie avec un détail des tests réussis, des anomalies et des conseils de correction. Vous pouvez ainsi identifier rapidement les domaines à améliorer en priorité.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="bloquant">19. Ce qui peut bloquer ou impacter le scan</h2>
+<h3>Bloquant — le scan échoue</h3>
+<ul>
+<li><strong>URL invalide ou domaine inexistant</strong> : vérifiez que l'URL est bien formée et que le domaine répond.</li>
+<li><strong>Site hors ligne ou timeout</strong> : si le serveur ne répond pas dans le délai imparti, le scan ne peut pas s'exécuter.</li>
+<li><strong>Protection anti-bot ou WAF</strong> : si votre hébergeur ou un service de protection (Cloudflare, Akamai, etc.) bloque les requêtes automatisées, le scan peut recevoir des réponses 403 ou des pages CAPTCHA au lieu du contenu réel. Les résultats seront partiels ou absents.</li>
+</ul>
+<h3>Résultats partiels</h3>
+<ul>
+<li><strong>Contenu chargé uniquement par JavaScript</strong> : le scan analyse la réponse HTTP initiale. Du contenu injecté après le chargement de la page (rendu côté client) peut ne pas être visible. Les cookies et en-têtes HTTP, eux, sont toujours analysés correctement.</li>
+<li><strong>Pages derrière authentification</strong> : le scan ne se connecte pas à votre application. Les pages accessibles uniquement après login ne sont pas analysées.</li>
+<li><strong>Certificat auto-signé ou expiré</strong> : le scan continue mais le finding est remonté. Certaines vérifications dépendantes d'une connexion HTTPS valide peuvent être affectées.</li>
+<li><strong>Redirections en boucle</strong> : trop de redirections successives interrompent l'analyse de l'URL concernée.</li>
+</ul>
+<h3>Ce que le scan ne voit pas</h3>
+<ul>
+<li>Les vulnérabilités applicatives (injections, XSS) — couvertes par le scan intrusif</li>
+<li>La logique métier de votre application</li>
+<li>Les pages et données derrière une authentification</li>
+<li>Les failles dans le code côté serveur non visibles dans les réponses HTTP</li>
+</ul>
+</div>
+
+</body>
+</html>

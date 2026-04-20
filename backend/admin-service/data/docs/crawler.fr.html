@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Découverte des pages</title>
+</head>
+<body>
+
+<div class="doc-intro">
+<h1>Découverte des pages</h1>
+<p>Cette documentation explique comment fonctionne la <strong>découverte des pages</strong> avant un scan, quand vous souhaitez analyser plusieurs URLs d'un même site. Elle décrit les modes disponibles, ce qui peut bloquer ou ralentir le processus, et comment interpréter les résultats.</p>
+</div>
+
+<div class="doc-toc">
+<h2>Sommaire</h2>
+<ol>
+<li><a href="#intro">À quoi sert la découverte des pages ?</a></li>
+<li><a href="#quand">Quand utiliser la découverte (ou non)</a></li>
+<li><a href="#modes">Les modes de découverte</a></li>
+<li><a href="#parcours">Parcours utilisateur étape par étape</a></li>
+<li><a href="#resultats">Comprendre les résultats</a></li>
+<li><a href="#blockant">Ce qui peut bloquer ou ralentir</a></li>
+<li><a href="#limites">Limites et cas particuliers</a></li>
+<li><a href="#conseils">Conseils pour de meilleurs résultats</a></li>
+</ol>
+</div>
+
+<div class="doc-section">
+<h2 id="intro">1. À quoi sert la découverte des pages ?</h2>
+<p>Quand vous lancez un scan sur un site, vous pouvez :</p>
+<ul>
+<li><strong>Scanner une seule page</strong> : vous cochez « Scanner uniquement cette page » et le scan s'exécute directement sur l'URL saisie. Aucune découverte.</li>
+<li><strong>Découvrir puis scanner</strong> : vous laissez la case décochée. Un outil de découverte parcourt votre site pour trouver les autres pages, vous affiche la liste, et vous pouvez la modifier (ajouter, supprimer des URLs) avant de lancer le scan.</li>
+</ul>
+<p>La découverte vous permet donc de <strong>visualiser la surface du site</strong> — quelles pages existent, quels liens sont accessibles — et de choisir ce que vous voulez inclure dans l'analyse. C'est particulièrement utile pour les sites avec beaucoup de pages (blog, e-commerce, portail).</p>
+<p><strong>Important</strong> : la découverte ne lance pas de scan. Elle ne fait que lister les URLs. C'est vous qui validez la liste et déclenchez le scan ensuite.</p>
+</div>
+
+<div class="doc-section">
+<h2 id="quand">2. Quand utiliser la découverte (ou non)</h2>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Recommandation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vous voulez tester une page précise (ex. formulaire de connexion)</td>
+<td>Cochez « Scanner uniquement cette page »</td>
+</tr>
+<tr>
+<td>Votre site a peu de pages, ou vous connaissez déjà les URLs</td>
+<td>Cochez « Scanner uniquement cette page », ou utilisez la découverte pour vérifier la liste</td>
+</tr>
+<tr>
+<td>Votre site a beaucoup de pages (blog, catalogue) et vous voulez une vue d'ensemble</td>
+<td>Utilisez la découverte pour explorer, puis choisissez les URLs à inclure</td>
+</tr>
+<tr>
+<td>Votre site est une SPA (Next.js, React, Vue) avec des liens chargés en JavaScript</td>
+<td>Utilisez la découverte en mode « Site SPA » pour voir les liens rendus</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="doc-section">
+<h2 id="modes">3. Les modes de découverte</h2>
+<p>Trois modes sont disponibles selon le type de site :</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Comment ça marche</th>
+<th>Quand l'utiliser</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HTML</strong> (par défaut)</td>
+<td>Lit le code HTML de chaque page et extrait les liens. Rapide, peu consommateur.</td>
+<td>Sites classiques (HTML statique, PHP, templates serveur). Les liens sont présents dans le HTML dès le chargement.</td>
+</tr>
+<tr>
+<td><strong>Site SPA</strong></td>
+<td>Ouvre chaque page dans un navigateur headless, attend que le JavaScript s'exécute, puis extrait les liens du DOM. Plus lent, mais voit les liens générés dynamiquement.</td>
+<td>Sites Next.js, React, Vue, Angular, etc. Les liens sont injectés par JavaScript après le chargement.</td>
+</tr>
+<tr>
+<td><strong>Les deux</strong></td>
+<td>Exécute HTML et SPA en parallèle, fusionne les résultats. Découverte maximale.</td>
+<td>Quand vous n'êtes pas sûr du type de site, ou pour une exploration complète. Plus long.</td>
+</tr>
+</tbody>
+</table>
+<div class="doc-warning">
+<h3>Ce qui peut être bloquant selon le mode</h3>
+<ul>
+<li><strong>Mode HTML sur un SPA</strong> : seuls les liens déjà présents dans le HTML initial seront trouvés. Les liens de navigation, articles de blog, etc. rendus par React/Next.js ne seront pas vus. Utilisez le mode SPA.</li>
+<li><strong>Mode SPA</strong> : nécessite plus de ressources (navigateur headless). Si le serveur est surchargé ou si Playwright n'est pas disponible côté infrastructure, le mode peut échouer. En cas d'erreur, testez le mode HTML.</li>
+</ul>
+</div>
+</div>
+
+<div class="doc-section">
+<h2 id="parcours">4. Parcours utilisateur étape par étape</h2>
+<ol>
+<li><strong>Saisir l'URL</strong> de la page d'accueil (ou de la page de départ) du site à analyser.</li>
+<li><strong>Choisir</strong> : « Scanner uniquement cette page » (pas de découverte) ou laisser décoché pour lancer la découverte.</li>
+<li><strong>Si découverte</strong> : cocher « Site SPA » si votre site est en React/Next.js/Vue, sinon laisser décoché (mode HTML).</li>
+<li><strong>Régler la limite d'URLs</strong> : nombre maximum de pages à découvrir (par défaut 50, entre 5 et 200).</li>
+<li><strong>Lancer</strong> : la découverte démarre. Un écran de progression affiche les étapes (validation de l'URL, récupération de robots.txt, sitemap, exploration des pages).</li>
+<li><strong>Résultat</strong> : vous voyez la liste des URLs trouvées. Vous pouvez supprimer celles que vous ne voulez pas analyser, ou en ajouter manuellement (ex. une page connue qui n'a pas été découverte).</li>
+<li><strong>Valider et scanner</strong> : cliquez sur « Lancer le scan » pour démarrer l'analyse sur la liste validée.</li>
+</ol>
+<p><strong>Note</strong> : pour l'instant, le scan s'exécute sur l'URL de départ uniquement. La liste validée est conservée pour une évolution future (scan multi-URLs).</p>
+</div>
+
+<div class="doc-section">
+<h2 id="resultats">5. Comprendre les résultats</h2>
+<h3>Ce qui est affiché</h3>
+<ul>
+<li><strong>Liste d'URLs</strong> : chaque URL trouvée, avec son type (page, formulaire, script, endpoint API, sitemap) et sa profondeur (niveau de clics depuis la page d'accueil).</li>
+<li><strong>Indicateurs</strong> :
+<ul>
+<li><strong>Délai dépassé</strong> : la découverte a été interrompue car le temps imparti était atteint. Les URLs trouvées jusqu'à ce moment sont affichées.</li>
+<li><strong>Requêtes bloquées</strong> : le site a renvoyé plusieurs erreurs 403 (accès refusé), probablement à cause d'une protection anti-bot ou d'un WAF. La découverte s'est arrêtée, mais les URLs déjà trouvées (et celles du sitemap en attente) sont retournées.</li>
+<li><strong>Protection anti-bot détectée</strong> : le contenu de la page suggère une protection (Cloudflare, captcha, etc.). La liste peut être incomplète.</li>
+</ul>
+</li>
+</ul>
+<h3>Types d'URLs</h3>
+<ul>
+<li><strong>Page</strong> : page HTML classique, lien cliqué par un utilisateur.</li>
+<li><strong>Formulaire</strong> : action d'un formulaire.</li>
+<li><strong>Script / feuille de style</strong> : ressources chargées par la page.</li>
+<li><strong>Endpoint API</strong> : URL qui ressemble à une API (ex. /api/, /graphql/).</li>
+<li><strong>Sitemap</strong> : URL trouvée dans le sitemap (liste de pages fournie par le site pour les moteurs de recherche).</li>
+</ul>
+</div>
+
+<div class="doc-section">
+<h2 id="blockant">6. Ce qui peut bloquer ou ralentir</h2>
+<h3>Bloquant (la découverte échoue ou s'arrête)</h3>
+<ul>
+<li><strong>URL invalide</strong> : format incorrect, domaine inexistant, schéma non supporté (doit être http ou https). Vérifiez l'URL.</li>
+<li><strong>Site inaccessible</strong> : timeout, firewall, site hors ligne. Le scan ne peut pas joindre le serveur.</li>
+<li><strong>Erreurs 403 répétées</strong> : si le site renvoie « Accès refusé » sur plusieurs requêtes consécutives (protection anti-bot, WAF), la découverte s'arrête. Les URLs déjà trouvées sont affichées, mais la liste peut être partielle.</li>
+<li><strong>Mode SPA indisponible</strong> : si l'infrastructure ne supporte pas le mode Playwright (navigateur headless), le mode SPA peut échouer. Utilisez le mode HTML.</li>
+</ul>
+<h3>Ralentissant (résultats partiels)</h3>
+<ul>
+<li><strong>Délai dépassé</strong> : la découverte a une limite de temps (environ 60 à 90 secondes). Les sites très grands ou lents peuvent ne pas être entièrement explorés. Réduisez la limite d'URLs ou relancez plusieurs fois en partant de différentes pages.</li>
+<li><strong>Profondeur limitée</strong> : seuls les liens à 2 niveaux de profondeur sont suivis (accueil → page → sous-page). Des pages plus profondes ne seront pas découvertes automatiquement. Ajoutez-les manuellement si nécessaire.</li>
+<li><strong>Liens exclus</strong> : certains types de liens ne sont pas suivis (images, PDF, archives, etc.) pour éviter de surcharger. C'est normal.</li>
+</ul>
+<h3>Informatif</h3>
+<ul>
+<li><strong>robots.txt</strong> : la découverte respecte le fichier robots.txt du site. Les chemins marqués « Disallow » ne sont pas explorés. Si votre /admin/ est en Disallow, il n'apparaîtra pas dans la liste. Pour l'analyser, ajoutez l'URL manuellement.</li>
+</ul>
+</div>
+
+<div class="doc-section">
+<h2 id="limites">7. Limites et cas particuliers</h2>
+<ul>
+<li><strong>Nombre max d'URLs</strong> : entre 5 et 200 selon votre réglage (défaut 50). Au-delà, la découverte s'arrête.</li>
+<li><strong>Profondeur</strong> : 2 niveaux. Une page accessible uniquement par 4 clics depuis l'accueil ne sera pas trouvée automatiquement.</li>
+<li><strong>Même domaine</strong> : seuls les liens du même domaine (et sous-domaines) sont suivis. Un lien vers un autre site n'est pas exploré.</li>
+<li><strong>Sites avec authentification</strong> : la découverte ne peut pas se connecter. Seules les pages accessibles sans login seront trouvées.</li>
+<li><strong>Contenu derrière JavaScript</strong> : en mode HTML, les liens chargés dynamiquement ne sont pas vus. Passez en mode SPA.</li>
+<li><strong>Scan multi-URLs</strong> : actuellement, le scan n'analyse que l'URL de départ. La liste validée sert à préparer une future évolution.</li>
+</ul>
+</div>
+
+<div class="doc-section">
+<h2 id="conseils">8. Conseils pour de meilleurs résultats</h2>
+<ul>
+<li><strong>Commencez par la page d'accueil</strong> : c'est le point d'entrée logique. La découverte part de cette URL et suit les liens.</li>
+<li><strong>Vérifiez le sitemap</strong> : si votre site a un sitemap.xml, la découverte le récupère et ajoute ses URLs. Cela améliore la couverture.</li>
+<li><strong>Utilisez le mode SPA pour les applications modernes</strong> : Next.js, React, Vue, etc. Sans ça, la majorité des liens peut être manquante.</li>
+<li><strong>En cas de requêtes bloquées</strong> : si vous voyez « Requêtes bloquées », votre site ou votre hébergeur limite probablement les requêtes automatisées. Vérifiez les règles WAF, les restrictions par IP, ou les protections anti-bot. Vous pouvez toujours ajouter les URLs manuellement.</li>
+<li><strong>Ajout manuel</strong> : si une page importante n'apparaît pas (protégée par robots.txt, trop profonde, ou lien atypique), ajoutez-la à la main dans la liste avant de lancer le scan.</li>
+</ul>
+</div>
+
+</body>
+</html>

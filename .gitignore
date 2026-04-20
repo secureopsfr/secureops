@@ -53,6 +53,9 @@ dvf_convert/
 *.7z
 data/
 !**/data/templates/
+!backend/*/data/
+!backend/*/data/docs/
+!backend/*/data/docs/**
 performance/*
 *.dump
 *.ttf

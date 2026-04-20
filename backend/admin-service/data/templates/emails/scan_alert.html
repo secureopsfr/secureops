@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{subject}}</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; }
+        .url { word-break: break-all; color: #2563eb; }
+        .footer { margin-top: 24px; font-size: 12px; color: #6b7280; }
+        a { color: #2563eb; }
+    </style>
+</head>
+<body>
+    <h2>Alerte SecureOps — Scan planifié</h2>
+    <p><span class="badge" style="background: {{severity_bg}}; color: {{severity_color}};">{{severity}}</span></p>
+    <p><strong>URL :</strong> <span class="url">{{url}}</span></p>
+    <p>{{message}}</p>
+    <p><a href="{{frontend_url}}/account">Voir l'historique des scans</a></p>
+    <div class="footer">
+        <p>Cet email a été envoyé par SecureOps. Vous recevez cette alerte car vous avez activé les notifications pour vos scans planifiés.</p>
+    </div>
+</body>
+</html>
