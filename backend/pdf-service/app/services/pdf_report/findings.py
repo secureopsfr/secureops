@@ -368,11 +368,13 @@ def build_info_section(
         return "", section_num
 
     section_label = t("infos_section", lang)
-    sections_html = [f"""
+    sections_html = [
+        f"""
     <div class="report-section report-section-infos" id="sect-infos">
         <h2 class="section-title">{section_num}. {escape(section_label)}</h2>
         {_build_info_intro(info_findings, section_num, lang)}
-    """]
+    """
+    ]
     for idx, f in enumerate(sorted(info_findings, key=lambda x: severity_index(x.severity)), start=2):
         sections_html.append(build_finding_block(f, section_num, idx, include_matrices, lang))
     sections_html.append("</div>")
@@ -410,12 +412,14 @@ def build_other_tests_section(
         ok_tests_label=ok_tests_label,
     )
     subsections_html: list[str] = []
-    subsections_html.append(f"""
+    subsections_html.append(
+        f"""
     <div class="category-intro" id="sect-other-tests-intro">
         <h3 class="category-intro-title">{section_num}.1 {escape(summary_label)}</h3>
         <p class="category-intro-summary">{summary_text}</p>
     </div>
-    """)
+    """
+    )
     for sub_num, cat in enumerate(ok_cats, start=2):
         cat_label = category_labels.get(cat, cat)
         subsections_html.append(_build_ok_category_subsection(section_num, sub_num, cat, cat_label, lang))
