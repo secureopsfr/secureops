@@ -59,7 +59,7 @@
     "quotaExhausted": "0 / {{limit}} scans"
   },
   "footer": {
-    "description": "Independent, free vulnerability scanning project. First version: passive tests only. Intrusive tests planned for future versions.",
+    "description": "Independent, free vulnerability scanning project.",
     "contact": "Contact",
     "emailLabel": "Email:",
     "copyEmail": "Copy email address",

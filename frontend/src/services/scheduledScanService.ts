@@ -7,6 +7,7 @@ import {
   fetchWithAuth,
   getApiBaseUrl,
 } from "../utils/apiClient";
+import userService from "./userService";
 import { buildPaginatedQuery } from "../utils/apiQueryParams";
 import type { PaginatedListResponse } from "../types/api";
 
@@ -79,6 +80,10 @@ export function getUserTimezone(): string {
   }
 }
 
+async function ensureUserInitialized(): Promise<void> {
+  await userService.initUser();
+}
+
 export interface UpdateScheduledScanInput {
   frequency?: Frequency;
   schedule_hour?: number;
@@ -95,6 +100,7 @@ export interface UpdateScheduledScanInput {
 export async function createScheduledScan(
   input: CreateScheduledScanInput,
 ): Promise<ScheduledScan> {
+  await ensureUserInitialized();
   return fetchJsonWithAuth<ScheduledScan>(
     `${getApiBaseUrl()}/user/api/scans/schedule`,
     {
@@ -130,6 +136,7 @@ export async function getScheduledScans(
   scan_type?: string | null,
   scan_mode?: string | null,
 ): Promise<ScheduledScanListResponse> {
+  await ensureUserInitialized();
   const query = buildPaginatedQuery({ page, limit, url, scan_type, scan_mode });
   return fetchJsonWithAuth<ScheduledScanListResponse>(
     `${getApiBaseUrl()}/user/api/scans/schedule?${query}`,
@@ -142,6 +149,7 @@ export async function updateScheduledScan(
   id: string,
   input: UpdateScheduledScanInput,
 ): Promise<ScheduledScan> {
+  await ensureUserInitialized();
   const body: Record<string, unknown> = {};
   if (input.frequency !== undefined) body.frequency = input.frequency;
   if (input.schedule_hour !== undefined)
@@ -170,6 +178,7 @@ export async function updateScheduledScan(
 }
 
 export async function deleteScheduledScan(id: string): Promise<void> {
+  await ensureUserInitialized();
   const response = await fetchWithAuth(
     `${getApiBaseUrl()}/user/api/scans/schedule/${id}`,
     { method: "DELETE" },
@@ -198,6 +207,7 @@ export async function getScanAlertHistory(
   date_from?: string | null,
   date_to?: string | null,
 ): Promise<ScanAlertHistoryListResponse> {
+  await ensureUserInitialized();
   const query = buildPaginatedQuery({
     page,
     limit,
@@ -215,6 +225,7 @@ export async function getScanAlertHistory(
 }
 
 export async function deleteScanAlertEvent(eventId: string): Promise<void> {
+  await ensureUserInitialized();
   const response = await fetchWithAuth(
     `${getApiBaseUrl()}/user/api/scans/schedule/alerts/history/${eventId}`,
     { method: "DELETE" },

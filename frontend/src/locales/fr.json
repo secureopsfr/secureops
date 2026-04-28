@@ -59,7 +59,7 @@
     "quotaExhausted": "0 / {{limit}} scans"
   },
   "footer": {
-    "description": "Projet gratuit et indépendant de scan de vulnérabilités. Première version : tests passifs uniquement. Tests intrusifs prévus dans les versions futures.",
+    "description": "Projet gratuit et indépendant de scan de vulnérabilités.",
     "contact": "Contact",
     "emailLabel": "Email :",
     "copyEmail": "Copier l'adresse email",
