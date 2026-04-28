@@ -52,6 +52,13 @@ def _truncate(text: str, max_len: int, label: str, slug: str) -> str:
     return text
 
 
+def _english_evidence_fallback(title: str, provided_evidence: str) -> str:
+    """Avoid leaking French scan evidence in English reports for catalogued findings."""
+    context_lines = [line.strip() for line in provided_evidence.splitlines() if line.strip().startswith("Detected on ")]
+    fallback = f"Finding detected during the scan: {title}." if title else "Finding detected during the scan."
+    return "\n".join([*context_lines, fallback])
+
+
 def _group_findings_by_category(
     findings: list[Finding],
     lang: str,
@@ -69,6 +76,13 @@ def _group_findings_by_category(
         by_category[effective_cat].append(f)
     ordered_cats = list(order) + [c for c in by_category if c not in order]
     return by_category, ordered_cats
+
+
+def _split_findings_by_type(findings: list[Finding]) -> tuple[list[Finding], list[Finding]]:
+    """Sépare les anomalies des informations."""
+    anomaly_findings = [f for f in findings if f.severity.lower() != "info"]
+    info_findings = [f for f in findings if f.severity.lower() == "info"]
+    return anomaly_findings, info_findings
 
 
 def build_finding_block(
@@ -99,7 +113,11 @@ def build_finding_block(
 
     catalog_evidence = get_evidence(f.id, lang) if f.id else ""
     provided_evidence = (f.evidence or "").strip()
-    if catalog_evidence and provided_evidence and provided_evidence != catalog_evidence:
+    if lang == "en" and catalog_evidence:
+        raw_evidence = catalog_evidence
+    elif lang == "en" and f.id and title_cat:
+        raw_evidence = _english_evidence_fallback(title_cat, provided_evidence)
+    elif catalog_evidence and provided_evidence and provided_evidence != catalog_evidence:
         raw_evidence = f"{provided_evidence}\n{catalog_evidence}"
     else:
         raw_evidence = provided_evidence or catalog_evidence
@@ -165,40 +183,65 @@ def build_finding_block(
 def _build_category_intro(
     cat: str,
     cat_label: str,
-    cat_findings: list[Finding],
+    anomaly_findings: list[Finding],
+    info_findings: list[Finding],
     section_num: int,
     lang: str,
 ) -> str:
-    """Construit le bloc intro d'une catégorie (x.1 Résumé, description, liste des anomalies).
+    """Construit le bloc intro d'une catégorie (x.1 Résumé, anomalies et infos).
 
     Args:
         cat: Identifiant de catégorie.
         cat_label: Libellé affiché (non utilisé, section déjà titrée).
-        cat_findings: Findings de la catégorie.
+        anomaly_findings: Anomalies de la catégorie.
+        info_findings: Informations de la catégorie.
         section_num: Numéro de section (ex. 2 pour « 2.1 Résumé »).
         lang: Code langue (fr/en).
 
     Returns:
         str: HTML du bloc intro.
     """
-    anomaly_count = len(cat_findings)
+    anomaly_count = len(anomaly_findings)
+    info_count = len(info_findings)
     anomalies_detected_summary = t("anomalies_detected_summary", lang)
     anomaly_detected_summary = t("anomaly_detected_summary", lang)
     anomalies_one = t("anomalies_one", lang)
     anomalies_word = t("anomalies", lang)
+    infos_one = t("infos_one", lang)
+    infos_word = t("infos", lang)
+    infos_detected_summary = t("infos_detected_summary", lang)
+    info_detected_summary = t("info_detected_summary", lang)
+    no_anomaly_detected = t("no_anomaly_detected", lang)
     summary_label = t("summary", lang)
 
-    titles = []
-    for f in sorted(cat_findings, key=lambda x: severity_index(x.severity)):
+    anomaly_titles = []
+    for f in sorted(anomaly_findings, key=lambda x: severity_index(x.severity)):
         title = get_title(f.id, lang) if f.id else f.title
-        titles.append(escape(title))
-    titles_str = ", ".join(titles)
-    word = anomalies_one if anomaly_count == 1 else anomalies_word
-    count_bold = f"<strong>{anomaly_count} {word}</strong>"
-    if anomaly_count == 1:
-        summary_html = f"{count_bold} {anomaly_detected_summary} : {titles_str}"
+        anomaly_titles.append(escape(title))
+
+    info_titles = []
+    for f in sorted(info_findings, key=lambda x: severity_index(x.severity)):
+        title = get_title(f.id, lang) if f.id else f.title
+        info_titles.append(escape(title))
+
+    summary_lines: list[str] = []
+    if anomaly_count:
+        anomaly_titles_str = ", ".join(anomaly_titles)
+        word = anomalies_one if anomaly_count == 1 else anomalies_word
+        count_bold = f"<strong>{anomaly_count} {word}</strong>"
+        summary_text = anomaly_detected_summary if anomaly_count == 1 else anomalies_detected_summary
+        summary_lines.append(f"{count_bold} {summary_text} : {anomaly_titles_str}")
     else:
-        summary_html = f"{count_bold} {anomalies_detected_summary} : {titles_str}"
+        summary_lines.append(escape(no_anomaly_detected))
+
+    if info_count:
+        info_titles_str = ", ".join(info_titles)
+        word = infos_one if info_count == 1 else infos_word
+        count_bold = f"<strong>{info_count} {word}</strong>"
+        summary_text = info_detected_summary if info_count == 1 else infos_detected_summary
+        summary_lines.append(f"{count_bold} {summary_text} : {info_titles_str}")
+
+    summary_html = "<br/>".join(summary_lines)
 
     description = get_category_description(cat, lang)
     description_html = ""
@@ -257,28 +300,83 @@ def build_category_sections(
     include_matrices: bool,
     lang: str,
     scan_mode: str = "passive",
+    info_by_category: dict[str, list[Finding]] | None = None,
 ) -> tuple[list[str], int]:
-    """Construit les sections HTML pour les catégories avec anomalies."""
+    """Construit les sections HTML pour les catégories avec anomalies ou infos."""
     cat_config = get_category_config(scan_mode)
     checked_cats = [c for c in cat_config.checked if c in cat_config.order] or list(cat_config.order)
     category_labels = get_category_labels(lang, scan_mode=scan_mode)
+    info_by_category = info_by_category or {}
     sections_html: list[str] = []
     section_num = 2
     for cat in checked_cats:
-        cat_findings = by_category.get(cat, [])
-        if not cat_findings:
+        anomaly_findings = by_category.get(cat, [])
+        info_findings = info_by_category.get(cat, [])
+        if not anomaly_findings and not info_findings:
             continue
         cat_label = category_labels.get(cat, cat)
         sections_html.append(f'<div class="report-section" id="sect-{cat}">')
         sections_html.append(f'<h2 class="section-title">{section_num}. {escape(cat_label)}</h2>')
-        intro = _build_category_intro(cat, cat_label, cat_findings, section_num, lang)
+        intro = _build_category_intro(cat, cat_label, anomaly_findings, info_findings, section_num, lang)
         sections_html.append(intro)
-        for idx, f in enumerate(sorted(cat_findings, key=lambda x: severity_index(x.severity)), start=2):
+        all_findings = [*anomaly_findings, *info_findings]
+        for idx, f in enumerate(sorted(all_findings, key=lambda x: severity_index(x.severity)), start=2):
             block = build_finding_block(f, section_num, idx, include_matrices, lang)
             sections_html.append(block)
         sections_html.append("</div>")
         section_num += 1
     return sections_html, section_num
+
+
+def _build_info_intro(
+    info_findings: list[Finding],
+    section_num: int,
+    lang: str,
+) -> str:
+    """Construit le résumé de la section informations."""
+    info_count = len(info_findings)
+    summary_label = t("summary", lang)
+    infos_one = t("infos_one", lang)
+    infos_word = t("infos", lang)
+    infos_detected_summary = t("infos_detected_summary", lang)
+    info_detected_summary = t("info_detected_summary", lang)
+    word = infos_one if info_count == 1 else infos_word
+
+    titles = []
+    for f in sorted(info_findings, key=lambda x: severity_index(x.severity)):
+        title = get_title(f.id, lang) if f.id else f.title
+        titles.append(escape(title))
+    titles_str = ", ".join(titles)
+    summary_text = info_detected_summary if info_count == 1 else infos_detected_summary
+
+    return f"""
+    <div class="category-intro" id="sect-infos-intro">
+        <h3 class="category-intro-title">{section_num}.1 {escape(summary_label)}</h3>
+        <p class="category-intro-summary"><strong>{info_count} {word}</strong> {summary_text} : {titles_str}</p>
+    </div>
+    """
+
+
+def build_info_section(
+    info_findings: list[Finding],
+    section_num: int,
+    include_matrices: bool,
+    lang: str,
+) -> tuple[str, int]:
+    """Construit la section dédiée aux findings informatifs."""
+    if not info_findings:
+        return "", section_num
+
+    section_label = t("infos_section", lang)
+    sections_html = [f"""
+    <div class="report-section report-section-infos" id="sect-infos">
+        <h2 class="section-title">{section_num}. {escape(section_label)}</h2>
+        {_build_info_intro(info_findings, section_num, lang)}
+    """]
+    for idx, f in enumerate(sorted(info_findings, key=lambda x: severity_index(x.severity)), start=2):
+        sections_html.append(build_finding_block(f, section_num, idx, include_matrices, lang))
+    sections_html.append("</div>")
+    return "".join(sections_html), section_num + 1
 
 
 def build_other_tests_section(
@@ -312,14 +410,12 @@ def build_other_tests_section(
         ok_tests_label=ok_tests_label,
     )
     subsections_html: list[str] = []
-    subsections_html.append(
-        f"""
+    subsections_html.append(f"""
     <div class="category-intro" id="sect-other-tests-intro">
         <h3 class="category-intro-title">{section_num}.1 {escape(summary_label)}</h3>
         <p class="category-intro-summary">{summary_text}</p>
     </div>
-    """
-    )
+    """)
     for sub_num, cat in enumerate(ok_cats, start=2):
         cat_label = category_labels.get(cat, cat)
         subsections_html.append(_build_ok_category_subsection(section_num, sub_num, cat, cat_label, lang))

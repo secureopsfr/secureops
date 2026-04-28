@@ -14,7 +14,7 @@ _DEFAULT_LOGO_PATH = Path(__file__).resolve().parents[2] / "static" / "logo.png"
 def _build_logo_svg_fallback(primary_color: str, secondary_color: str) -> str:
     """Construit le SVG fallback du logo avec couleurs configurables."""
     return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="64" height="64">'
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="88" height="88">'
         f'<path fill="{escape(primary_color)}" d="M24 4L6 10v10c0 11 8 20 18 24 10-4 18-13 18-24V10L24 4z"/>'
         f'<path fill="{escape(secondary_color)}" d="M24 8L10 12.5v7.5c0 8.5 6 15.5 14 18.5 8-3 14-10 14-18.5V12.5L24 8z"/>'
         f'<circle cx="24" cy="22" r="6" fill="{escape(primary_color)}"/>'

@@ -52,9 +52,9 @@ a[href]:after {
     margin-bottom: 32px;
 }
 .cover-logo-img {
-    height: 56px;
+    height: 88px;
     width: auto;
-    max-width: 180px;
+    max-width: 260px;
     object-fit: contain;
 }
 .cover-logo-svg {
@@ -154,6 +154,9 @@ footer {
     padding-bottom: 8px;
     border-bottom: 2px solid #e5e7eb;
 }
+.report-section-infos .section-title {
+    color: #2563eb;
+}
 .subsection-title {
     font-size: 15px;
     font-weight: 600;
@@ -244,9 +247,17 @@ footer {
 }
 .synthese-anomalies-block {
     display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 24px;
+}
+.synthese-anomalies-counter,
+.synthese-info-counter {
+    display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 24px;
 }
 .synthese-anomalies-value {
     font-size: 28px;
@@ -254,6 +265,18 @@ footer {
     color: #1f2937;
 }
 .synthese-anomalies-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    margin-top: 4px;
+}
+.synthese-info-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #2563eb;
+}
+.synthese-info-label {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -351,6 +374,19 @@ footer {
     text-align: center;
     line-height: 1.1;
 }
+.info-chip {
+    display: inline-block;
+    min-width: 18px;
+    padding: 2px 6px;
+    margin-left: 4px;
+    border-radius: 9999px;
+    background: rgba(37, 99, 235, 0.14);
+    color: #2563eb;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.1;
+}
 .tbl-num {
     text-align: right;
     font-weight: 500;
@@ -372,6 +408,10 @@ a.status-ok.status-link:visited {
 }
 .status-warning {
     color: #f59e0b;
+    font-weight: 600;
+}
+.status-info {
+    color: #2563eb;
     font-weight: 600;
 }
 .status-link {

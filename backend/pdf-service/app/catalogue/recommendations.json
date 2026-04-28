@@ -197,6 +197,8 @@
     "recommendation_en": "Add report-uri or report-to in CSP to detect violations in production.",
     "title_fr": "CSP sans report-uri ni report-to",
     "title_en": "CSP without report-uri or report-to",
+    "evidence_fr": "CSP présent mais sans report-uri ni report-to : violations non détectables.",
+    "evidence_en": "CSP present but missing report-uri or report-to: violations cannot be detected.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-uri"
     ]
@@ -474,76 +476,76 @@
     ]
   },
   "directory_listing-uploads": {
-    "recommendation": "Désactiver le directory listing sur /uploads/. Configurer Options -Indexes (Apache) ou autoindex off (Nginx).",
+    "recommendation": "Désactiver le listage de répertoires sur /uploads/. Configurer Options -Indexes (Apache) ou autoindex off (Nginx).",
     "recommendation_en": "Disable directory listing on /uploads/. Configure Options -Indexes (Apache) or autoindex off (Nginx).",
-    "title_fr": "Directory listing sur /uploads/",
+    "title_fr": "Listage de répertoires sur /uploads/",
     "title_en": "Directory listing on /uploads/",
-    "evidence_fr": "Directory listing activé sur /uploads/ : fichiers utilisateurs énumérables.",
+    "evidence_fr": "Listage de répertoires activé sur /uploads/ : fichiers utilisateurs énumérables.",
     "evidence_en": "Directory listing enabled on /uploads/: user files enumerable.",
     "references": [
       "https://httpd.apache.org/docs/2.4/mod/core.html#options"
     ]
   },
   "directory_listing-assets": {
-    "recommendation": "Désactiver le directory listing sur /assets/ si la structure ne doit pas être exposée.",
+    "recommendation": "Désactiver le listage de répertoires sur /assets/ si la structure ne doit pas être exposée.",
     "recommendation_en": "Disable directory listing on /assets/ if structure should not be exposed.",
-    "title_fr": "Directory listing sur /assets/",
+    "title_fr": "Listage de répertoires sur /assets/",
     "title_en": "Directory listing on /assets/",
-    "evidence_fr": "Directory listing activé sur /assets/ : structure révélée.",
+    "evidence_fr": "Listage de répertoires activé sur /assets/ : structure révélée.",
     "evidence_en": "Directory listing enabled on /assets/: structure revealed.",
     "references": []
   },
   "directory_listing-static": {
-    "recommendation": "Désactiver le directory listing sur /static/ si la structure ne doit pas être exposée.",
+    "recommendation": "Désactiver le listage de répertoires sur /static/ si la structure ne doit pas être exposée.",
     "recommendation_en": "Disable directory listing on /static/ if structure should not be exposed.",
-    "title_fr": "Directory listing sur /static/",
+    "title_fr": "Listage de répertoires sur /static/",
     "title_en": "Directory listing on /static/",
-    "evidence_fr": "Directory listing activé sur /static/ : structure révélée.",
+    "evidence_fr": "Listage de répertoires activé sur /static/ : structure révélée.",
     "evidence_en": "Directory listing enabled on /static/: structure revealed.",
     "references": []
   },
   "directory_listing-tmp": {
-    "recommendation": "Désactiver le directory listing sur /tmp/ ou restreindre l'accès.",
+    "recommendation": "Désactiver le listage de répertoires sur /tmp/ ou restreindre l'accès.",
     "recommendation_en": "Disable directory listing on /tmp/ or restrict access.",
-    "title_fr": "Directory listing sur /tmp/",
+    "title_fr": "Listage de répertoires sur /tmp/",
     "title_en": "Directory listing on /tmp/",
-    "evidence_fr": "Directory listing activé sur /tmp/ : fichiers temporaires énumérables.",
+    "evidence_fr": "Listage de répertoires activé sur /tmp/ : fichiers temporaires énumérables.",
     "evidence_en": "Directory listing enabled on /tmp/: temporary files enumerable.",
     "references": []
   },
   "directory_listing-logs": {
-    "recommendation": "Désactiver le directory listing sur /logs/ et protéger l'accès aux journaux.",
+    "recommendation": "Désactiver le listage de répertoires sur /logs/ et protéger l'accès aux journaux.",
     "recommendation_en": "Disable directory listing on /logs/ and protect log access.",
-    "title_fr": "Directory listing sur /logs/",
+    "title_fr": "Listage de répertoires sur /logs/",
     "title_en": "Directory listing on /logs/",
-    "evidence_fr": "Directory listing activé sur /logs/ : journaux accessibles.",
+    "evidence_fr": "Listage de répertoires activé sur /logs/ : journaux accessibles.",
     "evidence_en": "Directory listing enabled on /logs/: logs accessible.",
     "references": []
   },
   "directory_listing-config": {
-    "recommendation": "Désactiver le directory listing sur /config/ et restreindre l'accès aux fichiers de configuration.",
+    "recommendation": "Désactiver le listage de répertoires sur /config/ et restreindre l'accès aux fichiers de configuration.",
     "recommendation_en": "Disable directory listing on /config/ and restrict access to configuration files.",
-    "title_fr": "Directory listing sur /config/",
+    "title_fr": "Listage de répertoires sur /config/",
     "title_en": "Directory listing on /config/",
-    "evidence_fr": "Directory listing activé sur /config/ : configuration exposée.",
+    "evidence_fr": "Listage de répertoires activé sur /config/ : configuration exposée.",
     "evidence_en": "Directory listing enabled on /config/: configuration exposed.",
     "references": []
   },
   "directory_listing-backup": {
-    "recommendation": "Désactiver le directory listing sur /backup/ et protéger les sauvegardes.",
+    "recommendation": "Désactiver le listage de répertoires sur /backup/ et protéger les sauvegardes.",
     "recommendation_en": "Disable directory listing on /backup/ and protect backups.",
-    "title_fr": "Directory listing sur /backup/",
+    "title_fr": "Listage de répertoires sur /backup/",
     "title_en": "Directory listing on /backup/",
-    "evidence_fr": "Directory listing activé sur /backup/ : sauvegardes énumérables.",
+    "evidence_fr": "Listage de répertoires activé sur /backup/ : sauvegardes énumérables.",
     "evidence_en": "Directory listing enabled on /backup/: backups enumerable.",
     "references": []
   },
   "directory_listing-data": {
-    "recommendation": "Désactiver le directory listing sur /data/ et restreindre l'accès aux données.",
+    "recommendation": "Désactiver le listage de répertoires sur /data/ et restreindre l'accès aux données.",
     "recommendation_en": "Disable directory listing on /data/ and restrict data access.",
-    "title_fr": "Directory listing sur /data/",
+    "title_fr": "Listage de répertoires sur /data/",
     "title_en": "Directory listing on /data/",
-    "evidence_fr": "Directory listing activé sur /data/ : données exposées.",
+    "evidence_fr": "Listage de répertoires activé sur /data/ : données exposées.",
     "evidence_en": "Directory listing enabled on /data/: data exposed.",
     "references": []
   },

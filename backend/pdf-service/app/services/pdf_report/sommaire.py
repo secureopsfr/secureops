@@ -13,6 +13,7 @@ def build_sommaire(
     ordered_cats: list[str],
     lang: str,
     scan_mode: str = "passive",
+    info_by_category: dict[str, list[Finding]] | None = None,
 ) -> str:
     """Construit le HTML du sommaire (sections et sous-parties 2.1, 2.2, etc.)."""
     sommaire_label = t("sommaire", lang)
@@ -23,11 +24,12 @@ def build_sommaire(
     cats_to_toc = [c for c in cat_config.checked if c in cat_config.order] or list(cat_config.order)
 
     other_tests_label = t("other_tests_section", lang)
+    info_by_category = info_by_category or {}
 
     items = [f'<li class="toc-item"><a href="#synthese" class="toc-link"><span class="toc-num">1</span> {synthese_label}</a></li>']
     section_num = 2
     for cat in cats_to_toc:
-        cat_findings = by_category.get(cat, [])
+        cat_findings = [*by_category.get(cat, []), *info_by_category.get(cat, [])]
         if not cat_findings:
             continue
         label = category_labels.get(cat, cat)
@@ -46,7 +48,7 @@ def build_sommaire(
                 f'<span class="toc-num">{section_num}.{idx}</span> {title}</a></li>'
             )
         section_num += 1
-    ok_cats = [c for c in cats_to_toc if len(by_category.get(c, [])) == 0]
+    ok_cats = [c for c in cats_to_toc if len(by_category.get(c, [])) == 0 and len(info_by_category.get(c, [])) == 0]
     if ok_cats:
         items.append(
             f'<li class="toc-item"><a href="#sect-other-tests" class="toc-link">'
