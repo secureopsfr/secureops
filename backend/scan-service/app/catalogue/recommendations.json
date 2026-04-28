@@ -191,6 +191,8 @@
     "recommendation_en": "Add report-uri or report-to in CSP to detect violations in production.",
     "title_fr": "CSP sans report-uri ni report-to",
     "title_en": "CSP without report-uri or report-to",
+    "evidence_fr": "CSP présent mais sans report-uri ni report-to : violations non détectables.",
+    "evidence_en": "CSP present but missing report-uri or report-to: violations cannot be detected.",
     "references": [
       "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-uri"
     ]

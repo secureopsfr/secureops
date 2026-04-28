@@ -29,6 +29,9 @@ const BASE_OPTIONS = {
   position: "bottom-right" as const,
 };
 
+const withToastClass = (variantClass: string, className?: string) =>
+  ["secureops-toast", variantClass, className].filter(Boolean).join(" ");
+
 export const showSuccessToast = (
   message: string,
   options: ToastExtraOptions = {},
@@ -36,6 +39,7 @@ export const showSuccessToast = (
   toast.success(message || getToastT()("admin.common.successDefault"), {
     ...BASE_OPTIONS,
     ...options,
+    className: withToastClass("secureops-toast--success", options.className),
   });
 
 export const showErrorToast = (
@@ -46,6 +50,7 @@ export const showErrorToast = (
     ...BASE_OPTIONS,
     duration: options.duration ?? 5500,
     ...options,
+    className: withToastClass("secureops-toast--error", options.className),
   });
 
 export const showWarningToast = (
@@ -55,4 +60,6 @@ export const showWarningToast = (
   toast(message || getToastT()("admin.common.infoDefault"), {
     ...BASE_OPTIONS,
     ...options,
+    className: withToastClass("secureops-toast--warning", options.className),
+    icon: "!",
   });

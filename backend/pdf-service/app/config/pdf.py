@@ -191,16 +191,16 @@ _DEFAULT_CHECKED = (
 )
 _DEFAULT_LABELS_FR = {
     "tls": "TLS / HTTPS",
-    "headers": "Security Headers",
+    "headers": "En-têtes de sécurité",
     "cache": "Cache et performances",
     "integrity": "Intégrité et sous-ressources",
     "cookies": "Cookies",
     "exposed_files": "Fichiers exposés",
-    "directory_listing": "Directory listing",
+    "directory_listing": "Listage de répertoires",
     "robots_txt": "robots.txt",
-    "sitemap": "Sitemap",
-    "tech_fingerprinting": "Tech fingerprinting",
-    "information_disclosure": "Fuites d'information",
+    "sitemap": "Plan du site",
+    "tech_fingerprinting": "Empreinte technologique",
+    "information_disclosure": "Divulgation d'information",
     "cors_cross_origin": "CORS et cross-origin",
     "other": "Autres",
 }

@@ -226,7 +226,7 @@
     ]
   },
   "cors_cross_origin": {
-    "description_fr": "Le scan envoie des requêtes **GET et OPTIONS** avec l'en-tête **Origin** vers la page principale et vers des URLs dérivées (chemins sensibles : /api/, /user/, /admin/, etc.). Il vérifie **Access-Control-Allow-Origin** (* sur endpoint sensible), **Access-Control-Allow-Credentials** avec réflexion d'origine, **Access-Control-Expose-Headers** (en-têtes sensibles), **Cross-Origin-Resource-Policy** (CORP), et la détection du **mixed content** (ressources HTTP sur page HTTPS). Les méthodes PUT/DELETE/PATCH sont vérifiées dans **Méthodes HTTP et redirections**. **Referrer-Policy** est vérifié dans **Security Headers**.",
+    "description_fr": "Le scan envoie des requêtes **GET et OPTIONS** avec l'en-tête **Origin** vers la page principale et vers des URLs dérivées (chemins sensibles : /api/, /user/, /admin/, etc.). Il vérifie **Access-Control-Allow-Origin** (* sur endpoint sensible), **Access-Control-Allow-Credentials** avec réflexion d'origine, **Access-Control-Expose-Headers** (en-têtes sensibles), **Cross-Origin-Resource-Policy** (CORP), et la détection du **mixed content** (ressources HTTP sur page HTTPS). Les méthodes PUT/DELETE/PATCH sont vérifiées dans **Méthodes HTTP et redirections**. **Referrer-Policy** est vérifié dans **En-têtes de sécurité**.",
     "description_en": "The scan sends **GET and OPTIONS** requests with the **Origin** header to the main page and to derived URLs (sensitive paths: /api/, /user/, /admin/, etc.). It checks **Access-Control-Allow-Origin** (* on sensitive endpoint), **Access-Control-Allow-Credentials** with origin reflection, **Access-Control-Expose-Headers** (sensitive headers), **Cross-Origin-Resource-Policy** (CORP), and **mixed content** detection (HTTP resources on HTTPS page). PUT/DELETE/PATCH methods are verified in **HTTP methods and redirects**. **Referrer-Policy** is verified in **Security Headers**.",
     "checks_fr": [
       "**GET/OPTIONS** avec Origin (page + chemins sensibles)",
@@ -235,7 +235,7 @@
       "**Expose-Headers** sensibles",
       "**CORP** manquant",
       "**Mixed content** (HTTP sur HTTPS)",
-      "**Referrer-Policy** (vérifié dans Security Headers)"
+      "**Referrer-Policy** (vérifié dans En-têtes de sécurité)"
     ],
     "checks_en": [
       "**GET/OPTIONS** with Origin (page + sensitive paths)",

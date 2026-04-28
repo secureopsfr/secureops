@@ -7,7 +7,7 @@ from pathlib import Path
 from app.config.pdf import get_pdf_settings
 from app.schemas.finding import Finding
 from app.services.pdf_report.cover import build_cover_page
-from app.services.pdf_report.findings import _group_findings_by_category, build_category_sections, build_other_tests_section
+from app.services.pdf_report.findings import _group_findings_by_category, _split_findings_by_type, build_category_sections, build_other_tests_section
 from app.services.pdf_report.pdf_i18n import t
 from app.services.pdf_report.sommaire import build_sommaire
 from app.services.pdf_report.synthese import build_synthese
@@ -126,13 +126,23 @@ def build_html(
     else:
         score_color = render.score_color_low
 
-    by_category, ordered_cats = _group_findings_by_category(findings, lang, scan_mode=scan_mode)
+    anomaly_findings, info_findings = _split_findings_by_type(findings)
+    by_category, ordered_cats = _group_findings_by_category(anomaly_findings, lang, scan_mode=scan_mode)
+    info_by_category, _ = _group_findings_by_category(info_findings, lang, scan_mode=scan_mode)
+    visible_findings = [*anomaly_findings, *info_findings]
+    visible_by_category, _ = _group_findings_by_category(visible_findings, lang, scan_mode=scan_mode)
     cover_page = build_cover_page(url, date_str, lang, report_title, subtitle, scan_mode=scan_mode)
-    sommaire_html = build_sommaire(by_category, ordered_cats, lang, scan_mode=scan_mode)
+    sommaire_html = build_sommaire(
+        by_category,
+        ordered_cats,
+        lang,
+        scan_mode=scan_mode,
+        info_by_category=info_by_category,
+    )
     synthese_html = build_synthese(
         by_category,
         ordered_cats,
-        findings,
+        anomaly_findings,
         score_val,
         score_color,
         lang,
@@ -140,9 +150,17 @@ def build_html(
         result_mode=result_mode,
         page_results=page_results,
         scan_mode=scan_mode,
+        info_by_category=info_by_category,
     )
-    sections_html, next_section_num = build_category_sections(by_category, ordered_cats, include_matrices, lang, scan_mode=scan_mode)
-    other_tests_html, next_section_num = build_other_tests_section(by_category, next_section_num, lang, scan_mode=scan_mode)
+    sections_html, next_section_num = build_category_sections(
+        by_category,
+        ordered_cats,
+        include_matrices,
+        lang,
+        scan_mode=scan_mode,
+        info_by_category=info_by_category,
+    )
+    other_tests_html, next_section_num = build_other_tests_section(visible_by_category, next_section_num, lang, scan_mode=scan_mode)
 
     references_html = _build_references_section(findings, next_section_num, lang)
 

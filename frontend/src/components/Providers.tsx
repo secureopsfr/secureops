@@ -59,12 +59,32 @@ export function Providers({
                 >
                   <div style={{ pointerEvents: "auto", position: "relative" }}>
                     <Toaster
-                      position="bottom-center"
+                      position="bottom-right"
                       containerStyle={{
                         zIndex: TOAST_Z_INDEX,
                       }}
                       toastOptions={{
-                        style: { position: "relative" },
+                        className: "secureops-toast",
+                        style: {
+                          position: "relative",
+                          background: "var(--color-overlay-panel)",
+                          color: "var(--color-text)",
+                          boxShadow: "none",
+                        },
+                        success: {
+                          className: "secureops-toast secureops-toast--success",
+                          iconTheme: {
+                            primary: "rgb(var(--success))",
+                            secondary: "var(--color-bg)",
+                          },
+                        },
+                        error: {
+                          className: "secureops-toast secureops-toast--error",
+                          iconTheme: {
+                            primary: "rgb(var(--danger))",
+                            secondary: "var(--color-bg)",
+                          },
+                        },
                       }}
                     />
                   </div>

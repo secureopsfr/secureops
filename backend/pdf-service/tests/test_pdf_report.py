@@ -4,7 +4,7 @@ from app.schemas.finding import Finding
 from app.services.pdf_report import generate_pdf
 from app.services.pdf_report.constants import SEVERITY_LIST, severity_index
 from app.services.pdf_report.cover import build_cover_page
-from app.services.pdf_report.findings import _group_findings_by_category, build_finding_block
+from app.services.pdf_report.findings import _group_findings_by_category, _split_findings_by_type, build_category_sections, build_finding_block
 from app.services.pdf_report.html_builder import build_html
 from app.services.pdf_report.pdf_i18n import t
 from app.services.pdf_report.sommaire import build_sommaire
@@ -116,6 +116,33 @@ def test_build_finding_block_escapes_title() -> None:
     assert "&lt;b&gt;injection&lt;/b&gt;" in html  # noqa: Q000
 
 
+def test_build_finding_block_uses_english_catalog_evidence() -> None:
+    """Le rapport anglais ne reprend pas l'evidence française du scan si le catalogue traduit existe."""
+    f = Finding(
+        id="headers-csp-no-report-uri",
+        category="headers",
+        severity="low",
+        evidence="CSP présent mais sans report-uri ni report-to : violations non détectables.",
+    )
+    html = build_finding_block(f, section_num=2, finding_idx=2, include_matrices=False, lang="en")
+    assert "CSP present but missing report-uri or report-to" in html
+    assert "CSP présent" not in html
+
+
+def test_build_finding_block_hides_french_evidence_when_english_catalog_missing() -> None:
+    """Le rapport anglais utilise un fallback EN pour les slugs connus sans evidence_en."""
+    f = Finding(
+        id="tls-no-redirect",
+        category="tls",
+        severity="high",
+        evidence="Detected on 2 page(s): https://example.com, https://example.com/login\nPas de redirection HTTP→HTTPS détectée.",
+    )
+    html = build_finding_block(f, section_num=2, finding_idx=2, include_matrices=False, lang="en")
+    assert "Detected on 2 page(s)" in html
+    assert "Finding detected during the scan: No HTTP→HTTPS redirect." in html
+    assert "Pas de redirection" not in html
+
+
 # ---------------------------------------------------------------------------
 # Groupement et tri
 # ---------------------------------------------------------------------------
@@ -144,6 +171,17 @@ def test_group_findings_empty() -> None:
     assert isinstance(ordered, list)
 
 
+def test_split_findings_by_type_separates_info() -> None:
+    """Les findings info sont séparés des anomalies pour le rendu PDF."""
+    findings = [
+        Finding(id="a", category="headers", title="Anomalie", severity="medium"),
+        Finding(id="b", category="headers", title="Info", severity="info"),
+    ]
+    anomalies, infos = _split_findings_by_type(findings)
+    assert [f.title for f in anomalies] == ["Anomalie"]
+    assert [f.title for f in infos] == ["Info"]
+
+
 # ---------------------------------------------------------------------------
 # Builders HTML
 # ---------------------------------------------------------------------------
@@ -162,7 +200,7 @@ def test_build_sommaire_with_findings() -> None:
     by_cat, ordered = _group_findings_by_category(findings, "fr")
     html = build_sommaire(by_cat, ordered, "fr")
     assert "toc-list" in html
-    assert "Security Headers" in html
+    assert "En-têtes de sécurité" in html
 
 
 def test_build_sommaire_empty_findings() -> None:
@@ -181,6 +219,57 @@ def test_build_synthese_score_gauge() -> None:
     assert "synthese-gauge" in html
 
 
+def test_build_synthese_counts_anomalies_without_infos() -> None:
+    """Le compteur de synthèse PDF compte seulement les anomalies."""
+    findings = [
+        Finding(id="a", category="tls", title="TLS faible", severity="high"),
+        Finding(id="b", category="tls", title="Version détectée", severity="info"),
+    ]
+    anomalies, infos = _split_findings_by_type(findings)
+    by_cat, ordered = _group_findings_by_category(anomalies, "fr")
+    info_by_cat, _ = _group_findings_by_category(infos, "fr")
+    html = build_synthese(by_cat, ordered, anomalies, score_val=72, score_color="#f59e0b", lang="fr", info_by_category=info_by_cat)
+    assert '<span class="synthese-anomalies-value">1</span>' in html
+    assert "synthese-info-value" not in html
+    assert "1 info" in html
+
+
+def test_build_category_sections_renders_infos_in_category() -> None:
+    """Les infos sont rendues dans leur catégorie, sans section dédiée."""
+    info_findings = [Finding(id="", category="headers", title="Technologie détectée", severity="info")]
+    info_by_cat, _ = _group_findings_by_category(info_findings, "fr")
+    sections, next_section = build_category_sections({}, [], include_matrices=False, lang="fr", info_by_category=info_by_cat)
+    html = "".join(sections)
+    assert next_section == 3
+    assert 'id="sect-headers"' in html
+    assert 'id="sect-infos"' not in html
+    assert "Technologie détectée" in html
+
+
+def test_build_synthese_multi_ignores_info_findings_in_counts() -> None:
+    """Le tableau multi-pages ne compte pas les infos comme anomalies."""
+    html = build_synthese(
+        by_category={},
+        ordered_cats=[],
+        findings=[],
+        score_val=80,
+        score_color="#10b981",
+        lang="fr",
+        base_url="https://example.com",
+        result_mode="multi",
+        page_results=[
+            {
+                "url": "https://example.com/a",
+                "score": 80,
+                "findings": [{"category": "headers", "severity": "info", "title": "Technologie détectée"}],
+                "category_summaries": [{"category": "headers", "anomaly_count": 1, "checks_count": 1}],
+            }
+        ],
+    )
+    assert "anomaly-chip" not in html
+    assert "info-chip" in html
+
+
 def test_build_html_returns_full_document() -> None:
     """build_html retourne un document HTML complet avec doctype."""
     findings = [Finding(id="headers-csp-absent", category="headers", severity="medium")]
@@ -196,6 +285,27 @@ def test_build_html_returns_full_document() -> None:
     assert html.strip().startswith("<!DOCTYPE html>")
     assert "</html>" in html
     assert "example.com" in html
+
+
+def test_build_html_separates_infos_from_anomalies() -> None:
+    """Le rapport complet ne mélange pas infos et anomalies."""
+    findings = [
+        Finding(id="", category="headers", title="Header manquant", severity="medium"),
+        Finding(id="", category="headers", title="Technologie détectée", severity="info"),
+    ]
+    html = build_html(
+        url="https://example.com",
+        score=65,
+        timestamp="2026-01-15T10:00:00Z",
+        duration=3.0,
+        findings=findings,
+        include_matrices=False,
+        lang="fr",
+    )
+    assert '<span class="synthese-anomalies-value">1</span>' in html
+    assert 'id="sect-infos"' not in html
+    assert 'id="sect-headers"' in html
+    assert "Technologie détectée" in html
 
 
 # ---------------------------------------------------------------------------

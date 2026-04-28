@@ -102,8 +102,10 @@ def get_evidence(slug: str, lang: str) -> str:
     entry = _get_catalogue().get(slug)
     if entry is None:
         return ""
-    key = _lang_key(lang, "evidence")
-    val = entry.get(key) or entry.get("evidence_fr") or entry.get("evidence_en")
+    if lang == "en":
+        val = entry.get("evidence_en")
+    else:
+        val = entry.get("evidence_fr") or entry.get("evidence_en")
     return str(val) if val else ""
 
 
